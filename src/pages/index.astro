@@ -1,44 +1,22 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import Hero from '../components/Hero.astro';
 import Features from '../components/Features.astro';
+import Process from '../components/Process.astro'; // NEW
 import Testimonials from '../components/Testimonials.astro';
-import Footer from '../components/Footer.astro';
 import data from '../data/business.json';
-
-// Pulling settings for the button
-const { cta_text, cta_link } = data.settings;
 ---
 
-<Layout title="Home">
-	<main class="min-h-[75vh] flex flex-col items-center justify-center px-6 text-center">
-		<h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-gradient-to-b from-[var(--text-primary)] to-[var(--text-secondary)] bg-clip-text text-transparent">
-			{data.hero.headline}
-		</h1>
-		<p class="text-lg md:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto leading-relaxed">
-			{data.hero.subtext}
-		</p>
-		
-		<div class="mt-10 flex flex-col sm:flex-row gap-4 items-center justify-center">
-			<a 
-				href={cta_link} 
-				class="bg-[var(--accent)] text-white px-8 py-4 rounded-[var(--radius)] font-bold shadow-xl hover:brightness-110 hover:-translate-y-1 transition-all"
-			>
-				{cta_text}
-			</a>
-			
-			<a 
-				href="#features" 
-				class="px-8 py-4 rounded-[var(--radius)] font-bold text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-color)] transition-all"
-			>
-				Explore Services
-			</a>
-		</div>
-	</main>
+<Layout>
+  <Hero 
+    brand={data.brand} 
+    hero={data.hero} 
+    settings={data.settings} 
+  />
+  
+  <Features features={data.features} />
 
-	<div id="features">
-		<Features />
-	</div>
-	
-	<Testimonials />
-	<Footer />
+  <Process steps={data.processSteps} />
+  
+  <Testimonials testimonials={data.testimonials} />
 </Layout>

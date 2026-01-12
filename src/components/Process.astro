@@ -1,0 +1,39 @@
+---
+const { steps } = Astro.props;
+---
+
+<section class="py-24 bg-[var(--bg-color)] border-t border-[var(--border)]">
+  <div class="container px-6 mx-auto">
+    
+    <div class="mb-16">
+      <h2 class="text-3xl md:text-5xl font-light uppercase tracking-tighter text-[var(--text-primary)]">
+        The <span class="text-[var(--accent)] font-bold">Process</span>
+      </h2>
+    </div>
+
+    <div class="grid gap-12 md:grid-cols-3">
+      {steps.map((step, index) => (
+        <div class="relative group">
+          <div class="flex items-center gap-4 mb-6">
+            <span class="text-4xl font-black text-[var(--accent)] opacity-20 group-hover:opacity-100 transition-opacity duration-500">
+              0{index + 1}
+            </span>
+            <div class="h-px w-full bg-[var(--border)] group-hover:bg-[var(--accent)] transition-colors duration-500"></div>
+          </div>
+          
+          <h3 class="mb-4 text-xl font-bold uppercase tracking-widest text-[var(--text-primary)]">
+            {step.title}
+          </h3>
+          
+          <p class="text-[var(--text-secondary)] leading-relaxed text-sm max-w-xs">
+            {step.description}
+          </p>
+          
+          <div class="mt-8 text-[9px] font-mono tracking-[0.4em] text-[var(--text-secondary)] opacity-30">
+            // STATUS: OPTIMIZED
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

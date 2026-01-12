@@ -3,16 +3,41 @@
 @tailwind utilities;
 
 /* Update your existing vibe-system.css */
-
 [data-vibe="dark-neo"] {
-  --bg-color: #0a0a0a;
+  --bg-color: #050505;      /* Deep obsidian */
   --text-primary: #ffffff;
   --text-secondary: #a1a1aa;
-  --accent: #6366f1;
-  --border: #27272a;
-  --radius: 0.75rem;
-  /* Modern Font */
+  --accent: #6366f1;        /* Electric Indigo */
+  --border: #1f1f23;
+  --radius: 12px;
   --font-main: 'Inter', sans-serif;
+}
+
+/* --- RECOVERY & POLISH --- */
+
+/* Fix the invisible H1 - Solid color first, then optional gradient */
+[data-vibe="dark-neo"] h1 {
+  color: #ffffff; 
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+/* This adds the 'Neo' look without making text disappear */
+[data-vibe="dark-neo"] .bg-\[var\(--accent\)\] {
+  background-color: var(--accent);
+  box-shadow: 0 0 25px rgba(99, 102, 241, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-vibe="dark-neo"] .bg-\[var\(--accent\)\]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 35px rgba(99, 102, 241, 0.6);
+}
+
+/* Glass effect for cards and nav */
+[data-vibe="dark-neo"] .border {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 [data-vibe="clean-light"] {
@@ -47,29 +72,108 @@
   transform: translate(2px, 2px);
 }
 
-[data-vibe="zen-nature"] {
-  --bg-color: #fdfbf7;      /* Warm Cream */
-  --text-primary: #2d3436;  /* Charcoal Green */
-  --text-secondary: #636e72;
-  --accent: #556b2f;        /* Olive/Sage Green */
-  --border: #e0eadd;        /* Soft leaf-green border */
-  --radius: 2rem;           /* Very rounded, pill-like shapes */
-  --font-main: 'Outfit', sans-serif;
+[data-vibe="maestro-dark"] {
+  --bg-color: #0d0d0d;      /* Midnight Onyx */
+  --text-primary: #f4f1ea;  /* Warm Ivory (easier on eyes than pure white) */
+  --text-secondary: #a0a0a0;
+  --accent: #c0a080;        /* Champagne Gold (replaces the red for better dark contrast) */
+  --border: #262626;        /* Subtle charcoal borders */
+  --radius: 0px;
+  --font-main: 'Cormorant Garamond', serif;
 }
 
-/* Specific button tweak for Zen Vibe */
-[data-vibe="zen-nature"] .bg-\[var\(--accent\)\] {
-  box-shadow: 0 10px 15px -3px rgba(85, 107, 47, 0.2);
-  letter-spacing: 0.02em;
+/* Specific Polish for Maestro Dark */
+[data-vibe="maestro-dark"] h1, 
+[data-vibe="maestro-dark"] h2 {
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-primary);
+}
+
+/* Elegant Gold Outline Button */
+[data-vibe="maestro-dark"] .bg-\[var\(--accent\)\] {
+  background-color: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+[data-vibe="maestro-dark"] .bg-\[var\(--accent\)\]:hover {
+  background-color: var(--accent);
+  color: #000000;
+  box-shadow: 0 0 20px rgba(192, 160, 128, 0.2);
+}
+
+[data-vibe="maestro-classic"] {
+  --bg-color: #fcfcfc;      /* Pristine Paper */
+  --text-primary: #1a1a1a;  /* Deep Ink */
+  --text-secondary: #5e5e5e;
+  --accent: #8b0000;        /* Deep Rosso Corsa (Violin Varnish Red) */
+  --border: #d1d1d1;        /* Hairline borders */
+  --radius: 0px;            /* Traditional sharp edges */
+  --font-main: 'Cormorant Garamond', serif;
+}
+
+/* Custom Polish for Maestro Vibe */
+[data-vibe="maestro-classic"] h1, 
+[data-vibe="maestro-classic"] h2 {
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+[data-vibe="maestro-classic"] .bg-\[var\(--accent\)\] {
+  background-color: transparent;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: all 0.4s ease;
+}
+
+[data-vibe="maestro-classic"] .bg-\[var\(--accent\)\]:hover {
+  background-color: var(--text-primary);
+  color: var(--bg-color);
 }
 
 body {
   background-color: var(--bg-color);
   color: var(--text-primary);
-  font-family: var(--font-main); /* Apply the variable globally */
+  font-family: sans-serif;
 }
 
-/* Optional: Make headings extra bold for the Neo vibe */
-[data-vibe="dark-neo"] h1, [data-vibe="dark-neo"] h2 {
-  letter-spacing: -0.05em;
+/* --- RUGGED INDUSTRIAL VIBE --- */
+[data-vibe="rugged-industrial"] {
+  --bg-color: #111111;      /* Deep Charcoal */
+  --text-primary: #f4f4f4;  /* Off-White */
+  --text-secondary: #a1a1aa;
+  --accent: #ff5f1f;        /* Safety Orange */
+  --border: #27272a;        /* Subtle Zinc Border */
+  --radius: 4px;            /* Tough, nearly square edges */
+  --font-main: 'JetBrains Mono', monospace;
+}
+
+/* Custom Polish for Rugged Vibe */
+[data-vibe="rugged-industrial"] h1, 
+[data-vibe="rugged-industrial"] h2 {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.05em; /* Tight, heavy impact */
+  font-style: italic;      /* Aggressive forward motion */
+}
+
+/* Heavy "Caution" Button Style */
+[data-vibe="rugged-industrial"] .bg-\[var\(--accent\)\] {
+  background-color: var(--accent);
+  color: #000000;
+  box-shadow: 4px 4px 0px 0px #ffffff; /* Hard white offset shadow */
+  border: 1px solid #000000;
+}
+
+[data-vibe="rugged-industrial"] .bg-\[var\(--accent\)\]:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #ffffff;
 }

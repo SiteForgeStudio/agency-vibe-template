@@ -1,36 +1,45 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Footer from '../components/Footer.astro';
+import data from '../data/business.json';
 ---
 
-<Layout title="Contact Us">
-  <main class="min-h-screen py-20 px-6">
+<Layout title={`Contact | ${data.brand.name}`}>
+  <main class="py-24 px-6">
     <div class="max-w-xl mx-auto">
-      <h1 class="text-4xl font-bold mb-8 text-center">Get in Touch</h1>
+      <h1 class="text-4xl md:text-6xl font-black mb-4 text-center uppercase tracking-tighter text-[var(--text-primary)]">
+        Get in <span class="text-[var(--accent)]">Touch</span>
+      </h1>
+      <p class="text-center text-[var(--text-secondary)] uppercase tracking-[0.2em] text-xs mb-12">
+        {data.brand.objection_handle}
+      </p>
       
       <form 
         name="contact" 
         method="POST" 
-        data-netlify="true" 
-        class="space-y-6 bg-[var(--border)] p-8 rounded-[var(--radius)]"
+        action="/success"  data-netlify="true"
+        class="space-y-6 p-1 bg-[var(--bg-color)]"
       >
-        <div>
-          <label class="block text-sm font-medium mb-2">Name</label>
-          <input type="text" name="name" required class="w-full p-3 rounded-md bg-[var(--bg-color)] border border-[var(--border)] outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+        <input type="hidden" name="form-name" value="contact" />
+
+        <div class="group">
+          <label class="block text-[10px] font-bold uppercase tracking-widest mb-2 text-[var(--accent)]">01. Name</label>
+          <input type="text" name="name" required class="w-full p-4 rounded-[var(--radius)] bg-[var(--bg-color)] border border-[var(--border)] outline-none focus:border-[var(--accent)] transition-all text-[var(--text-primary)]" />
         </div>
-        <div>
-          <label class="block text-sm font-medium mb-2">Email</label>
-          <input type="email" name="email" required class="w-full p-3 rounded-md bg-[var(--bg-color)] border border-[var(--border)] outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+
+        <div class="group">
+          <label class="block text-[10px] font-bold uppercase tracking-widest mb-2 text-[var(--accent)]">02. Email</label>
+          <input type="email" name="email" required class="w-full p-4 rounded-[var(--radius)] bg-[var(--bg-color)] border border-[var(--border)] outline-none focus:border-[var(--accent)] transition-all text-[var(--text-primary)]" />
         </div>
-        <div>
-          <label class="block text-sm font-medium mb-2">Message</label>
-          <textarea name="message" rows="4" required class="w-full p-3 rounded-md bg-[var(--bg-color)] border border-[var(--border)] outline-none focus:ring-2 focus:ring-[var(--accent)]"></textarea>
+
+        <div class="group">
+          <label class="block text-[10px] font-bold uppercase tracking-widest mb-2 text-[var(--accent)]">03. Message</label>
+          <textarea name="message" rows="4" required class="w-full p-4 rounded-[var(--radius)] bg-[var(--bg-color)] border border-[var(--border)] outline-none focus:border-[var(--accent)] transition-all text-[var(--text-primary)] resize-none"></textarea>
         </div>
-        <button type="submit" class="w-full bg-[var(--accent)] text-white font-bold py-3 rounded-md hover:brightness-110 transition-all">
-          Send Message
+
+        <button type="submit" class="w-full bg-[var(--accent)] text-[var(--bg-color)] font-bold py-5 rounded-[var(--radius)] hover:brightness-110 transition-all uppercase tracking-[0.3em] text-xs shadow-lg shadow-[var(--accent)]/20">
+          Send Transmission
         </button>
       </form>
     </div>
   </main>
-  <Footer />
-</Layout>
+  </Layout>

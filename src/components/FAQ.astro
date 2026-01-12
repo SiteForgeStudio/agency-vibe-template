@@ -1,0 +1,20 @@
+---
+const { faqs } = Astro.props;
+---
+
+<section class="py-24 bg-skin-base">
+  <div class="container px-6 mx-auto">
+    <div class="max-w-2xl mx-auto text-center mb-16">
+       <h2 class="text-3xl font-bold md:text-4xl text-skin-muted">Common Questions</h2>
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      {faqs.map((faq) => (
+        <div class="p-6 rounded-3xl bg-skin-base-secondary border border-transparent hover:border-skin-accent transition-colors">
+          <h4 class="mb-3 text-lg font-bold text-skin-accent">{faq.question}</h4>
+          <p class="text-skin-inverted opacity-75">{faq.answer}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

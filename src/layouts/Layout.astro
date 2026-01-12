@@ -1,26 +1,27 @@
 ---
-import '../styles/vibe-system.css';
 import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro'; // 1. IMPORT IT
 import data from '../data/business.json';
+import '../styles/vibe-system.css';
 
 const { title } = Astro.props;
 ---
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<title>{title} | {data.brand.name}</title>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title || data.brand.name}</title>
+</head>
+<body data-vibe={data.settings.vibe} class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] flex flex-col min-h-screen">
+    
+    <Navbar brand={data.brand} settings={data.settings} />
 
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Playfair+Display:wght@700&family=JetBrains+Mono:wght@400&family=Outfit:wght@300;500;800&display=swap" rel="stylesheet">
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Playfair+Display:wght@700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
-	</head>
-	<body data-vibe={data.settings.vibe} class="antialiased font-body">
-		<Navbar />
-		<slot />
-	</body>
+    <main class="flex-grow">
+        <slot />
+    </main>
+
+    <Footer /> </body>
 </html>

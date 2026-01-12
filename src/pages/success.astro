@@ -1,0 +1,41 @@
+---
+import Layout from '../layouts/Layout.astro';
+import data from '../data/business.json';
+---
+
+<Layout title={`Message Received | ${data.brand.name}`}>
+  <main class="flex items-center justify-center min-h-[70vh] px-6">
+    <div class="max-w-md w-full text-center">
+      
+      <div class="mb-8 flex justify-center">
+        <div class="w-20 h-20 rounded-full border-2 border-[var(--accent)] flex items-center justify-center animate-pulse">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-4">
+        Transmission <span class="text-[var(--accent)]">Received</span>
+      </h1>
+      
+      <p class="text-[var(--text-secondary)] uppercase tracking-[0.2em] text-xs mb-10 leading-relaxed">
+        Your inquiry has been logged in our system. <br/> 
+        Expect a response within 24 business hours.
+      </p>
+
+      <a 
+        href="/" 
+        class="inline-block bg-[var(--accent)] text-[var(--bg-color)] px-10 py-4 rounded-[var(--radius)] text-[10px] font-bold uppercase tracking-[0.3em] transition-all hover:scale-105"
+      >
+        Return to Homebase
+      </a>
+      
+      <div class="mt-12 pt-8 border-t border-[var(--border)] opacity-20">
+        <span class="text-[9px] font-mono tracking-[0.5em] text-[var(--text-primary)] uppercase">
+          // ID: {Math.random().toString(36).toUpperCase().substring(2, 10)}
+        </span>
+      </div>
+    </div>
+  </main>
+</Layout>

@@ -1,27 +1,52 @@
 ---
 import data from '../data/business.json';
 const year = new Date().getFullYear();
+const { brand, settings, contact } = data;
 ---
 
-<footer class="py-12 px-6 border-t border-[var(--border)] bg-[var(--bg-color)]">
-  <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-    <div class="flex flex-col items-center md:items-start">
-      <span class="text-xl font-bold text-[var(--text-primary)] tracking-tight">
-        {data.brand.name}
-      </span>
-      <p class="text-sm text-[var(--text-secondary)] mt-2">
-        Built with Astro & AI Precision.
-      </p>
+<footer class="py-16 px-6 border-t border-[var(--border)] bg-[var(--bg-color)]">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 items-start text-center md:text-left">
+      
+      <div class="flex flex-col gap-3">
+        <span class="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+          {brand.name}
+        </span>
+        <p class="text-xs uppercase tracking-widest text-[var(--text-secondary)] opacity-70 leading-relaxed">
+          High-Performance Digital Architecture.<br/> 
+          Built with AI Precision.
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent)]">Navigation</span>
+        <div class="flex flex-col gap-2">
+          {settings.menu.map((item) => (
+            <a href={item.path} class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors uppercase tracking-widest font-medium">
+              {item.label}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-4">
+         <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent)]">Connect</span>
+         <div class="text-sm text-[var(--text-secondary)] flex flex-col gap-2 uppercase tracking-tighter">
+            <span>{contact?.location || "Global Operations"}</span>
+            <span class="font-bold text-[var(--text-primary)]">{contact?.phone}</span>
+         </div>
+      </div>
+
     </div>
 
-    <div class="flex gap-8 text-sm font-medium text-[var(--text-secondary)]">
-      <a href="/" class="hover:text-[var(--accent)] transition-colors">Home</a>
-      <a href="/about" class="hover:text-[var(--accent)] transition-colors">About</a>
-      <a href="/contact" class="hover:text-[var(--accent)] transition-colors">Contact</a>
-    </div>
-
-    <div class="text-sm text-[var(--text-secondary)]">
-      © {year} All rights reserved.
+    <div class="mt-16 pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-50">
+        © {year} {brand.name}. All rights reserved.
+      </div>
+      
+      <div class="text-[9px] font-mono uppercase tracking-[0.2em] text-[var(--accent)]">
+        // System Status: Optimized
+      </div>
     </div>
   </div>
 </footer>

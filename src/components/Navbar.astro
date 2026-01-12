@@ -1,75 +1,50 @@
 ---
-import data from '../data/business.json';
-import { getCollection } from 'astro:content';
-
-const services = await getCollection('services');
-const { menu, cta_text, cta_link } = data.settings;
+const { brand, settings } = Astro.props;
 ---
 
 <nav class="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--bg-color)]/80 backdrop-blur-md">
-  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-    <a href="/" class="text-xl font-bold tracking-tighter text-[var(--text-primary)]">
-      {data.brand.name}
+  <div class="container mx-auto px-6 py-4 flex items-center justify-between">
+    
+    <a href="/" class="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+      {brand.logo_text}
     </a>
 
-    <div class="hidden md:flex gap-8 items-center">
-      
-      {menu.map(item => (
-        <a href={item.path} class="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
+    <div class="hidden md:flex items-center gap-8">
+      {settings.menu.map((item) => (
+        <a href={item.path} class="text-xs font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
           {item.label}
         </a>
       ))}
-      
-      <div class="relative group">
-        <button class="flex items-center gap-1 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent)] py-4 transition-colors">
-          Services
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        
-        <div class="absolute top-full left-0 hidden group-hover:block w-56 bg-[var(--bg-color)] border border-[var(--border)] rounded-lg shadow-xl p-2 animate-in fade-in slide-in-from-top-2 duration-200">
-          {services.map(service => (
-            <a 
-              href={`/services/${service.slug}`} 
-              class="block px-4 py-2 text-sm rounded-md text-[var(--text-secondary)] hover:bg-[var(--accent)] hover:bg-opacity-10 hover:text-[var(--accent)] transition-all"
-            >
-              {service.data.title}
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <a href={cta_link} class="bg-[var(--accent)] text-white px-5 py-2 rounded-[var(--radius)] text-sm font-bold shadow-sm hover:brightness-110 transition-all ml-4">
-        {cta_text}
+      <a href={settings.cta_link} class="px-6 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg-color)] transition-all rounded-[var(--radius)]">
+        {settings.cta_text}
       </a>
     </div>
 
-    <button id="mobile-menu-toggle" class="md:hidden p-2 text-[var(--text-primary)]">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"></line><line x1="4" x2="20" y1="6" y2="6"></line><line x1="4" x2="20" y1="18" y2="18"></line></svg>
+    <button id="menu-toggle" class="md:hidden text-[var(--text-primary)] focus:outline-none">
+      <svg id="menu-icon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+      </svg>
     </button>
   </div>
 
-  <div id="mobile-menu" class="hidden md:hidden border-t border-[var(--border)] bg-[var(--bg-color)] px-6 py-4 space-y-4">
-    {menu.map(item => (
-      <a href={item.path} class="block text-base font-medium text-[var(--text-primary)]">{item.label}</a>
+  <div id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-[var(--bg-color)] border-b border-[var(--border)] p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-top-4">
+    {settings.menu.map((item) => (
+      <a href={item.path} class="text-sm font-bold uppercase tracking-[0.3em] text-[var(--text-primary)]">
+        {item.label}
+      </a>
     ))}
-    
-    <div class="space-y-2 pl-4 border-l border-[var(--border)]">
-      <p class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Our Services</p>
-      {services.map(service => (
-        <a href={`/services/${service.slug}`} class="block text-sm text-[var(--text-secondary)]">
-          {service.data.title}
-        </a>
-      ))}
-    </div>
-    
-    <a href={cta_link} class="block w-full text-center bg-[var(--accent)] text-white py-3 rounded-[var(--radius)] font-bold">
-      {cta_text}
+    <a href={settings.cta_link} class="w-full text-center py-4 bg-[var(--accent)] text-[var(--bg-color)] text-[10px] font-bold uppercase tracking-[0.3em] rounded-[var(--radius)]">
+      {settings.cta_text}
     </a>
   </div>
 </nav>
 
 <script>
-  const toggle = document.getElementById('mobile-menu-toggle');
+  const btn = document.getElementById('menu-toggle');
   const menu = document.getElementById('mobile-menu');
-  toggle?.addEventListener('click', () => menu?.classList.toggle('hidden'));
+
+  btn?.addEventListener('click', () => {
+    menu?.classList.toggle('hidden');
+    menu?.classList.toggle('flex');
+  });
 </script>

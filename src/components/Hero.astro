@@ -1,0 +1,45 @@
+---
+const { brand, hero, settings } = Astro.props;
+
+// Use a fallback if the image is the placeholder "hero-main.jpg" or missing
+const hasImage = hero.image && hero.image.src && hero.image.src !== "hero-main.jpg";
+---
+
+<section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-[var(--bg-color)]">
+  
+  <div class="absolute inset-0 z-0">
+    {hasImage ? (
+      <img src={hero.image.src} alt={hero.image.alt} class="w-full h-full object-cover opacity-30" />
+    ) : (
+      <div class="w-full h-full opacity-10 bg-gradient-to-br from-[var(--accent)] to-transparent"></div>
+    )}
+  </div>
+
+  <div class="container relative z-10 px-6 mx-auto text-center">
+    <p class="mb-6 text-sm font-bold tracking-[0.3em] uppercase text-[var(--accent)]">
+      {brand.name}
+    </p>
+    
+    <h1 class="max-w-5xl mx-auto mb-6 text-5xl md:text-8xl text-[var(--text-primary)]">
+      {hero.headline}
+    </h1>
+
+    <p class="max-w-2xl mx-auto mb-12 text-xl md:text-2xl text-[var(--text-secondary)] leading-relaxed">
+      {hero.subtext}
+    </p>
+
+    <div class="flex flex-col items-center gap-8">
+      <a href={settings.cta_link} class="bg-[var(--accent)] px-12 py-5 text-xs font-bold uppercase tracking-[0.2em] transition-all rounded-[var(--radius)] inline-block">
+        {settings.cta_text}
+      </a>
+      
+      {brand.objection_handle && (
+        <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 flex items-center gap-4 text-[var(--text-primary)]">
+          <span class="w-8 h-[1px] bg-[var(--accent)] opacity-40"></span>
+          {brand.objection_handle}
+          <span class="w-8 h-[1px] bg-[var(--accent)] opacity-40"></span>
+        </span>
+      )}
+    </div>
+  </div>
+</section>

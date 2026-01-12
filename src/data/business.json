@@ -1,48 +1,63 @@
 {
-    "settings": {
-      "vibe": "zen-nature",
-      "primary_color": "#6366f1",
-      "cta_text": "Get a Quote",
-      "cta_link": "/contact",
-      "menu": [
+"settings": {
+    "vibe": "maestro-classic",
+    "primary_color": "#ff5f1f",
+    "cta_text": "Schedule Pickup",
+    "cta_link": "/contact",
+    "menu": [
       { "label": "Home", "path": "/" },
       { "label": "About", "path": "/about" },
-      { "label": "Contact Us", "path": "/contact" }
+      { "label": "Contact", "path": "/contact" }
     ]
+  },
+  "brand": {
+    "name": "AstroIsland Media",
+    "logo_text": "AstroIsland",
+    "objection_handle": "No-Code Maintenance — You own the site, we handle the tech."
+  },
+  "hero": {
+    "headline": "Modern Static Sites Built with AI Precision",
+    "subtext": "100/100 Lighthouse scores. Built for your business in hours, not weeks.",
+    "image": {
+      "src": "hero-main.jpg", 
+      "alt": "Modern tech workspace showcasing speed"
+    }
+  },
+  "features": [
+    {
+      "title": "Hyper-Fast",
+      "description": "Static generation means zero lag for your users and instant page loads.",
+      "icon_slug": "zap",
+      "img_name": "feature-speed.jpg"
     },
-    "brand": {
-      "name": "AstroIsland Media",
-      "logo_text": "AstroIsland"
+    {
+      "title": "AI Optimized",
+      "description": "Components built with v0 and optimized for modern web standards.",
+      "icon_slug": "cpu",
+      "img_name": "feature-ai.jpg"
     },
-    "hero": {
-      "headline": "Modern Static Sites Built with AI Precision",
-      "subtext": "100/100 Lighthouse scores. Built for your business in hours, not weeks.",
-      "image": {
-        "src": "hero-main.jpg", 
-        "alt": "Modern tech workspace showcasing speed"
-      }
+    {
+      "title": "SEO Ready",
+      "description": "Semantic HTML that search engines love, out of the box.",
+      "icon_slug": "search",
+      "img_name": "feature-seo.jpg"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Strategy Session",
+      "description": "We define your 'Vibe' and business goals via our AI intake process."
     },
-    "features": [
-      {
-        "title": "Hyper-Fast",
-        "description": "Static generation means zero lag for your users and instant page loads.",
-        "icon_slug": "zap",
-        "img_name": "feature-speed.jpg"
-      },
-      {
-        "title": "AI Optimized",
-        "description": "Components built with v0 and optimized for modern web standards.",
-        "icon_slug": "cpu",
-        "img_name": "feature-ai.jpg"
-      },
-      {
-        "title": "SEO Ready",
-        "description": "Semantic HTML that search engines love, out of the box.",
-        "icon_slug": "search",
-        "img_name": "feature-seo.jpg"
-      }
-    ],
-    "testimonials": [
+    {
+      "title": "AI Build Phase",
+      "description": "Our engine generates your custom components and optimized copy in hours."
+    },
+    {
+      "title": "Global Deployment",
+      "description": "Your site goes live on a global CDN with a perfect 100/100 performance score."
+    }
+  ],
+  "testimonials": [
     {
       "quote": "The speed of this site is incredible. Our conversion rate doubled within a week of launching.",
       "author": "Sarah Jenkins",
@@ -55,5 +70,15 @@
       "role": "Founder, Thorne Digital",
       "avatar": "user-2.jpg"
     }
+  ],
+  "faqs": [
+    {
+      "question": "Do I need to pay for monthly hosting?",
+      "answer": "Nope. Because these are static sites, we host them on global CDNs that are free for standard business traffic."
+    },
+    {
+      "question": "Can I update the content myself?",
+      "answer": "Yes! We provide a 'Source Vault' service where you can request data updates that go live instantly."
+    }
   ]
-  }
+}
