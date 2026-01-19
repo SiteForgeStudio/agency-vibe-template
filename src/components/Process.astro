@@ -1,44 +1,64 @@
 ---
-import { iconLibrary } from '../lib/icons.js';
-const { steps, id, brand } = Astro.props;
+/**
+ * COMPONENT: Process
+ * Logic: Industry-aware step-by-step methodology.
+ */
+ import { iconLibrary } from '../lib/icons.js';
 
-// Default to 'sprout' for landscaping, but AI can override in JSON
-const sectionIconPath = iconLibrary[brand?.process_icon] || iconLibrary.sprout;
+interface Step {
+  title: string;
+  description: string;
+}
+
+interface Props {
+  id?: string;
+  steps: Step[];
+  intelligence?: any;
+}
+
+const { id = "process", steps, intelligence } = Astro.props;
+
+// Context Check: Is this a tech/creative service or home service?
+const isTech = intelligence?.industry?.toLowerCase().includes('tech') || 
+               intelligence?.industry?.toLowerCase().includes('design') ||
+               intelligence?.industry?.toLowerCase().includes('ai');
+
+// Default Icon Logic: Zap for tech, Sprout for home services, Layers for general.
+const sectionIconPath = isTech ? iconLibrary.zap : iconLibrary.layers;
 ---
 
-<section id={id} class="py-24 px-6 bg-[var(--bg-color)] scroll-mt-24">
+<section id={id} class="py-24 px-6 bg-[var(--bg-color)] border-t border-[var(--border)] scroll-mt-24">
   <div class="max-w-6xl mx-auto">
     <div class="text-center mb-20">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-full border border-[var(--border)] mb-6 text-[var(--accent)] bg-[var(--bg-color)] feature-icon-wrapper">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-full border border-[var(--border)] mb-6 text-[var(--accent)] bg-[var(--bg-color)] shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d={sectionIconPath} />
         </svg>
       </div>
       
       <h2 class="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        {brand?.process_headline || "How it Works"}
+        {isTech ? "The Protocol" : "How It Works"}
       </h2>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-20">
-      {steps && steps.map((step: any, index: number) => (
+      {steps && steps.map((step, index) => (
         <div class="relative group">
-          <div class="text-7xl md:text-8xl font-black text-[var(--accent)] opacity-10 mb-[-1.5rem] select-none group-hover:opacity-25 transition-opacity duration-500">
-            0{index + 1}
+          <div class="text-7xl md:text-9xl font-black text-[var(--accent)] opacity-5 mb-[-2.5rem] md:mb-[-3.5rem] select-none group-hover:opacity-15 transition-opacity duration-500 font-mono">
+            {index + 1}
           </div>
           
           <div class="relative pt-4">
-            <h3 class="text-xl font-bold text-[var(--text-primary)] mb-4 uppercase tracking-tight">
+            <h3 class="text-xl font-bold text-[var(--text-primary)] mb-4 uppercase tracking-tighter">
               {step.title}
             </h3>
-            <p class="text-[var(--text-secondary)] leading-relaxed text-sm md:text-base">
+            <p class="text-[var(--text-secondary)] leading-relaxed text-sm md:text-base opacity-80">
               {step.description}
             </p>
           </div>
           
-          {/* Subtle connecting line for desktop */}
           {index < steps.length - 1 && (
-            <div class="hidden md:block absolute top-1/2 -right-10 w-20 border-t border-dashed border-[var(--border)] opacity-30" />
+            <div class="hidden md:block absolute top-[40%] -right-10 w-20 border-t border-dashed border-[var(--border)] opacity-20" />
           )}
         </div>
       ))}

@@ -1,62 +1,43 @@
 ---
-import { iconLibrary } from '../lib/icons.js';
-const { tiers, id, brand } = Astro.props;
-
-// Get the main section icon from the library
-const sectionIconPath = iconLibrary[brand?.investment_icon] || iconLibrary.coins;
+/**
+ * COMPONENT: Investment
+ * Logic: Tiered pricing cards.
+ */
+ const { tiers, brand } = Astro.props;
 ---
 
-<section id={id} class="py-24 px-6 bg-[var(--bg-color)] border-t border-[var(--border)] scroll-mt-24">
-  <div class="max-w-6xl mx-auto">
-    <div class="text-center mb-16">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-full border border-[var(--border)] mb-6 text-[var(--accent)] bg-[var(--bg-color)] feature-icon-wrapper">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d={sectionIconPath} />
-        </svg>
-      </div>
-      
-      <h2 class="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        {brand?.investment_headline || "Pricing"}
-      </h2>
+<section id="investment" class="py-24 bg-[var(--bg-color)] scroll-mt-24">
+  <div class="container mx-auto px-6">
+    <div class="mb-16 text-center">
+      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Investment</h2>
+      <h3 class="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+        Choose Your <span class="text-[var(--accent)]">Plan</span>
+      </h3>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-      {tiers && tiers.map((tier: any) => (
-        <div class="flex flex-col p-8 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg-color)] hover:border-[var(--accent)] transition-all duration-300 group shadow-sm">
-          <h3 class="text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent)] mb-2">{tier.name}</h3>
-          <div class="text-5xl font-black text-[var(--text-primary)] mb-6 tracking-tighter">
-            {tier.price}
-          </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      {tiers.map((tier: any) => (
+        <div class={`p-10 border ${tier.popular ? 'border-[var(--accent)]' : 'border-[var(--border)]'} rounded-[var(--radius)] bg-[var(--bg-card)] flex flex-col relative`}>
+          {tier.popular && (
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-black px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-full">
+              Most Popular
+            </div>
+          )}
+          <h4 class="text-2xl font-black uppercase tracking-tighter mb-2">{tier.name}</h4>
+          <div class="text-4xl font-black text-[var(--accent)] mb-6">{tier.price}</div>
+          <p class="text-[var(--text-secondary)] text-sm mb-8 min-h-[3rem]">{tier.description}</p>
           
-          <ul class="flex-grow space-y-4 mb-10">
-            {tier.features && tier.features.map((feature: string) => {
-              // DETECT \ICON PATTERN
-              const match = feature.match(/^\\(\w+)\s*(.*)/);
-              const iconKey = match ? match[1].toLowerCase() : null;
-              const cleanText = match ? match[2] : feature;
-              const path = iconLibrary[iconKey];
-
-              return (
-                <li class="text-sm text-[var(--text-secondary)] flex items-start gap-3">
-                  <span class="text-[var(--accent)] mt-1 shrink-0">
-                    {path ? (
-                      /* Renders the specific icon from our library */
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d={path}/>
-                      </svg>
-                    ) : (
-                      /* Fallback to arrow if no backslash or icon not found */
-                      "→"
-                    )}
-                  </span>
-                  <span class="leading-tight">{cleanText}</span>
-                </li>
-              );
-            })}
+          <ul class="space-y-4 mb-10 flex-grow">
+            {tier.features.map((feat: string) => (
+              <li class="text-xs uppercase tracking-wide flex items-center">
+                <span class="w-1.5 h-1.5 bg-[var(--accent)] rounded-full mr-3"></span>
+                {feat}
+              </li>
+            ))}
           </ul>
 
-          <a href="#contact" class="w-full text-center py-4 border border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-color)] text-[10px] font-bold uppercase tracking-[0.2em] rounded-[var(--radius)] transition-all active:scale-95">
-            {tier.cta || "Get Started"}
+          <a href="#contact" class={`text-center py-4 rounded-[var(--radius)] font-bold uppercase text-[10px] tracking-widest transition-all ${tier.popular ? 'bg-[var(--accent)] text-black hover:scale-105' : 'border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--border)]'}`}>
+            Select Plan
           </a>
         </div>
       ))}

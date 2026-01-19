@@ -1,71 +1,112 @@
 ---
-import { Image } from 'astro:assets';
+/**
+ * COMPONENT: Hero
+ * Standards: 2026 Vibe-Engine / Dynamic Asset Discovery
+ * Logic: Matches naming convention from setup-site.js: ${brandSlug}-hero.jpg
+ */
+ import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
 
 const { brand, hero, settings } = Astro.props;
 
-// 1. Grab all images from the optimized assets folder
-const images = import.meta.glob('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
+// 1. SLUG LOGIC - Must match scripts/setup-site.js exactly
+const brandName = brand?.name || 'brand';
+// EXACT SAME LOGIC AS SCRIPT
+const brandSlug = brand?.slug || 
+                 (brand?.name || 'brand')
+                    .toLowerCase()
+                    .replace(/'/g, '') 
+                    .replace(/[^a-z0-9]/g, '-');
 
-// 2. SELF-HEALING LOGIC: Generate the filename to match the script's output
-// This removes apostrophes and replaces spaces/special chars with dashes
-const slug = brand.name.toLowerCase()
-    .replace(/'/g, '') 
-    .replace(/[^a-z0-9]/g, '-');
-
-const expectedFilename = `${slug}-hero.jpg`;
+// 2. IMAGE DISCOVERY
+const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
+const expectedFilename = `${brandSlug}-hero.jpg`;
 const cleanPath = `/src/assets/images/${expectedFilename}`;
+const imageExists = images[cleanPath];
 
-// 3. Check if the image exists in the assets folder
-const hasImage = images[cleanPath];
+// 3. SAFE CONTENT DEFAULTS
+const headline = hero?.headline || brand?.tagline || "Quality at AI Speed";
+const subtext = hero?.subtext || "Professional Astro architecture delivered in 24 hours.";
+const ctaLink = settings?.cta_link || "#contact";
+const ctaText = settings?.cta_text || "Get Started";
 
-// DEBUG: Shows in your terminal if the match fails
-if (!hasImage) {
-  console.log(`🔎 Hero component searching for: ${cleanPath}`);
-  console.log(`📂 Files actually in folder:`, Object.keys(images));
-}
+// 4. SMART LINK LOGIC
+const isExternal = ctaLink?.startsWith('http');
+const hasSecondary = settings?.secondary_cta_text && settings?.secondary_cta_link;
+const isSecondaryExternal = settings?.secondary_cta_link?.startsWith('http');
 ---
 
-<section class="relative min-h-[85vh] flex items-center justify-center overflow-hidden bg-[var(--bg-color)]">
+<section class="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-[var(--bg-color)]">
   
+  {/* BACKGROUND LAYER: Dynamic Image or Gradient Fallback */}
   <div class="absolute inset-0 z-0">
-    {hasImage ? (
+    {imageExists ? (
       <Image 
         src={images[cleanPath]()} 
-        alt={hero.image.alt || brand.name} 
-        width={1600} 
-        height={900} 
-        class="w-full h-full object-cover opacity-30"
+        alt={hero?.image?.alt || brand?.name || "Hero Background"} 
+        width={1920} 
+        height={1080} 
+        class="w-full h-full object-cover opacity-30 md:opacity-40"
         loading="eager"
+        fetchpriority="high"
       />
     ) : (
-      /* Fallback Gradient if image is missing */
-      <div class="w-full h-full opacity-20 bg-gradient-to-br from-[var(--accent)] to-transparent"></div>
+      <div class="w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,var(--accent)_0%,transparent_60%)]"></div>
     )}
+    {/* Vibe Overlay */}
+    <div class="absolute inset-0 bg-gradient-to-b from-[var(--bg-color)]/20 via-[var(--bg-color)]/40 to-[var(--bg-color)]"></div>
   </div>
 
+  {/* CONTENT LAYER */}
   <div class="container relative z-10 px-6 mx-auto text-center">
-    <p class="mb-6 text-sm font-bold tracking-[0.3em] uppercase text-[var(--accent)]">
-      {brand.name}
-    </p>
     
-    <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter leading-[0.9] text-[var(--text-primary)] mb-6">
-        {hero.headline}
+    {/* Availability / Status Badge */}
+    <div class="flex items-center justify-center gap-3 mb-8">
+       <span class="h-[1px] w-4 bg-[var(--accent)]"></span>
+       <p class="text-[10px] font-bold tracking-[0.4em] uppercase text-[var(--accent)]">
+        {brand?.availability_status || brand?.name || "System Active"}
+       </p>
+       <span class="h-[1px] w-4 bg-[var(--accent)]"></span>
+    </div>
+    
+    <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-[var(--text-primary)] mb-8">
+        {headline}
     </h1>
 
-    <p class="max-w-2xl mx-auto mb-12 text-xl md:text-2xl text-[var(--text-secondary)] leading-relaxed">
-      {hero.subtext}
+    <p class="max-w-2xl mx-auto mb-12 text-lg md:text-xl text-[var(--text-secondary)] leading-relaxed font-medium opacity-80">
+      {subtext}
     </p>
 
-    <div class="flex flex-col items-center gap-8">
-      <a href={settings.cta_link} class="bg-[var(--accent)] px-12 py-5 text-xs font-bold uppercase tracking-[0.2em] transition-all hover:scale-105 rounded-[var(--radius)] inline-block text-black">
-        {settings.cta_text}
-      </a>
+    <div class="flex flex-col items-center gap-10">
+      {/* BUTTON GROUP */}
+      <div class="flex flex-col sm:flex-row items-center gap-4">
+        {/* PRIMARY CTA */}
+        <a 
+          href={ctaLink} 
+          target={isExternal ? "_blank" : "_self"}
+          rel={isExternal ? "noopener noreferrer" : ""}
+          class="w-full sm:w-auto bg-[var(--accent)] px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 rounded-[var(--radius)] inline-block text-black shadow-xl shadow-[var(--accent)]/10"
+        >
+          {ctaText}
+        </a>
+
+        {/* SECONDARY CTA */}
+        {hasSecondary && (
+          <a 
+            href={settings.secondary_cta_link}
+            target={isSecondaryExternal ? "_blank" : "_self"}
+            rel={isSecondaryExternal ? "noopener noreferrer" : ""}
+            class="w-full sm:w-auto border border-[var(--border)] bg-white/5 backdrop-blur-sm px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-[var(--text-primary)] hover:text-[var(--bg-color)] rounded-[var(--radius)] inline-block text-[var(--text-primary)]"
+          >
+            {settings.secondary_cta_text}
+          </a>
+        )}
+      </div>
       
-      {brand.objection_handle && (
-        <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 flex items-center gap-4 text-[var(--text-primary)]">
-          <span class="w-8 h-[1px] bg-[var(--accent)] opacity-40"></span>
+      {/* Objection Handle / Trust Signal */}
+      {brand?.objection_handle && (
+        <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 flex items-center gap-4 text-[var(--text-primary)] font-bold italic">
           {brand.objection_handle}
-          <span class="w-8 h-[1px] bg-[var(--accent)] opacity-40"></span>
         </span>
       )}
     </div>

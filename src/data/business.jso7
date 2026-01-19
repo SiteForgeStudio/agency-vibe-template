@@ -1,0 +1,130 @@
+{
+  "intelligence": {
+    "industry": "Beauty & Wellness",
+    "target_persona": "Premium clients seeking expert hair care and relaxation",
+    "tone_of_voice": "Sophisticated & Welcoming"
+  },
+  "layout_strategy": {
+    "show_events": false,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_faqs": true,
+    "show_process": true,
+    "show_investment": true,
+    "show_bento_about": true,
+    "show_service_area": true,
+    "show_trustbar": true
+  },
+  "settings": {
+    "vibe": "Vintage Boutique",
+    "primary_color": "#D4AF37",
+    "cta_text": "Book Your Transformation",
+    "cta_link": "#contact",
+    "menu": [
+      { "label": "The Experience", "path": "#about" },
+      { "label": "Our Process", "path": "#process" },
+      { "label": "Investment", "path": "#pricing" },
+      { "label": "Gallery", "path": "#gallery" }
+    ]
+  },
+  "brand": {
+    "name": "Carol's Salon",
+    "slug": "carols-salon",
+    "logo_text": "C.S.",
+    "tagline": "27 Years of Mastery. Modern Artistry.",
+    "objection_handle": "Personalized hair transformation in a contemporary, relaxing environment.",
+    "availability_status": "Accepting new clients in Doylestown",
+    "testimonial_headline": "The Client Experience"
+  },
+ "hero": {
+    "headline": "Elevate Your Look, Calm Your Mind.",
+    "subtext": "...",
+    "image": {
+      "src": "carols-salon-hero.jpg",
+      "alt": "Modern salon interior with vintage gold accents",
+      "image_search_query": "luxury boutique hair salon interior gold marble vintage aesthetic cinematic"
+    }
+  },
+  "trustbar": {
+    "headline": "Trusted in Doylestown for Nearly Three Decades",
+    "items": [
+      { "icon": "star", "label": "5-Star Reputation", "sublabel": "Loved by Local Clients" },
+      { "icon": "scissors", "label": "27+ Years Experience", "sublabel": "Master Stylist" },
+      { "icon": "map", "label": "Doylestown, PA", "sublabel": "Locally Owned" },
+      { "icon": "sparkles", "label": "Relaxed Luxury", "sublabel": "Private Boutique Studio" }
+    ]
+  },
+  "about": {
+    "story_headline": "Mastery Meets Connection",
+    "story_text": "Carol doesn't just cut hair; she knows her clients. With 27 years of experience, we focus on the art of personalized transformation and the science of healthy hair.",
+    "founder_note": "Your hair is the crown you never take off.",
+    "years_experience": "27",
+    "stats": [
+      { "value": "27", "label": "Years Active" },
+      { "value": "15k+", "label": "Styles Created" }
+    ]
+  },
+  "service_area": {
+    "headline": "Conveniently Located in Doylestown",
+    "subtext": "Serving premium clients across the heart of Bucks and Montgomery Counties.",
+    "locations": [
+      { "name": "Doylestown", "wikipedia_link": "https://en.wikipedia.org/wiki/Doylestown,_Pennsylvania" },
+      { "name": "New Hope", "wikipedia_link": "https://en.wikipedia.org/wiki/New_Hope,_Pennsylvania" },
+      { "name": "Bucks County", "wikipedia_link": "https://en.wikipedia.org/wiki/Bucks_County,_Pennsylvania" },
+      { "name": "Montgomery County", "wikipedia_link": "https://en.wikipedia.org/wiki/Montgomery_County,_Pennsylvania" }
+    ]
+  },
+  "processSteps": [
+    { "title": "The Consult", "description": "A modern welcome and objective review to tailor the look to your vision." },
+    { "title": "Immersive Relaxation", "description": "Enjoy a smoothie or a glass of wine while we begin your treatment." },
+    { "title": "The Transformation", "description": "Expert wash, color, and precision cut using premium products." },
+    { "title": "The Reveal", "description": "Leave feeling refreshed, confident, and ready for the world." }
+  ],
+  "features": [
+    { "title": "Color Mastery", "description": "Specializing in balayage and corrective color techniques.", "icon_slug": "sparkles" },
+    { "title": "Relaxation First", "description": "A high-end, quiet environment designed for your comfort.", "icon_slug": "heart" }
+  ],
+  "testimonials": [
+    { "quote": "Carol is a genius with color. I've been coming here for 10 years and wouldn't go anywhere else.", "author": "Sarah J.", "role": "Doylestown Local" }
+  ],
+ "gallery": [
+    { 
+      "src": "carols-salon-gallery-1.jpg", 
+      "alt": "Modern styling station with vintage gold mirrors",
+      "image_search_query": "aesthetic salon styling station vintage mirror gold detail"
+    },
+    { 
+      "src": "carols-salon-gallery-2.jpg", 
+      "alt": "...",
+      "image_search_query": "luxury salon wash station organic products minimalist"
+    }
+  ],
+  "investment": [
+    {
+      "name": "Master Cut & Style",
+      "price": "$95+",
+      "description": "Our signature precision cutting experience.",
+      "features": ["Full Consultation", "Scalp Massage", "Precision Cut", "Blowout"],
+      "popular": true
+    },
+    {
+      "name": "Full Color Service",
+      "price": "$150+",
+      "description": "Complete transformation from root to tip.",
+      "features": ["Custom Color Blend", "Deep Conditioning", "Trim", "Style"],
+      "popular": false
+    }
+  ],
+  "faqs": [
+    { "question": "What premium products do you use?", "answer": "We exclusively use organic, sulfate-free color and care lines to ensure the long-term health of your hair." },
+    { "question": "Is a consultation required for new clients?", "answer": "Yes, we include a 15-minute modern consultation with every service to ensure our vision aligns with yours." },
+    { "question": "Can I book a specific wine or beverage?", "answer": "Absolutely. Let us know your preference when booking, and we'll have your choice of wine or smoothie ready upon arrival." },
+    { "question": "Do you offer corrective color services?", "answer": "Yes, Carol is a Master Colorist. Corrective services require an initial in-person consult to assess hair integrity." }
+  ],
+  "contact": {
+    "phone": "215-555-HAIR",
+    "email": "appointments@carolssalon.com",
+    "location": "Doylestown, PA"
+  }
+}

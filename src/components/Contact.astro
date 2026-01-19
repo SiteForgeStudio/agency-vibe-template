@@ -1,108 +1,82 @@
 ---
-const { id, brand, contact, settings } = Astro.props;
+/**
+ * COMPONENT: Contact
+ * Standards: 2026 AI-Ready / Netlify Form Integration
+ * Logic: Includes Success Page routing and Honey-pot spam protection.
+ */
+ const { brand, contact, settings } = Astro.props;
 
-// Pull the headline from JSON or use a neutral fallback
-const contactHeadline = brand.contact_headline || "Ready to get started?";
+const businessName = brand?.name || "Our Studio";
+const email = contact?.email || "";
+const phone = contact?.phone || "";
+const handle = brand?.objection_handle || "Ready to start your project?";
+const cta_text = settings?.cta_text || "Send Message";
+
+// 2026 Standard: Redirect to a custom success page
+const successPath = "/success"; 
 ---
 
-<section id={id} class="py-24 px-6 bg-[var(--text-primary)] text-[var(--bg-color)] scroll-mt-24">
-  <div class="container mx-auto max-w-6xl">
-    <div class="grid md:grid-cols-2 gap-16 items-center"> 
+<section id="contact" class="py-24 bg-[var(--bg-color)] border-t border-[var(--border)] scroll-mt-24">
+  <div class="container mx-auto px-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
       
-      <div class="space-y-8">
-        <div>
-          <span class="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent)] mb-4 block">
-            // ESTABLISH_CONTACT
-          </span>
-          <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none mb-6">
-            {contactHeadline}
-          </h2>
-          <p class="text-[var(--bg-color)] opacity-70 max-w-md leading-relaxed">
-            {brand.objection_handle}
-          </p>
-        </div>
+      {/* Branding Side */}
+      <div>
+        <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Connect</h2>
+        <h3 class="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-8">
+          Let's Build <span class="text-[var(--accent)]">Something</span>.
+        </h3>
+        <p class="text-[var(--text-secondary)] mb-12 max-w-md leading-relaxed opacity-80">
+          {handle}
+        </p>
 
-        <div class="space-y-6 font-mono text-xs tracking-[0.2em]">
-          <div class="flex items-center gap-4 group">
-            <span class="w-8 h-px bg-[var(--accent)] transition-all group-hover:w-12"></span>
-            <span class="text-[var(--accent)]">PH //</span> 
-            <a href={`tel:${contact.phone}`} class="hover:text-[var(--accent)] transition-colors">
-              {contact.phone}
-            </a>
-          </div>
-
-          <div class="flex items-center gap-4">
-            <span class="w-8 h-px bg-[var(--accent)]"></span>
-            <span class="text-[var(--accent)]">LOC //</span> {contact.location}
-          </div>
-
-          <div class="flex items-center gap-4 group">
-            <span class="w-8 h-px bg-[var(--accent)] transition-all group-hover:w-12"></span>
-            <span class="text-[var(--accent)]">EM //</span> 
-            <a href={`mailto:${contact.email}`} class="hover:text-[var(--accent)] transition-colors lowercase tracking-normal">
-              {contact.email}
-            </a>
-          </div>
+        <div class="space-y-8">
+          {email && (
+            <div class="flex flex-col">
+              <span class="text-[10px] uppercase tracking-widest text-[var(--accent)] font-bold mb-1">Email</span>
+              <a href={`mailto:${email}`} class="text-xl md:text-2xl font-bold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors italic break-all">
+                {email}
+              </a>
+            </div>
+          )}
+          {phone && (
+            <div class="flex flex-col">
+              <span class="text-[10px] uppercase tracking-widest text-[var(--accent)] font-bold mb-1">Phone</span>
+              <span class="text-xl md:text-2xl font-bold text-[var(--text-primary)]">{phone}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div class="bg-[var(--bg-color)] p-8 md:p-12 rounded-[var(--radius)] shadow-2xl relative overflow-hidden">
-        <div class="absolute top-0 right-0 p-4 opacity-5 font-mono text-[60px] font-black select-none pointer-events-none text-[var(--text-primary)]">
-          MSG
-        </div>
-
+      {/* Form Side: Netlify Optimized */}
+      <div class="p-8 md:p-12 bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] relative overflow-hidden shadow-2xl">
+        <h4 class="text-2xl font-black uppercase tracking-tighter mb-8 border-b border-[var(--border)] pb-4">
+            {businessName} <span class="text-[var(--accent)]">Inquiry</span>
+        </h4>
+        
         <form 
           name="contact" 
           method="POST" 
-          action="/success"
           data-netlify="true" 
-          class="flex flex-col gap-6 relative z-10"
+          action={successPath}
+          netlify-honeypot="bot-field"
+          class="space-y-4"
         >
+          {/* Netlify Hidden Fields */}
           <input type="hidden" name="form-name" value="contact" />
-        
-          <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-80">
-              Full Name
-            </label>
-            <input 
-              type="text" 
-              name="name" 
-              placeholder="REQUIRED" 
-              class="w-full bg-transparent border-b border-[var(--border)] py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:placeholder:opacity-0 transition-all placeholder:opacity-20 text-sm" 
-              required 
-            />
+          <p class="hidden">
+            <label>Don't fill this out if you're human: <input name="bot-field" /></label>
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input type="text" name="name" placeholder="NAME" required class="w-full bg-[var(--bg-color)] border border-[var(--border)] p-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-primary)] focus:border-[var(--accent)] outline-none transition-colors" />
+            <input type="email" name="email" placeholder="EMAIL" required class="w-full bg-[var(--bg-color)] border border-[var(--border)] p-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-primary)] focus:border-[var(--accent)] outline-none transition-colors" />
           </div>
-        
-          <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-80">
-              Email Address
-            </label>
-            <input 
-              type="email" 
-              name="email" 
-              placeholder="EMAIL@DOMAIN.COM" 
-              class="w-full bg-transparent border-b border-[var(--border)] py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:placeholder:opacity-0 transition-all placeholder:opacity-20 text-sm" 
-              required 
-            />
-          </div>
-        
-          <div class="flex flex-col gap-2">
-            <label class="text-[11px] font-mono uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-80">
-              Project Details
-            </label>
-            <textarea 
-              name="message" 
-              rows="4" 
-              placeholder="HOW CAN WE HELP?" 
-              class="w-full bg-transparent border-b border-[var(--border)] py-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:placeholder:opacity-0 transition-all placeholder:opacity-20 resize-none text-sm"
-            ></textarea>
-          </div>
-        
-          <button 
-            type="submit" 
-            class="w-full bg-[var(--accent)] text-[var(--bg-color)] py-5 font-bold uppercase tracking-[0.3em] text-[10px] hover:brightness-110 active:scale-[0.98] transition-all mt-4 rounded-[var(--radius)]"
-          >
-            {settings.cta_text}
+          
+          <textarea name="message" rows="4" placeholder="PROJECT DETAILS" required class="w-full bg-[var(--bg-color)] border border-[var(--border)] p-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-primary)] focus:border-[var(--accent)] outline-none transition-colors"></textarea>
+          
+          <button type="submit" class="w-full bg-[var(--accent)] text-black py-5 font-black uppercase tracking-[0.3em] text-[10px] hover:bg-white transition-colors">
+            {cta_text}
           </button>
         </form>
       </div>

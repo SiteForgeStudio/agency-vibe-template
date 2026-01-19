@@ -5,30 +5,38 @@ import dotenv from 'dotenv';
 // Using 'with' for Node v22 compatibility
 import data from '../src/data/business.json' with { type: 'json' };
 
-// 1. Load Environment Variables (Your Unsplash Key)
 dotenv.config();
 
 const ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
 const ASSETS_DIR = path.resolve('./src/assets/images');
 
-// 2. Ensure the images directory exists
+// Ensure assets directory exists
 if (!fs.existsSync(ASSETS_DIR)) {
     fs.mkdirSync(ASSETS_DIR, { recursive: true });
 }
 
-// 3. Slug logic (Matches Hero.astro for self-healing paths)
-const brandSlug = data.brand.name.toLowerCase()
-    .replace(/'/g, '') 
-    .replace(/[^a-z0-9]/g, '-');
-
 /**
- * FETCH IMAGE FROM UNSPLASH
- * Uses targeted queries to get industry-specific high-quality photos.
+ * 1. SLUG GENERATION
+ * Standardizes the naming convention for all client assets.
+ */
+/**
+ * 1. SLUG GENERATION
+ * Prioritize the JSON slug, fallback to name-based generation.
+ */
+const brandSlug = data.brand?.slug || 
+                 (data.brand?.name || 'brand')
+                    .toLowerCase()
+                    .replace(/'/g, '') 
+                    .replace(/[^a-z0-9]/g, '-');
+
+const brandName = data.brand?.name || 'brand';
+/**
+ * 2. IMAGE DOWNLOADER
+ * Downloads from Unsplash and saves with the brand-specific prefix.
  */
 async function fetchUnsplashImage(query, filename) {
     const filePath = path.join(ASSETS_DIR, filename);
     
-    // Safety check: Don't waste API credits if file exists
     if (fs.existsSync(filePath)) {
         console.log(`- Skipping ${filename} (Already exists)`);
         return;
@@ -46,11 +54,7 @@ async function fetchUnsplashImage(query, filename) {
         });
 
         const downloadUrl = search.data.urls.regular;
-        const response = await axios({ 
-            url: downloadUrl, 
-            method: 'GET', 
-            responseType: 'stream' 
-        });
+        const response = await axios({ url: downloadUrl, method: 'GET', responseType: 'stream' });
         
         const writer = fs.createWriteStream(filePath);
         response.data.pipe(writer);
@@ -66,7 +70,8 @@ async function fetchUnsplashImage(query, filename) {
 }
 
 /**
- * MAIN RUNNER
+ * 3. RUNNER
+ * Orchestrates the Hero and Gallery image naming/downloading.
  */
 async function run() {
     if (!ACCESS_KEY) {
@@ -74,29 +79,37 @@ async function run() {
         return;
     }
 
-    console.log(`🚀 Starting Image Factory for: ${data.brand.name}`);
+    console.log(`🚀 Starting Image Factory: ${brandName}`);
 
     // --- TASK 1: THE HERO ---
-    // Combined Industry + Vibe for a specific "look"
-    const heroQuery = `${data.intelligence.industry} ${data.settings.vibe} interior`;
-    await fetchUnsplashImage(heroQuery, `${brandSlug}-hero.jpg`);
+    // Naming Convention: brand-slug-hero.jpg
+    const heroQuery = data.hero?.image?.image_search_query || 
+                      (data.intelligence?.industry && data.settings?.vibe 
+                        ? `${data.intelligence.industry} ${data.settings.vibe} workspace`
+                        : `${brandName} professional background`);
+    
+    const heroFilename = `${brandSlug}-hero.jpg`;
+    await fetchUnsplashImage(heroQuery, heroFilename);
 
     // --- TASK 2: THE GALLERY ---
+    // Naming Convention: brand-slug-project-0.jpg
     if (data.gallery && Array.isArray(data.gallery)) {
-        console.log(`📸 Found ${data.gallery.length} gallery images to fetch...`);
+        console.log(`📸 Processing ${data.gallery.length} Gallery Slots...`);
         
-        for (const item of data.gallery) {
-            // Use the AI-generated alt text for highly relevant search results
-            const galleryQuery = `${data.intelligence.industry} ${item.alt}`;
+        for (const [index, item] of data.gallery.entries()) {
+            const galleryQuery = item.image_search_query || 
+                                 item.alt || 
+                                 data.intelligence?.industry || 
+                                 "professional services";
             
-            // Clean the filename (handles potential /images/ pathing from AI)
-            const filename = item.src.split('/').pop();
-            
-            await fetchUnsplashImage(galleryQuery, filename);
+            // We ignore the filename in JSON and force the indexed-slug naming convention
+            const galleryFilename = `${brandSlug}-project-${index}.jpg`;
+            await fetchUnsplashImage(galleryQuery, galleryFilename);
         }
     }
 
-    console.log('\n✅ Factory Complete. All images are optimized in src/assets/images/');
+    console.log('\n✅ Factory Complete. Assets ready in src/assets/images/');
+    console.log(`💡 Assets prefixed with: ${brandSlug}-`);
 }
 
 run();

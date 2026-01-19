@@ -1,55 +1,54 @@
 ---
-const { id, comparison, brand } = Astro.props;
+/**
+ * COMPONENT: Comparison
+ * Logic: Contrast business value against "Traditional" methods.
+ * Vibe: High-contrast split-screen.
+ */
+ const { comparison, intelligence } = Astro.props;
+
+if (!comparison) return null;
+
+const isTech = intelligence?.industry?.toLowerCase().includes('tech') || 
+               intelligence?.industry?.toLowerCase().includes('ai');
+
+const headline = comparison.headline || (isTech ? "System Advantage" : "The Difference");
 ---
 
-{comparison && comparison.features && (
-  <section id={id} class="py-24 px-6 bg-[var(--bg-color)] scroll-mt-24">
-    <div class="max-w-4xl mx-auto">
-      <div class="text-center mb-16">
-        <span class="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent)] mb-4 block">
-          // THE_DIFFERENCE
-        </span>
-        <h2 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-          Why {brand.name}
-        </h2>
+<section id="comparison" class="py-24 bg-[var(--bg-card)] border-y border-[var(--border)]">
+  <div class="container mx-auto px-6">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+        {headline}
+      </h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border)] max-w-5xl mx-auto border border-[var(--border)] rounded-[var(--radius)] overflow-hidden">
+      {/* Left Side: The Problem */}
+      <div class="bg-[var(--bg-color)] p-12">
+        <h3 class="text-xl font-bold uppercase mb-8 opacity-50">{comparison.left_title}</h3>
+        <ul class="space-y-4">
+          {comparison.left_items.map((item: string) => (
+            <li class="flex items-center text-[var(--text-secondary)] text-sm italic">
+              <span class="mr-3 text-red-500">✕</span> {item}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <div class="overflow-hidden border border-[var(--border)] rounded-[var(--radius)]">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-[var(--text-primary)] text-[var(--bg-color)]">
-              <th class="p-6 text-[10px] uppercase tracking-widest font-bold">Feature</th>
-              <th class="p-6 text-[10px] uppercase tracking-widest font-bold bg-[var(--accent)] text-[var(--bg-color)]">
-                {brand.name}
-              </th>
-              <th class="p-6 text-[10px] uppercase tracking-widest font-bold opacity-70">Standard Shops</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--border)]">
-            {comparison.features.map((item) => (
-              <tr class="hover:bg-[var(--text-secondary)] hover:bg-opacity-5 transition-colors">
-                <td class="p-6 text-sm font-bold uppercase tracking-tighter text-[var(--text-primary)]">
-                  {item.label}
-                </td>
-                <td class="p-6 text-sm text-[var(--text-primary)] font-medium bg-[var(--accent)]/5">
-                  <span class="flex items-center gap-2">
-                    <span class="text-[var(--accent)] font-bold">✓</span> {item.us}
-                  </span>
-                </td>
-                <td class="p-6 text-sm text-[var(--text-secondary)] opacity-60">
-                  {item.them}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Right Side: The Solution (Vibe-Engine) */}
+      <div class="bg-[var(--bg-card)] p-12 border-l border-[var(--border)] relative">
+        <div class="absolute top-4 right-4 text-[var(--accent)] text-[10px] font-bold tracking-widest uppercase animate-pulse">
+          Recommended
+        </div>
+        <h3 class="text-xl font-bold uppercase mb-8 text-[var(--accent)]">{comparison.right_title}</h3>
+        <ul class="space-y-4">
+          {comparison.right_items.map((item: string) => (
+            <li class="flex items-center text-[var(--text-primary)] font-bold text-sm">
+              <span class="mr-3 text-[var(--accent)]">✓</span> {item}
+            </li>
+          ))}
+        </ul>
       </div>
-      
-      {comparison.footer_note && (
-        <p class="mt-8 text-center text-[10px] uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-50">
-          * {comparison.footer_note}
-        </p>
-      )}
     </div>
-  </section>
-)}
+  </div>
+</section>

@@ -1,15 +1,22 @@
 /* ICON DICTIONARY 
   High-performance, single-path SVGs for the Vibe System.
+  Standardized for 2026 AI-Ready Templates.
 */
 
 export const iconLibrary = {
-  // --- Nature & Garden (Elite Lawns) ---
+  // --- AI & High-Tech (Vibe-Engine Core) ---
+  zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  cpu: "M4 7a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7z M9 5V3 M15 5V3 M9 21v-2 M15 21v-2 M21 9h2 M21 15h2 M1 9h2 M1 15h2 M9 9h6v6H9z",
+  layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+  rocket: "M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.4 1.22-1.3 1.22-1.3l2-2-5-5-2 2s-.9.51-1.22 1.22z M15 3l-4 4 6 6 4-4-6-6z M19 9l-3 3",
+
+  // --- Nature & Garden (Elite Lawns / Landscaping) ---
   leaf: "M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z M2 21c0-3 1.85-5.36 5.08-6",
   sprout: "M12 22V8M5 12c0-3.3 2.7-6 6-6s6 2.7 6 6M5 12a6 6 0 0 1 0-12",
   sun: "M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41",
   scissors: "M3 7l8.445 8.5a2.5 2.5 0 1 1-3.5 3.5L3 14 M21 7l-8.445 8.5a2.5 2.5 0 1 0 3.5 3.5L21 14 M12 12v.01",
 
-  // --- Trades & Logistics (Joe's Junk / Construction) ---
+  // --- Trades & Logistics (Joe's Junk / Construction / Auto) ---
   truck: "M1 14h15V4H1v10zm15 0h3l3 3v2h-6v-5zm-2 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm10 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0z",
   hammer: "M14.5 12.5L21 6l-4.5-4.5L10 8l4.5 4.5zm-4 4l-4 4L2 16l4-4 4 4z",
   wrench: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z",

@@ -2,41 +2,60 @@
 import Layout from '../layouts/Layout.astro';
 import data from '../data/business.json';
 
-// Use optional chaining to prevent crashes
-const brandName = data?.brand?.name || "Your Request";
+// 1. SAFE DESTRUCTURING - Following the new 2026 Standard
+const { brand, settings, intelligence } = data;
+
+const brandName = brand?.name || "The Studio";
+const isTech = intelligence?.industry?.toLowerCase().includes('tech') || 
+               intelligence?.industry?.toLowerCase().includes('ai');
+
+// Industry-aware messaging
+const statusMessage = isTech 
+  ? "Neural handshake complete. Data logged." 
+  : "Request received. We're sharpening the tools.";
 ---
 
-<Layout title={`Message Received | ${brandName}`}>
-  <main class="flex items-center justify-center min-h-[70vh] px-6">
-    <div class="max-w-md w-full text-center">
+<Layout title={`Success | ${brandName}`} settings={settings}>
+  <main class="flex items-center justify-center min-h-[90vh] px-6 bg-[var(--bg-color)]">
+    <div class="max-w-xl w-full text-center relative">
       
-      <div class="mb-8 flex justify-center">
-        <div class="w-20 h-20 rounded-full border-2 border-[var(--accent)] flex items-center justify-center animate-pulse">
+      {/* BACKGROUND VIBE DECOR */}
+      <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,var(--accent)_0%,transparent_70%)] opacity-[0.03] blur-3xl"></div>
+
+      {/* 2. THE SUCCESS ICON */}
+      <div class="mb-12 flex justify-center">
+        <div class="w-24 h-24 rounded-2xl border border-[var(--border)] flex items-center justify-center bg-[var(--bg-card)] rotate-3 hover:rotate-0 transition-transform duration-500 shadow-2xl">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-[var(--accent)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 13l4 4L19 7" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
       </div>
 
-      <h1 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-4">
-        Transmission <span class="text-[var(--accent)]">Received</span>
+      {/* 3. DYNAMIC HEADLINE */}
+      <h1 class="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-6">
+        INBOUND <span class="text-[var(--accent)]">CONFIRMED</span>
       </h1>
       
-      <p class="text-[var(--text-secondary)] uppercase tracking-[0.2em] text-xs mb-10 leading-relaxed">
-        Your inquiry has been logged in our system. <br/> 
-        Expect a response within 24 business hours.
+      <p class="text-[var(--text-secondary)] uppercase tracking-[0.3em] text-[10px] mb-12 leading-loose max-w-sm mx-auto font-medium">
+        {statusMessage} <br/> 
+        Deployment window: <span class="text-[var(--text-primary)]">24 Business Hours.</span>
       </p>
 
+      {/* 4. RETURN BUTTON */}
       <a 
         href="/" 
-        class="inline-block bg-[var(--accent)] text-[var(--bg-color)] px-10 py-4 rounded-[var(--radius)] text-[10px] font-bold uppercase tracking-[0.3em] transition-all hover:scale-105 active:scale-95"
+        class="inline-block bg-[var(--text-primary)] text-[var(--bg-color)] px-10 py-5 rounded-[var(--radius)] text-[10px] font-black uppercase tracking-[0.4em] transition-all hover:bg-[var(--accent)] hover:text-black hover:scale-105 active:scale-95 border border-transparent"
       >
-        Return to Homebase
+        Return to Home
       </a>
       
-      <div class="mt-12 pt-8 border-t border-[var(--border)] opacity-20">
-        <span class="text-[9px] font-mono tracking-[0.5em] text-[var(--text-primary)] uppercase">
-          // ID: {Math.random().toString(36).toUpperCase().substring(2, 10)}
+      {/* 5. SYSTEM LOG (The Professional Touch) */}
+      <div class="mt-20 pt-10 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-4 opacity-40">
+        <span class="text-[9px] font-mono tracking-[0.2em] text-[var(--text-secondary)] uppercase italic">
+          // SIGNAL_STRENGTH: 100%
+        </span>
+        <span class="text-[9px] font-mono tracking-[0.2em] text-[var(--text-secondary)] uppercase">
+          LOG_ID: {Math.random().toString(36).toUpperCase().substring(2, 12)}
         </span>
       </div>
     </div>

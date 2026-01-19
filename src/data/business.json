@@ -1,170 +1,75 @@
 {
   "intelligence": {
-    "industry": "Beauty & Wellness",
-    "target_persona": "Premium clients seeking expert hair care and relaxation",
-    "tone_of_voice": "Sophisticated & Welcoming"
+    "industry": "AI Automation & High-End Web",
+    "target_persona": "Fiverr Pro Clients",
+    "tone_of_voice": "Technical, Bold, & Efficient"
   },
-  "layout_strategy": {
-    "show_events": false,
-    "show_testimonials": true,
-    "show_comparison": false,
-    "show_gallery": true,
-    "show_faqs": true,
+  "strategy": {
+    "show_features": true,
     "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": true,
+    "show_gallery": true,
     "show_investment": true,
-    "show_bento_about": true,
-    "show_service_area": true,
-    "show_trustbar": true
+    "show_faqs": true
   },
   "settings": {
-    "vibe": "Vintage Boutique",
-    "primary_color": "#D4AF37",
-    "cta_text": "Book Your Transformation",
+    "vibe": "Zenith Earth",
+    "primary_color": "#4a5d4e",
+    "cta_text": "START YOUR BUILD",
     "cta_link": "#contact",
-    "menu": [
-      { "label": "The Experience", "path": "#about" },
-      { "label": "Our Process", "path": "#process" },
-      { "label": "Investment", "path": "#pricing" },
-      { "label": "Gallery", "path": "#gallery" }
-    ]
+    "radius": "0.5rem"
   },
   "brand": {
-    "name": "Carol's Salon",
-    "slug": "carols-salon",
-    "logo_text": "C.S.",
-    "tagline": "27 Years of Mastery. Modern Artistry.",
-    "objection_handle": "Personalized hair transformation in a contemporary, relaxing environment.",
-    "availability_status": "Accepting new clients in Doylestown",
-    "testimonial_headline": "The Client Experience"
+    "name": "Vibe-Engine Studio",
+    "slug": "vibe-engine-studio",
+    "tagline": "Custom Agency Quality at AI Speed",
+    "logo_text": "V/E",
+    "objection_handle": "Only 3 development slots remaining for March."
   },
-  "hero": {
-    "headline": "Elevate Your Look, Calm Your Mind.",
-    "subtext": "Expert color, precision cuts, and a glass of wine. Discover why Carol has been Doylestown's trusted stylist for nearly three decades.",
-    "image": {
-      "src": "carols-salon-hero.jpg",
-      "alt": "Modern salon interior with vintage gold accents"
-    }
-  },
-  "trustbar": {
-    "headline": "Trusted in Doylestown for Nearly Three Decades",
-    "items": [
-      {
-        "icon": "star",
-        "label": "5-Star Reputation",
-        "sublabel": "Loved by Local Clients"
-      },
-      {
-        "icon": "scissors",
-        "label": "27+ Years Experience",
-        "sublabel": "Master Stylist"
-      },
-      {
-        "icon": "map",
-        "label": "Doylestown, PA",
-        "sublabel": "Locally Owned"
-      },
-      {
-        "icon": "sparkles",
-        "label": "Relaxed Luxury",
-        "sublabel": "Private Boutique Studio"
-      }
-    ]
-  },
-  "about": {
-    "story_headline": "Mastery Meets Connection",
-    "story_text": "Carol doesn't just cut hair; she knows her clients. With 27 years of experience, we focus on the art of personalized transformation and the science of healthy hair.",
-    "founder_note": "Your hair is the crown you never take off.",
-    "years_experience": "27",
-    "stats": [
-      { "value": "27", "label": "Years Active" },
-      { "value": "15k+", "label": "Styles Created" }
-    ]
-  },
-  "service_area": {
-    "headline": "Conveniently Located in Doylestown",
-    "subtext": "Serving premium clients across the heart of Bucks and Montgomery Counties.",
-    "locations": ["Doylestown", "New Hope", "Bucks County", "Montgomery County"]
-  },
-  "processSteps": [
-    {
-      "title": "The Consult",
-      "description": "A modern welcome and objective review to tailor the look to your vision."
-    },
-    {
-      "title": "Immersive Relaxation",
-      "description": "Enjoy a smoothie or a glass of wine while we begin your treatment."
-    },
-    {
-      "title": "The Transformation",
-      "description": "Expert wash, color, and precision cut using premium products."
-    },
-    {
-      "title": "The Reveal",
-      "description": "Leave feeling refreshed, confident, and ready for the world."
-    }
+  "menu": [
+    { "label": "Services", "path": "#features" },
+    { "label": "Protocol", "path": "#process" },
+    { "label": "Portfolio", "path": "#gallery" },
+    { "label": "Investment", "path": "#investment" }
   ],
+  "hero": {
+    "headline": "STOP BUILDING. START DEPLOYING.",
+    "subtext": "We leverage high-end Astro architecture and AI logic to deliver professional-grade sites in 24 hours."
+  },
   "features": [
-    {
-      "title": "Color Mastery",
-      "description": "Specializing in balayage and corrective color techniques.",
-      "icon_slug": "sparkles"
-    },
-    {
-      "title": "Relaxation First",
-      "description": "A high-end, quiet environment designed for your comfort.",
-      "icon_slug": "heart"
-    }
+    { "title": "Astro Logic", "description": "Zero-JS by default for 100/100 Core Web Vitals.", "icon_slug": "zap" },
+    { "title": "Vibe-Switch", "description": "Instant aesthetic pivots via our proprietary CSS system.", "icon_slug": "layers" },
+    { "title": "AI Integration", "description": "Content and imagery curated by trained LLM models.", "icon_slug": "cpu" }
+  ],
+  "processSteps": [
+    { "title": "Vibe Intake", "description": "Select your visual DNA and core business data." },
+    { "title": "AI Synthesis", "description": "Our engine maps your data to high-end Astro components." },
+    { "title": "Fast Deploy", "description": "Global edge delivery via Netlify in under 24 hours." }
   ],
   "testimonials": [
-    {
-      "quote": "Carol is a genius with color. I've been coming here for 10 years and wouldn't go anywhere else.",
-      "author": "Sarah J.",
-      "role": "Doylestown Local"
-    }
+    { "name": "Marcus Chen", "role": "Fiverr Pro Client", "content": "I've never seen a turnaround this fast with this level of code quality." }
   ],
+  "comparison": {
+    "headline": "The Engine vs. The Rest",
+    "left_title": "Traditional Freelancer",
+    "left_items": ["2-Week Wait Times", "Bloated WordPress Themes", "Manual Content Entry"],
+    "right_title": "Vibe-Engine",
+    "right_items": ["24-Hour Delivery", "Clean Astro/Tailwind Code", "AI-Powered Precision"]
+  },
   "gallery": [
-    {
-      "src": "carols-salon-gallery-1.jpg",
-      "alt": "Modern styling station with vintage gold mirrors"
-    },
-    {
-      "src": "carols-salon-gallery-2.jpg",
-      "alt": "Relaxing wash station with premium organic products"
-    },
-    {
-      "src": "carols-salon-gallery-3.jpg",
-      "alt": "Detailed view of expert hair coloring and balayage"
-    },
-    {
-      "src": "carols-salon-gallery-4.jpg",
-      "alt": "Sophisticated salon waiting area with a vintage boutique feel"
-    },
-    {
-      "src": "carols-salon-gallery-5.jpg",
-      "alt": "Close-up of master precision haircutting"
-    },
-    {
-      "src": "carols-salon-gallery-6.jpg",
-      "alt": "Customer enjoying a glass of wine during a transformation"
-    }
+    { "src": "/images/project1.jpg", "alt": "SaaS Platform", "title": "Nexus AI", "category": "Web App" },
+    { "src": "/images/project2.jpg", "alt": "Lawn Care", "title": "Elite Turf", "category": "Service Business" }
   ],
   "investment": [
-    {
-      "name": "Master Cut & Style",
-      "price": "95+",
-      "features": ["Full Consultation", "Scalp Massage", "Precision Cut", "Blowout"],
-      "popular": true
-    },
-    {
-      "name": "Full Color Service",
-      "price": "150+",
-      "features": ["Custom Color Blend", "Deep Conditioning", "Trim", "Style"],
-      "popular": false
-    }
+    { "name": "The Sprint", "price": "$295", "features": ["Full Landing Page", "Netlify Hosting", "24h Delivery"], "popular": true }
+  ],
+  "faqs": [
+    { "question": "How is it so fast?", "answer": "We use a pre-engineered component library and AI-driven data mapping." },
+    { "question": "Can I edit the code?", "answer": "Yes, you get full access to the GitHub repository." }
   ],
   "contact": {
-    "phone": "215-555-HAIR",
-    "email": "appointments@carolssalon.com",
-    "location": "Doylestown, PA"
+    "email": "hello@vibe-engine.com",
+    "phone": "1-800-VIBE-AI"
   }
 }

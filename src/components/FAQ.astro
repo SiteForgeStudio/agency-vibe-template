@@ -1,36 +1,36 @@
 ---
-const { id, faqs, headline = "Common Questions" } = Astro.props;
+/**
+ * COMPONENT: FAQ
+ * Logic: Simple accordion or list-style answers.
+ */
+ const { faqs } = Astro.props;
+
+if (!faqs || faqs.length === 0) return null;
 ---
 
-<section id={id} class="py-24 px-6 bg-[var(--bg-color)] border-t border-[var(--border)] scroll-mt-24">
-  <div class="container mx-auto">
-    <div class="flex flex-col md:flex-row gap-12">
-      
-      <div class="md:w-1/3">
-        <span class="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent)] mb-4 block">
-          // KNOWLEDGE_BASE
-        </span>
-        <h2 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)] sticky top-32">
-          {headline}
-        </h2>
-      </div>
+<section id="faq" class="py-24 bg-[var(--bg-card)] border-y border-[var(--border)] scroll-mt-24">
+  <div class="container mx-auto px-6 max-w-4xl">
+    <div class="text-center mb-16">
+      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Inquiries</h2>
+      <h3 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+        Common <span class="text-[var(--accent)]">Questions</span>
+      </h3>
+    </div>
 
-      <div class="md:w-2/3 space-y-12">
-        {faqs && faqs.map((faq) => (
-          <div class="group">
-            <h3 class="text-xl font-bold text-[var(--text-primary)] mb-4 flex items-start gap-4 uppercase tracking-tight">
-              <span class="text-[var(--accent)] opacity-40 font-mono text-sm mt-1">Q.</span>
-              {faq.question}
-            </h3>
-            <div class="pl-8 border-l-2 border-[var(--border)] group-hover:border-[var(--accent)] transition-colors duration-500">
-              <p class="text-[var(--text-secondary)] leading-relaxed text-sm max-w-2xl">
-                {faq.answer}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-      
+    <div class="space-y-4">
+      {faqs.map((faq: any) => (
+        <details class="group border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg-color)] p-6 cursor-pointer">
+          <summary class="list-none flex justify-between items-center text-sm font-bold uppercase tracking-widest text-[var(--text-primary)]">
+            {faq.question}
+            <span class="text-[var(--accent)] transition-transform group-open:rotate-45">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </span>
+          </summary>
+          <p class="mt-6 text-sm leading-relaxed text-[var(--text-secondary)] opacity-80 border-t border-[var(--border)] pt-6">
+            {faq.answer}
+          </p>
+        </details>
+      ))}
     </div>
   </div>
 </section>

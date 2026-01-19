@@ -7,7 +7,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Perfect Section Alignment for Sticky Nav */
 section[id], main[id], div[id] {
   scroll-margin-top: 5rem;
 }
@@ -17,39 +16,32 @@ body {
   color: var(--text-primary);
   font-family: var(--font-main, sans-serif);
   line-height: 1.5;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.4s ease;
 }
 
-body.menu-open {
-  overflow: hidden !important;
+/* --- 8. VINTAGE BOUTIQUE (Optimized for Carol's Salon) --- */
+[data-vibe="vintage-boutique"] {
+  --bg-color: #fdfaf3;
+  --bg-card: #f8f3e9; /* Slightly darker than bg for depth */
+  --text-primary: #2d241e;
+  --text-secondary: #6b5a4d;
+  --accent: #D4AF37; /* Switched to Metallic Gold for Premium Agency Quality */
+  --border: #e7e0d0;
+  --radius: 2px;
+  --font-main: 'Cormorant Garamond', serif;
+}
+[data-vibe="vintage-boutique"] h1, 
+[data-vibe="vintage-boutique"] h2 { 
+  font-style: italic; 
+  font-weight: 300; 
+  text-transform: none; 
+  letter-spacing: -0.02em; 
 }
 
-/* --- 1. ZENITH EARTH (Organic/Premium Landscape) --- */
-[data-vibe="zenith-earth"] {
-  --bg-color: #fdfdfb;       
-  --text-primary: #1a2e1a;   
-  --text-secondary: #4a5d4a; 
-  --accent: #4f7942;         
-  --border: #e8ede4;         
-  --radius: 40px;            
-  --font-main: 'Outfit', sans-serif; 
-}
-[data-vibe="zenith-earth"] { line-height: 1.7; }
-[data-vibe="zenith-earth"] h1, [data-vibe="zenith-earth"] h2 {
-  font-family: 'Fraunces', serif;
-  font-weight: 300;
-  color: #1a2e1a;
-}
-[data-vibe="zenith-earth"] .bg-\[var\(--accent\)\],
-[data-vibe="zenith-earth"] .feature-icon-wrapper { 
-  border-radius: 100px;      
-  color: #ffffff; 
-  box-shadow: 0 4px 20px rgba(79, 121, 66, 0.15);
-}
-
-/* --- 2. MIDNIGHT TECH (SaaS/AI/Security) --- */
+/* --- 2. MIDNIGHT TECH (SaaS/AI) --- */
 [data-vibe="midnight-tech"] {
   --bg-color: #050505;
+  --bg-card: #0f0f0f;
   --text-primary: #ffffff;
   --text-secondary: #a1a1aa;
   --accent: #6366f1;
@@ -57,110 +49,36 @@ body.menu-open {
   --radius: 12px;
   --font-main: 'Inter', sans-serif;
 }
-[data-vibe="midnight-tech"] h1 { font-weight: 800; letter-spacing: -0.04em; }
-[data-vibe="midnight-tech"] .bg-\[var\(--accent\)\],
-[data-vibe="midnight-tech"] .feature-icon-wrapper { 
-  box-shadow: 0 0 25px rgba(99, 102, 241, 0.4); 
-}
+[data-vibe="midnight-tech"] h1 { font-weight: 900; letter-spacing: -0.05em; }
 
-/* --- 3. RUGGED INDUSTRIAL (Trade Services/Construction) --- */
+/* --- 3. RUGGED INDUSTRIAL (Blue Collar/Trade) --- */
 [data-vibe="rugged-industrial"] {
   --bg-color: #111111;
+  --bg-card: #1a1a1a;
   --text-primary: #f4f4f4;
   --text-secondary: #a1a1aa;
   --accent: #ff5f1f;
-  --border: #27272a;
-  --radius: 4px;
-  --font-main: 'JetBrains Mono', monospace;
-}
-[data-vibe="rugged-industrial"] h1, [data-vibe="rugged-industrial"] h2 {
-  font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -0.05em;
-}
-/* The "Sticker" Effect */
-[data-vibe="rugged-industrial"] .bg-\[var\(--accent\)\], 
-[data-vibe="rugged-industrial"] .feature-icon-wrapper,
-[data-vibe="rugged-industrial"] .custom-icon-box {
-  box-shadow: 4px 4px 0px 0px #000000;
-  border: 1px solid #000;
-}
-
-/* --- 4. MAESTRO CLASSIC (High-End Professional/Legal) --- */
-[data-vibe="maestro-classic"] {
-  --bg-color: #fcfcfc;
-  --text-primary: #1a1a1a;
-  --text-secondary: #5e5e5e;
-  --accent: #8b0000;
-  --border: #d1d1d1;
-  --radius: 0px;
-  --font-main: 'Cormorant Garamond', serif;
-}
-[data-vibe="maestro-classic"] h1, [data-vibe="maestro-classic"] h2 {
-  font-weight: 300; text-transform: uppercase; letter-spacing: 0.15em;
-}
-
-/* --- 5. NEON CYBER (Creative/Nightlife) --- */
-[data-vibe="neon-cyber"] {
-  --bg-color: #050505;
-  --text-primary: #ffffff;
-  --text-secondary: #888888;
-  --accent: #00f0ff;
-  --border: #1a1a1a;
+  --border: #333;
   --radius: 0px;
   --font-main: 'JetBrains Mono', monospace;
 }
-[data-vibe="neon-cyber"] .bg-\[var\(--accent\)\],
-[data-vibe="neon-cyber"] .feature-icon-wrapper {
+
+/* --- RECOVERY & UTILITIES --- */
+.bg-card { background-color: var(--bg-card); }
+.border-vibe { border-color: var(--border); }
+
+/* Ensure CTA text is always readable regardless of accent color */
+[data-vibe="midnight-tech"] .cta-button, 
+[data-vibe="rugged-industrial"] .cta-button {
+  color: #fff;
+}
+[data-vibe="vintage-boutique"] .cta-button,
+[data-vibe="solar-flare"] .cta-button {
   color: #000;
-  box-shadow: 0 0 15px var(--accent);
 }
-
-/* --- 6. CLINICAL MINIMAL (Medical/Dental/Health) --- */
-[data-vibe="clinical-minimal"] {
-  --bg-color: #f8fafc;
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --accent: #0ea5e9;
-  --border: #e2e8f0;
-  --radius: 12px;
-  --font-main: 'Outfit', sans-serif;
-}
-[data-vibe="clinical-minimal"] .feature-icon-wrapper {
-  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
-}
-
-/* --- 7. SOLAR FLARE (Solar/Energy/Electricians) --- */
-[data-vibe="solar-flare"] {
-  --bg-color: #000000;
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --accent: #fbbf24;
-  --border: #27272a;
-  --radius: 0px;
-  --font-main: 'Outfit', sans-serif;
-}
-[data-vibe="solar-flare"] h1, [data-vibe="solar-flare"] h2 { 
-  font-weight: 900; text-transform: uppercase; font-style: italic; 
-}
-[data-vibe="solar-flare"] .bg-\[var\(--accent\)\],
-[data-vibe="solar-flare"] .feature-icon-wrapper { color: #000; }
-
-/* --- 8. VINTAGE BOUTIQUE (Artisan/Retail/Heritage) --- */
-[data-vibe="vintage-boutique"] {
-  --bg-color: #fdfaf3;
-  --text-primary: #2d241e;
-  --text-secondary: #6b5a4d;
-  --accent: #c2410c;
-  --border: #e7e0d0;
-  --radius: 2px;
-  --font-main: 'Cormorant Garam
-  ond', serif;
-}
-[data-vibe="vintage-boutique"] h1, [data-vibe="vintage-boutique"] h2 { font-style: italic; font-weight: 400; }
-[data-vibe="vintage-boutique"] p { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; }
 
 /* --- MOBILE MENU RECOVERY --- */
 #mobile-menu.flex {
   display: flex !important;
   background-color: var(--bg-color) !important;
 }
-.mobile-link { color: var(--text-primary) !important; }

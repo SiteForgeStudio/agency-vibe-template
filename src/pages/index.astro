@@ -1,134 +1,113 @@
 ---
-/* 1. STABLE IMPORTS */
 import Layout from '../layouts/Layout.astro';
-import data from '../data/business.json'; 
-
 import Navbar from '../components/Navbar.astro';
 import Hero from '../components/Hero.astro';
-import TrustBar from '../components/TrustBar.astro'; // NEW
 import Features from '../components/Features.astro';
-import BentoAbout from '../components/BentoAbout.astro';
+import Process from '../components/Process.astro';
 import Testimonials from '../components/Testimonials.astro';
 import Comparison from '../components/Comparison.astro';
-import Process from '../components/Process.astro';
-import Events from '../components/Events.astro';
-import ServiceArea from '../components/ServiceArea.astro';
 import Gallery from '../components/Gallery.astro';
 import Investment from '../components/Investment.astro';
 import FAQ from '../components/FAQ.astro';
 import Contact from '../components/Contact.astro';
-import Footer from '../components/Footer.astro';
-import VibeSwitcher from '../components/VibeSwitcher.astro';
 
-/* 2. DATA MAPPING */
-const settings = data?.settings || {};
-const strategy = data?.layout_strategy || {}; 
-const brand = data?.brand || {};
-const hero = data?.hero || {};
-const about = data?.about || {}; 
-const features = data?.features || [];
-const comparison = data?.comparison || null;
-const processSteps = data?.processSteps || [];
-const investment = data?.investment || [];
-const gallery = data?.gallery || [];
-const faqs = data?.faqs || [];
-const contact = data?.contact || {};
-const testimonials = data?.testimonials || [];
-const events = data?.events || [];
-const serviceArea = data?.service_area || null;
-const trustbar = data?.trustbar || null; // NEW
+import data from '../data/business.json';
 
-/* 3. TITLE LOGIC */
-const siteTitle = brand?.name 
-  ? `${brand.name}${brand.tagline ? ' | ' + brand.tagline : ''}`
-  : 'Premium Service Site';
+/** * 2026 DATA DESTRUCTURING - SAFE FALLBACKS
+ * This ensures the site never crashes even if the AI generates a partial JSON.
+ */
+const {
+  intelligence = {},
+  strategy = {},
+  settings = {},
+  brand = {},
+  menu = [],
+  hero = {},
+  features = [],
+  processSteps = [],
+  testimonials = [],
+  comparison = null,
+  gallery = [],
+  investment = [],
+  faqs = [],
+  contact = {}
+} = data;
+
+// SEO Title logic
+const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
 
-<Layout title={siteTitle}>
+<Layout title={siteTitle} settings={settings}>
   
-  {settings?.menu && (
-    <Navbar 
-      brand={brand} 
-      menu={settings.menu} 
-      cta_text={settings.cta_text} 
-      cta_link={settings.cta_link} 
-    />
-  )}
+  <Navbar 
+    brand={brand} 
+    menu={menu} 
+    settings={settings} 
+  />  
 
   <main>
-    {/* HERO */}
-    {hero?.headline && (
-      <Hero id="home" hero={hero} settings={settings} brand={brand} />
-    )}
+    {/* 1. HERO SECTION */}
+    <Hero hero={hero} brand={brand} settings={settings} />
 
-    {/* TRUST BAR (NEW – EARLY PROOF) */}
-    {strategy.show_trustbar !== false && trustbar && (
-      <TrustBar data={trustbar} />
-    )}
-
-    {/* EVENTS (TIME-SENSITIVE CONTENT) */}
-    {strategy.show_events && events.length > 0 && (
-      <Events events={events} />
-    )}
-
-    {/* ABOUT / STORY */}
-    {strategy.show_bento_about !== false && about?.story_text && (
-      <BentoAbout id="about" brand={brand} hero={hero} about={about} />
-    )}
-
-    {/* CORE VALUE PROPS */}
-    {features.length > 0 && (
-      <Features id="features" features={features} />
-    )}
-
-    {/* SERVICE AREA (LOCAL SEO EARLY) */}
-    {strategy.show_service_area && serviceArea && (
-      <ServiceArea data={serviceArea} />
-    )}
-
-    {/* SOCIAL PROOF */}
-    {strategy.show_testimonials && testimonials.length > 0 && (
-      <Testimonials 
-        id="testimonials" 
-        testimonials={testimonials} 
-        headline={brand?.testimonial_headline || "Voices of Trust"} 
+    {/* 2. FEATURES / SERVICES */}
+    {strategy.show_features && features.length > 0 && (
+      <Features 
+        features={features} 
+        intelligence={intelligence} 
       />
     )}
 
-    {/* DIFFERENTIATION */}
+    {/* 3. METHODOLOGY / PROCESS */}
+    {strategy.show_process && processSteps.length > 0 && (
+      <Process 
+        steps={processSteps} 
+        intelligence={intelligence} 
+      />
+    )}
+
+    {/* 4. SOCIAL PROOF */}
+    {strategy.show_testimonials && testimonials.length > 0 && (
+      <Testimonials 
+        testimonials={testimonials} 
+      />
+    )}
+
+    {/* 5. VALUE COMPARISON */}
     {strategy.show_comparison && comparison && (
-      <Comparison id="comparison" comparison={comparison} brand={brand} />
+      <Comparison 
+        comparison={comparison} 
+        intelligence={intelligence} 
+      />
     )}
 
-    {/* PROCESS / HOW IT WORKS */}
-    {strategy.show_process !== false && processSteps.length > 0 && (
-      <Process id="process" steps={processSteps} />
-    )}
-
-    {/* VISUAL PROOF */}
-    {strategy.show_gallery && (
+    {/* 6. PORTFOLIO / GALLERY */}
+    {strategy.show_gallery && gallery.length > 0 && (
       <Gallery 
-        brand={brand} 
         gallery={gallery} 
       />
     )}
 
-    {/* PRICING / INVESTMENT */}
-    {strategy.show_investment !== false && investment.length > 0 && (
-      <Investment id="pricing" tiers={investment} brand={brand} />
+    {/* 7. PRICING / INVESTMENT */}
+    {strategy.show_investment && investment.length > 0 && (
+      <Investment 
+        tiers={investment} 
+        brand={brand}
+      />
     )}
 
-    {/* OBJECTION HANDLING */}
+    {/* 8. OBJECTION HANDLING */}
     {strategy.show_faqs && faqs.length > 0 && (
-      <FAQ id="faqs" faqs={faqs} />
+      <FAQ 
+        faqs={faqs} 
+      />
     )}
 
-    {/* FINAL CONVERSION */}
-    {contact?.email && (
-      <Contact id="contact" brand={brand} contact={contact} settings={settings} />
-    )}
+    {/* 9. FINAL CONVERSION / NETLIFY FORM */}
+    <Contact 
+      contact={contact} 
+      intelligence={intelligence} 
+      brand={brand} 
+      settings={settings} 
+    />
   </main>
-
-  <Footer brand={brand} />
-  <VibeSwitcher />
 </Layout>

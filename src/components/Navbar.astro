@@ -1,9 +1,17 @@
 ---
 /**
- * Navbar Component - Vibe-Engine Edition
+ * Navbar Component - Vibe-Engine & Smart CTA Edition
  * Receives individual props from index.astro to prevent "Prop Drift"
+ * Standards: 2026 AI-Ready / flattened JSON compatible.
  */
- const { brand, menu, cta_text, cta_link } = Astro.props;
+ const { brand, menu, settings } = Astro.props;
+
+// Pull CTA data from the settings object to match our business.json structure
+const cta_text = settings?.cta_text;
+const cta_link = settings?.cta_link;
+
+// Helper to determine if a link is an external URL or an internal anchor
+const isExternal = cta_link?.startsWith('http');
 ---
 
 <nav class="sticky top-0 z-[100] w-full border-b border-[var(--border)] bg-[var(--bg-color)]/80 backdrop-blur-md transition-all duration-300">
@@ -23,7 +31,7 @@
 
     {/* DESKTOP NAVIGATION */}
     <div class="hidden md:flex items-center gap-8">
-      {menu && menu.map((item) => (
+      {menu && menu.map((item: any) => (
         <a 
           href={item.path} 
           class="nav-link text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
@@ -32,9 +40,14 @@
         </a>
       ))}
       
-      {/* CTA Button - Only renders if cta_text is present in JSON */}
+      {/* Smart CTA Button - Context-aware linking */}
       {cta_text && (
-        <a href={cta_link || "#contact"} class="px-6 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg-color)] transition-all rounded-[var(--radius)]">
+        <a 
+          href={cta_link || "#contact"} 
+          target={isExternal ? "_blank" : "_self"}
+          rel={isExternal ? "noopener noreferrer" : ""}
+          class="px-6 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg-color)] transition-all rounded-[var(--radius)]"
+        >
           {cta_text}
         </a>
       )}
@@ -46,10 +59,8 @@
     id="mobile-menu" 
     class="fixed inset-0 w-full h-screen bg-[var(--bg-color)] hidden flex-col justify-center items-center z-[110]"
   >
-    <div class="absolute inset-0 bg-[var(--bg-color)] z-[-1]"></div>
-
     <div class="flex flex-col gap-0 text-center relative z-[125] w-full px-12">
-      {menu && menu.map((item) => (
+      {menu && menu.map((item: any) => (
         <a 
           href={item.path} 
           class="mobile-link py-6 text-xl font-bold uppercase tracking-[0.3em] text-[var(--text-primary)] border-b border-[var(--border)] last:border-0 hover:text-[var(--accent)] transition-colors"
@@ -62,7 +73,9 @@
         <div class="mt-12">
           <a 
             href={cta_link || "#contact"} 
-            class="mobile-link inline-block px-10 py-5 bg-[var(--accent)] text-[var(--bg-color)] text-[10px] font-bold uppercase tracking-[0.4em] rounded-[var(--radius)] shadow-lg active:scale-95 transition-transform"
+            target={isExternal ? "_blank" : "_self"}
+            rel={isExternal ? "noopener noreferrer" : ""}
+            class="mobile-link inline-block px-10 py-5 bg-[var(--accent)] text-black text-[10px] font-bold uppercase tracking-[0.4em] rounded-[var(--radius)] shadow-lg active:scale-95 transition-transform"
           >
             {cta_text}
           </a>
@@ -73,17 +86,12 @@
 </nav>
 
 <script>
-  /**
-   * INTERACTIVE LOGIC
-   * Handles both the mobile toggle and the high-performance IntersectionObserver
-   */
   const btn = document.getElementById('menu-toggle');
   const menu = document.getElementById('mobile-menu');
   const iconPath = document.getElementById('menu-path');
   const links = document.querySelectorAll('.mobile-link');
   const navLinks = document.querySelectorAll('.nav-link');
 
-  // 1. MOBILE TOGGLE LOGIC
   function toggleMenu() {
     const isHidden = menu?.classList.contains('hidden');
     if (isHidden) {
@@ -102,8 +110,7 @@
   btn?.addEventListener('click', toggleMenu);
   links.forEach(link => link.addEventListener('click', toggleMenu));
 
-  // 2. ACTIVE SECTION OBSERVER (Scroll Spy)
-  // Ensures 100/100 scores by using native browser APIs rather than scroll listeners
+  // Active Section Observer for the Vibe System
   const observerOptions = {
     root: null,
     rootMargin: '-20% 0px -70% 0px', 
@@ -127,7 +134,6 @@
     });
   }, observerOptions);
 
-  // Watch every section on the index page for active states
   document.querySelectorAll('section[id]').forEach((section) => {
     observer.observe(section);
   });

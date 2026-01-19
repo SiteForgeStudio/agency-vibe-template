@@ -1,56 +1,80 @@
 ---
 /**
- * Main Layout - Vibe-Engine Edition
- * Handles SEO, Google Fonts, and the Master Vibe Switch
+ * Main Layout - Vibe-Engine & Dynamic SEO Edition
+ * Robust Version: Accepts props to override global data (Fixes Success Page vibe)
  */
  import data from '../data/business.json';
 import '../styles/vibe-system.css';
 
 interface Props {
-	title?: string;
+    title?: string;
+    vibeOverride?: string; // NEW: Allow pages to force a vibe
 }
 
-// 1. Get the Vibe from business.json
-// We normalize it to lowercase and replace spaces with dashes to match CSS selectors
-const activeVibe = data.settings.vibe.toLowerCase().replace(/\s+/g, '-');
+const { title, vibeOverride } = Astro.props;
 
-const { title = `${data.brand.name} | ${data.brand.tagline}` } = Astro.props;
+// 1. Vibe Normalization - Prioritize override, then JSON, then fallback
+const rawVibe = vibeOverride || data.settings?.vibe || 'midnight-tech';
+const activeVibe = rawVibe.toLowerCase().replace(/\s+/g, '-');
+
+// 2. SEO Title Fallback
+const seoTitle = title || `${data.brand.name} | ${data.brand.tagline}`;
+
+// 3. Dynamic SEO Schema (JSON-LD)
+const ldJson = {
+  "@context": "https://schema.org",
+  "@type": data.intelligence?.industry?.includes('Music') ? "EventVenue" : "LocalBusiness",
+  "name": data.brand.name,
+  "description": data.brand.tagline,
+  "url": "https://example.com", 
+  "telephone": data.contact?.phone || "",
+  ...(data.contact?.location && {
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": data.contact.location,
+      "addressLocality": data.contact.location.split(',')[0]?.trim(),
+      "addressRegion": data.contact.location.split(',')[1]?.trim(),
+      "addressCountry": "US"
+    }
+  }),
+  "areaServed": data.service_area?.locations ? data.service_area.locations.map(loc => ({
+    "@type": "Place",
+    "name": loc.name,
+    "sameAs": loc.wikipedia_link
+  })) : [],
+  "image": `/images/${data.hero?.image?.src}`
+};
 ---
 
 <!doctype html>
 <html lang="en" data-vibe={activeVibe}>
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="description" content={data.brand.objection_handle} />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="description" content={data.brand.objection_handle} />
+        <meta name="viewport" content="width=device-width" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <meta name="generator" content={Astro.generator} />
+        <title>{seoTitle}</title>
 
-		{/* 2. Google Fonts Preconnect for Performance (100/100 Strategy) */}
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link 
-			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:ital,wght@0,400;0,800;1,800&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,700&family=Outfit:wght@400;900&display=swap" 
-			rel="stylesheet" 
-		/>
-	</head>
-	<body class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] selection:bg-[var(--accent)] selection:text-[var(--bg-color)]">
-		<slot />
-		
-		<style is:global>
-			/* Smooth scroll for the SPA feel */
-			html {
-				scroll-behavior: smooth;
-			}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link 
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:ital,wght@0,400;0,800;1,800&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,700&family=Outfit:wght@400;900&display=swap" 
+            rel="stylesheet" 
+        />
 
-			/* Remove blue highlights on mobile for that "Premium" feel */
-			* {
-				-webkit-tap-highlight-color: transparent;
-			}
-
-			/* Hide scrollbar but allow scrolling if preferred for minimal vibes */
-			/* .no-scrollbar::-webkit-scrollbar { display: none; } */
-		</style>
-	</body>
+        <script type="application/ld+json" set:html={JSON.stringify(ldJson)} />
+    </head>
+    <body class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] selection:bg-[var(--accent)] selection:text-[var(--bg-color)]">
+        <slot />
+        
+        <style is:global>
+            html {
+                scroll-behavior: smooth;
+            }
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+        </style>
+    </body>
 </html>

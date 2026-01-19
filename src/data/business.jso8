@@ -1,0 +1,87 @@
+{
+  "intelligence": {
+    "industry": "Live Entertainment / Rock Music",
+    "target_persona": "Alternative rock fans and concert-goers",
+    "tone_of_voice": "Bold, Energetic, and Raw"
+  },
+  "layout_strategy": {
+    "show_events": true,
+    "show_testimonials": false,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_faqs": true,
+    "show_process": false,
+    "show_investment": true,
+    "show_bento_about": true,
+    "show_service_area": false,
+    "show_trustbar": true
+  },
+  "settings": {
+    "vibe": "Neon Cyber",
+    "primary_color": "#00f0ff",
+    "cta_text": "GRAB TICKETS NOW",
+    "cta_link": "#pricing",
+    "menu": [
+      { "label": "The Tour", "path": "#features" },
+      { "label": "Gallery", "path": "#gallery" },
+      { "label": "Tickets", "path": "#pricing" }
+    ]
+  },
+ "brand": {
+    "name": "Electric Havoc",
+    "slug": "electric-havoc",
+    "logo_text": "E.H.",
+    "tagline": "The 2026 'Static Storm' World Tour.",
+    "gallery_tagline": "Visual highlights from the 2026 North American circuit.",
+    "objection_handle": "Final North American dates—don't miss the chaos.",
+    "availability_status": "Tickets Selling Fast"
+  },
+  "hero": {
+    "headline": "LOUDER THAN THE APOCALYPSE.",
+    "subtext": "Experience the raw energy of Electric Havoc live. One night only in Philadelphia. Doors at 7 PM. Pure noise starts at 8.",
+    "image": {
+      "src": "electric-havoc-hero.jpg",
+      "alt": "Rock band performing on stage with blue neon lights and smoke",
+      "image_search_query": "rock concert stage blue neon lighting crowd cinematic raw energy"
+    }
+  },
+  "trustbar": {
+    "headline": "Sold Out Across 14 Countries",
+    "items": [
+      { "icon": "star", "label": "Gold Record", "sublabel": "2025 Best Alt Album" },
+      { "icon": "users", "label": "2M+ Fans", "sublabel": "Global Community" },
+      { "icon": "zap", "label": "Live Power", "sublabel": "High-Voltage Show" }
+    ]
+  },
+  "gallery": [
+    { "src": "electric-havoc-1.jpg", "alt": "Lead guitarist solo with neon backlight", "image_search_query": "electric guitar solo stage neon lights" },
+    { "src": "electric-havoc-2.jpg", "alt": "Drummer in motion with red stage smoke", "image_search_query": "drummer concert action shot smoke red light" },
+    { "src": "electric-havoc-3.jpg", "alt": "Crowd silhouettes with glowing stage", "image_search_query": "concert crowd silhouettes glowing blue stage" },
+    { "src": "electric-havoc-4.jpg", "alt": "Vintage rock amplifiers with neon glow", "image_search_query": "stack of guitar amplifiers stage lighting" }
+  ],
+  "investment": [
+    {
+      "name": "GA Floor",
+      "price": "$45",
+      "description": "Get in the pit and feel the bass.",
+      "features": ["Standard Entry", "Floor Access", "Merch Access"],
+      "popular": true
+    },
+    {
+      "name": "VIP Backstage",
+      "price": "$150",
+      "description": "The ultimate fan experience.",
+      "features": ["Early Entry", "Signed Poster", "Backstage Tour", "Private Bar"],
+      "popular": false
+    }
+  ],
+  "faqs": [
+    { "question": "Are there age restrictions?", "answer": "This show is 18+ unless accompanied by a legal guardian." },
+    { "question": "Can I bring a pro camera?", "answer": "Personal phones are welcome, but professional rigs are prohibited without a press pass." }
+  ],
+  "contact": {
+    "phone": "TOUR-LINE-2026",
+    "email": "booking@electrichavoc.com",
+    "location": "Philadelphia, PA"
+  }
+}
