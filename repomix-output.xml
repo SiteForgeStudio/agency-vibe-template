@@ -1711,52 +1711,6 @@ export const iconLibrary = {
 };
 </file>
 
-<file path="src/components/BentoAbout.astro">
----
-// Destructure the new 'about' prop
-const { brand, hero, about } = Astro.props; 
-
-const isLongHandle = brand.objection_handle?.length > 100;
----
-
-<section id="about" class="py-24 px-6 bg-[var(--bg-color)]">
-  <div class="max-w-6xl mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
-      
-      <div class="md:col-span-8 md:row-span-2 min-h-[400px] p-8 bg-[var(--border)] bg-opacity-20 rounded-[var(--radius)] flex flex-col justify-end relative border border-[var(--border)]">
-        <div class="relative z-10">
-            <span class="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent)] mb-4 block">// THE_ORIGIN</span>
-            <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-6 leading-[0.9]">
-                {brand.name}
-            </h2>
-            <p class="text-[var(--text-secondary)] text-sm md:text-base leading-relaxed max-w-xl">
-                {about?.story_text}
-            </p>
-        </div>
-      </div>
-
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--bg-color)] relative">
-        <span class="text-4xl absolute top-2 left-4 text-[var(--accent)] opacity-20 font-serif">“</span>
-        <p class="text-[var(--text-secondary)] text-xs italic relative z-10 pt-4">
-            {about?.founder_note || "Precision in every detail."}
-        </p>
-        <div class="mt-4 text-[10px] font-bold uppercase tracking-widest text-[var(--text-primary)]">
-            — {brand.name} Founder
-        </div>
-      </div>
-
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--text-primary)] text-[var(--bg-color)]">
-         <div class="flex items-baseline gap-2">
-            <span class="text-3xl font-black">{about?.years_experience || "10+"}</span>
-            <span class="text-[10px] uppercase tracking-widest font-bold opacity-40">Years</span>
-         </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-</file>
-
 <file path="src/components/Contact.astro">
 ---
 /**
@@ -2107,6 +2061,77 @@ const statusMessage = isTech
 }
 </file>
 
+<file path="src/components/BentoAbout.astro">
+---
+/**
+ * COMPONENT: BentoAbout
+ * Logic: Asymmetric brand story grid.
+ * Fix: Properly receives intelligence prop and uses Vibe Engine variables.
+ */
+ const { brand, about, intelligence } = Astro.props; 
+
+// 1. DATA SAFETY - Prevents "undefined" crashes if the AI didn't provide data
+if (!about && !brand) return null;
+
+// Fallback logic to ensure boxes aren't empty
+const story = about?.story_text || brand?.tagline || "Redefining the standard of excellence.";
+const founderNote = about?.founder_note || brand?.objection_handle || "Precision in every detail.";
+const years = about?.years_experience || "10+";
+const industry = intelligence?.industry || "Premium Services";
+
+// TEXT LOGIC - Splits the brand name for that high-end 2-tone look
+const brandName = brand?.name || "Our Brand";
+const brandParts = brandName.split(' ');
+const firstWord = brandParts[0];
+const restOfName = brandParts.slice(1).join(' ');
+---
+
+<section id="about" class="py-24 px-6 bg-[var(--bg-color)] scroll-mt-20">
+  <div class="max-w-6xl mx-auto">
+    
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 auto-rows-fr">
+      
+      <div class="md:col-span-8 md:row-span-2 min-h-[400px] p-8 md:p-12 bg-[var(--bg-card)] rounded-[var(--radius)] flex flex-col justify-end relative border border-[var(--border)] group overflow-hidden">
+        
+        <div class="absolute -top-24 -left-24 w-64 h-64 bg-[var(--accent)] opacity-[0.03] blur-[80px] group-hover:opacity-10 transition-opacity"></div>
+        
+        <div class="relative z-10">
+            <span class="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent)] mb-4 block">// THE_MISSION</span>
+            <h2 class="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-6 leading-[0.85]">
+                {firstWord} <span class="text-[var(--accent)] block">{restOfName}</span>
+            </h2>
+            <p class="text-[var(--text-secondary)] text-sm md:text-lg leading-relaxed max-w-xl font-medium">
+                {story}
+            </p>
+        </div>
+      </div>
+
+      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--bg-color)] relative group">
+        <span class="text-6xl absolute -top-2 left-4 text-[var(--accent)] opacity-10 font-serif group-hover:opacity-30 transition-opacity">“</span>
+        <p class="text-[var(--text-secondary)] text-sm italic relative z-10 pt-4 leading-relaxed">
+            {founderNote}
+        </p>
+        <div class="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)]">
+            — {brandName} Strategy
+        </div>
+      </div>
+
+      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--text-primary)] text-[var(--bg-color)] hover:scale-[1.02] transition-transform">
+         <div class="flex flex-col">
+            <span class="text-xs uppercase tracking-widest font-bold opacity-60 mb-1">Track Record</span>
+            <div class="flex items-baseline gap-2">
+                <span class="text-5xl font-black tracking-tighter">{years}</span>
+                <span class="text-lg font-bold uppercase text-[var(--accent)]">Years</span>
+            </div>
+            <p class="text-[9px] uppercase tracking-[0.1em] mt-4 opacity-50 font-bold">Sector: {industry}</p>
+         </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+</file>
+
 <file path="src/components/Gallery.astro">
 ---
 /**
@@ -2446,142 +2471,6 @@ const headline = isService ? "Our Core Services" : "System Capabilities";
 </section>
 </file>
 
-<file path="src/layouts/Layout.astro">
----
-/**
- * Main Layout - 2026 Vibe-Engine & SEO Edition
- * Strategy: Hybrid System (CSS Structure + JS Variable Injection)
- * Logic: Matches brand slugs and handles SEO fallbacks.
- */
- import data from '../data/business.json';
-import '../styles/vibe-system.css';
-
-interface Props {
-    title?: string;
-    vibeOverride?: string;
-}
-
-const { title, vibeOverride } = Astro.props;
-
-// 1. VIBE NORMALIZATION
-// Prioritize override (for success pages), then JSON, then fallback.
-const rawVibe = vibeOverride || data.settings?.vibe || 'midnight-tech';
-const activeVibe = rawVibe.toLowerCase().replace(/\s+/g, '-');
-
-// 2. THE VIBE LIBRARY
-// This is your catalog of 5-8 vibes for the March launch.
-const vibeLibrary = {
-  'midnight-tech': {
-    accent: '#00f2ff',
-    bg: '#020617',
-    text: '#ffffff',
-    radius: '4px',
-    font: "'JetBrains Mono', monospace"
-  },
-  'zenith-earth': {
-    accent: '#4a5d4e',
-    bg: '#f9fbf9',
-    text: '#2d3436',
-    radius: '12px',
-    font: "'Outfit', sans-serif"
-  },
-  'neon-cyber': {
-    accent: '#00f0ff',
-    bg: '#050505',
-    text: '#ffffff',
-    radius: '0px',
-    font: "'JetBrains Mono', monospace"
-  },
-  'vintage-boutique': {
-    accent: '#D4AF37',
-    bg: '#faf9f6',
-    text: '#1a1a1a',
-    radius: '20px',
-    font: "'Cormorant Garamond', serif"
-  },
-  'rugged-industrial': {
-    accent: '#f97316',
-    bg: '#18181b',
-    text: '#f4f4f5',
-    radius: '2px',
-    font: "'Inter', sans-serif"
-  }
-};
-
-// Defensive Fallback: If AI provides a vibe not yet in the library, default to midnight-tech
-const config = vibeLibrary[activeVibe] || vibeLibrary['midnight-tech'];
-
-// 3. SEO & SCHEMA (Kept exactly as per your current stable version)
-const seoTitle = title || `${data.brand.name} | ${data.brand.tagline}`;
-const ldJson = {
-  "@context": "https://schema.org",
-  "@type": data.intelligence?.industry?.includes('Music') ? "EventVenue" : "LocalBusiness",
-  "name": data.brand.name,
-  "description": data.brand.tagline,
-  "url": "https://example.com", 
-  "telephone": data.contact?.phone || "",
-  "image": `/src/assets/images/${activeVibe}-hero.jpg`
-};
----
-
-<!doctype html>
-<html lang="en" data-vibe={activeVibe}>
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="description" content={data.brand.objection_handle} />
-        <meta name="viewport" content="width=device-width" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <meta name="generator" content={Astro.generator} />
-        <title>{seoTitle}</title>
-
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link 
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:ital,wght@0,400;0,800;1,800&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,700&family=Outfit:wght@400;900&display=swap" 
-            rel="stylesheet" 
-        />
-
-        <script type="application/ld+json" set:html={JSON.stringify(ldJson)} />
-
-        {/* 2026 VIBE INJECTION:
-            Forces JS config values into the CSS variables used by components.
-        */}
-        <style define:vars={{ 
-            'v-accent': config.accent,
-            'v-bg': config.bg,
-            'v-text': config.text,
-            'v-radius': config.radius,
-            'v-font': config.font
-        }}>
-            :root {
-                --accent: var(--v-accent);
-                --bg-color: var(--v-bg);
-                --text-primary: var(--v-text);
-                --radius: var(--v-radius);
-                --font-main: var(--v-font);
-                
-                /* Computed variables to keep logic out of components */
-                --border: color-mix(in srgb, var(--accent) 15%, transparent);
-                --bg-card: color-mix(in srgb, var(--bg-color) 96%, var(--accent));
-                --text-secondary: color-mix(in srgb, var(--text-primary) 70%, transparent);
-            }
-        </style>
-    </head>
-    <body class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] selection:bg-[var(--accent)] selection:text-[var(--bg-color)] transition-colors duration-500">
-        <slot />
-        
-        <style is:global>
-            html {
-                scroll-behavior: smooth;
-            }
-            * {
-                -webkit-tap-highlight-color: transparent;
-            }
-        </style>
-    </body>
-</html>
-</file>
-
 <file path="src/components/Navbar.astro">
 ---
 /**
@@ -2725,90 +2614,222 @@ const isExternal = cta_link?.startsWith('http');
 </script>
 </file>
 
+<file path="src/layouts/Layout.astro">
+---
+/**
+ * Main Layout - 2026 High-Performance Vibe Engine
+ * Strategy: Hybrid (CSS Structure + JS Variable Injection)
+ * Goal: Custom Agency Quality at AI Speed
+ */
+ import data from '../data/business.json';
+import '../styles/vibe-system.css';
+
+interface Props {
+    title?: string;
+    vibeOverride?: string;
+}
+
+const { title, vibeOverride } = Astro.props;
+
+// 1. VIBE NORMALIZATION (Maintains your established slug system)
+const rawVibe = vibeOverride || data.settings?.vibe || 'midnight-tech';
+const activeVibe = rawVibe.toLowerCase().replace(/\s+/g, '-');
+
+// 2. THE VIBE LIBRARY (Agency-Grade Presets)
+const vibeLibrary = {
+  'midnight-tech': {
+    accent: '#00f2ff',      // Neon Cyan
+    bg: '#020617',          // Deep Space Navy
+    text: '#f8fafc',        // Ghost White
+    radius: '4px',
+    font: "'JetBrains Mono', monospace"
+  },
+  'zenith-earth': {
+    accent: '#10b981',      // Emerald Green
+    bg: '#f0fdf4',          // Mint Cream
+    text: '#064e3b',        // Deep Forest
+    radius: '24px',
+    font: "'Outfit', sans-serif"
+  },
+  'vintage-boutique': {
+    accent: '#b45309',      // Polished Gold
+    bg: '#fffbeb',          // Warm Ivory
+    text: '#451a03',        // Espresso
+    radius: '12px',
+    font: "'Cormorant Garamond', serif"
+  },
+  'rugged-industrial': {
+    accent: '#f97316',      // Safety Orange
+    bg: '#000000',          // Pure Black
+    text: '#ffffff',
+    radius: '0px',
+    font: "'Inter', sans-serif"
+  },
+  'modern-minimal': {
+    accent: '#6366f1',      // Indigo
+    bg: '#ffffff',          // Pure White
+    text: '#1e293b',        // Slate
+    radius: '8px',
+    font: "'Inter', sans-serif"
+  },
+  'luxury-noir': {
+    accent: '#D4AF37',      // Metallic Gold
+    bg: '#050505',          // Pure Rich Black
+    text: '#ffffff',        // White
+    radius: '2px',          // Sharp, premium edges
+    font: "'Cormorant Garamond', serif"
+  },
+  'legacy-professional': {
+    accent: '#1e40af',      // Trust Blue (Deep Navy)
+    bg: '#ffffff',          // Pure White
+    text: '#0f172a',        // Slate 900
+    radius: '6px',          // Professional, stable rounding
+    font: "'Inter', sans-serif"
+  },
+  'solar-flare': {
+    accent: '#fbbf24',      // Amber/Electric Yellow
+    bg: '#0f172a',          // Dark Slate (High contrast for energy)
+    text: '#f8fafc',        // Off-white
+    radius: '16px',         // Friendly, high-energy rounding
+    font: "'Outfit', sans-serif"
+  }
+};
+
+const config = vibeLibrary[activeVibe] || vibeLibrary['midnight-tech'];
+
+// 3. SEO & SCHEMA (Untouched to prevent breaking your metadata)
+const seoTitle = title || `${data.brand.name} | ${data.brand.tagline}`;
+const ldJson = {
+  "@context": "https://schema.org",
+  "@type": data.intelligence?.industry?.includes('Music') ? "EventVenue" : "LocalBusiness",
+  "name": data.brand.name,
+  "description": data.brand.tagline,
+  "image": `/images/${data.hero?.image?.src}`
+};
+---
+
+<!doctype html>
+<html lang="en" data-vibe={activeVibe}>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="description" content={data.brand.objection_handle} />
+        <meta name="viewport" content="width=device-width" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <title>{seoTitle}</title>
+
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link 
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;800&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,700&family=Outfit:wght@400;900&display=swap" 
+            rel="stylesheet" 
+        />
+
+        <script type="application/ld+json" set:html={JSON.stringify(ldJson)} />
+
+        <style define:vars={{ 
+            'v-accent': config.accent,
+            'v-bg': config.bg,
+            'v-text': config.text,
+            'v-radius': config.radius,
+            'v-font': config.font
+        }}>
+            :root {
+                --accent: var(--v-accent);
+                --bg-color: var(--v-bg);
+                --text-primary: var(--v-text);
+                --radius: var(--v-radius);
+                --font-main: var(--v-font);
+                
+                /* Computed variables: 90/10 mix removes the "Gray" feeling */
+                --bg-card: color-mix(in srgb, var(--bg-color) 90%, var(--accent));
+                --border: color-mix(in srgb, var(--accent) 25%, transparent);
+                --text-secondary: color-mix(in srgb, var(--text-primary) 70%, transparent);
+            }
+        </style>
+    </head>
+    <body class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-[var(--bg-color)]">
+        <slot />
+        
+        <style is:global>
+            html { scroll-behavior: smooth; }
+            
+            /* Global Font Override to ensure the Vibe Library font wins */
+            body { font-family: var(--font-main) !important; }
+
+            /* Professional Agency Heading Style */
+            h1, h2, h3, h4, .brand-heading {
+                font-weight: 900;
+                letter-spacing: -0.04em;
+                text-transform: uppercase;
+                line-height: 0.9;
+            }
+
+            /* Fix for images to ensure they match the vibe's radius */
+            img, .vibe-container {
+                border-radius: var(--radius);
+            }
+        </style>
+    </body>
+</html>
+</file>
+
 <file path="src/styles/vibe-system.css">
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* --- GLOBAL SPA POLISH --- */
-html {
-  scroll-behavior: smooth;
-}
-
-section[id], main[id], div[id] {
-  scroll-margin-top: 5rem;
-}
-
+/* --- GLOBAL STRUCTURE --- */
+html { scroll-behavior: smooth; }
 body {
   background-color: var(--bg-color);
   color: var(--text-primary);
   font-family: var(--font-main, sans-serif);
-  line-height: 1.5;
   transition: background-color 0.4s ease;
 }
 
-/* --- 8. VINTAGE BOUTIQUE (Optimized for Carol's Salon) --- */
-[data-vibe="vintage-boutique"] {
-  --bg-color: #fdfaf3;
-  --bg-card: #f8f3e9; /* Slightly darker than bg for depth */
-  --text-primary: #2d241e;
-  --text-secondary: #6b5a4d;
-  --accent: #D4AF37; /* Switched to Metallic Gold for Premium Agency Quality */
-  --border: #e7e0d0;
-  --radius: 2px;
-  --font-main: 'Cormorant Garamond', serif;
-}
+/* --- VIBE PERSONALITY (Structure only, no colors) --- */
 [data-vibe="vintage-boutique"] h1, 
 [data-vibe="vintage-boutique"] h2 { 
   font-style: italic; 
   font-weight: 300; 
   text-transform: none; 
-  letter-spacing: -0.02em; 
 }
 
-/* --- 2. MIDNIGHT TECH (SaaS/AI) --- */
-[data-vibe="midnight-tech"] {
-  --bg-color: #050505;
-  --bg-card: #0f0f0f;
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --accent: #6366f1;
-  --border: rgba(255, 255, 255, 0.05);
-  --radius: 12px;
-  --font-main: 'Inter', sans-serif;
+[data-vibe="midnight-tech"] h1 { 
+  font-weight: 900; 
+  letter-spacing: -0.05em; 
 }
-[data-vibe="midnight-tech"] h1 { font-weight: 900; letter-spacing: -0.05em; }
 
-/* --- 3. RUGGED INDUSTRIAL (Blue Collar/Trade) --- */
 [data-vibe="rugged-industrial"] {
-  --bg-color: #111111;
-  --bg-card: #1a1a1a;
-  --text-primary: #f4f4f4;
-  --text-secondary: #a1a1aa;
-  --accent: #ff5f1f;
-  --border: #333;
-  --radius: 0px;
-  --font-main: 'JetBrains Mono', monospace;
+  text-transform: uppercase; /* Industrial feels "heavy" */
 }
 
-/* --- RECOVERY & UTILITIES --- */
-.bg-card { background-color: var(--bg-card); }
+/* Legacy Professional: Balanced & Trustworthy */
+[data-vibe="legacy-professional"] h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none; /* Keep it formal */
+}
+
+/* Solar Flare: Bold & Disruptive */
+[data-vibe="solar-flare"] h1 {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  font-style: italic; /* Adds movement */
+}
+
+/* --- UTILITY RECOVERY --- */
+.bg-card { background-color: var(--bg-card); border: 1px solid var(--border); }
 .border-vibe { border-color: var(--border); }
 
-/* Ensure CTA text is always readable regardless of accent color */
-[data-vibe="midnight-tech"] .cta-button, 
-[data-vibe="rugged-industrial"] .cta-button {
-  color: #fff;
-}
-[data-vibe="vintage-boutique"] .cta-button,
-[data-vibe="solar-flare"] .cta-button {
-  color: #000;
-}
-
-/* --- MOBILE MENU RECOVERY --- */
-#mobile-menu.flex {
-  display: flex !important;
-  background-color: var(--bg-color) !important;
+/* Automated CTA Contrast Logic */
+.cta-button {
+  background-color: var(--accent);
+  border-radius: var(--radius);
+  /* Use CSS to determine text color based on background lightness */
+  color: canvasText; 
+  filter: contrast(150%);
 }
 </file>
 
@@ -2829,7 +2850,7 @@ body {
     "show_faqs": true
   },
   "settings": {
-    "vibe": "Zenith Earth",
+    "vibe": "rugged-industrial",
     "primary_color": "#4a5d4e",
     "cta_text": "START YOUR BUILD",
     "cta_link": "#contact",
@@ -2895,6 +2916,7 @@ body {
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
 import Hero from '../components/Hero.astro';
+import BentoAbout from '../components/BentoAbout.astro'; // NEW IMPORT
 import Features from '../components/Features.astro';
 import Process from '../components/Process.astro';
 import Testimonials from '../components/Testimonials.astro';
@@ -2907,13 +2929,13 @@ import Contact from '../components/Contact.astro';
 import data from '../data/business.json';
 
 /** * 2026 DATA DESTRUCTURING - SAFE FALLBACKS
- * This ensures the site never crashes even if the AI generates a partial JSON.
  */
 const {
   intelligence = {},
   strategy = {},
   settings = {},
   brand = {},
+  about = {}, // ADDED ABOUT
   menu = [],
   hero = {},
   features = [],
@@ -2926,82 +2948,63 @@ const {
   contact = {}
 } = data;
 
-// SEO Title logic
 const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
 
 <Layout title={siteTitle} settings={settings}>
   
-  <Navbar 
-    brand={brand} 
-    menu={menu} 
-    settings={settings} 
-  />  
+  <Navbar brand={brand} menu={menu} settings={settings} />  
 
   <main>
     {/* 1. HERO SECTION */}
     <Hero hero={hero} brand={brand} settings={settings} />
 
+    {/* 1.5 THE BENTO ABOUT (Strategically placed for trust) */}
+    {strategy.show_about !== false && (brand.name || about.story_text) && (
+      <BentoAbout 
+        brand={brand} 
+        about={about} 
+        intelligence={intelligence}
+      />
+    )}
+
     {/* 2. FEATURES / SERVICES */}
     {strategy.show_features && features.length > 0 && (
-      <Features 
-        features={features} 
-        intelligence={intelligence} 
-      />
+      <Features features={features} intelligence={intelligence} />
     )}
 
     {/* 3. METHODOLOGY / PROCESS */}
     {strategy.show_process && processSteps.length > 0 && (
-      <Process 
-        steps={processSteps} 
-        intelligence={intelligence} 
-      />
+      <Process steps={processSteps} intelligence={intelligence} />
     )}
 
     {/* 4. SOCIAL PROOF */}
     {strategy.show_testimonials && testimonials.length > 0 && (
-      <Testimonials 
-        testimonials={testimonials} 
-      />
+      <Testimonials testimonials={testimonials} />
     )}
 
     {/* 5. VALUE COMPARISON */}
     {strategy.show_comparison && comparison && (
-      <Comparison 
-        comparison={comparison} 
-        intelligence={intelligence} 
-      />
+      <Comparison comparison={comparison} intelligence={intelligence} />
     )}
 
     {/* 6. PORTFOLIO / GALLERY */}
     {strategy.show_gallery && gallery.length > 0 && (
-      <Gallery 
-        gallery={gallery} 
-      />
+      <Gallery gallery={gallery} />
     )}
 
     {/* 7. PRICING / INVESTMENT */}
     {strategy.show_investment && investment.length > 0 && (
-      <Investment 
-        tiers={investment} 
-        brand={brand}
-      />
+      <Investment tiers={investment} brand={brand} />
     )}
 
     {/* 8. OBJECTION HANDLING */}
     {strategy.show_faqs && faqs.length > 0 && (
-      <FAQ 
-        faqs={faqs} 
-      />
+      <FAQ faqs={faqs} />
     )}
 
-    {/* 9. FINAL CONVERSION / NETLIFY FORM */}
-    <Contact 
-      contact={contact} 
-      intelligence={intelligence} 
-      brand={brand} 
-      settings={settings} 
-    />
+    {/* 9. FINAL CONVERSION */}
+    <Contact contact={contact} intelligence={intelligence} brand={brand} settings={settings} />
   </main>
 </Layout>
 </file>

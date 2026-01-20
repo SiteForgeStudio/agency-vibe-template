@@ -1,0 +1,75 @@
+{
+  "intelligence": {
+    "industry": "AI Automation & High-End Web",
+    "target_persona": "Fiverr Pro Clients",
+    "tone_of_voice": "Technical, Bold, & Efficient"
+  },
+  "strategy": {
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": true,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true
+  },
+  "settings": {
+    "vibe": "rugged-industrial",
+    "primary_color": "#4a5d4e",
+    "cta_text": "START YOUR BUILD",
+    "cta_link": "#contact",
+    "radius": "0.5rem"
+  },
+  "brand": {
+    "name": "Vibe-Engine Studio",
+    "slug": "vibe-engine-studio",
+    "tagline": "Custom Agency Quality at AI Speed",
+    "logo_text": "V/E",
+    "objection_handle": "Only 3 development slots remaining for March."
+  },
+  "menu": [
+    { "label": "Services", "path": "#features" },
+    { "label": "Protocol", "path": "#process" },
+    { "label": "Portfolio", "path": "#gallery" },
+    { "label": "Investment", "path": "#investment" }
+  ],
+  "hero": {
+    "headline": "STOP BUILDING. START DEPLOYING.",
+    "subtext": "We leverage high-end Astro architecture and AI logic to deliver professional-grade sites in 24 hours."
+  },
+  "features": [
+    { "title": "Astro Logic", "description": "Zero-JS by default for 100/100 Core Web Vitals.", "icon_slug": "zap" },
+    { "title": "Vibe-Switch", "description": "Instant aesthetic pivots via our proprietary CSS system.", "icon_slug": "layers" },
+    { "title": "AI Integration", "description": "Content and imagery curated by trained LLM models.", "icon_slug": "cpu" }
+  ],
+  "processSteps": [
+    { "title": "Vibe Intake", "description": "Select your visual DNA and core business data." },
+    { "title": "AI Synthesis", "description": "Our engine maps your data to high-end Astro components." },
+    { "title": "Fast Deploy", "description": "Global edge delivery via Netlify in under 24 hours." }
+  ],
+  "testimonials": [
+    { "name": "Marcus Chen", "role": "Fiverr Pro Client", "content": "I've never seen a turnaround this fast with this level of code quality." }
+  ],
+  "comparison": {
+    "headline": "The Engine vs. The Rest",
+    "left_title": "Traditional Freelancer",
+    "left_items": ["2-Week Wait Times", "Bloated WordPress Themes", "Manual Content Entry"],
+    "right_title": "Vibe-Engine",
+    "right_items": ["24-Hour Delivery", "Clean Astro/Tailwind Code", "AI-Powered Precision"]
+  },
+  "gallery": [
+    { "src": "/images/project1.jpg", "alt": "SaaS Platform", "title": "Nexus AI", "category": "Web App" },
+    { "src": "/images/project2.jpg", "alt": "Lawn Care", "title": "Elite Turf", "category": "Service Business" }
+  ],
+  "investment": [
+    { "name": "The Sprint", "price": "$295", "features": ["Full Landing Page", "Netlify Hosting", "24h Delivery"], "popular": true }
+  ],
+  "faqs": [
+    { "question": "How is it so fast?", "answer": "We use a pre-engineered component library and AI-driven data mapping." },
+    { "question": "Can I edit the code?", "answer": "Yes, you get full access to the GitHub repository." }
+  ],
+  "contact": {
+    "email": "hello@vibe-engine.com",
+    "phone": "1-800-VIBE-AI"
+  }
+}

@@ -1,8 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro'; // ADDED MISSING IMPORT
 import Hero from '../components/Hero.astro';
-import BentoAbout from '../components/BentoAbout.astro'; // NEW IMPORT
+import BentoAbout from '../components/BentoAbout.astro';
 import Features from '../components/Features.astro';
 import Process from '../components/Process.astro';
 import Testimonials from '../components/Testimonials.astro';
@@ -11,18 +12,18 @@ import Gallery from '../components/Gallery.astro';
 import Investment from '../components/Investment.astro';
 import FAQ from '../components/FAQ.astro';
 import Contact from '../components/Contact.astro';
+import ServiceArea from '../components/ServiceArea.astro';
 
 import data from '../data/business.json';
 
-/** * 2026 DATA DESTRUCTURING - SAFE FALLBACKS
+/** * 2026 DATA DESTRUCTURING - SCHEMA ALIGNED
  */
 const {
   intelligence = {},
   strategy = {},
-  settings = {},
+  settings = {}, // Holds vibe and menu
   brand = {},
-  about = {}, // ADDED ABOUT
-  menu = [],
+  about = {},
   hero = {},
   features = [],
   processSteps = [],
@@ -31,21 +32,25 @@ const {
   gallery = [],
   investment = [],
   faqs = [],
+  service_area = [],
   contact = {}
 } = data;
+
+// FIX: Extract menu from settings per Master Schema
+const navMenu = settings.menu || [];
 
 const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
 
 <Layout title={siteTitle} settings={settings}>
   
-  <Navbar brand={brand} menu={menu} settings={settings} />  
+  <Navbar brand={brand} menu={navMenu} settings={settings} />  
 
   <main>
     {/* 1. HERO SECTION */}
     <Hero hero={hero} brand={brand} settings={settings} />
 
-    {/* 1.5 THE BENTO ABOUT (Strategically placed for trust) */}
+    {/* 1.5 THE BENTO ABOUT */}
     {strategy.show_about !== false && (brand.name || about.story_text) && (
       <BentoAbout 
         brand={brand} 
@@ -76,7 +81,7 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
 
     {/* 6. PORTFOLIO / GALLERY */}
     {strategy.show_gallery && gallery.length > 0 && (
-      <Gallery gallery={gallery} />
+      <Gallery gallery={gallery} brand={brand} />
     )}
 
     {/* 7. PRICING / INVESTMENT */}
@@ -89,7 +94,16 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
       <FAQ faqs={faqs} />
     )}
 
+    {/* 8.5 SERVICE AREA (The Final Local Trust Check) */}
+    {strategy.show_service_area && data.service_area && (
+      <ServiceArea 
+        service_area={data.service_area} 
+        intelligence={intelligence} 
+      />
+    )}
+
     {/* 9. FINAL CONVERSION */}
     <Contact contact={contact} intelligence={intelligence} brand={brand} settings={settings} />
   </main>
+
 </Layout>

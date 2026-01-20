@@ -1,54 +1,41 @@
 ---
-/**
- * COMPONENT: Comparison
- * Logic: Contrast business value against "Traditional" methods.
- * Vibe: High-contrast split-screen.
- */
- const { comparison, intelligence } = Astro.props;
+// src/components/Comparison.astro
+const { comparison, intelligence } = Astro.props;
 
-if (!comparison) return null;
-
-const isTech = intelligence?.industry?.toLowerCase().includes('tech') || 
-               intelligence?.industry?.toLowerCase().includes('ai');
-
-const headline = comparison.headline || (isTech ? "System Advantage" : "The Difference");
+// Defensive check: ensure comparison and comparison.items exist
+const items = comparison?.items || [];
+const title = comparison?.title || "The Competition";
 ---
 
-<section id="comparison" class="py-24 bg-[var(--bg-card)] border-y border-[var(--border)]">
-  <div class="container mx-auto px-6">
-    <div class="text-center mb-16">
-      <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        {headline}
-      </h2>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border)] max-w-5xl mx-auto border border-[var(--border)] rounded-[var(--radius)] overflow-hidden">
-      {/* Left Side: The Problem */}
-      <div class="bg-[var(--bg-color)] p-12">
-        <h3 class="text-xl font-bold uppercase mb-8 opacity-50">{comparison.left_title}</h3>
-        <ul class="space-y-4">
-          {comparison.left_items.map((item: string) => (
-            <li class="flex items-center text-[var(--text-secondary)] text-sm italic">
-              <span class="mr-3 text-red-500">✕</span> {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Right Side: The Solution (Vibe-Engine) */}
-      <div class="bg-[var(--bg-card)] p-12 border-l border-[var(--border)] relative">
-        <div class="absolute top-4 right-4 text-[var(--accent)] text-[10px] font-bold tracking-widest uppercase animate-pulse">
-          Recommended
-        </div>
-        <h3 class="text-xl font-bold uppercase mb-8 text-[var(--accent)]">{comparison.right_title}</h3>
-        <ul class="space-y-4">
-          {comparison.right_items.map((item: string) => (
-            <li class="flex items-center text-[var(--text-primary)] font-bold text-sm">
-              <span class="mr-3 text-[var(--accent)]">✓</span> {item}
-            </li>
-          ))}
-        </ul>
-      </div>
+<section id="comparison" class="py-24 px-6 bg-[var(--bg-card)]">
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-4xl font-black mb-12 text-center text-[var(--text-primary)]">
+      {title}
+    </h2>
+    
+    <div class="overflow-hidden rounded-[var(--radius)] border border-[var(--border)]">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-[var(--bg-color)] border-b border-[var(--border)]">
+            <th class="p-6 text-[var(--text-secondary)] font-medium">Feature</th>
+            <th class="p-6 text-[var(--accent)] font-bold">Our Standard</th>
+            <th class="p-6 text-[var(--text-secondary)]">The Others</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {items.length > 0 ? items.map((item) => (
+            <tr class="hover:bg-[var(--bg-color)] transition-colors">
+              <td class="p-6 font-bold text-[var(--text-primary)]">{item.label}</td>
+              <td class="p-6 text-[var(--accent)] font-black">{item.us}</td>
+              <td class="p-6 text-[var(--text-secondary)]">{item.them}</td>
+            </tr>
+          )) : (
+            <tr>
+              <td colspan="3" class="p-6 text-center text-[var(--text-secondary)]">No comparison data provided.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   </div>
 </section>

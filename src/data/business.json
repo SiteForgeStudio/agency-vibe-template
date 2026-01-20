@@ -1,75 +1,137 @@
 {
   "intelligence": {
-    "industry": "AI Automation & High-End Web",
-    "target_persona": "Fiverr Pro Clients",
-    "tone_of_voice": "Technical, Bold, & Efficient"
+    "industry": "High-End Residential Interior Design",
+    "target_persona": "Discerning homeowners in historic districts looking to blend heritage architecture with modern luxury.",
+    "tone_of_voice": "Sophisticated, curated, and timeless. Focus on 'quiet luxury'."
   },
   "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
     "show_features": true,
     "show_process": true,
     "show_testimonials": true,
-    "show_comparison": true,
+    "show_comparison": false,
     "show_gallery": true,
     "show_investment": true,
-    "show_faqs": true
+    "show_faqs": true,
+    "show_service_area": true
   },
   "settings": {
-    "vibe": "rugged-industrial",
-    "primary_color": "#4a5d4e",
-    "cta_text": "START YOUR BUILD",
+    "vibe": "Vintage Boutique",
+    "primary_color": "#b4a07d",
+    "cta_text": "Book a Consultation",
     "cta_link": "#contact",
-    "radius": "0.5rem"
+    "menu": [
+      { "label": "The Studio", "path": "#about" },
+      { "label": "Portfolio", "path": "#gallery" },
+      { "label": "The Method", "path": "#process" },
+      { "label": "Inquire", "path": "#contact" }
+    ]
   },
   "brand": {
-    "name": "Vibe-Engine Studio",
-    "slug": "vibe-engine-studio",
-    "tagline": "Custom Agency Quality at AI Speed",
-    "logo_text": "V/E",
-    "objection_handle": "Only 3 development slots remaining for March."
+    "name": "MAISON NOIR",
+    "slug": "maison-noir",
+    "tagline": "Curating Timeless Sanctuaries.",
+    "objection_handle": "We manage everything from procurement to white-glove installation, so you never have to lift a finger."
   },
-  "menu": [
-    { "label": "Services", "path": "#features" },
-    { "label": "Protocol", "path": "#process" },
-    { "label": "Portfolio", "path": "#gallery" },
-    { "label": "Investment", "path": "#investment" }
-  ],
+  "trustbar": {
+    "headline": "As Seen In & Certified By",
+    "logos": [
+      { "name": "Architectural Digest", "image_search_query": "architectural digest logo black" },
+      { "name": "ASID", "image_search_query": "asid interior design logo" },
+      { "name": "Elle Decor", "image_search_query": "elle decor logo" }
+    ]
+  },
   "hero": {
-    "headline": "STOP BUILDING. START DEPLOYING.",
-    "subtext": "We leverage high-end Astro architecture and AI logic to deliver professional-grade sites in 24 hours."
+    "title_line_1": "ELEVATED",
+    "title_line_2": "LIVING",
+    "subheadline": "Full-service interior design for those who value heritage, texture, and the art of the home. Based in Charleston, serving clients globally.",
+    "image": {
+      "alt": "Luxury living room with velvet seating, marble fireplace, and ambient lighting",
+      "image_search_query": "luxury interior design Charleston style living room vintage boutique"
+    }
+  },
+  "about": {
+    "story_text": "Maison Noir began with a simple philosophy: a home should be a reflection of your history and a blueprint for your future. We specialize in sourcing rare antiques and pairing them with cutting-edge bespoke furniture.",
+    "founder_note": "Design isn't about filling a room; it's about composing a life.",
+    "years_experience": "20"
+  },
+  "service_area": {
+    "main_city": "Charleston",
+    "surrounding_cities": ["Mount Pleasant", "Kiawah Island", "Savannah", "Sullivan's Island"],
+    "map_search_query": "Interior Design Studios Charleston SC"
   },
   "features": [
-    { "title": "Astro Logic", "description": "Zero-JS by default for 100/100 Core Web Vitals.", "icon_slug": "zap" },
-    { "title": "Vibe-Switch", "description": "Instant aesthetic pivots via our proprietary CSS system.", "icon_slug": "layers" },
-    { "title": "AI Integration", "description": "Content and imagery curated by trained LLM models.", "icon_slug": "cpu" }
+    {
+      "title": "Bespoke Sourcing",
+      "description": "Direct access to exclusive European furniture houses and private antique dealers.",
+      "icon_name": "Search"
+    },
+    {
+      "title": "Full Renovation",
+      "description": "Complete project management from architectural drafting to final styling.",
+      "icon_name": "Home"
+    },
+    {
+      "title": "Color Theory",
+      "description": "Scientific lighting and palette analysis to maximize the natural mood of your space.",
+      "icon_name": "Palette"
+    }
   ],
   "processSteps": [
-    { "title": "Vibe Intake", "description": "Select your visual DNA and core business data." },
-    { "title": "AI Synthesis", "description": "Our engine maps your data to high-end Astro components." },
-    { "title": "Fast Deploy", "description": "Global edge delivery via Netlify in under 24 hours." }
+    {
+      "step_number": "01",
+      "title": "Discovery Call",
+      "description": "Exploring your aesthetic DNA and lifestyle requirements."
+    },
+    {
+      "step_number": "02",
+      "title": "The Concept",
+      "description": "Full tactile mood boards, 3D renderings, and floor plans."
+    },
+    {
+      "step_number": "03",
+      "title": "The Reveal",
+      "description": "White-glove installation and final styling of your completed sanctuary."
+    }
   ],
   "testimonials": [
-    { "name": "Marcus Chen", "role": "Fiverr Pro Client", "content": "I've never seen a turnaround this fast with this level of code quality." }
+    {
+      "quote": "They didn't just design a house; they gave our family a place that feels like it has existed for generations.",
+      "author": "Eleanor V.",
+      "role": "Historic Homeowner"
+    }
   ],
-  "comparison": {
-    "headline": "The Engine vs. The Rest",
-    "left_title": "Traditional Freelancer",
-    "left_items": ["2-Week Wait Times", "Bloated WordPress Themes", "Manual Content Entry"],
-    "right_title": "Vibe-Engine",
-    "right_items": ["24-Hour Delivery", "Clean Astro/Tailwind Code", "AI-Powered Precision"]
-  },
   "gallery": [
-    { "src": "/images/project1.jpg", "alt": "SaaS Platform", "title": "Nexus AI", "category": "Web App" },
-    { "src": "/images/project2.jpg", "alt": "Lawn Care", "title": "Elite Turf", "category": "Service Business" }
+    { "title": "The Manor Project", "image_search_query": "luxury dining room historic mansion interior" },
+    { "title": "Coastal Chic", "image_search_query": "modern luxury beach house bedroom cream tones" },
+    { "title": "Art Deco Revived", "image_search_query": "luxury bathroom marble art deco style" }
   ],
   "investment": [
-    { "name": "The Sprint", "price": "$295", "features": ["Full Landing Page", "Netlify Hosting", "24h Delivery"], "popular": true }
+    {
+      "tier_name": "CONCIERGE DESIGN",
+      "price": "$5,000 min",
+      "popular": true,
+      "features": ["Room-by-room styling", "Sourcing list", "2D Renderings"]
+    },
+    {
+      "tier_name": "FULL ESTATE",
+      "price": "Custom",
+      "popular": false,
+      "features": ["Architectural oversight", "Global procurement", "Turnkey setup"]
+    }
   ],
   "faqs": [
-    { "question": "How is it so fast?", "answer": "We use a pre-engineered component library and AI-driven data mapping." },
-    { "question": "Can I edit the code?", "answer": "Yes, you get full access to the GitHub repository." }
+    {
+      "question": "Do you work with existing furniture?",
+      "answer": "Absolutely. We love integrating cherished family heirlooms into a fresh, elevated context."
+    }
   ],
   "contact": {
-    "email": "hello@vibe-engine.com",
-    "phone": "1-800-VIBE-AI"
+    "headline": "BEGIN YOUR TRANSFORMATION",
+    "subheadline": "Now booking heritage projects for the Fall 2026 season.",
+    "email_recipient": "hello@maisonnoir.com",
+    "button_text": "Inquire About Your Project",
+    "office_address": "88 Broad St, Charleston, SC"
   }
 }

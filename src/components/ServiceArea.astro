@@ -1,41 +1,51 @@
 ---
-// Import a simple icon or use a standard SVG for a more professional look
-const { data } = Astro.props;
+const { service_area, intelligence } = Astro.props;
+
+// 1. SAFE FALLBACKS
+const mainCity = service_area?.main_city || "Our Region";
+const neighbors = service_area?.surrounding_cities || [];
+const industry = intelligence?.industry || "Services";
+
+// 2. MERGE FOR DISPLAY
+const allLocations = [mainCity, ...neighbors];
+
+if (!service_area) return null;
 ---
 <section id="service-area" class="py-20 bg-[var(--bg-card)] border-y border-[var(--border)]">
   <div class="max-w-6xl mx-auto px-6">
     <div class="grid md:grid-cols-2 gap-12 items-center">
       <div>
-        <h2 class="text-4xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">
-          {data.headline}
+        <h2 class="text-4xl font-bold text-[var(--text-primary)] mb-4 tracking-tight uppercase">
+          Serving <span class="text-[var(--accent)]">{mainCity}</span> & Beyond
         </h2>
         <p class="text-[var(--text-secondary)] mb-8 text-lg leading-relaxed">
-          {data.subtext}
+          Providing elite {industry} expertise across the following regions. We ensure rapid deployment and local compliance for every project.
         </p>
         
         <div class="grid grid-cols-2 gap-y-4 gap-x-2">
-          {data.locations.map((location) => (
+          {allLocations.map((location) => (
             <div class="flex items-center gap-3 text-[var(--text-primary)] group">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent)] opacity-70 group-hover:opacity-100 transition-opacity">
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
               </svg>
-              
-              {/* If location is an object, we use .name. If it's a string, we use the value */}
-              <span class="text-sm font-medium tracking-wide">
-                {typeof location === 'object' ? location.name : location}
+              <span class="text-sm font-medium tracking-wide uppercase">
+                {location}
               </span>
             </div>
           ))}
         </div>
       </div>
 
-      <div class="bg-[var(--bg-color)] p-10 rounded-[var(--radius)] border border-[var(--border)] text-center shadow-sm">
+      <div class="bg-[var(--bg-color)] p-10 rounded-[var(--radius)] border border-[var(--border)] text-center shadow-sm relative overflow-hidden">
+        {/* Background Accent for Vibe */}
+        <div class="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)] opacity-5 blur-3xl -mr-16 -mt-16"></div>
+        
         <div class="inline-block p-3 rounded-full bg-[var(--accent)]/10 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent)]"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent)]"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
         </div>
-        <p class="text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-3">Coverage Radius</p>
+        <p class="text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-3">Logistics</p>
         <p class="text-xl font-bold mb-8 text-[var(--text-primary)] leading-snug">
-            Outside these areas? We offer custom quotes for distance travel.
+            Outside these areas? We offer custom quotes for extended travel.
         </p>
         <a href="#contact" class="inline-block w-full py-4 bg-[var(--accent)] text-black font-bold uppercase tracking-widest text-xs transition-transform hover:scale-[1.02] rounded-[var(--radius)]">
           Inquire Now

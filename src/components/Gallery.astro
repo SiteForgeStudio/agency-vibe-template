@@ -1,58 +1,55 @@
 ---
-/**
- * COMPONENT: Gallery
- */
- import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
-
+import { Image } from 'astro:assets';
 const { gallery, brand } = Astro.props;
 
-// Use the SLUG from JSON directly. 
-const brandSlug = brand?.slug || 'vibe-engine-studio';
-
+// 1. ASSET DISCOVERY
 const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
+
+// 2. THE SLUG HANDSHAKE (Uses 'brand' prop, not 'data')
+const brandSlug = brand?.slug || 
+                 (brand?.name || 'brand')
+                    .toLowerCase()
+                    .replace(/'/g, '') 
+                    .replace(/[^a-z0-9]/g, '-');
 
 if (!gallery || gallery.length === 0) return null;
 ---
 
-<section id="gallery" class="py-24 bg-[var(--bg-color)] border-t border-[var(--border)] scroll-mt-24">
-  <div class="container mx-auto px-6">
-    <div class="mb-16">
-      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Case Studies</h2>
-      <h3 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        The <span class="text-[var(--accent)]">Output</span>.
-      </h3>
-    </div>
+<section id="gallery" class="py-24 bg-[var(--bg-color)]">
+  <div class="container mx-auto px-6 mb-12 text-center">
+    <h2 class="text-4xl font-black uppercase text-[var(--text-primary)]">
+      The <span class="text-[var(--accent)]">Lab</span>
+    </h2>
+  </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {gallery.map((item: any, index: number) => {
-        // Construct the path: /src/assets/images/vibe-engine-studio-project-0.jpg
-        const expectedPath = `/src/assets/images/${brandSlug}-project-${index}.jpg`;
-        const imageLoader = images[expectedPath];
+  <div class="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+    {gallery.map((item: any, index: number) => {
+      // 3. GENERATE FILENAME TO MATCH YOUR LS OUTPUT
+      const expectedFilename = `${brandSlug}-project-${index}.jpg`;
+      const imagePath = `/src/assets/images/${expectedFilename}`;
+      const hasImage = images[imagePath];
 
-        return (
-          <div class="group relative overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] aspect-video">
-            {imageLoader ? (
-              <Image 
-                src={imageLoader()} 
-                alt={item.alt || "Project Image"} 
-                width={800}
-                height={600}
-                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
-              />
-            ) : (
-              <div class="w-full h-full flex items-center justify-center bg-black/20 text-[8px] text-white/40 uppercase">
-                Missing: {brandSlug}-project-{index}.jpg
-              </div>
-            )}
-            
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-              <h4 class="text-white font-bold uppercase tracking-widest text-sm">{item.title}</h4>
-              <p class="text-[var(--accent)] text-[10px] uppercase font-bold mt-1">{item.category}</p>
+      return (
+        <div class="group relative aspect-video overflow-hidden rounded-[var(--radius)] bg-[var(--bg-card)] border border-[var(--border)]">
+          {hasImage ? (
+            <Image 
+              src={images[imagePath]()} 
+              alt={item.title || "Gallery Image"}
+              width={1200}
+              height={800}
+              class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div class="flex flex-col items-center justify-center h-full bg-slate-900 p-4">
+              <span class="text-red-500 font-mono text-xs mb-2">Missing: {expectedFilename}</span>
+              <span class="text-[10px] text-white/30 uppercase">Check src/assets/images/</span>
             </div>
+          )}
+          <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent">
+            <p class="text-white font-bold uppercase tracking-widest text-sm">{item.title}</p>
           </div>
-        );
-      })}
-    </div>
+        </div>
+      );
+    })}
   </div>
 </section>

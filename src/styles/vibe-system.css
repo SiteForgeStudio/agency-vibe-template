@@ -28,6 +28,21 @@ body {
   text-transform: uppercase; /* Industrial feels "heavy" */
 }
 
+/* Legacy Professional: Balanced & Trustworthy */
+[data-vibe="legacy-professional"] h1 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none; /* Keep it formal */
+}
+
+/* Solar Flare: Bold & Disruptive */
+[data-vibe="solar-flare"] h1 {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: -0.05em;
+  font-style: italic; /* Adds movement */
+}
+
 /* --- UTILITY RECOVERY --- */
 .bg-card { background-color: var(--bg-card); border: 1px solid var(--border); }
 .border-vibe { border-color: var(--border); }
