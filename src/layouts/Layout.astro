@@ -5,6 +5,7 @@
  * Goal: Custom Agency Quality at AI Speed
  */
  import data from '../data/business.json';
+ import Footer from '../components/Footer.astro';
 import '../styles/vibe-system.css';
 
 interface Props {
@@ -80,6 +81,8 @@ const vibeLibrary = {
 
 const config = vibeLibrary[activeVibe] || vibeLibrary['midnight-tech'];
 
+const { brand, settings, contact, intelligence } = data;
+
 // 3. SEO & SCHEMA (Untouched to prevent breaking your metadata)
 const seoTitle = title || `${data.brand.name} | ${data.brand.tagline}`;
 const ldJson = {
@@ -132,6 +135,14 @@ const ldJson = {
     </head>
     <body class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-[var(--bg-color)]">
         <slot />
+
+        {/* GLOBAL FOOTER EXECUTION */}
+        <Footer 
+            brand={brand} 
+            settings={settings} 
+            contact={contact} 
+            intelligence={intelligence} 
+        />
         
         <style is:global>
             html { scroll-behavior: smooth; }

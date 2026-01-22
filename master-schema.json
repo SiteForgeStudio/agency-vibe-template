@@ -1,256 +1,248 @@
 {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "Vibe-Engine Master Manifest 2026",
-    "type": "object",
-    "required": ["strategy", "settings", "brand", "menu", "hero", "features", "intelligence"],
-    "properties": {
-      "intelligence": {
-        "type": "object",
-        "properties": {
-          "industry": { "type": "string" },
-          "target_persona": { "type": "string" },
-          "tone_of_voice": { "type": "string" }
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Vibe-Engine Master Manifest 2026",
+  "description": "AI-driven interview, strategy, and build contract for automated Astro static websites.",
+  "type": "object",
+
+  "required": ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"],
+
+  "properties": {
+
+    "intelligence": {
+      "type": "object",
+      "ai:priority": "critical",
+      "ai:purpose": "Establish foundational context so AI can behave like a web strategist.",
+      "ai:questions": [
+        "What is this website for?",
+        "Who is the ideal customer?",
+        "How should the brand sound to visitors?"
+      ],
+      "required": ["industry", "target_persona", "tone_of_voice"],
+      "properties": {
+        "industry": { "type": "string" },
+        "target_persona": { "type": "string" },
+        "tone_of_voice": { "type": "string" }
+      }
+    },
+
+    "strategy": {
+      "type": "object",
+      "ai:priority": "critical",
+      "ai:purpose": "Determine which site components should render based on business needs.",
+      "ai:inference_rules": {
+        "show_about": "true for founder-led, story-driven, or mission-based brands",
+        "show_features": "true for most businesses offering services or products",
+        "show_process": "true for consultative or multi-step services",
+        "show_testimonials": "true when trust, credibility, or proof is important",
+        "show_comparison": "true when buyers compare alternatives",
+        "show_gallery": "true for visual, portfolio-based, or physical work",
+        "show_investment": "true when pricing tiers are standardized",
+        "show_faqs": "true when customer objections are common",
+        "show_service_area": "true for location-based businesses"
+      },
+      "properties": {
+        "show_trustbar": { "type": "boolean" },
+        "show_about": { "type": "boolean" },
+        "show_features": { "type": "boolean" },
+        "show_process": { "type": "boolean" },
+        "show_testimonials": { "type": "boolean" },
+        "show_comparison": { "type": "boolean" },
+        "show_gallery": { "type": "boolean" },
+        "show_investment": { "type": "boolean" },
+        "show_faqs": { "type": "boolean" },
+        "show_service_area": { "type": "boolean" }
+      }
+    },
+
+    "settings": {
+      "type": "object",
+      "ai:priority": "critical",
+      "ai:purpose": "Control global UI, branding vibe, and navigation behavior.",
+      "ai:inference_rules": {
+        "vibe": {
+          "Midnight Tech": "SaaS, AI, fintech, cybersecurity",
+          "Zenith Earth": "wellness, eco-friendly, sustainability",
+          "Vintage Boutique": "handcrafted, artisanal, lifestyle brands",
+          "Rugged Industrial": "construction, manufacturing, trades",
+          "Modern Minimal": "consultants, startups, professional services",
+          "Luxury Noir": "premium, high-end, exclusive brands",
+          "Legacy Professional": "law, finance, healthcare",
+          "Solar Flare": "creative, bold, entertainment, youth-focused"
         }
       },
-      "strategy": {
-        "type": "object",
-        "description": "Visibility toggles for components. AI decides which to light up.",
-        "properties": {
-          "show_bento_about": { "type": "boolean", "default": true },
-          "show_features": { "type": "boolean", "default": true },
-          "show_process": { "type": "boolean", "default": true },
-          "show_testimonials": { "type": "boolean", "default": true },
-          "show_comparison": { "type": "boolean", "default": false },
-          "show_gallery": { "type": "boolean", "default": true },
-          "show_investment": { "type": "boolean", "default": true },
-          "show_faqs": { "type": "boolean", "default": true },
-          "show_events": { "type": "boolean", "default": false },
-          "show_trustbar": { "type": "boolean", "default": true },
-          "show_service_area": { "type": "boolean", "default": false }
-        }
-      },
-      "settings": {
-        "type": "object",
-        "properties": {
-          "vibe": { 
-            "type": "string", 
-            "enum": [
-              "Midnight Tech",
-              "Zenith Earth",
-              "Vintage Boutique",
-              "Rugged Industrial",
-              "Modern Minimal",
-              "Luxury Noir",
-              "Legacy Professional",
-              "Solar Flare"
-            ],
-            "description": "Forces the AI to select a validated, high-contrast professional identity."
-          },
-          "primary_color": { 
-            "type": "string", 
-            "description": "Optional hex override to brand the vibe (e.g., #00ff00 for a green tech vibe)."
-          },
-          "cta_text": { "type": "string" },
-          "cta_link": { "type": "string" }
+      "required": ["vibe", "menu", "cta_text", "cta_link", "cta_type"],
+      "properties": {
+        "vibe": {
+          "type": "string",
+          "enum": [
+            "Midnight Tech",
+            "Zenith Earth",
+            "Vintage Boutique",
+            "Rugged Industrial",
+            "Modern Minimal",
+            "Luxury Noir",
+            "Legacy Professional",
+            "Solar Flare"
+          ]
         },
-        "required": ["vibe"]
-      },
-      "brand": { 
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "tagline": { "type": "string" },
-          "objection_handle": { "type": "string" }
-        }
-      },
-      "menu": { 
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "label": { "type": "string" },
-            "path": { "type": "string", "description": "e.g., #investment or #gallery" }
+        "cta_text": { "type": "string" },
+        "cta_link": { "type": "string" },
+        "cta_type": { "type": "string", "enum": ["anchor", "external"] },
+        "secondary_cta_text": { "type": "string" },
+        "secondary_cta_link": { "type": "string" },
+        "menu": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "path"],
+            "properties": {
+              "label": { "type": "string" },
+              "path": { "type": "string" }
+            }
           }
         }
+      }
+    },
+
+    "brand": {
+      "type": "object",
+      "ai:priority": "critical",
+      "ai:purpose": "Define the public-facing identity of the business.",
+      "ui:component": "BrandMeta",
+      "ai:questions": [
+        "What is the business name?",
+        "Do you have a tagline or positioning statement?",
+        "What email should customers contact?"
+      ],
+      "required": ["name", "tagline", "email"],
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "tagline": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "office_address": { "type": "string" },
+        "objection_handle": { "type": "string" }
+      }
+    },
+
+    "hero": {
+      "type": "object",
+      "ai:priority": "critical",
+      "ai:purpose": "Immediately communicate the core value proposition.",
+      "ui:component": "Hero.astro",
+      "ai:fallbacks": {
+        "headline": "Use brand.tagline",
+        "image.image_search_query": "Derive from industry + vibe"
       },
-      "hero": {
-        "type": "object",
-        "required": ["title_line_1", "title_line_2", "subheadline", "image"],
-        "properties": {
-            "title_line_1": { 
-            "type": "string", 
-            "description": "The first part of the H1 (usually the standard text color)." 
-            },
-            "title_line_2": { 
-            "type": "string", 
-            "description": "The second part of the H1 (usually the accent color/brand color)." 
-            },
-            "subheadline": { 
-            "type": "string", 
-            "description": "A high-conversion subtext that addresses the main pain point." 
-            },
-            "image": {
-            "type": "object",
-            "required": ["src", "alt", "search_description"],
-            "properties": {
-                "src": { "type": "string", "description": "Filename for the local images folder." },
-                "alt": { "type": "string" },
-                "search_description": { 
-                "type": "string", 
-                "description": "The exact prompt for Pexels/Unsplash to find this hero image (e.g., 'Luxury modern kitchen with marble island, evening lighting, 8k')." 
-                }
-            }
-            }
+      "required": ["headline", "subtext", "image"],
+      "properties": {
+        "headline": { "type": "string" },
+        "subtext": { "type": "string" },
+        "image": {
+          "type": "object",
+          "required": ["alt", "image_search_query"],
+          "properties": {
+            "alt": { "type": "string" },
+            "image_search_query": { "type": "string" }
+          }
         }
-     },
+      }
+    },
+
     "about": {
+      "type": "object",
+      "ai:priority": "recommended",
+      "ai:purpose": "Build emotional connection and credibility through story.",
+      "ui:component": "About.astro",
+      "ai:questions": [
+        "How did the business start?",
+        "What makes you different?",
+        "How long have you been doing this?"
+      ],
+      "required": ["story_text", "founder_note", "years_experience"],
+      "properties": {
+        "story_text": { "type": "string" },
+        "founder_note": { "type": "string" },
+        "years_experience": { "type": "string" }
+      }
+    },
+
+    "features": {
+      "type": "array",
+      "ai:priority": "critical",
+      "ai:purpose": "Explain what the business offers and why it matters.",
+      "ui:component": "FeaturesGrid.astro",
+      "ai:questions": [
+        "What services or features do you want to highlight?",
+        "What problems do they solve?"
+      ],
+      "items": {
         "type": "object",
-        "required": ["story_text", "founder_note", "years_experience"],
+        "required": ["title", "description", "icon_slug"],
         "properties": {
-            "story_text": { 
-            "type": "string", 
-            "description": "The 'Mission' text that fills the largest bento box (approx 40-60 words)." 
-            },
-            "founder_note": { 
-            "type": "string", 
-            "description": "The italicized quote for the quote card." 
-            },
-            "years_experience": { 
-            "type": "string", 
-            "description": "The numeric string for the stat box (e.g., '15', '20+')." 
-            },
-            "signature_name": { 
-            "type": "string", 
-            "description": "The name used under the founder note." 
-            }
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "icon_slug": { "type": "string" }
         }
-     },
-      "features": {
-        "type": "array",
-        "minItems": 3,
-        "maxItems": 6,
-        "items": {
-            "type": "object",
-            "required": ["title", "description", "icon_name"],
-            "properties": {
-            "title": { "type": "string" },
-            "description": { "type": "string" },
-            "icon_name": { 
-                "type": "string", 
-                "description": "Lucide icon name (e.g., 'Shield', 'Zap', 'TrendingUp')." 
-            }
-            }
-        }
+      }
     },
-    "processSteps": {
-        "type": "array",
-        "minItems": 3,
-        "maxItems": 4,
-        "items": {
-            "type": "object",
-            "required": ["step_number", "title", "description"],
-            "properties": {
-            "step_number": { "type": "string", "description": "e.g., '01', 'Phase I'" },
-            "title": { "type": "string" },
-            "description": { "type": "string" }
-            }
-        }
-    },
+
     "testimonials": {
-    "type": "array",
-    "description": "Customer social proof. Requires high-intent quotes.",
-    "items": {
+      "type": "array",
+      "ai:priority": "recommended",
+      "ai:purpose": "Reduce risk and increase trust with social proof.",
+      "ui:component": "Testimonials.astro",
+      "ai:questions": [
+        "Do you have customer reviews or testimonials?"
+      ],
+      "items": {
         "type": "object",
         "required": ["quote", "author", "role"],
         "properties": {
-        "quote": { "type": "string" },
-        "author": { "type": "string" },
-        "role": { "type": "string", "description": "e.g., 'SaaS Founder' or 'Project Lead'" },
-        "avatar_search": { 
-            "type": "string", 
-            "description": "Visual prompt for a headshot (e.g., 'Professional man, 30s, creative studio background')." 
+          "quote": { "type": "string" },
+          "author": { "type": "string" },
+          "role": { "type": "string" }
         }
-        }
-    }
+      }
     },
-    "comparison": {
-    "type": "object",
-    "required": ["title", "items"],
-    "properties": {
-        "title": { "type": "string" },
-        "items": {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-            "label": { "type": "string", "description": "Feature being compared (e.g. 'Turnaround Time')" },
-            "us": { "type": "string", "description": "Our value (e.g. '24 Hours')" },
-            "them": { "type": "string", "description": "Industry average (e.g. '2-3 Weeks')" }
-            }
-        }
-        }
-    }
-    },
-    "gallery": {
-    "type": "array",
-    "items": {
-        "type": "object",
-        "required": ["title", "search_description"],
-        "properties": {
-        "title": { "type": "string", "description": "The caption for the work/project." },
-        "search_description": { 
-            "type": "string", 
-            "description": "Specific prompt for the image factory (e.g., 'Minimalist modern kitchen, architectural photography, soft lighting')." 
-        }
-        }
-    }
-    },
+
     "investment": {
-    "type": "array",
-    "items": {
+      "type": "array",
+      "ai:priority": "optional",
+      "ai:purpose": "Clarify pricing expectations and qualify leads.",
+      "ui:component": "PricingTiers.astro",
+      "ai:questions": [
+        "Do you offer standardized pricing or packages?"
+      ],
+      "items": {
         "type": "object",
         "required": ["tier_name", "price", "features"],
         "properties": {
-        "tier_name": { "type": "string" },
-        "price": { "type": "string" },
-        "popular": { "type": "boolean" },
-        "features": { "type": "array", "items": { "type": "string" } }
+          "tier_name": { "type": "string" },
+          "price": { "type": "string" },
+          "popular": { "type": "boolean" },
+          "features": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
         }
-    }
+      }
     },
-    "faqs": {
-    "type": "array",
-    "items": {
-        "type": "object",
-        "required": ["question", "answer"],
-        "properties": {
-        "question": { "type": "string" },
-        "answer": { "type": "string" }
-        }
-    }
-    },
+
     "contact": {
-        "type": "object",
-        "required": ["headline", "subheadline", "email_recipient", "button_text"],
-        "properties": {
-            "headline": { 
-            "type": "string", 
-            "description": "The final 'Hook' (e.g., 'Ready to scale your agency?')." 
-            },
-            "subheadline": { 
-            "type": "string", 
-            "description": "Brief instruction or trust statement (e.g., 'We typically respond within 2 hours')." 
-            },
-            "email_recipient": { 
-            "type": "string", 
-            "format": "email",
-            "description": "The address where the Netlify/GitHub form submissions will be sent."
-            },
-            "button_text": { "type": "string" },
-            "success_message": { "type": "string", "default": "Thank you! Our team will be in touch shortly." },
-            "office_address": { "type": "string", "description": "Optional: For local SEO / Trust." },
-            "phone": { "type": "string" }
-        }
-        }
+      "type": "object",
+      "ai:priority": "critical",
+      "ai:purpose": "Convert visitors into leads or inquiries.",
+      "ui:component": "ContactCTA.astro",
+      "required": ["headline", "subheadline", "email_recipient", "button_text"],
+      "properties": {
+        "headline": { "type": "string" },
+        "subheadline": { "type": "string" },
+        "email_recipient": { "type": "string" },
+        "button_text": { "type": "string" },
+        "office_address": { "type": "string" }
+      }
     }
   }
+}

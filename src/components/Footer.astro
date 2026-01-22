@@ -1,58 +1,88 @@
 ---
-import data from '../data/business.json';
-const { brand, settings, contact } = data;
-const year = new Date().getFullYear();
+/**
+ * FOOTER COMPONENT
+ * Part of the "Perfect Site" Engine
+ * Standards: Zero-friction deployment, Dynamic Vibe-based styling.
+ */
+ const { brand, settings, contact } = Astro.props;
+
+const currentYear = new Date().getFullYear();
+// We use a simple boolean from settings to decide if your agency credit shows
+// Defaults to true unless explicitly set to false in business.json
+const showCredit = settings?.show_agency_credit !== false; 
 ---
 
-<footer class="py-16 px-6 border-t border-[var(--border)] bg-[var(--bg-color)]">
-  <div class="max-w-6xl mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+<footer class="bg-[var(--bg-card)] border-t border-[var(--border)] pt-20 pb-10">
+  <div class="container mx-auto px-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
       
-      <div class="flex flex-col gap-3">
-        <span class="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-          {brand.name}
-        </span>
-        <p class="text-xs uppercase tracking-widest text-[var(--text-secondary)] opacity-70">
-          {brand.objection_handle}
+      {/* 1. BRAND IDENTITY */}
+      <div class="md:col-span-2">
+        <h2 class="text-2xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-4">
+          {brand?.name || "Our Studio"}
+        </h2>
+        <p class="text-[var(--text-secondary)] text-sm max-w-xs leading-relaxed opacity-70">
+          {brand?.tagline || "Professional services delivered with precision and quality."}
         </p>
       </div>
 
-      <div class="flex flex-col gap-4">
-        <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent)]">Navigation</span>
-        <div class="flex flex-col gap-2">
-          {settings.menu.map((item) => (
-            <a href={item.path} class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors uppercase tracking-widest font-medium">
-              {item.label}
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-4">
-         <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent)]">Connect</span>
-         <div class="text-sm text-[var(--text-secondary)] flex flex-col gap-2 uppercase tracking-tighter">
-            <span>{contact.location}</span>
-            <a href={`tel:${contact.phone}`} class="font-bold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors">
-              {contact.phone}
-            </a>
-            
-            {contact.email && (
-              <a href={`mailto:${contact.email}`} class="lowercase tracking-normal hover:text-[var(--accent)] transition-colors opacity-80">
-                {contact.email}
+      {/* 2. DYNAMIC SITEMAP */}
+      <div>
+        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] mb-6">Sitemap</h3>
+        <ul class="space-y-4">
+          {settings?.menu?.map((item: any) => (
+            <li>
+              <a href={item.path} class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
+                {item.label}
               </a>
-            )}
-         </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
+     {/* 3. OFFICIAL BRAND CONTACT (With Safe-Check Logic) */}
+     <div>
+      <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] mb-6">Connect</h3>
+      <ul class="space-y-3">
+        {/* EMAIL SAFE-CHECK */}
+        {brand?.email && brand.email.toLowerCase() !== 'n/a' && (
+          <li>
+            <a 
+              href={`mailto:${brand.email}`} 
+              class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors underline decoration-[var(--accent)]/30 underline-offset-8"
+            >
+              {brand.email}
+            </a>
+          </li>
+        )}
+
+        {/* PHONE SAFE-CHECK */}
+        {brand?.phone && brand.phone.toLowerCase() !== 'n/a' && (
+          <li class="text-sm text-[var(--text-secondary)] flex items-center gap-2">
+            <span class="opacity-50">T:</span> {brand.phone}
+          </li>
+        )}
+
+        {/* ADDRESS SAFE-CHECK */}
+        {brand?.office_address && brand.office_address.toLowerCase() !== 'n/a' && (
+          <li class="text-xs text-[var(--text-secondary)] opacity-70 leading-relaxed max-w-[200px] pt-2">
+            {brand.office_address}
+          </li>
+        )}
+      </ul>
     </div>
 
-    <div class="mt-16 pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-4">
-      <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-50">
-        © {year} {brand.name}.
-      </div>
-      <div class="text-[9px] font-mono uppercase tracking-[0.5em] text-[var(--accent)]">
-        // Identity Engine v1.0
-      </div>
+    {/* 4. BOTTOM BAR & AGENCY CREDIT */}
+    <div class="pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-6">
+      <p class="text-[10px] font-medium text-[var(--text-secondary)] opacity-50 uppercase tracking-widest text-center md:text-left">
+        &copy; {currentYear} {brand?.name || "The Studio"}. All Rights Reserved.
+      </p>
+      
+      {showCredit && (
+        <p class="text-[9px] font-bold uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-30">
+          Built with Vibe Engine
+        </p>
+      )}
     </div>
   </div>
 </footer>

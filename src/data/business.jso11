@@ -1,0 +1,80 @@
+{
+  "intelligence": {
+    "industry": "Live Music / Event Micro-site",
+    "target_persona": "Fans of high-octane rock music looking for immediate tickets",
+    "tone_of_voice": "Bold, urgent, and stripped-down"
+  },
+  "brand": {
+    "name": "NEON HAVOC",
+    "slug": "neon-havoc-micro",
+    "tagline": "The Sound of the 2026 Underground.",
+    "email": "tour@neonhavoc.com",
+    "phone": "n/a",
+    "availability_status": "LTD TICKETS REMAIN",
+    "objection_handle": "Final tour date. No second show will be added."
+  },
+  "strategy": {
+    "show_trustbar": false,
+    "show_about": false,
+    "show_features": true,
+    "show_process": false,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": false,
+    "show_investment": true,
+    "show_faqs": false,
+    "show_service_area": false
+  },
+  "settings": {
+    "vibe": "Solar Flare",
+    "cta_text": "Get Tickets Now",
+    "cta_link": "https://www.eventbrite.com/e/neon-havoc-tickets",
+    "cta_type": "external",
+    "menu": [
+      { "label": "The Lineup", "path": "#features" },
+      { "label": "Ticket Tiers", "path": "#investment" }
+    ]
+  },
+  "hero": {
+    "headline": "VOLTAGE. VIBRATION. VOID.",
+    "subtext": "Neon Havoc live at The Warehouse. Doors at 20:00. This is the only warning.",
+    "image": {
+      "alt": "High contrast rock concert silhouette with red light",
+      "image_search_query": "concert red silhouette strobe"
+    }
+  },
+  "features": [
+    {
+      "title": "Neon Havoc",
+      "description": "Full sensory headline performance.",
+      "icon_slug": "music"
+    },
+    {
+      "title": "The Void Theory",
+      "description": "Special guest industrial support.",
+      "icon_slug": "mic"
+    },
+    {
+      "title": "Voltage Control",
+      "description": "Opening modular synth frequencies.",
+      "icon_slug": "zap"
+    }
+  ],
+  "testimonials": [
+    { "quote": "A visceral sonic assault. Don't miss this.", "author": "Rolling Stone", "role": "Review" }
+  ],
+  "investment": [
+    { 
+      "tier_name": "Standard Floor", 
+      "price": "55", 
+      "popular": true, 
+      "features": ["General Admission", "Standing Room Only"] 
+    },
+    { 
+      "tier_name": "VIP Mezzanine", 
+      "price": "150", 
+      "popular": false, 
+      "features": ["Priority Entry", "Private Bar Access"] 
+    }
+  ]
+}

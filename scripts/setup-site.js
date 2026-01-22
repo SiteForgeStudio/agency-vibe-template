@@ -81,13 +81,9 @@ async function run() {
 
     console.log(`🚀 Starting Image Factory: ${brandName}`);
 
-    // --- TASK 1: THE HERO ---
-    // Naming Convention: brand-slug-hero.jpg
-    const heroQuery = data.hero?.image?.image_search_query || 
-                      (data.intelligence?.industry && data.settings?.vibe 
-                        ? `${data.intelligence.industry} ${data.settings.vibe} workspace`
-                        : `${brandName} professional background`);
-    
+ // --- TASK 1: THE HERO ---
+    // AI ensures data.hero.image.image_search_query always exists
+    const heroQuery = data.hero.image.image_search_query;
     const heroFilename = `${brandSlug}-hero.jpg`;
     await fetchUnsplashImage(heroQuery, heroFilename);
 

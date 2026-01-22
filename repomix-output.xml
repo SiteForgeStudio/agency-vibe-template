@@ -49,9 +49,15 @@ src/
     client/
       hero-main.jpg
     images/
-      vibe-engine-studio-hero.jpg
-      vibe-engine-studio-project-0.jpg
-      vibe-engine-studio-project-1.jpg
+      coastal-roof-care-hero.jpg
+      coastal-roof-care-project-0.jpg
+      coastal-roof-care-project-1.jpg
+      coastal-roof-care-project-2.jpg
+      luxe-detail-labs-hero.jpg
+      luxe-detail-labs-project-0.jpg
+      luxe-detail-labs-project-1.jpg
+      luxe-detail-labs-project-2.jpg
+      voltsync-infra-hero.jpg
   components/
     BentoAbout.astro
     Comparison.astro
@@ -76,6 +82,7 @@ src/
     config.ts
   data/
     business.jso1
+    business.jso10
     business.jso2
     business.jso3
     business.jso4
@@ -83,6 +90,7 @@ src/
     business.jso6
     business.jso7
     business.jso8
+    business.jso9
     business.json
   layouts/
     Layout.astro
@@ -99,6 +107,7 @@ src/
 .gitignore
 astro.config.mjs
 Contact.astro
+master-schema.json
 netlify.toml
 package.json
 PROCESS.md
@@ -109,6 +118,150 @@ tsconfig.json
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/data/business.jso10">
+{
+  "intelligence": {
+    "industry": "High-End Residential Interior Design",
+    "target_persona": "Discerning homeowners in historic districts looking to blend heritage architecture with modern luxury.",
+    "tone_of_voice": "Sophisticated, curated, and timeless. Focus on 'quiet luxury'."
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Vintage Boutique",
+    "primary_color": "#b4a07d",
+    "cta_text": "Get Started",
+    "cta_link": "https://calendly.com/your-link",
+    "cta_type": "external",
+    "menu": [
+      { "label": "The Studio", "path": "#about" },
+      { "label": "Portfolio", "path": "#gallery" },
+      { "label": "The Method", "path": "#process" },
+      { "label": "Inquire", "path": "#contact" }
+    ]
+  },
+  "brand": {
+    "name": "MAISON NOIR",
+    "slug": "maison-noir",
+    "tagline": "Curating Timeless Sanctuaries.",
+    "email": "labs@kineticelite.com",
+    "phone": "n/a",
+    "office_address": "800 Brickell Ave, Miami, FL",
+    "objection_handle": "We manage everything from procurement to white-glove installation, so you never have to lift a finger."
+  },
+  "trustbar": {
+    "headline": "As Seen In & Certified By",
+    "logos": [
+      { "name": "Architectural Digest", "image_search_query": "architectural digest logo black" },
+      { "name": "ASID", "image_search_query": "asid interior design logo" },
+      { "name": "Elle Decor", "image_search_query": "elle decor logo" }
+    ]
+  },
+  "hero": {
+    "title_line_1": "ELEVATED",
+    "title_line_2": "LIVING",
+    "subheadline": "Full-service interior design for those who value heritage, texture, and the art of the home. Based in Charleston, serving clients globally.",
+    "image": {
+      "alt": "Luxury living room with velvet seating, marble fireplace, and ambient lighting",
+      "image_search_query": "luxury interior design Charleston style living room vintage boutique"
+    }
+  },
+  "about": {
+    "story_text": "Maison Noir began with a simple philosophy: a home should be a reflection of your history and a blueprint for your future. We specialize in sourcing rare antiques and pairing them with cutting-edge bespoke furniture.",
+    "founder_note": "Design isn't about filling a room; it's about composing a life.",
+    "years_experience": "20"
+  },
+  "service_area": {
+    "main_city": "Charleston",
+    "surrounding_cities": ["Mount Pleasant", "Kiawah Island", "Savannah", "Sullivan's Island"],
+    "map_search_query": "Interior Design Studios Charleston SC"
+  },
+  "features": [
+    {
+      "title": "Bespoke Sourcing",
+      "description": "Direct access to exclusive European furniture houses and private antique dealers.",
+      "icon_name": "Search"
+    },
+    {
+      "title": "Full Renovation",
+      "description": "Complete project management from architectural drafting to final styling.",
+      "icon_name": "Home"
+    },
+    {
+      "title": "Color Theory",
+      "description": "Scientific lighting and palette analysis to maximize the natural mood of your space.",
+      "icon_name": "Palette"
+    }
+  ],
+  "processSteps": [
+    {
+      "step_number": "01",
+      "title": "Discovery Call",
+      "description": "Exploring your aesthetic DNA and lifestyle requirements."
+    },
+    {
+      "step_number": "02",
+      "title": "The Concept",
+      "description": "Full tactile mood boards, 3D renderings, and floor plans."
+    },
+    {
+      "step_number": "03",
+      "title": "The Reveal",
+      "description": "White-glove installation and final styling of your completed sanctuary."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "They didn't just design a house; they gave our family a place that feels like it has existed for generations.",
+      "author": "Eleanor V.",
+      "role": "Historic Homeowner"
+    }
+  ],
+  "gallery": [
+    { "title": "The Manor Project", "image_search_query": "luxury dining room historic mansion interior" },
+    { "title": "Coastal Chic", "image_search_query": "modern luxury beach house bedroom cream tones" },
+    { "title": "Art Deco Revived", "image_search_query": "luxury bathroom marble art deco style" }
+  ],
+  "investment": [
+    {
+      "tier_name": "CONCIERGE DESIGN",
+      "price": "$5,000 min",
+      "popular": true,
+      "features": ["Room-by-room styling", "Sourcing list", "2D Renderings"]
+    },
+    {
+      "tier_name": "FULL ESTATE",
+      "price": "Custom",
+      "popular": false,
+      "features": ["Architectural oversight", "Global procurement", "Turnkey setup"]
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Do you work with existing furniture?",
+      "answer": "Absolutely. We love integrating cherished family heirlooms into a fresh, elevated context."
+    }
+  ],
+  "contact": {
+    "headline": "BEGIN YOUR TRANSFORMATION",
+    "subheadline": "Now booking heritage projects for the Fall 2026 season.",
+    "email_recipient": "hello@maisonnoir.com",
+    "button_text": "Inquire About Your Project",
+    "office_address": "88 Broad St, Charleston, SC"
+  }
+}
+</file>
 
 <file path="public/favicon.svg">
 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128">
@@ -1117,6 +1270,84 @@ export const collections = { services };
 }
 </file>
 
+<file path="src/data/business.jso9">
+{
+  "intelligence": {
+    "industry": "AI Automation & High-End Web",
+    "target_persona": "Fiverr Pro Clients",
+    "tone_of_voice": "Technical, Bold, & Efficient"
+  },
+  "strategy": {
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": true,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true
+  },
+  "settings": {
+    "vibe": "rugged-industrial",
+    "primary_color": "#4a5d4e",
+    "cta_text": "START YOUR BUILD",
+    "cta_link": "#contact",
+    "radius": "0.5rem"
+  },
+  "brand": {
+    "name": "Vibe-Engine Studio",
+    "slug": "vibe-engine-studio",
+    "tagline": "Custom Agency Quality at AI Speed",
+    "logo_text": "V/E",
+    "objection_handle": "Only 3 development slots remaining for March."
+  },
+  "menu": [
+    { "label": "Services", "path": "#features" },
+    { "label": "Protocol", "path": "#process" },
+    { "label": "Portfolio", "path": "#gallery" },
+    { "label": "Investment", "path": "#investment" }
+  ],
+  "hero": {
+    "headline": "STOP BUILDING. START DEPLOYING.",
+    "subtext": "We leverage high-end Astro architecture and AI logic to deliver professional-grade sites in 24 hours."
+  },
+  "features": [
+    { "title": "Astro Logic", "description": "Zero-JS by default for 100/100 Core Web Vitals.", "icon_slug": "zap" },
+    { "title": "Vibe-Switch", "description": "Instant aesthetic pivots via our proprietary CSS system.", "icon_slug": "layers" },
+    { "title": "AI Integration", "description": "Content and imagery curated by trained LLM models.", "icon_slug": "cpu" }
+  ],
+  "processSteps": [
+    { "title": "Vibe Intake", "description": "Select your visual DNA and core business data." },
+    { "title": "AI Synthesis", "description": "Our engine maps your data to high-end Astro components." },
+    { "title": "Fast Deploy", "description": "Global edge delivery via Netlify in under 24 hours." }
+  ],
+  "testimonials": [
+    { "name": "Marcus Chen", "role": "Fiverr Pro Client", "content": "I've never seen a turnaround this fast with this level of code quality." }
+  ],
+  "comparison": {
+    "headline": "The Engine vs. The Rest",
+    "left_title": "Traditional Freelancer",
+    "left_items": ["2-Week Wait Times", "Bloated WordPress Themes", "Manual Content Entry"],
+    "right_title": "Vibe-Engine",
+    "right_items": ["24-Hour Delivery", "Clean Astro/Tailwind Code", "AI-Powered Precision"]
+  },
+  "gallery": [
+    { "src": "/images/project1.jpg", "alt": "SaaS Platform", "title": "Nexus AI", "category": "Web App" },
+    { "src": "/images/project2.jpg", "alt": "Lawn Care", "title": "Elite Turf", "category": "Service Business" }
+  ],
+  "investment": [
+    { "name": "The Sprint", "price": "$295", "features": ["Full Landing Page", "Netlify Hosting", "24h Delivery"], "popular": true }
+  ],
+  "faqs": [
+    { "question": "How is it so fast?", "answer": "We use a pre-engineered component library and AI-driven data mapping." },
+    { "question": "Can I edit the code?", "answer": "Yes, you get full access to the GitHub repository." }
+  ],
+  "contact": {
+    "email": "hello@vibe-engine.com",
+    "phone": "1-800-VIBE-AI"
+  }
+}
+</file>
+
 <file path="src/pages/services/[...slug].astro">
 ---
 import { getCollection } from 'astro:content';
@@ -1260,6 +1491,265 @@ export default defineConfig({
 
 <file path="Contact.astro">
 
+</file>
+
+<file path="master-schema.json">
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Vibe-Engine Master Manifest 2026",
+    "type": "object",
+    "required": ["strategy", "settings", "brand", "menu", "hero", "features", "intelligence"],
+    "properties": {
+      "intelligence": {
+        "type": "object",
+        "properties": {
+          "industry": { "type": "string" },
+          "target_persona": { "type": "string" },
+          "tone_of_voice": { "type": "string" }
+        }
+      },
+      "strategy": {
+        "type": "object",
+        "description": "Visibility toggles for components. AI decides which to light up.",
+        "properties": {
+          "show_bento_about": { "type": "boolean", "default": true },
+          "show_features": { "type": "boolean", "default": true },
+          "show_process": { "type": "boolean", "default": true },
+          "show_testimonials": { "type": "boolean", "default": true },
+          "show_comparison": { "type": "boolean", "default": false },
+          "show_gallery": { "type": "boolean", "default": true },
+          "show_investment": { "type": "boolean", "default": true },
+          "show_faqs": { "type": "boolean", "default": true },
+          "show_events": { "type": "boolean", "default": false },
+          "show_trustbar": { "type": "boolean", "default": true },
+          "show_service_area": { "type": "boolean", "default": false }
+        }
+      },
+      "settings": {
+        "type": "object",
+        "properties": {
+          "vibe": { 
+            "type": "string", 
+            "enum": [
+              "Midnight Tech",
+              "Zenith Earth",
+              "Vintage Boutique",
+              "Rugged Industrial",
+              "Modern Minimal",
+              "Luxury Noir",
+              "Legacy Professional",
+              "Solar Flare"
+            ],
+            "description": "Forces the AI to select a validated, high-contrast professional identity."
+          },
+          "primary_color": { 
+            "type": "string", 
+            "description": "Optional hex override to brand the vibe (e.g., #00ff00 for a green tech vibe)."
+          },
+          "cta_text": { "type": "string" },
+          "cta_link": { "type": "string" }
+        },
+        "required": ["vibe"]
+      },
+      "brand": { 
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "tagline": { "type": "string" },
+          "objection_handle": { "type": "string" }
+        }
+      },
+      "menu": { 
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "label": { "type": "string" },
+            "path": { "type": "string", "description": "e.g., #investment or #gallery" }
+          }
+        }
+      },
+      "hero": {
+        "type": "object",
+        "required": ["title_line_1", "title_line_2", "subheadline", "image"],
+        "properties": {
+            "title_line_1": { 
+            "type": "string", 
+            "description": "The first part of the H1 (usually the standard text color)." 
+            },
+            "title_line_2": { 
+            "type": "string", 
+            "description": "The second part of the H1 (usually the accent color/brand color)." 
+            },
+            "subheadline": { 
+            "type": "string", 
+            "description": "A high-conversion subtext that addresses the main pain point." 
+            },
+            "image": {
+            "type": "object",
+            "required": ["src", "alt", "search_description"],
+            "properties": {
+                "src": { "type": "string", "description": "Filename for the local images folder." },
+                "alt": { "type": "string" },
+                "search_description": { 
+                "type": "string", 
+                "description": "The exact prompt for Pexels/Unsplash to find this hero image (e.g., 'Luxury modern kitchen with marble island, evening lighting, 8k')." 
+                }
+            }
+            }
+        }
+     },
+    "about": {
+        "type": "object",
+        "required": ["story_text", "founder_note", "years_experience"],
+        "properties": {
+            "story_text": { 
+            "type": "string", 
+            "description": "The 'Mission' text that fills the largest bento box (approx 40-60 words)." 
+            },
+            "founder_note": { 
+            "type": "string", 
+            "description": "The italicized quote for the quote card." 
+            },
+            "years_experience": { 
+            "type": "string", 
+            "description": "The numeric string for the stat box (e.g., '15', '20+')." 
+            },
+            "signature_name": { 
+            "type": "string", 
+            "description": "The name used under the founder note." 
+            }
+        }
+     },
+      "features": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 6,
+        "items": {
+            "type": "object",
+            "required": ["title", "description", "icon_name"],
+            "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "icon_name": { 
+                "type": "string", 
+                "description": "Lucide icon name (e.g., 'Shield', 'Zap', 'TrendingUp')." 
+            }
+            }
+        }
+    },
+    "processSteps": {
+        "type": "array",
+        "minItems": 3,
+        "maxItems": 4,
+        "items": {
+            "type": "object",
+            "required": ["step_number", "title", "description"],
+            "properties": {
+            "step_number": { "type": "string", "description": "e.g., '01', 'Phase I'" },
+            "title": { "type": "string" },
+            "description": { "type": "string" }
+            }
+        }
+    },
+    "testimonials": {
+    "type": "array",
+    "description": "Customer social proof. Requires high-intent quotes.",
+    "items": {
+        "type": "object",
+        "required": ["quote", "author", "role"],
+        "properties": {
+        "quote": { "type": "string" },
+        "author": { "type": "string" },
+        "role": { "type": "string", "description": "e.g., 'SaaS Founder' or 'Project Lead'" },
+        "avatar_search": { 
+            "type": "string", 
+            "description": "Visual prompt for a headshot (e.g., 'Professional man, 30s, creative studio background')." 
+        }
+        }
+    }
+    },
+    "comparison": {
+    "type": "object",
+    "required": ["title", "items"],
+    "properties": {
+        "title": { "type": "string" },
+        "items": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+            "label": { "type": "string", "description": "Feature being compared (e.g. 'Turnaround Time')" },
+            "us": { "type": "string", "description": "Our value (e.g. '24 Hours')" },
+            "them": { "type": "string", "description": "Industry average (e.g. '2-3 Weeks')" }
+            }
+        }
+        }
+    }
+    },
+    "gallery": {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": ["title", "search_description"],
+        "properties": {
+        "title": { "type": "string", "description": "The caption for the work/project." },
+        "search_description": { 
+            "type": "string", 
+            "description": "Specific prompt for the image factory (e.g., 'Minimalist modern kitchen, architectural photography, soft lighting')." 
+        }
+        }
+    }
+    },
+    "investment": {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": ["tier_name", "price", "features"],
+        "properties": {
+        "tier_name": { "type": "string" },
+        "price": { "type": "string" },
+        "popular": { "type": "boolean" },
+        "features": { "type": "array", "items": { "type": "string" } }
+        }
+    }
+    },
+    "faqs": {
+    "type": "array",
+    "items": {
+        "type": "object",
+        "required": ["question", "answer"],
+        "properties": {
+        "question": { "type": "string" },
+        "answer": { "type": "string" }
+        }
+    }
+    },
+    "contact": {
+        "type": "object",
+        "required": ["headline", "subheadline", "email_recipient", "button_text"],
+        "properties": {
+            "headline": { 
+            "type": "string", 
+            "description": "The final 'Hook' (e.g., 'Ready to scale your agency?')." 
+            },
+            "subheadline": { 
+            "type": "string", 
+            "description": "Brief instruction or trust statement (e.g., 'We typically respond within 2 hours')." 
+            },
+            "email_recipient": { 
+            "type": "string", 
+            "format": "email",
+            "description": "The address where the Netlify/GitHub form submissions will be sent."
+            },
+            "button_text": { "type": "string" },
+            "success_message": { "type": "string", "default": "Thank you! Our team will be in touch shortly." },
+            "office_address": { "type": "string", "description": "Optional: For local SEO / Trust." },
+            "phone": { "type": "string" }
+        }
+        }
+    }
+  }
 </file>
 
 <file path="netlify.toml">
@@ -1434,13 +1924,9 @@ async function run() {
 
     console.log(`🚀 Starting Image Factory: ${brandName}`);
 
-    // --- TASK 1: THE HERO ---
-    // Naming Convention: brand-slug-hero.jpg
-    const heroQuery = data.hero?.image?.image_search_query || 
-                      (data.intelligence?.industry && data.settings?.vibe 
-                        ? `${data.intelligence.industry} ${data.settings.vibe} workspace`
-                        : `${brandName} professional background`);
-    
+ // --- TASK 1: THE HERO ---
+    // AI ensures data.hero.image.image_search_query always exists
+    const heroQuery = data.hero.image.image_search_query;
     const heroFilename = `${brandSlug}-hero.jpg`;
     await fetchUnsplashImage(heroQuery, heroFilename);
 
@@ -1466,112 +1952,6 @@ async function run() {
 }
 
 run();
-</file>
-
-<file path="src/components/Comparison.astro">
----
-/**
- * COMPONENT: Comparison
- * Logic: Contrast business value against "Traditional" methods.
- * Vibe: High-contrast split-screen.
- */
- const { comparison, intelligence } = Astro.props;
-
-if (!comparison) return null;
-
-const isTech = intelligence?.industry?.toLowerCase().includes('tech') || 
-               intelligence?.industry?.toLowerCase().includes('ai');
-
-const headline = comparison.headline || (isTech ? "System Advantage" : "The Difference");
----
-
-<section id="comparison" class="py-24 bg-[var(--bg-card)] border-y border-[var(--border)]">
-  <div class="container mx-auto px-6">
-    <div class="text-center mb-16">
-      <h2 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        {headline}
-      </h2>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border)] max-w-5xl mx-auto border border-[var(--border)] rounded-[var(--radius)] overflow-hidden">
-      {/* Left Side: The Problem */}
-      <div class="bg-[var(--bg-color)] p-12">
-        <h3 class="text-xl font-bold uppercase mb-8 opacity-50">{comparison.left_title}</h3>
-        <ul class="space-y-4">
-          {comparison.left_items.map((item: string) => (
-            <li class="flex items-center text-[var(--text-secondary)] text-sm italic">
-              <span class="mr-3 text-red-500">✕</span> {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Right Side: The Solution (Vibe-Engine) */}
-      <div class="bg-[var(--bg-card)] p-12 border-l border-[var(--border)] relative">
-        <div class="absolute top-4 right-4 text-[var(--accent)] text-[10px] font-bold tracking-widest uppercase animate-pulse">
-          Recommended
-        </div>
-        <h3 class="text-xl font-bold uppercase mb-8 text-[var(--accent)]">{comparison.right_title}</h3>
-        <ul class="space-y-4">
-          {comparison.right_items.map((item: string) => (
-            <li class="flex items-center text-[var(--text-primary)] font-bold text-sm">
-              <span class="mr-3 text-[var(--accent)]">✓</span> {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-</file>
-
-<file path="src/components/ServiceArea.astro">
----
-// Import a simple icon or use a standard SVG for a more professional look
-const { data } = Astro.props;
----
-<section id="service-area" class="py-20 bg-[var(--bg-card)] border-y border-[var(--border)]">
-  <div class="max-w-6xl mx-auto px-6">
-    <div class="grid md:grid-cols-2 gap-12 items-center">
-      <div>
-        <h2 class="text-4xl font-bold text-[var(--text-primary)] mb-4 tracking-tight">
-          {data.headline}
-        </h2>
-        <p class="text-[var(--text-secondary)] mb-8 text-lg leading-relaxed">
-          {data.subtext}
-        </p>
-        
-        <div class="grid grid-cols-2 gap-y-4 gap-x-2">
-          {data.locations.map((location) => (
-            <div class="flex items-center gap-3 text-[var(--text-primary)] group">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent)] opacity-70 group-hover:opacity-100 transition-opacity">
-                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-              </svg>
-              
-              {/* If location is an object, we use .name. If it's a string, we use the value */}
-              <span class="text-sm font-medium tracking-wide">
-                {typeof location === 'object' ? location.name : location}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div class="bg-[var(--bg-color)] p-10 rounded-[var(--radius)] border border-[var(--border)] text-center shadow-sm">
-        <div class="inline-block p-3 rounded-full bg-[var(--accent)]/10 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent)]"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-        </div>
-        <p class="text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-3">Coverage Radius</p>
-        <p class="text-xl font-bold mb-8 text-[var(--text-primary)] leading-snug">
-            Outside these areas? We offer custom quotes for distance travel.
-        </p>
-        <a href="#contact" class="inline-block w-full py-4 bg-[var(--accent)] text-black font-bold uppercase tracking-widest text-xs transition-transform hover:scale-[1.02] rounded-[var(--radius)]">
-          Inquire Now
-        </a>
-      </div>
-    </div>
-  </div>
-</section>
 </file>
 
 <file path="src/components/VibeSwitcher.astro">
@@ -1711,6 +2091,50 @@ export const iconLibrary = {
 };
 </file>
 
+<file path="src/components/Comparison.astro">
+---
+// src/components/Comparison.astro
+const { comparison, intelligence } = Astro.props;
+
+// Defensive check: ensure comparison and comparison.items exist
+const items = comparison?.items || [];
+const title = comparison?.title || "The Competition";
+---
+
+<section id="comparison" class="py-24 px-6 bg-[var(--bg-card)]">
+  <div class="max-w-4xl mx-auto">
+    <h2 class="text-4xl font-black mb-12 text-center text-[var(--text-primary)]">
+      {title}
+    </h2>
+    
+    <div class="overflow-hidden rounded-[var(--radius)] border border-[var(--border)]">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-[var(--bg-color)] border-b border-[var(--border)]">
+            <th class="p-6 text-[var(--text-secondary)] font-medium">Feature</th>
+            <th class="p-6 text-[var(--accent)] font-bold">Our Standard</th>
+            <th class="p-6 text-[var(--text-secondary)]">The Others</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--border)]">
+          {items.length > 0 ? items.map((item) => (
+            <tr class="hover:bg-[var(--bg-color)] transition-colors">
+              <td class="p-6 font-bold text-[var(--text-primary)]">{item.label}</td>
+              <td class="p-6 text-[var(--accent)] font-black">{item.us}</td>
+              <td class="p-6 text-[var(--text-secondary)]">{item.them}</td>
+            </tr>
+          )) : (
+            <tr>
+              <td colspan="3" class="p-6 text-center text-[var(--text-secondary)]">No comparison data provided.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+</file>
+
 <file path="src/components/Contact.astro">
 ---
 /**
@@ -1841,128 +2265,149 @@ if (!faqs || faqs.length === 0) return null;
 
 <file path="src/components/Footer.astro">
 ---
-import data from '../data/business.json';
-const { brand, settings, contact } = data;
-const year = new Date().getFullYear();
+/**
+ * FOOTER COMPONENT
+ * Part of the "Perfect Site" Engine
+ * Standards: Zero-friction deployment, Dynamic Vibe-based styling.
+ */
+ const { brand, settings, contact } = Astro.props;
+
+const currentYear = new Date().getFullYear();
+// We use a simple boolean from settings to decide if your agency credit shows
+// Defaults to true unless explicitly set to false in business.json
+const showCredit = settings?.show_agency_credit !== false; 
 ---
 
-<footer class="py-16 px-6 border-t border-[var(--border)] bg-[var(--bg-color)]">
-  <div class="max-w-6xl mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-12 items-start">
+<footer class="bg-[var(--bg-card)] border-t border-[var(--border)] pt-20 pb-10">
+  <div class="container mx-auto px-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
       
-      <div class="flex flex-col gap-3">
-        <span class="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-          {brand.name}
-        </span>
-        <p class="text-xs uppercase tracking-widest text-[var(--text-secondary)] opacity-70">
-          {brand.objection_handle}
+      {/* 1. BRAND IDENTITY */}
+      <div class="md:col-span-2">
+        <h2 class="text-2xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-4">
+          {brand?.name || "Our Studio"}
+        </h2>
+        <p class="text-[var(--text-secondary)] text-sm max-w-xs leading-relaxed opacity-70">
+          {brand?.tagline || "Professional services delivered with precision and quality."}
         </p>
       </div>
 
-      <div class="flex flex-col gap-4">
-        <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent)]">Navigation</span>
-        <div class="flex flex-col gap-2">
-          {settings.menu.map((item) => (
-            <a href={item.path} class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors uppercase tracking-widest font-medium">
-              {item.label}
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-4">
-         <span class="text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--accent)]">Connect</span>
-         <div class="text-sm text-[var(--text-secondary)] flex flex-col gap-2 uppercase tracking-tighter">
-            <span>{contact.location}</span>
-            <a href={`tel:${contact.phone}`} class="font-bold text-[var(--text-primary)] hover:text-[var(--accent)] transition-colors">
-              {contact.phone}
-            </a>
-            
-            {contact.email && (
-              <a href={`mailto:${contact.email}`} class="lowercase tracking-normal hover:text-[var(--accent)] transition-colors opacity-80">
-                {contact.email}
+      {/* 2. DYNAMIC SITEMAP */}
+      <div>
+        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] mb-6">Sitemap</h3>
+        <ul class="space-y-4">
+          {settings?.menu?.map((item: any) => (
+            <li>
+              <a href={item.path} class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
+                {item.label}
               </a>
-            )}
-         </div>
+            </li>
+          ))}
+        </ul>
       </div>
 
+     {/* 3. OFFICIAL BRAND CONTACT (With Safe-Check Logic) */}
+     <div>
+      <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] mb-6">Connect</h3>
+      <ul class="space-y-3">
+        {/* EMAIL SAFE-CHECK */}
+        {brand?.email && brand.email.toLowerCase() !== 'n/a' && (
+          <li>
+            <a 
+              href={`mailto:${brand.email}`} 
+              class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors underline decoration-[var(--accent)]/30 underline-offset-8"
+            >
+              {brand.email}
+            </a>
+          </li>
+        )}
+
+        {/* PHONE SAFE-CHECK */}
+        {brand?.phone && brand.phone.toLowerCase() !== 'n/a' && (
+          <li class="text-sm text-[var(--text-secondary)] flex items-center gap-2">
+            <span class="opacity-50">T:</span> {brand.phone}
+          </li>
+        )}
+
+        {/* ADDRESS SAFE-CHECK */}
+        {brand?.office_address && brand.office_address.toLowerCase() !== 'n/a' && (
+          <li class="text-xs text-[var(--text-secondary)] opacity-70 leading-relaxed max-w-[200px] pt-2">
+            {brand.office_address}
+          </li>
+        )}
+      </ul>
     </div>
 
-    <div class="mt-16 pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-4">
-      <div class="text-[10px] uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-50">
-        © {year} {brand.name}.
-      </div>
-      <div class="text-[9px] font-mono uppercase tracking-[0.5em] text-[var(--accent)]">
-        // Identity Engine v1.0
-      </div>
+    {/* 4. BOTTOM BAR & AGENCY CREDIT */}
+    <div class="pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-6">
+      <p class="text-[10px] font-medium text-[var(--text-secondary)] opacity-50 uppercase tracking-widest text-center md:text-left">
+        &copy; {currentYear} {brand?.name || "The Studio"}. All Rights Reserved.
+      </p>
+      
+      {showCredit && (
+        <p class="text-[9px] font-bold uppercase tracking-[0.3em] text-[var(--text-secondary)] opacity-30">
+          Built with Vibe Engine
+        </p>
+      )}
     </div>
   </div>
 </footer>
 </file>
 
-<file path="src/components/Testimonials.astro">
+<file path="src/components/ServiceArea.astro">
 ---
-/**
- * COMPONENT: Testimonials
- * Logic: Safe asset discovery for avatars to prevent 404s.
- */
- import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
+const { service_area, intelligence } = Astro.props;
 
-const { testimonials } = Astro.props;
+// 1. SAFE FALLBACKS
+const mainCity = service_area?.main_city || "Our Region";
+const neighbors = service_area?.surrounding_cities || [];
+const industry = intelligence?.industry || "Services";
 
-// 1. ASSET DISCOVERY
-const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
+// 2. MERGE FOR DISPLAY
+const allLocations = [mainCity, ...neighbors];
 
-if (!testimonials || testimonials.length === 0) return null;
+if (!service_area) return null;
 ---
-
-<section id="testimonials" class="py-24 bg-[var(--bg-card)] border-y border-[var(--border)]">
-  <div class="container mx-auto px-6">
-    <div class="text-center mb-16">
-      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Social Proof</h2>
-      <h3 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        Client <span class="text-[var(--accent)]">Intel</span>
-      </h3>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {testimonials.map((t: any) => {
-        // Safe check for the image in assets
-        const imagePath = t.avatar?.startsWith('/src') ? t.avatar : `/src/assets/images/${t.avatar?.split('/').pop()}`;
-        const hasAvatar = images[imagePath];
-
-        return (
-          <div class="bg-[var(--bg-color)] border border-[var(--border)] p-8 rounded-[var(--radius)] relative overflow-hidden">
-            <div class="flex items-center gap-4 mb-6">
-              {hasAvatar ? (
-                <Image 
-                  src={images[imagePath]()} 
-                  alt={t.name} 
-                  width={100} 
-                  height={100} 
-                  class="w-12 h-12 rounded-full object-cover border border-[var(--accent)]"
-                />
-              ) : (
-                /* Fallback: Initials instead of a broken 404 image */
-                <div class="w-12 h-12 rounded-full bg-[var(--bg-card)] border border-[var(--border)] flex items-center justify-center text-[var(--accent)] font-bold text-xs">
-                  {t.name.charAt(0)}
-                </div>
-              )}
-              <div>
-                <h4 class="text-sm font-bold uppercase tracking-widest text-[var(--text-primary)]">{t.name}</h4>
-                <p class="text-[10px] uppercase tracking-widest text-[var(--accent)] font-bold">{t.role}</p>
-              </div>
+<section id="service-area" class="py-20 bg-[var(--bg-card)] border-y border-[var(--border)]">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <h2 class="text-4xl font-bold text-[var(--text-primary)] mb-4 tracking-tight uppercase">
+          Serving <span class="text-[var(--accent)]">{mainCity}</span> & Beyond
+        </h2>
+        <p class="text-[var(--text-secondary)] mb-8 text-lg leading-relaxed">
+          Providing elite {industry} expertise across the following regions. We ensure rapid deployment and local compliance for every project.
+        </p>
+        
+        <div class="grid grid-cols-2 gap-y-4 gap-x-2">
+          {allLocations.map((location) => (
+            <div class="flex items-center gap-3 text-[var(--text-primary)] group">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent)] opacity-70 group-hover:opacity-100 transition-opacity">
+                <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              <span class="text-sm font-medium tracking-wide uppercase">
+                {location}
+              </span>
             </div>
-            
-            <p class="text-[var(--text-secondary)] text-sm leading-relaxed italic opacity-80">
-              "{t.content}"
-            </p>
-            
-            <div class="absolute top-4 right-8 text-6xl font-serif text-[var(--accent)] opacity-10 select-none">“</div>
-          </div>
-        );
-      })}
+          ))}
+        </div>
+      </div>
+
+      <div class="bg-[var(--bg-color)] p-10 rounded-[var(--radius)] border border-[var(--border)] text-center shadow-sm relative overflow-hidden">
+        {/* Background Accent for Vibe */}
+        <div class="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)] opacity-5 blur-3xl -mr-16 -mt-16"></div>
+        
+        <div class="inline-block p-3 rounded-full bg-[var(--accent)]/10 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent)]"><circle cx="12" cy="12" r="10"/><path d="m16 12-4-4-4 4"/><path d="M12 16V8"/></svg>
+        </div>
+        <p class="text-xs uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-3">Logistics</p>
+        <p class="text-xl font-bold mb-8 text-[var(--text-primary)] leading-snug">
+            Outside these areas? We offer custom quotes for extended travel.
+        </p>
+        <a href="#contact" class="inline-block w-full py-4 bg-[var(--accent)] text-black font-bold uppercase tracking-widest text-xs transition-transform hover:scale-[1.02] rounded-[var(--radius)]">
+          Inquire Now
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -2132,73 +2577,12 @@ const restOfName = brandParts.slice(1).join(' ');
 </section>
 </file>
 
-<file path="src/components/Gallery.astro">
----
-/**
- * COMPONENT: Gallery
- */
- import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
-
-const { gallery, brand } = Astro.props;
-
-// Use the SLUG from JSON directly. 
-const brandSlug = brand?.slug || 'vibe-engine-studio';
-
-const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
-
-if (!gallery || gallery.length === 0) return null;
----
-
-<section id="gallery" class="py-24 bg-[var(--bg-color)] border-t border-[var(--border)] scroll-mt-24">
-  <div class="container mx-auto px-6">
-    <div class="mb-16">
-      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Case Studies</h2>
-      <h3 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        The <span class="text-[var(--accent)]">Output</span>.
-      </h3>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {gallery.map((item: any, index: number) => {
-        // Construct the path: /src/assets/images/vibe-engine-studio-project-0.jpg
-        const expectedPath = `/src/assets/images/${brandSlug}-project-${index}.jpg`;
-        const imageLoader = images[expectedPath];
-
-        return (
-          <div class="group relative overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] aspect-video">
-            {imageLoader ? (
-              <Image 
-                src={imageLoader()} 
-                alt={item.alt || "Project Image"} 
-                width={800}
-                height={600}
-                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
-              />
-            ) : (
-              <div class="w-full h-full flex items-center justify-center bg-black/20 text-[8px] text-white/40 uppercase">
-                Missing: {brandSlug}-project-{index}.jpg
-              </div>
-            )}
-            
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-              <h4 class="text-white font-bold uppercase tracking-widest text-sm">{item.title}</h4>
-              <p class="text-[var(--accent)] text-[10px] uppercase font-bold mt-1">{item.category}</p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  </div>
-</section>
-</file>
-
 <file path="src/components/Hero.astro">
 ---
 /**
  * COMPONENT: Hero
  * Standards: 2026 Vibe-Engine / Dynamic Asset Discovery
- * Logic: Matches naming convention from setup-site.js: ${brandSlug}-hero.jpg
+ * Logic: Updated with Strict CTA Enum and "n/a" Fallback Safety
  */
  import { Image } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
@@ -2206,8 +2590,6 @@ import type { ImageMetadata } from 'astro';
 const { brand, hero, settings } = Astro.props;
 
 // 1. SLUG LOGIC - Must match scripts/setup-site.js exactly
-const brandName = brand?.name || 'brand';
-// EXACT SAME LOGIC AS SCRIPT
 const brandSlug = brand?.slug || 
                  (brand?.name || 'brand')
                     .toLowerCase()
@@ -2223,12 +2605,20 @@ const imageExists = images[cleanPath];
 // 3. SAFE CONTENT DEFAULTS
 const headline = hero?.headline || brand?.tagline || "Quality at AI Speed";
 const subtext = hero?.subtext || "Professional Astro architecture delivered in 24 hours.";
-const ctaLink = settings?.cta_link || "#contact";
+
+// 4. PRIMARY CTA LOGIC (Safe-Check & Enum Support)
+const rawCtaLink = settings?.cta_link || "#contact";
+const isCtaDisabled = rawCtaLink.toLowerCase() === 'n/a';
+
+// Fallback to #contact if AI didn't provide a link or set it to 'n/a'
+const finalCtaLink = isCtaDisabled ? "#contact" : rawCtaLink;
+const finalCtaType = isCtaDisabled ? "anchor" : (settings?.cta_type || "anchor");
+
+const isPrimaryExternal = finalCtaType === 'external' && finalCtaLink.startsWith('http');
 const ctaText = settings?.cta_text || "Get Started";
 
-// 4. SMART LINK LOGIC
-const isExternal = ctaLink?.startsWith('http');
-const hasSecondary = settings?.secondary_cta_text && settings?.secondary_cta_link;
+// 5. SECONDARY CTA LOGIC
+const hasSecondary = settings?.secondary_cta_text && settings?.secondary_cta_link && settings.secondary_cta_link.toLowerCase() !== 'n/a';
 const isSecondaryExternal = settings?.secondary_cta_link?.startsWith('http');
 ---
 
@@ -2249,14 +2639,12 @@ const isSecondaryExternal = settings?.secondary_cta_link?.startsWith('http');
     ) : (
       <div class="w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,var(--accent)_0%,transparent_60%)]"></div>
     )}
-    {/* Vibe Overlay */}
     <div class="absolute inset-0 bg-gradient-to-b from-[var(--bg-color)]/20 via-[var(--bg-color)]/40 to-[var(--bg-color)]"></div>
   </div>
 
   {/* CONTENT LAYER */}
   <div class="container relative z-10 px-6 mx-auto text-center">
     
-    {/* Availability / Status Badge */}
     <div class="flex items-center justify-center gap-3 mb-8">
        <span class="h-[1px] w-4 bg-[var(--accent)]"></span>
        <p class="text-[10px] font-bold tracking-[0.4em] uppercase text-[var(--accent)]">
@@ -2274,13 +2662,12 @@ const isSecondaryExternal = settings?.secondary_cta_link?.startsWith('http');
     </p>
 
     <div class="flex flex-col items-center gap-10">
-      {/* BUTTON GROUP */}
       <div class="flex flex-col sm:flex-row items-center gap-4">
-        {/* PRIMARY CTA */}
+        {/* PRIMARY CTA - Enhanced with Target/Rel logic */}
         <a 
-          href={ctaLink} 
-          target={isExternal ? "_blank" : "_self"}
-          rel={isExternal ? "noopener noreferrer" : ""}
+          href={finalCtaLink} 
+          target={isPrimaryExternal ? "_blank" : "_self"}
+          rel={isPrimaryExternal ? "noopener noreferrer" : ""}
           class="w-full sm:w-auto bg-[var(--accent)] px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 rounded-[var(--radius)] inline-block text-black shadow-xl shadow-[var(--accent)]/10"
         >
           {ctaText}
@@ -2299,7 +2686,6 @@ const isSecondaryExternal = settings?.secondary_cta_link?.startsWith('http');
         )}
       </div>
       
-      {/* Objection Handle / Trust Signal */}
       {brand?.objection_handle && (
         <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 flex items-center gap-4 text-[var(--text-primary)] font-bold italic">
           {brand.objection_handle}
@@ -2380,6 +2766,55 @@ const sectionIconPath = isTech ? iconLibrary.zap : iconLibrary.layers;
 </section>
 </file>
 
+<file path="src/components/Testimonials.astro">
+---
+/**
+ * COMPONENT: Testimonials (Avatar-Free Version)
+ * Logic: Focuses on text-based authority to ensure 0% asset failure.
+ */
+ const { testimonials } = Astro.props;
+
+if (!testimonials || testimonials.length === 0) return null;
+---
+
+<section id="testimonials" class="py-24 bg-[var(--bg-card)] border-y border-[var(--border)]">
+  <div class="container mx-auto px-6">
+    <div class="text-center mb-16">
+      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Social Proof</h2>
+      <h3 class="text-4xl md:text-6xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+        Client <span class="text-[var(--accent)]">Intel</span>
+      </h3>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {testimonials.map((t: any) => (
+        <div class="bg-[var(--bg-color)] border border-[var(--border)] p-8 rounded-[var(--radius)] relative overflow-hidden flex flex-col justify-between">
+          <div class="relative z-10">
+            <p class="text-[var(--text-secondary)] text-lg leading-relaxed italic opacity-90 mb-8">
+              "{t.quote}"
+            </p>
+          </div>
+          
+          <div class="relative z-10 pt-6 border-t border-[var(--border)]/50">
+            <h4 class="text-sm font-bold uppercase tracking-widest text-[var(--text-primary)]">
+              {t.author}
+            </h4>
+            <p class="text-[10px] uppercase tracking-widest text-[var(--accent)] font-bold">
+              {t.role}
+            </p>
+          </div>
+          
+          {/* Stylized Quote Icon */}
+          <div class="absolute -top-2 -right-2 text-8xl font-serif text-[var(--accent)] opacity-5 select-none pointer-events-none">
+            &ldquo;
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+</file>
+
 <file path="src/components/Features.astro">
 ---
 import { iconLibrary } from '../lib/icons.js';
@@ -2418,6 +2853,64 @@ const headline = isService ? "Our Core Services" : "System Capabilities";
         </div>
       ))}
     </div>
+  </div>
+</section>
+</file>
+
+<file path="src/components/Gallery.astro">
+---
+import { Image } from 'astro:assets';
+const { gallery, brand } = Astro.props;
+
+// 1. ASSET DISCOVERY
+const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
+
+// 2. THE SLUG HANDSHAKE (Uses 'brand' prop, not 'data')
+const brandSlug = brand?.slug || 
+                 (brand?.name || 'brand')
+                    .toLowerCase()
+                    .replace(/'/g, '') 
+                    .replace(/[^a-z0-9]/g, '-');
+
+if (!gallery || gallery.length === 0) return null;
+---
+
+<section id="gallery" class="py-24 bg-[var(--bg-color)]">
+  <div class="container mx-auto px-6 mb-12 text-center">
+    <h2 class="text-4xl font-black uppercase text-[var(--text-primary)]">
+      The <span class="text-[var(--accent)]">Lab</span>
+    </h2>
+  </div>
+
+  <div class="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-8">
+    {gallery.map((item: any, index: number) => {
+      // 3. GENERATE FILENAME TO MATCH YOUR LS OUTPUT
+      const expectedFilename = `${brandSlug}-project-${index}.jpg`;
+      const imagePath = `/src/assets/images/${expectedFilename}`;
+      const hasImage = images[imagePath];
+
+      return (
+        <div class="group relative aspect-video overflow-hidden rounded-[var(--radius)] bg-[var(--bg-card)] border border-[var(--border)]">
+          {hasImage ? (
+            <Image 
+              src={images[imagePath]()} 
+              alt={item.title || "Gallery Image"}
+              width={1200}
+              height={800}
+              class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div class="flex flex-col items-center justify-center h-full bg-slate-900 p-4">
+              <span class="text-red-500 font-mono text-xs mb-2">Missing: {expectedFilename}</span>
+              <span class="text-[10px] text-white/30 uppercase">Check src/assets/images/</span>
+            </div>
+          )}
+          <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent">
+            <p class="text-white font-bold uppercase tracking-widest text-sm">{item.title}</p>
+          </div>
+        </div>
+      );
+    })}
   </div>
 </section>
 </file>
@@ -2622,6 +3115,7 @@ const isExternal = cta_link?.startsWith('http');
  * Goal: Custom Agency Quality at AI Speed
  */
  import data from '../data/business.json';
+ import Footer from '../components/Footer.astro';
 import '../styles/vibe-system.css';
 
 interface Props {
@@ -2697,6 +3191,8 @@ const vibeLibrary = {
 
 const config = vibeLibrary[activeVibe] || vibeLibrary['midnight-tech'];
 
+const { brand, settings, contact, intelligence } = data;
+
 // 3. SEO & SCHEMA (Untouched to prevent breaking your metadata)
 const seoTitle = title || `${data.brand.name} | ${data.brand.tagline}`;
 const ldJson = {
@@ -2749,6 +3245,14 @@ const ldJson = {
     </head>
     <body class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-[var(--bg-color)]">
         <slot />
+
+        {/* GLOBAL FOOTER EXECUTION */}
+        <Footer 
+            brand={brand} 
+            settings={settings} 
+            contact={contact} 
+            intelligence={intelligence} 
+        />
         
         <style is:global>
             html { scroll-behavior: smooth; }
@@ -2836,78 +3340,103 @@ body {
 <file path="src/data/business.json">
 {
   "intelligence": {
-    "industry": "AI Automation & High-End Web",
-    "target_persona": "Fiverr Pro Clients",
-    "tone_of_voice": "Technical, Bold, & Efficient"
-  },
-  "strategy": {
-    "show_features": true,
-    "show_process": true,
-    "show_testimonials": true,
-    "show_comparison": true,
-    "show_gallery": true,
-    "show_investment": true,
-    "show_faqs": true
-  },
-  "settings": {
-    "vibe": "rugged-industrial",
-    "primary_color": "#4a5d4e",
-    "cta_text": "START YOUR BUILD",
-    "cta_link": "#contact",
-    "radius": "0.5rem"
+    "industry": "Automotive Detailing & Restoration",
+    "target_persona": "High-net-worth vehicle enthusiasts",
+    "tone_of_voice": "Technical, elite, and meticulous"
   },
   "brand": {
-    "name": "Vibe-Engine Studio",
-    "slug": "vibe-engine-studio",
-    "tagline": "Custom Agency Quality at AI Speed",
-    "logo_text": "V/E",
-    "objection_handle": "Only 3 development slots remaining for March."
+    "name": "Luxe Detail Labs",
+    "slug": "luxe-detail-labs",
+    "tagline": "Science-Driven Shine for the Modern Collector.",
+    "email": "precision@luxedetaillabs.com",
+    "phone": "888-555-9000",
+    "office_address": "n/a",
+    "objection_handle": "Authorized Gtechniq installers with a 9-year ceramic warranty."
   },
-  "menu": [
-    { "label": "Services", "path": "#features" },
-    { "label": "Protocol", "path": "#process" },
-    { "label": "Portfolio", "path": "#gallery" },
-    { "label": "Investment", "path": "#investment" }
-  ],
+  "settings": {
+    "vibe": "Solar Flare",
+    "strategy": {
+      "show_trustbar": true,
+      "show_about": true,
+      "show_features": true,
+      "show_process": true,
+      "show_gallery": true,
+      "show_reviews": true,
+      "show_comparison": false,
+      "show_investment": true,
+      "show_faqs": true,
+      "show_service_area": true
+    },
+    "menu": [
+      { "label": "The Lab", "path": "#about" },
+      { "label": "Services", "path": "#features" },
+      { "label": "Portfolio", "path": "#gallery" },
+      { "label": "Pricing", "path": "#investment" }
+    ]
+  },
   "hero": {
-    "headline": "STOP BUILDING. START DEPLOYING.",
-    "subtext": "We leverage high-end Astro architecture and AI logic to deliver professional-grade sites in 24 hours."
+    "title_line_1": "The Ultimate",
+    "title_line_2": "Ceramic Shield.",
+    "subheadline": "Aerospace-grade protection for your automotive investments. Deep gloss, hydrophobic perfection, and zero maintenance.",
+    "image": {
+      "alt": "Sleek black sports car reflecting neon lights in a clean studio",
+      "image_search_query": "luxury sports car ceramic coating reflection dramatic lighting"
+    }
+  },
+  "trustbar": {
+    "headline": "Authorized Performance Partners",
+    "logos": [
+      { "name": "Gtechniq", "image_search_query": "Gtechniq logo white png" },
+      { "name": "XPEL", "image_search_query": "XPEL logo white png" }
+    ]
+  },
+  "about": {
+    "story_text": "Luxe Detail Labs was founded to bring laboratory-grade precision to the mobile detailing world. We specialize in long-term surface protection.",
+    "founder_note": "We don't just wash cars; we engineer surfaces to repel the elements.",
+    "years_experience": "15"
   },
   "features": [
-    { "title": "Astro Logic", "description": "Zero-JS by default for 100/100 Core Web Vitals.", "icon_slug": "zap" },
-    { "title": "Vibe-Switch", "description": "Instant aesthetic pivots via our proprietary CSS system.", "icon_slug": "layers" },
-    { "title": "AI Integration", "description": "Content and imagery curated by trained LLM models.", "icon_slug": "cpu" }
+    {
+      "title": "Ceramic Coating",
+      "description": "9H hardness layers that protect against UV rays, chemicals, and light scratches.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Paint Correction",
+      "description": "Multi-stage machine polishing to remove swirls and restore mirror-like clarity.",
+      "icon_slug": "zap"
+    },
+    {
+      "title": "Interior Detail",
+      "description": "Steam sterilization and leather conditioning for a showroom-fresh cabin.",
+      "icon_slug": "layers"
+    }
   ],
   "processSteps": [
-    { "title": "Vibe Intake", "description": "Select your visual DNA and core business data." },
-    { "title": "AI Synthesis", "description": "Our engine maps your data to high-end Astro components." },
-    { "title": "Fast Deploy", "description": "Global edge delivery via Netlify in under 24 hours." }
+    { "step_number": "01", "title": "Decontamination", "description": "Chemical and mechanical removal of all surface impurities." },
+    { "step_number": "02", "title": "Correction", "description": "Leveling the clear coat to a flawless glass finish." },
+    { "step_number": "03", "title": "Infusion", "description": "Application of the ceramic coating in a temperature-controlled environment." }
   ],
-  "testimonials": [
-    { "name": "Marcus Chen", "role": "Fiverr Pro Client", "content": "I've never seen a turnaround this fast with this level of code quality." }
-  ],
-  "comparison": {
-    "headline": "The Engine vs. The Rest",
-    "left_title": "Traditional Freelancer",
-    "left_items": ["2-Week Wait Times", "Bloated WordPress Themes", "Manual Content Entry"],
-    "right_title": "Vibe-Engine",
-    "right_items": ["24-Hour Delivery", "Clean Astro/Tailwind Code", "AI-Powered Precision"]
-  },
   "gallery": [
-    { "src": "/images/project1.jpg", "alt": "SaaS Platform", "title": "Nexus AI", "category": "Web App" },
-    { "src": "/images/project2.jpg", "alt": "Lawn Care", "title": "Elite Turf", "category": "Service Business" }
+    { "title": "911 GT3 Gloss Restoration", "image_search_query": "porsche 911 ceramic coating gloss" },
+    { "title": "Tesla Model S Plaid Protection", "image_search_query": "tesla model s white ceramic coating" },
+    { "title": "Vintage Ferrari Interior", "image_search_query": "classic ferrari leather interior detail" }
+  ],
+  "reviews": [
+    { "author": "Robert K.", "content": "The water beading is insane. My car stays clean for weeks even in the rain.", "rating": 5 }
   ],
   "investment": [
-    { "name": "The Sprint", "price": "$295", "features": ["Full Landing Page", "Netlify Hosting", "24h Delivery"], "popular": true }
+    { "tier_name": "Lab Essential", "price": "1,200", "popular": false, "features": ["3-Year Coating", "1-Stage Correction"] },
+    { "tier_name": "The Collector", "price": "2,500", "popular": true, "features": ["9-Year Coating", "Full Correction", "Wheel Faces"] }
   ],
+  "service_area": {
+    "main_city": "Scottsdale",
+    "surrounding_cities": ["Phoenix", "Paradise Valley", "Gilbert"],
+    "map_search_query": "Scottsdale Arizona aerial desert landscape"
+  },
   "faqs": [
-    { "question": "How is it so fast?", "answer": "We use a pre-engineered component library and AI-driven data mapping." },
-    { "question": "Can I edit the code?", "answer": "Yes, you get full access to the GitHub repository." }
-  ],
-  "contact": {
-    "email": "hello@vibe-engine.com",
-    "phone": "1-800-VIBE-AI"
-  }
+    { "question": "Does it prevent rock chips?", "answer": "Ceramic prevents scratches and chemicals; for rock chips, we recommend our PPF film services." }
+  ]
 }
 </file>
 
@@ -2915,8 +3444,9 @@ body {
 ---
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro'; // ADDED MISSING IMPORT
 import Hero from '../components/Hero.astro';
-import BentoAbout from '../components/BentoAbout.astro'; // NEW IMPORT
+import BentoAbout from '../components/BentoAbout.astro';
 import Features from '../components/Features.astro';
 import Process from '../components/Process.astro';
 import Testimonials from '../components/Testimonials.astro';
@@ -2925,18 +3455,18 @@ import Gallery from '../components/Gallery.astro';
 import Investment from '../components/Investment.astro';
 import FAQ from '../components/FAQ.astro';
 import Contact from '../components/Contact.astro';
+import ServiceArea from '../components/ServiceArea.astro';
 
 import data from '../data/business.json';
 
-/** * 2026 DATA DESTRUCTURING - SAFE FALLBACKS
+/** * 2026 DATA DESTRUCTURING - SCHEMA ALIGNED
  */
 const {
   intelligence = {},
   strategy = {},
-  settings = {},
+  settings = {}, // Holds vibe and menu
   brand = {},
-  about = {}, // ADDED ABOUT
-  menu = [],
+  about = {},
   hero = {},
   features = [],
   processSteps = [],
@@ -2945,21 +3475,25 @@ const {
   gallery = [],
   investment = [],
   faqs = [],
+  service_area = [],
   contact = {}
 } = data;
+
+// FIX: Extract menu from settings per Master Schema
+const navMenu = settings.menu || [];
 
 const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
 
 <Layout title={siteTitle} settings={settings}>
   
-  <Navbar brand={brand} menu={menu} settings={settings} />  
+  <Navbar brand={brand} menu={navMenu} settings={settings} />  
 
   <main>
     {/* 1. HERO SECTION */}
     <Hero hero={hero} brand={brand} settings={settings} />
 
-    {/* 1.5 THE BENTO ABOUT (Strategically placed for trust) */}
+    {/* 1.5 THE BENTO ABOUT */}
     {strategy.show_about !== false && (brand.name || about.story_text) && (
       <BentoAbout 
         brand={brand} 
@@ -2990,7 +3524,7 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
 
     {/* 6. PORTFOLIO / GALLERY */}
     {strategy.show_gallery && gallery.length > 0 && (
-      <Gallery gallery={gallery} />
+      <Gallery gallery={gallery} brand={brand} />
     )}
 
     {/* 7. PRICING / INVESTMENT */}
@@ -3003,9 +3537,18 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
       <FAQ faqs={faqs} />
     )}
 
+    {/* 8.5 SERVICE AREA (The Final Local Trust Check) */}
+    {strategy.show_service_area && data.service_area && (
+      <ServiceArea 
+        service_area={data.service_area} 
+        intelligence={intelligence} 
+      />
+    )}
+
     {/* 9. FINAL CONVERSION */}
     <Contact contact={contact} intelligence={intelligence} brand={brand} settings={settings} />
   </main>
+
 </Layout>
 </file>
 

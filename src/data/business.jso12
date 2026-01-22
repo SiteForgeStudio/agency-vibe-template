@@ -1,0 +1,131 @@
+{
+  "intelligence": {
+    "industry": "Automotive Detailing",
+    "target_persona": "Car and truck owners in Bucks and Montgomery County seeking premium vehicle maintenance.",
+    "tone_of_voice": "Professional, meticulous, and reliable"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": false,
+    "show_comparison": true,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Legacy Professional",
+    "cta_text": "Schedule Your Detail",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "menu": [
+      { "label": "Services", "path": "#features" },
+      { "label": "Gallery", "path": "#gallery" },
+      { "label": "Pricing", "path": "#investment" },
+      { "label": "Contact", "path": "#contact" }
+    ]
+  },
+  "brand": {
+    "name": "Elite Details",
+    "slug": "elite-details",
+    "tagline": "Premium Showroom Quality Detailing in Warminster",
+    "email": "service@elitedetails-warminster.com",
+    "phone": "(215) 555-0123",
+    "office_address": "York & County Line Rd, Warminster, PA",
+    "objection_handle": "Skilled detailers using top-quality products with a 100% satisfaction guarantee."
+  },
+  "hero": {
+    "headline": "Elite Vehicle Detailing in Warminster",
+    "subtext": "From interior deep cleans to full exterior polish, we provide premium care for the vehicles you love with convenient local drop-off and lift service.",
+    "image": {
+      "alt": "Close up of a luxury car being polished to a high shine",
+      "image_search_query": "professional car detailing luxury polish"
+    }
+  },
+  "about": {
+    "story_text": "Founded on a passion for automotive excellence, Elite Details has become the premier choice for car and truck owners across Bucks and Montgomery County. Our clean, professional bays and master detailers ensure every vehicle leaves in showroom condition.",
+    "founder_note": "We treat every vehicle as if it were our own, using only the highest grade products on the market.",
+    "years_experience": "12+ Years of Professional Detailing"
+  },
+  "features": [
+    {
+      "title": "Interior Deep Clean",
+      "description": "Full sanitization, vacuuming, and leather treatment for a fresh cabin.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Full Exterior Polish",
+      "description": "Machine polish and premium wax application for deep shine and protection.",
+      "icon_slug": "zap"
+    },
+    {
+      "title": "Wheel & Tire Care",
+      "description": "Removal of brake dust and road grime with specialized protective coatings.",
+      "icon_slug": "shield"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Professional Drop-off",
+      "description": "Drop your vehicle at our Warminster shop and let us give you a lift home."
+    },
+    {
+      "title": "The Detail",
+      "description": "Our team executes the chosen package using precision tools and premium chemicals."
+    },
+    {
+      "title": "Final Inspection",
+      "description": "A multi-point quality check ensures your vehicle meets the Elite Details standard."
+    }
+  ],
+  "gallery": [
+    { "title": "Engine Bay Restoration", "image_search_query": "clean car engine bay" },
+    { "title": "Ceramic Coating Finish", "image_search_query": "shiny luxury car ceramic coating" },
+    { "title": "Interior Restoration", "image_search_query": "clean car leather interior" }
+  ],
+  "investment": [
+    {
+      "tier_name": "Car Essentials",
+      "price": "99",
+      "popular": false,
+      "features": ["Exterior Wash", "Interior Vacuum", "Window Cleaning"]
+    },
+    {
+      "tier_name": "Truck & SUV Essentials",
+      "price": "125",
+      "popular": true,
+      "features": ["Deep Rim Cleaning", "Full Exterior Wash", "Dashboard Treatment"]
+    },
+    {
+      "tier_name": "Elite Full Detail",
+      "price": "300",
+      "popular": false,
+      "features": ["Paint Decontamination", "Machine Polish", "Premium Carnauba Wax", "Steam Cleaning"]
+    }
+  ],
+  "service_area": {
+    "main_city": "Warminster",
+    "surrounding_cities": ["Doylestown", "Horsham", "Hatboro", "Willow Grove"],
+    "map_search_query": "Warminster PA"
+  },
+  "faqs": [
+    {
+      "question": "How long does a full detail take?",
+      "answer": "A full detail typically takes 4-6 hours depending on the size and condition of the vehicle."
+    },
+    {
+      "question": "Do I need to book in advance?",
+      "answer": "Yes, we recommend booking at least 3-5 days in advance to secure your preferred time slot."
+    }
+  ],
+  "contact": {
+    "headline": "Ready for a Showroom Finish?",
+    "subheadline": "Contact us today to schedule your appointment and experience the Elite Details difference.",
+    "email_recipient": "schedule@elitedetails-warminster.com",
+    "button_text": "Book My Detail Now",
+    "office_address": "York & County Line Rd, Warminster, PA"
+  }
+}

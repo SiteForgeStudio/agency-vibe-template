@@ -1,137 +1,96 @@
 {
   "intelligence": {
-    "industry": "High-End Residential Interior Design",
-    "target_persona": "Discerning homeowners in historic districts looking to blend heritage architecture with modern luxury.",
-    "tone_of_voice": "Sophisticated, curated, and timeless. Focus on 'quiet luxury'."
+  "industry": "Concert Photography",
+  "target_persona": "Rock music fans, Grateful Dead enthusiasts, promoters, and collectors",
+  "tone_of_voice": "casual and fan-focused"
   },
   "strategy": {
-    "show_trustbar": true,
-    "show_about": true,
-    "show_features": true,
-    "show_process": true,
-    "show_testimonials": true,
-    "show_comparison": false,
-    "show_gallery": true,
-    "show_investment": true,
-    "show_faqs": true,
-    "show_service_area": true
+  "show_trustbar": false,
+  "show_about": true,
+  "show_features": true,
+  "show_process": false,
+  "show_testimonials": false,
+  "show_comparison": false,
+  "show_gallery": true,
+  "show_investment": false,
+  "show_faqs": false,
+  "show_service_area": false
   },
   "settings": {
-    "vibe": "Vintage Boutique",
-    "primary_color": "#b4a07d",
-    "cta_text": "Book a Consultation",
-    "cta_link": "#contact",
-    "menu": [
-      { "label": "The Studio", "path": "#about" },
-      { "label": "Portfolio", "path": "#gallery" },
-      { "label": "The Method", "path": "#process" },
-      { "label": "Inquire", "path": "#contact" }
-    ]
+  "vibe": "Vintage Boutique",
+  "cta_text": "Inquire About Prints or Licensing",
+  "cta_link": "#contact",
+  "cta_type": "anchor",
+  "secondary_cta_text": "View Gallery",
+  "secondary_cta_link": "#gallery",
+  "menu": [
+  { "label": "Home", "path": "#home" },
+  { "label": "Gallery", "path": "#gallery" },
+  { "label": "About", "path": "#about" },
+  { "label": "Contact", "path": "#contact" }
+  ]
   },
   "brand": {
-    "name": "MAISON NOIR",
-    "slug": "maison-noir",
-    "tagline": "Curating Timeless Sanctuaries.",
-    "objection_handle": "We manage everything from procurement to white-glove installation, so you never have to lift a finger."
-  },
-  "trustbar": {
-    "headline": "As Seen In & Certified By",
-    "logos": [
-      { "name": "Architectural Digest", "image_search_query": "architectural digest logo black" },
-      { "name": "ASID", "image_search_query": "asid interior design logo" },
-      { "name": "Elle Decor", "image_search_query": "elle decor logo" }
-    ]
+  "name": "Dead Head Photography",
+  "slug": "dead-head-photography",
+  "tagline": "Capturing the Spirit of the Dead — Live Since 1981",
+  "email": "[joe@compuserve.com](mailto:joe@compuserve.com)",
+  "phone": "",
+  "office_address": "Remote / Global",
+  "objection_handle": "Authentic concert photography capturing the true vibe of Grateful Dead shows and rock culture."
   },
   "hero": {
-    "title_line_1": "ELEVATED",
-    "title_line_2": "LIVING",
-    "subheadline": "Full-service interior design for those who value heritage, texture, and the art of the home. Based in Charleston, serving clients globally.",
-    "image": {
-      "alt": "Luxury living room with velvet seating, marble fireplace, and ambient lighting",
-      "image_search_query": "luxury interior design Charleston style living room vintage boutique"
-    }
+  "headline": "Grateful Dead & Rock Concert Photography Since 1981",
+  "subtext": "Authentic moments from the crowd, the stage, and the soul of the show — captured by a lifelong Dead Head.",
+  "image": {
+  "alt": "Crowd at a Grateful Dead concert with stage lights and fans dancing",
+  "image_search_query": "Grateful Dead concert crowd photography vintage"
+  }
   },
   "about": {
-    "story_text": "Maison Noir began with a simple philosophy: a home should be a reflection of your history and a blueprint for your future. We specialize in sourcing rare antiques and pairing them with cutting-edge bespoke furniture.",
-    "founder_note": "Design isn't about filling a room; it's about composing a life.",
-    "years_experience": "20"
-  },
-  "service_area": {
-    "main_city": "Charleston",
-    "surrounding_cities": ["Mount Pleasant", "Kiawah Island", "Savannah", "Sullivan's Island"],
-    "map_search_query": "Interior Design Studios Charleston SC"
+  "story_text": "I’ve been photographing Grateful Dead shows and rock concerts since 1981, drawn to the energy, community, and once-in-a-lifetime moments that happen in the crowd as much as on stage.",
+  "founder_note": "I’m Dave, a lifelong Dead Head who believes the real magic of a show lives in the people and the shared experience.",
+  "years_experience": "Since 1981"
   },
   "features": [
-    {
-      "title": "Bespoke Sourcing",
-      "description": "Direct access to exclusive European furniture houses and private antique dealers.",
-      "icon_name": "Search"
-    },
-    {
-      "title": "Full Renovation",
-      "description": "Complete project management from architectural drafting to final styling.",
-      "icon_name": "Home"
-    },
-    {
-      "title": "Color Theory",
-      "description": "Scientific lighting and palette analysis to maximize the natural mood of your space.",
-      "icon_name": "Palette"
-    }
-  ],
-  "processSteps": [
-    {
-      "step_number": "01",
-      "title": "Discovery Call",
-      "description": "Exploring your aesthetic DNA and lifestyle requirements."
-    },
-    {
-      "step_number": "02",
-      "title": "The Concept",
-      "description": "Full tactile mood boards, 3D renderings, and floor plans."
-    },
-    {
-      "step_number": "03",
-      "title": "The Reveal",
-      "description": "White-glove installation and final styling of your completed sanctuary."
-    }
-  ],
-  "testimonials": [
-    {
-      "quote": "They didn't just design a house; they gave our family a place that feels like it has existed for generations.",
-      "author": "Eleanor V.",
-      "role": "Historic Homeowner"
-    }
+  {
+  "title": "Authentic Crowd Moments",
+  "description": "Candid photography capturing the fans, dancers, and shared energy that define a Dead show.",
+  "icon_slug": "users"
+  },
+  {
+  "title": "Live Concert Archives",
+  "description": "Decades of rock and Grateful Dead concert photography preserved from the pit and the floor.",
+  "icon_slug": "camera"
+  },
+  {
+  "title": "Prints & Licensing",
+  "description": "High-quality prints and licensing available for collectors, publications, and promoters.",
+  "icon_slug": "image"
+  }
   ],
   "gallery": [
-    { "title": "The Manor Project", "image_search_query": "luxury dining room historic mansion interior" },
-    { "title": "Coastal Chic", "image_search_query": "modern luxury beach house bedroom cream tones" },
-    { "title": "Art Deco Revived", "image_search_query": "luxury bathroom marble art deco style" }
-  ],
-  "investment": [
-    {
-      "tier_name": "CONCIERGE DESIGN",
-      "price": "$5,000 min",
-      "popular": true,
-      "features": ["Room-by-room styling", "Sourcing list", "2D Renderings"]
-    },
-    {
-      "tier_name": "FULL ESTATE",
-      "price": "Custom",
-      "popular": false,
-      "features": ["Architectural oversight", "Global procurement", "Turnkey setup"]
-    }
-  ],
-  "faqs": [
-    {
-      "question": "Do you work with existing furniture?",
-      "answer": "Absolutely. We love integrating cherished family heirlooms into a fresh, elevated context."
-    }
+  {
+  "title": "Grateful Dead Crowd Energy",
+  "image_search_query": "Grateful Dead fans dancing crowd"
+  },
+  {
+  "title": "Live Rock Concert Moments",
+  "image_search_query": "rock concert crowd candid photography"
+  },
+  {
+  "title": "Stage and Audience Connection",
+  "image_search_query": "concert audience stage lights vintage"
+  }
   ],
   "contact": {
-    "headline": "BEGIN YOUR TRANSFORMATION",
-    "subheadline": "Now booking heritage projects for the Fall 2026 season.",
-    "email_recipient": "hello@maisonnoir.com",
-    "button_text": "Inquire About Your Project",
-    "office_address": "88 Broad St, Charleston, SC"
+    "headline": "Ready to Capture the Magic",
+    "subheadline": "Interested in prints, licensing, or collaborations? Let’s talk.",
+    "email": "joe@compuserve.com",
+    "phone": "",
+    "email_recipient": "joe@compuserve.com",
+    "button_text": "Send Inquiry",
+    "office_address": "Remote / Global"
   }
-}
+  }
+  

@@ -2,15 +2,21 @@
 /**
  * COMPONENT: Contact
  * Standards: 2026 AI-Ready / Netlify Form Integration
- * Logic: Includes Success Page routing and Honey-pot spam protection.
+ * Logic: Fully dynamic headlines with automatic last-word accenting.
  */
  const { brand, contact, settings } = Astro.props;
 
 const businessName = brand?.name || "Our Studio";
-const email = contact?.email || "";
-const phone = contact?.phone || "";
+const email = contact?.email || brand?.email || "";
+const phone = contact?.phone || brand?.phone || "";
 const handle = brand?.objection_handle || "Ready to start your project?";
 const cta_text = settings?.cta_text || "Send Message";
+
+// Dynamic Headline Logic: Splits the headline to color the last word with the accent variable
+const rawHeadline = contact?.headline || "Let's Build Something";
+const words = rawHeadline.split(' ');
+const lastWord = words.pop();
+const firstPart = words.join(' ');
 
 // 2026 Standard: Redirect to a custom success page
 const successPath = "/success"; 
@@ -23,9 +29,11 @@ const successPath = "/success";
       {/* Branding Side */}
       <div>
         <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Connect</h2>
+        
         <h3 class="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-8">
-          Let's Build <span class="text-[var(--accent)]">Something</span>.
+          {firstPart} <span class="text-[var(--accent)]">{lastWord}</span>.
         </h3>
+
         <p class="text-[var(--text-secondary)] mb-12 max-w-md leading-relaxed opacity-80">
           {handle}
         </p>

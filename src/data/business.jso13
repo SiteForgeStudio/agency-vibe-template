@@ -1,0 +1,147 @@
+{
+  "intelligence": {
+  "industry": "Residential and small business exterior cleaning",
+  "target_persona": "Homeowners and small business owners who want their property to look clean and well-maintained",
+  "tone_of_voice": "Professional, trustworthy, and friendly"
+  },
+  "strategy": {
+  "show_trustbar": false,
+  "show_about": true,
+  "show_features": true,
+  "show_process": true,
+  "show_testimonials": true,
+  "show_comparison": false,
+  "show_gallery": true,
+  "show_investment": true,
+  "show_faqs": true,
+  "show_service_area": true
+  },
+  "settings": {
+  "vibe": "Rugged Industrial",
+  "cta_text": "Get a Free Quote",
+  "cta_link": "#contact",
+  "cta_type": "anchor",
+  "menu": [
+  { "label": "Home", "path": "/" },
+  { "label": "Services", "path": "#features" },
+  { "label": "Process", "path": "#process" },
+  { "label": "Pricing", "path": "#investment" },
+  { "label": "Contact", "path": "#contact" }
+  ]
+  },
+  "brand": {
+  "name": "Power Wash Clean",
+  "slug": "power-wash-clean",
+  "tagline": "Professional exterior power washing that makes your property look new again.",
+  "email": "[pwc@powerwashclean.com](mailto:pwc@powerwashclean.com)",
+  "phone": "215-555-5555",
+  "office_address": "Serving Bucks and Montgomery Counties, PA",
+  "objection_handle": "Reliable, affordable power washing for homes and small businesses."
+  },
+  "hero": {
+  "headline": "Restore Your Home’s Exterior Instantly",
+  "subtext": "Mobile power washing services for homes and small businesses across Bucks and Montgomery Counties.",
+  "image": {
+  "alt": "Power washing a residential home exterior",
+  "image_search_query": "power washing house exterior"
+  }
+  },
+  "about": {
+  "story_text": "Power Wash Clean was built to help homeowners and small business owners maintain the appearance and value of their properties. We focus on safe, effective exterior cleaning that delivers visible results.",
+  "founder_note": "We treat every property like it’s our own and take pride in doing the job right the first time.",
+  "years_experience": "5+ years"
+  },
+  "features": [
+  {
+  "title": "House Washing",
+  "description": "Safely remove dirt, mold, and grime from siding and exterior surfaces.",
+  "icon_slug": "home"
+  },
+  {
+  "title": "Driveway & Concrete Cleaning",
+  "description": "Deep cleaning for driveways, sidewalks, and patios to restore curb appeal.",
+  "icon_slug": "road"
+  },
+  {
+  "title": "Deck & Fence Washing",
+  "description": "Gentle cleaning that protects wood while removing buildup.",
+  "icon_slug": "layers"
+  },
+  {
+  "title": "Small Business Exteriors",
+  "description": "Professional cleaning to keep storefronts and buildings looking their best.",
+  "icon_slug": "building"
+  }
+  ],
+  "processSteps": [
+  {
+  "title": "Request a Quote",
+  "description": "Tell us about your property and get a fast, free estimate."
+  },
+  {
+  "title": "Schedule Service",
+  "description": "We coordinate a convenient time that works for you."
+  },
+  {
+  "title": "Professional Cleaning",
+  "description": "We arrive on-site with professional equipment and deliver outstanding results."
+  }
+  ],
+  "testimonials": [
+  {
+  "quote": "Our house looks brand new. The difference was incredible.",
+  "author": "Sarah M.",
+  "role": "Homeowner"
+  },
+  {
+  "quote": "Fast, professional, and very thorough. Highly recommended.",
+  "author": "James R.",
+  "role": "Small Business Owner"
+  }
+  ],
+  "gallery": [
+  {
+  "title": "Residential House Washing",
+  "image_search_query": "clean house exterior after power washing"
+  },
+  {
+  "title": "Driveway Cleaning",
+  "image_search_query": "power washing driveway before after"
+  }
+  ],
+  "investment": [
+  {
+  "tier_name": "Residential Power Washing",
+  "price": "Starting at $300",
+  "popular": true,
+  "features": [
+  "Free on-site quote",
+  "Professional equipment",
+  "Safe for siding and surfaces"
+  ]
+  }
+  ],
+  "faqs": [
+  {
+  "question": "Is power washing safe for my home?",
+  "answer": "Yes. We use the correct pressure and techniques for each surface to prevent damage."
+  },
+  {
+  "question": "How long does a typical job take?",
+  "answer": "Most residential jobs are completed within a few hours."
+  }
+  ],
+  "service_area": {
+  "main_city": "Bucks County, PA",
+  "surrounding_cities": ["Montgomery County, PA", "Doylestown", "Newtown"],
+  "map_search_query": "Bucks County PA power washing service"
+  },
+  "contact": {
+  "headline": "Get Your Free Power Washing Quote",
+  "subheadline": "Contact us today and see how clean your property can look.",
+  "email_recipient": "[pwc@powerwashclean.com](mailto:pwc@powerwashclean.com)",
+  "button_text": "Request a Free Quote",
+  "office_address": "Serving Bucks and Montgomery Counties, PA"
+  }
+  }
+  
