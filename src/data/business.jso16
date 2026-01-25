@@ -1,0 +1,273 @@
+{
+  "intelligence": {
+    "industry": "Guided snowboarding trips and on-mountain coaching",
+    "target_persona": "Intermediate adult snowboarders who want a fun, confidence-building day with smart terrain choices and coaching at Camelback",
+    "tone_of_voice": "Upbeat, confident, friendly, and safety-first—like a great coach who keeps it simple and motivating"
+  },
+  "strategy": {
+    "show_trustbar": false,
+    "show_about": true,
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Solar Flare",
+    "cta_text": "Request Dates",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Text Skip",
+    "secondary_cta_link": "tel:+12155555555",
+    "menu": [
+      { "label": "Home", "path": "#home" },
+      { "label": "About", "path": "#about" },
+      { "label": "What You Get", "path": "#features" },
+      { "label": "How It Works", "path": "#process" },
+      { "label": "Reviews", "path": "#testimonials" },
+      { "label": "Gallery", "path": "#gallery" },
+      { "label": "Packages", "path": "#investment" },
+      { "label": "FAQs", "path": "#faqs" },
+      { "label": "Service Area", "path": "#service-area" },
+      { "label": "Contact", "path": "#contact" }
+    ]
+  },
+  "brand": {
+    "name": "Skip's Snowboarding Train",
+    "slug": "skips-snowboarding-train",
+    "tagline": "Guided snowboarding days for intermediate adults—ride smarter, progress faster.",
+    "email": "skip@shred.com",
+    "phone": "215-555-5555",
+    "objection_handle": "Not sure if you're “good enough”? Perfect. We pick terrain that matches your level, coach the fundamentals that matter most, and keep the day fun and confidence-building."
+  },
+  "hero": {
+    "headline": "Ride better by lunchtime.",
+    "subtext": "Guided snowboarding trips at Camelback for intermediate adults. Terrain choice, smart coaching, and a smooth plan—so you progress faster and have an unforgettable day.",
+    "image": {
+      "alt": "Snowboarder carving confidently on a groomed slope",
+      "image_search_query": "snowboarder carving groomed slope"
+    }
+  },
+  "about": {
+    "story_text": "Skip's Snowboarding Train was built for riders who are past the bunny hill but still feel stuck—catching edges, hesitating on steeper runs, or not knowing what to practice. Our guided trips combine a great route plan with practical coaching so you get more quality runs, fewer frustrating resets, and real improvement you can feel the same day.",
+    "founder_note": "I keep it simple: the right terrain, the right cue at the right moment, and a pace that builds confidence. You’ll ride more, learn more, and actually enjoy the progress.",
+    "years_experience": "10+ years"
+  },
+  "features": [
+    {
+      "title": "Guided Route Plan (No Wandering)",
+      "description": "We choose the best runs for your level and conditions—so you spend the day riding, not searching.",
+      "icon_slug": "map"
+    },
+    {
+      "title": "On-Mountain Coaching That Clicks",
+      "description": "Quick, usable cues on edge control, speed management, turns, and confidence—without overthinking.",
+      "icon_slug": "cpu"
+    },
+    {
+      "title": "Intermediate-First Terrain Choices",
+      "description": "Progressive runs that challenge you safely. No ego runs, no getting in over your head.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Small-Group Energy",
+      "description": "Bring a friend or come solo—groups are kept tight for better coaching and a smoother day.",
+      "icon_slug": "users"
+    },
+    {
+      "title": "Video Tips (When Helpful)",
+      "description": "Optional quick clips to show what’s happening and what to change—so adjustments are obvious.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Safety & Flow",
+      "description": "Warm-ups, smart breaks, and clear expectations—so you ride strong all day and finish happy.",
+      "icon_slug": "check"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Tell Us Your Level + Goals",
+      "description": "Use the form (or text) with your riding level, what feels hard, and your preferred date/time window."
+    },
+    {
+      "title": "Get Matched to the Right Trip",
+      "description": "We confirm Camelback timing, group size, and a plan tailored to conditions and your goals."
+    },
+    {
+      "title": "Meet Up + Warm Up",
+      "description": "Quick check-in, warm-up lap, and 1–2 focus points for the day so you start strong."
+    },
+    {
+      "title": "Ride, Coach, Repeat",
+      "description": "We guide the route, coach in the moment, and build confidence run by run—ending with a clear next-step plan."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "I’ve been “intermediate” for years. In one day I stopped skidding my turns and finally felt in control on steeper runs. The route plan alone was worth it.",
+      "author": "Jason M.",
+      "role": "Trip Guest"
+    },
+    {
+      "quote": "Super chill vibe but seriously effective coaching. I learned more in a few hours than a whole season of trial and error.",
+      "author": "Erin L.",
+      "role": "Trip Guest"
+    },
+    {
+      "quote": "Perfect pace, great terrain choices, and the tips actually stuck. I rode with way more confidence by the end of the session.",
+      "author": "Mike D.",
+      "role": "Trip Guest"
+    }
+  ],
+  "investment": [
+    {
+      "tier_name": "Solo Progress Session",
+      "price": "From $249",
+      "popular": true,
+      "features": [
+        "Guided riding + coaching for 2 hours",
+        "Terrain plan matched to your level",
+        "2–3 focus skills (edge control, turns, speed)",
+        "Optional quick video feedback",
+        "End-of-session next-step plan"
+      ]
+    },
+    {
+      "tier_name": "Half-Day Guided Trip",
+      "price": "From $399",
+      "features": [
+        "Guided riding + coaching for 3.5 hours",
+        "Smart route plan for conditions",
+        "Skill building across multiple runs",
+        "Breaks timed for energy and flow",
+        "Perfect for building confidence on steeps"
+      ]
+    },
+    {
+      "tier_name": "Small-Group Day (2–4 riders)",
+      "price": "From $549",
+      "features": [
+        "Guided riding + coaching for 4.5 hours",
+        "Bring friends or get matched (when available)",
+        "Group-friendly pacing with real coaching",
+        "Best-value option for intermediate adults",
+        "Clear goals + progress tracking for everyone"
+      ]
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is this for beginners?",
+      "answer": "This is designed for intermediate adult riders—comfortable linking turns on green/blue terrain and ready to build confidence, control, and consistency. If you’re brand new, ask anyway and we’ll point you to the best next step."
+    },
+    {
+      "question": "Do you provide lift tickets or equipment?",
+      "answer": "Lift tickets and rentals are not included. You’ll bring your own gear or rent at the resort. If you want quick setup tips, we can help you dial in stance and basics."
+    },
+    {
+      "question": "What if conditions are bad?",
+      "answer": "We plan the day around real conditions. If weather or terrain makes the trip unsafe or not worth your time, we’ll reschedule to a better window."
+    },
+    {
+      "question": "How many people are in a group?",
+      "answer": "Small groups only. Most trips are 2–4 riders so coaching stays useful and the day flows smoothly."
+    },
+    {
+      "question": "I’m nervous about steeper runs—will I be pushed?",
+      "answer": "No. We progress at your pace. The goal is confidence and control, not ego runs. We choose terrain that challenges you safely."
+    },
+    {
+      "question": "Can I just text to book?",
+      "answer": "Yes—text is welcome. If you text, include your level, your goals, and a couple date/time options so we can confirm quickly."
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "On-Mountain Vibes",
+    "layout": null,
+    "show_titles": true,
+    "image_source": {
+      "provider": "unsplash",
+      "image_search_query": "snowboarding carving coaching group mountain",
+      "filename_pattern": "skips-snowboarding-train-project-{i}.jpg",
+      "target_folder": "public/images"
+    },
+    "computed_count": 7,
+    "computed_layout": "bento",
+    "items": [
+      {
+        "title": "Hero Carve",
+        "image_search_query": "snowboarder carving groomed run",
+        "filename": "skips-snowboarding-train-hero.jpg",
+        "alt": "Snowboarder carving on a groomed slope"
+      },
+      {
+        "title": "Edge Control",
+        "image_search_query": "snowboarder edge control turn",
+        "filename": "skips-snowboarding-train-project-0.jpg",
+        "alt": "Snowboarder making a controlled turn with clean edges"
+      },
+      {
+        "title": "Confidence on Blues",
+        "image_search_query": "snowboarder descending blue run",
+        "filename": "skips-snowboarding-train-project-1.jpg",
+        "alt": "Rider descending a wide blue trail with confidence"
+      },
+      {
+        "title": "Small Group Energy",
+        "image_search_query": "snowboarders group riding mountain",
+        "filename": "skips-snowboarding-train-project-2.jpg",
+        "alt": "Small group of snowboarders riding together on a mountain"
+      },
+      {
+        "title": "Coaching Moment",
+        "image_search_query": "snowboard coach talking on slope",
+        "filename": "skips-snowboarding-train-project-3.jpg",
+        "alt": "Coach giving tips to a snowboarder on the slope"
+      },
+      {
+        "title": "Smooth Turns",
+        "image_search_query": "snowboarder linked turns snow",
+        "filename": "skips-snowboarding-train-project-4.jpg",
+        "alt": "Snowboarder linking smooth turns on packed snow"
+      },
+      {
+        "title": "Mountain Stoke",
+        "image_search_query": "snowboarding mountain winter sunshine",
+        "filename": "skips-snowboarding-train-project-5.jpg",
+        "alt": "Snowboarders enjoying a bright winter day on the mountain"
+      }
+    ]
+  },
+  "service_area": {
+    "main_city": "Pocono Mountains, PA",
+    "surrounding_cities": [
+      "Tannersville, PA",
+      "Stroudsburg, PA",
+      "East Stroudsburg, PA",
+      "Mount Pocono, PA",
+      "Bartonsville, PA",
+      "Swiftwater, PA",
+      "Kunkletown, PA",
+      "Saylorsburg, PA"
+    ],
+    "travel_note": "Riding outside these areas? Ask—extended travel options may be available depending on date and conditions.",
+    "cta_text": "Check Availability",
+    "cta_link": "#contact",
+    "map_search_query": "Guided snowboarding trips near Camelback Pennsylvania"
+  },
+  "contact": {
+    "headline": "Ready to ride better?",
+    "subheadline": "Send your level + goals and a couple date options. We’ll confirm the best plan for Camelback.",
+    "email": "skip@shred.com",
+    "phone": "215-555-5555",
+    "email_recipient": "skip@shred.com",
+    "button_text": "Request Dates",
+    "office_address": "Pennsylvania"
+  }
+}

@@ -57,11 +57,18 @@ const showCredit = settings?.show_agency_credit !== false;
         )}
 
         {/* PHONE SAFE-CHECK */}
-        {brand?.phone && brand.phone.toLowerCase() !== 'n/a' && (
+        {brand?.phone && brand.phone.toLowerCase() !== "n/a" && (
           <li class="text-sm text-[var(--text-secondary)] flex items-center gap-2">
-            <span class="opacity-50">T:</span> {brand.phone}
+            <span class="opacity-50">T:</span>
+            <a
+              href={`tel:+${brand.phone.replace(/[^\d]/g, "")}`}
+              class="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors no-underline"
+            >
+              {brand.phone}
+            </a>
           </li>
         )}
+
 
         {/* ADDRESS SAFE-CHECK */}
         {brand?.office_address && brand.office_address.toLowerCase() !== 'n/a' && (

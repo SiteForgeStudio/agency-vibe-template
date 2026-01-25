@@ -53,14 +53,16 @@ src/
       apex-turf-project-0.jpg
       apex-turf-project-1.jpg
       apex-turf-project-2.jpg
+      biff-buff-hero.jpg
+      biff-buff-project-0.jpg
+      biff-buff-project-1.jpg
+      biff-buff-project-2.jpg
+      biff-buff-project-3.jpg
+      biff-buff-project-4.jpg
       coastal-roof-care-hero.jpg
       coastal-roof-care-project-0.jpg
       coastal-roof-care-project-1.jpg
       coastal-roof-care-project-2.jpg
-      dead-head-photography-hero.jpg
-      dead-head-photography-project-0.jpg
-      dead-head-photography-project-1.jpg
-      dead-head-photography-project-2.jpg
       elite-details-hero.jpg
       elite-details-project-0.jpg
       elite-details-project-1.jpg
@@ -106,6 +108,7 @@ src/
     business.jso11
     business.jso12
     business.jso13
+    business.jso14
     business.jso2
     business.jso3
     business.jso4
@@ -884,6 +887,160 @@ export const collections = { services };
   "office_address": "Serving Bucks and Montgomery Counties, PA"
   }
   }
+</file>
+
+<file path="src/data/business.jso14">
+{
+  "intelligence": {
+    "industry": "Mobile car detailing service",
+    "target_persona": "Local car owners with well-maintained sedans and SUVs who want a premium detail at home or work",
+    "tone_of_voice": "Premium, confident, friendly, and appointment-focused"
+  },
+  "strategy": {
+    "show_trustbar": false,
+    "show_about": true,
+    "show_features": true,
+    "show_process": false,
+    "show_testimonials": false,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": false,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Luxury Noir",
+    "cta_text": "Book an Appointment",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Call Now",
+    "secondary_cta_link": "tel:2155555555",
+    "menu": [
+      { "label": "Home", "path": "/" },
+      { "label": "Services", "path": "#services" },
+      { "label": "Work", "path": "#gallery" },
+      { "label": "Contact", "path": "#contact" }
+    ]
+  },
+  "brand": {
+    "name": "Biff-Buff",
+    "slug": "biff-buff",
+    "tagline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "objection_handle": "You don’t have to drive or wait at a shop. I bring professional tools and careful technique to your driveway or workplace, so your vehicle looks its best on your schedule."
+  },
+  "hero": {
+    "headline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "subtext": "High-end interior and exterior detailing for sedans and SUVs. Convenient, careful, and appointment-based — serving local owners who want their vehicle looking showroom-clean without leaving home.",
+    "image": {
+      "alt": "A luxury SUV being professionally detailed on a driveway",
+      "image_search_query": "mobile car detailing professional working on luxury suv driveway close-up"
+    }
+  },
+  "about": {
+    "story_text": "Biff-Buff is a mobile detailing service built for local owners who care about their vehicles. Instead of wasting time at a shop, you get professional-level detailing at your home or workplace — with the tools, products, and attention to detail your car deserves.",
+    "founder_note": "I treat every vehicle like it’s my own — from the first rinse to the final wipe-down. My goal is simple: make your car look incredible, and make the process effortless for you.",
+    "years_experience": "5"
+  },
+  "features": [
+    {
+      "title": "Mobile Convenience",
+      "description": "I come to your home or workplace with professional equipment — you keep your day moving while your car gets detailed.",
+      "icon_slug": "map-pin"
+    },
+    {
+      "title": "Interior Deep Clean",
+      "description": "Vacuuming, wipe-downs, and focused interior cleaning to restore a clean, fresh cabin feel without shortcuts.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Exterior Detail Finish",
+      "description": "Thorough wash and finish for a crisp, glossy look — perfect for daily drivers and weekend cars alike.",
+      "icon_slug": "droplets"
+    },
+    {
+      "title": "Care for Nice Cars",
+      "description": "Detail-minded approach designed for owners who want careful handling and consistent, high-quality results.",
+      "icon_slug": "shield-check"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "The Lab",
+    "layout": null,
+    "show_titles": true,
+    "strategy": {
+      "primary_goal": "conversion",
+      "show_gallery": true
+    },
+    "image_source": {
+      "provider": "unsplash",
+      "image_search_query": "professional car detailing before and after interior exterior close-up",
+      "filename_pattern": "{brandSlug}-project-{index}.jpg",
+      "target_folder": "/src/assets/images/"
+    },
+    "computed_count": 5,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Paint-Safe Hand Wash",
+        "caption": "A careful exterior clean that brings back shine without harsh shortcuts.",
+        "tag": "Exterior",
+        "image_search_query": "professional hand car wash detailing foam luxury car driveway"
+      },
+      {
+        "title": "Interior Refresh",
+        "caption": "Clean, tidy cabin feel — the kind you notice immediately when you open the door.",
+        "tag": "Interior",
+        "image_search_query": "car detailing interior cleaning vacuum seats dashboard close-up"
+      },
+      {
+        "title": "Detail Brush Precision",
+        "caption": "Focused work on the small areas that separate a quick wash from a real detail.",
+        "tag": "Precision",
+        "image_search_query": "car detailing brush cleaning vents badges trim close-up"
+      },
+      {
+        "title": "SUV Ready Finish",
+        "caption": "Premium mobile detailing results for SUVs — at home or at work.",
+        "tag": "SUV",
+        "image_search_query": "mobile car detailing luxury suv exterior shine driveway"
+      },
+      {
+        "title": "Gloss & Reflection",
+        "caption": "A crisp finish that looks great in sunlight and under street lights.",
+        "tag": "Finish",
+        "image_search_query": "detailed car paint glossy reflection close-up after detailing"
+      }
+    ]
+  },
+  "service_area": {
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Bala Cynwyd",
+      "Manayunk",
+      "Roxborough",
+      "Ardmore",
+      "Bryn Mawr",
+      "Haverford",
+      "Conshohocken",
+      "King of Prussia"
+    ],
+    "travel_note": "Outside these areas? I can often accommodate extended travel with a custom quote.",
+    "cta_text": "Check Availability",
+    "cta_link": "#contact",
+    "map_search_query": "mobile car detailing Philadelphia PA"
+  },
+  "contact": {
+    "headline": "Book Your Mobile Detail",
+    "subheadline": "Tell me what you drive and where you’d like the detail done. I’ll confirm availability and lock in your appointment.",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "email_recipient": "biff@gmail.com",
+    "button_text": "Request an Appointment"
+  }
+}
 </file>
 
 <file path="src/data/business.jso2">
@@ -2113,10 +2270,59 @@ export const iconLibrary = {
   "title": "Vibe-Engine Master Manifest 2026",
   "description": "AI-driven interview, strategy, and build contract for automated Astro static websites.",
   "type": "object",
-
-  "required": ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"],
-
+  "required": [
+    "intelligence",
+    "strategy",
+    "settings",
+    "brand",
+    "hero",
+    "about",
+    "features",
+    "contact"
+  ],
   "properties": {
+    "definitions": {
+      "iconToken": {
+        "description": "Icon key from iconLibrary OR short emoji/symbol fallback.",
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "zap",
+              "cpu",
+              "layers",
+              "rocket",
+              "leaf",
+              "sprout",
+              "sun",
+              "scissors",
+              "truck",
+              "hammer",
+              "wrench",
+              "trash",
+              "sparkles",
+              "heart",
+              "award",
+              "users",
+              "map",
+              "shield",
+              "star",
+              "check",
+              "coins",
+              "briefcase",
+              "clock",
+              "phone"
+            ]
+          },
+          {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4,
+            "description": "Emoji fallback (ex: \"⭐\", \"🛡️\", \"📍\"). Keep it short."
+          }
+        ]
+      }
+    },
 
     "intelligence": {
       "type": "object",
@@ -2134,7 +2340,6 @@ export const iconLibrary = {
         "tone_of_voice": { "type": "string" }
       }
     },
-
     "strategy": {
       "type": "object",
       "ai:priority": "critical",
@@ -2163,7 +2368,6 @@ export const iconLibrary = {
         "show_service_area": { "type": "boolean" }
       }
     },
-
     "settings": {
       "type": "object",
       "ai:priority": "critical",
@@ -2207,13 +2411,27 @@ export const iconLibrary = {
             "required": ["label", "path"],
             "properties": {
               "label": { "type": "string" },
-              "path": { "type": "string" }
+              "path": { "type": "string",
+                        "enum": [
+                          "#home",
+                          "#about",
+                          "#features",
+                          "#process",
+                          "#testimonials",
+                          "#comparison",
+                          "#gallery",
+                          "#investment",
+                          "#faqs",
+                          "#service-area",
+                          "#contact"
+                        ],
+                        "description": "Must match an existing section id. Use only these anchors to prevent broken nav links."
+                      }
             }
           }
         }
       }
     },
-
     "brand": {
       "type": "object",
       "ai:priority": "critical",
@@ -2235,15 +2453,22 @@ export const iconLibrary = {
         "objection_handle": { "type": "string" }
       }
     },
-
     "hero": {
       "type": "object",
       "ai:priority": "critical",
       "ai:purpose": "Immediately communicate the core value proposition.",
       "ui:component": "Hero.astro",
-      "ai:fallbacks": {
-        "headline": "Use brand.tagline",
-        "image.image_search_query": "Derive from industry + vibe"
+      "ai:inference_rules": {
+        "image_query_format": "Use 4–8 words: {subject} {action} {context}. Avoid locations and overly specific adjectives.",
+        "image_query_subject": "Derive from intelligence.industry (ex: 'car detailing', 'mobile car wash').",
+        "image_query_action": "Prefer visual actions: 'washing', 'polishing', 'interior cleaning', 'vacuuming'.",
+        "image_query_context": "Use broad contexts: 'driveway', 'garage', 'luxury car', 'SUV'.",
+        "image_query_fallbacks": [
+          "car detailing",
+          "car interior cleaning",
+          "car wash foam",
+          "polishing car paint"
+        ]
       },
       "required": ["headline", "subtext", "image"],
       "properties": {
@@ -2259,7 +2484,6 @@ export const iconLibrary = {
         }
       }
     },
-
     "about": {
       "type": "object",
       "ai:priority": "recommended",
@@ -2277,7 +2501,81 @@ export const iconLibrary = {
         "years_experience": { "type": "string" }
       }
     },
-
+    "trustbar": {
+      "type": "object",
+      "ai:priority": "optional",
+      "ai:purpose": "Add quick trust signals near the hero (badges, stats, guarantees) to improve conversion.",
+      "ui:component": "Trustbar.astro",
+      "required": ["enabled", "items"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "headline": { "type": "string" },
+        "items": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "required": ["label", "icon"],
+            "properties": {
+              "icon": { "$ref": "#/definitions/iconToken" },
+              "label": { "type": "string" },
+              "sublabel": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "service_area": {
+      "type": "object",
+      "ai:priority": "optional",
+      "ai:purpose": "Local SEO and trust section. Shows the primary city served plus nearby locations to increase relevance and conversions for local search visitors.",
+      "ui:component": "ServiceArea.astro",
+      "ai:questions": [
+        "What is your primary city/town and state you serve?",
+        "List 3–8 nearby towns/neighborhoods you also serve (optional).",
+        "Do you offer travel outside these areas? If yes, how should we phrase it?"
+      ],
+      "ai:fallbacks": {
+        "main_city": "Use the client’s city/state from intake; if unknown, use 'Our Region'.",
+        "surrounding_cities": "If unknown, provide 4–6 nearby areas based on the main city.",
+        "travel_note": "Outside these areas? We offer custom quotes for extended travel."
+      },
+      "ai:inference_rules": {
+        "enabled_when": "strategy.show_service_area is true OR the business is location-based (mobile services, contractors, clinics, local pros)",
+        "use_when_missing": "If the client is unsure of exact towns, infer nearby communities rather than leaving it empty"
+      },
+      "required": ["main_city", "surrounding_cities"],
+      "properties": {
+        "main_city": {
+          "type": "string",
+          "description": "Primary city/town + state (recommended) shown in the headline."
+        },
+        "surrounding_cities": {
+          "type": "array",
+          "description": "Nearby cities/towns/neighborhoods displayed as coverage locations.",
+          "items": { "type": "string" },
+          "minItems": 0,
+          "maxItems": 12
+        },
+        "travel_note": {
+          "type": "string",
+          "description": "Short line about service outside the listed areas (used in the logistics card)."
+        },
+        "cta_text": {
+          "type": "string",
+          "description": "Optional override for the service area CTA button text."
+        },
+        "cta_link": {
+          "type": "string",
+          "description": "Optional override for the service area CTA link (usually '#contact')."
+        },
+        "map_search_query": {
+          "type": "string",
+          "description": "Optional query for map/embed integrations (e.g., 'Mobile detailing near Cherry Hill NJ')."
+        }
+      }
+    },
     "features": {
       "type": "array",
       "ai:priority": "critical",
@@ -2297,15 +2595,29 @@ export const iconLibrary = {
         }
       }
     },
-
+    "processSteps": {
+      "type": "array",
+      "ai:priority": "optional",
+      "ai:purpose": "Explain the workflow in clear steps to reduce friction and increase conversions.",
+      "ui:component": "Process.astro",
+      "ai:questions": [
+        "Do you have a typical workflow? List 3–5 steps from inquiry to completion."
+      ],
+      "items": {
+        "type": "object",
+        "required": ["title", "description"],
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
     "testimonials": {
       "type": "array",
       "ai:priority": "recommended",
       "ai:purpose": "Reduce risk and increase trust with social proof.",
       "ui:component": "Testimonials.astro",
-      "ai:questions": [
-        "Do you have customer reviews or testimonials?"
-      ],
+      "ai:questions": ["Do you have customer reviews or testimonials?"],
       "items": {
         "type": "object",
         "required": ["quote", "author", "role"],
@@ -2316,15 +2628,34 @@ export const iconLibrary = {
         }
       }
     },
-
+    "comparison": {
+      "type": "object",
+      "ai:priority": "optional",
+      "ai:purpose": "Help buyers decide by comparing your offer to common alternatives.",
+      "ui:component": "Comparison.astro",
+      "required": ["title", "items"],
+      "properties": {
+        "title": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "us", "them"],
+            "properties": {
+              "label": { "type": "string" },
+              "us": { "type": "string" },
+              "them": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "investment": {
       "type": "array",
       "ai:priority": "optional",
       "ai:purpose": "Clarify pricing expectations and qualify leads.",
       "ui:component": "PricingTiers.astro",
-      "ai:questions": [
-        "Do you offer standardized pricing or packages?"
-      ],
+      "ai:questions": ["Do you offer standardized pricing or packages?"],
       "items": {
         "type": "object",
         "required": ["tier_name", "price", "features"],
@@ -2339,137 +2670,168 @@ export const iconLibrary = {
         }
       }
     },
-
+    "faqs": {
+      "type": "array",
+      "ai:priority": "optional",
+      "ai:purpose": "Answer common objections and increase conversion confidence.",
+      "ui:component": "FAQ.astro",
+      "ai:questions": [
+        "What are the top 3–6 questions customers ask before booking?"
+      ],
+      "items": {
+        "type": "object",
+        "required": ["question", "answer"],
+        "properties": {
+          "question": { "type": "string" },
+          "answer": { "type": "string" }
+        }
+      }
+    },
+    "gallery": {
+      "type": "object",
+      "ai:priority": "recommended",
+      "ai:purpose": "Render and size a visual gallery using AI inference based on industry, vibe, strategy, and branding goals.",
+      "ui:component": "Gallery.astro",
+      "required": ["enabled", "items"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "title": { "type": "string" },
+        "layout": {
+          "type": ["string", "null"],
+          "enum": ["grid", "masonry", "bento", null],
+          "description": "Optional manual override. If null, AI will choose the best layout using inference rules."
+        },
+        "show_titles": { "type": "boolean" },
+        "strategy": {
+          "type": "object",
+          "properties": {
+            "primary_goal": { "type": "string" },
+            "show_gallery": { "type": "boolean" }
+          }
+        },
+        "image_source": {
+          "type": "object",
+          "required": ["image_search_query"],
+          "properties": {
+            "provider": { "type": "string" },
+            "image_search_query": { "type": "string" },
+            "filename_pattern": { "type": "string" },
+            "target_folder": { "type": "string" }
+          }
+        },
+        "ai:inference": {
+          "type": "object",
+          "properties": {
+            "archetype_map": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            },
+            "archetype_rules": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "min": { "type": "integer" },
+                  "max": { "type": "integer" }
+                },
+                "required": ["min", "max"]
+              }
+            },
+            "boost_rules": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "add": { "type": "integer" },
+                  "prefer_max": { "type": "boolean" }
+                }
+              }
+            },
+            "prefer_min_when": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "fallback": {
+              "type": "object",
+              "properties": {
+                "min": { "type": "integer" },
+                "max": { "type": "integer" }
+              },
+              "required": ["min", "max"]
+            },
+            "layout_rules": {
+              "type": "object",
+              "properties": {
+                "prefer_masonry_when": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "prefer_bento_when": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "prefer_grid_when": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "fallback": {
+                  "type": "string",
+                  "enum": ["grid", "masonry", "bento"]
+                }
+              },
+              "required": ["fallback"]
+            }
+          }
+        },
+        "computed_count": {
+          "type": ["integer", "null"],
+          "description": "Final gallery image count chosen by AI after applying inference rules."
+        },
+        "computed_layout": {
+          "type": ["string", "null"],
+          "enum": ["grid", "masonry", "bento"],
+          "description": "Final gallery layout chosen by AI after evaluating layout inference rules."
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "image_search_query"],
+            "properties": {
+              "title": { "type": "string" },
+              "caption": { "type": "string" },
+              "tag": { "type": "string" },
+              "image_search_query": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "contact": {
       "type": "object",
-      "ai:priority": "critical",
-      "ai:purpose": "Convert visitors into leads or inquiries.",
-      "ui:component": "ContactCTA.astro",
       "required": ["headline", "subheadline", "email_recipient", "button_text"],
+      "description": "Contact section and form configuration.",
       "properties": {
         "headline": { "type": "string" },
         "subheadline": { "type": "string" },
-        "email_recipient": { "type": "string" },
+        "email": {
+          "type": "string",
+          "description": "Public email shown on the page (optional override of brand.email)."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Public phone number shown on the page (optional override of brand.phone)."
+        },
+        "email_recipient": {
+          "type": "string",
+          "description": "Where form submissions are sent."
+        },
         "button_text": { "type": "string" },
         "office_address": { "type": "string" }
       }
     }
   }
 }
-</file>
-
-<file path="scripts/setup-site.js">
-import fs from 'fs';
-import path from 'path';
-import axios from 'axios';
-import dotenv from 'dotenv';
-// Using 'with' for Node v22 compatibility
-import data from '../src/data/business.json' with { type: 'json' };
-
-dotenv.config();
-
-const ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
-const ASSETS_DIR = path.resolve('./src/assets/images');
-
-// Ensure assets directory exists
-if (!fs.existsSync(ASSETS_DIR)) {
-    fs.mkdirSync(ASSETS_DIR, { recursive: true });
-}
-
-/**
- * 1. SLUG GENERATION
- * Standardizes the naming convention for all client assets.
- */
-/**
- * 1. SLUG GENERATION
- * Prioritize the JSON slug, fallback to name-based generation.
- */
-const brandSlug = data.brand?.slug || 
-                 (data.brand?.name || 'brand')
-                    .toLowerCase()
-                    .replace(/'/g, '') 
-                    .replace(/[^a-z0-9]/g, '-');
-
-const brandName = data.brand?.name || 'brand';
-/**
- * 2. IMAGE DOWNLOADER
- * Downloads from Unsplash and saves with the brand-specific prefix.
- */
-async function fetchUnsplashImage(query, filename) {
-    const filePath = path.join(ASSETS_DIR, filename);
-    
-    if (fs.existsSync(filePath)) {
-        console.log(`- Skipping ${filename} (Already exists)`);
-        return;
-    }
-
-    try {
-        console.log(`🔍 Searching Unsplash for: "${query}"...`);
-        
-        const search = await axios.get(`https://api.unsplash.com/photos/random`, {
-            params: { 
-                query: query, 
-                orientation: 'landscape', 
-                client_id: ACCESS_KEY 
-            }
-        });
-
-        const downloadUrl = search.data.urls.regular;
-        const response = await axios({ url: downloadUrl, method: 'GET', responseType: 'stream' });
-        
-        const writer = fs.createWriteStream(filePath);
-        response.data.pipe(writer);
-        
-        return new Promise((resolve, reject) => {
-            writer.on('finish', resolve);
-            writer.on('error', reject);
-        });
-    } catch (error) {
-        const errorMsg = error.response?.data?.errors?.[0] || error.message;
-        console.error(`! Unsplash Error for ${filename}:`, errorMsg);
-    }
-}
-
-/**
- * 3. RUNNER
- * Orchestrates the Hero and Gallery image naming/downloading.
- */
-async function run() {
-    if (!ACCESS_KEY) {
-        console.error("❌ Error: UNSPLASH_ACCESS_KEY not found in .env file.");
-        return;
-    }
-
-    console.log(`🚀 Starting Image Factory: ${brandName}`);
-
- // --- TASK 1: THE HERO ---
-    // AI ensures data.hero.image.image_search_query always exists
-    const heroQuery = data.hero.image.image_search_query;
-    const heroFilename = `${brandSlug}-hero.jpg`;
-    await fetchUnsplashImage(heroQuery, heroFilename);
-
-    // --- TASK 2: THE GALLERY ---
-    // Naming Convention: brand-slug-project-0.jpg
-    if (data.gallery && Array.isArray(data.gallery)) {
-        console.log(`📸 Processing ${data.gallery.length} Gallery Slots...`);
-        
-        for (const [index, item] of data.gallery.entries()) {
-            const galleryQuery = item.image_search_query || 
-                                 item.alt || 
-                                 data.intelligence?.industry || 
-                                 "professional services";
-            
-            // We ignore the filename in JSON and force the indexed-slug naming convention
-            const galleryFilename = `${brandSlug}-project-${index}.jpg`;
-            await fetchUnsplashImage(galleryQuery, galleryFilename);
-        }
-    }
-
-    console.log('\n✅ Factory Complete. Assets ready in src/assets/images/');
-    console.log(`💡 Assets prefixed with: ${brandSlug}-`);
-}
-
-run();
 </file>
 
 <file path="src/components/Comparison.astro">
@@ -2705,6 +3067,197 @@ const statusMessage = isTech
     "typescript": "^5.9.3"
   }
 }
+</file>
+
+<file path="scripts/setup-site.js">
+import fs from 'fs';
+import path from 'path';
+import axios from 'axios';
+import dotenv from 'dotenv';
+// Using 'with' for Node v22 compatibility
+import data from '../src/data/business.json' with { type: 'json' };
+
+dotenv.config();
+
+const ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
+const ASSETS_DIR = path.resolve('./src/assets/images');
+
+// Ensure assets directory exists
+if (!fs.existsSync(ASSETS_DIR)) {
+  fs.mkdirSync(ASSETS_DIR, { recursive: true });
+}
+
+/**
+ * 1. SLUG GENERATION
+ * Prioritize the JSON slug, fallback to name-based generation.
+ */
+const brandSlug =
+  data.brand?.slug ||
+  (data.brand?.name || 'brand')
+    .toLowerCase()
+    .replace(/'/g, '')
+    .replace(/[^a-z0-9]/g, '-');
+
+const brandName = data.brand?.name || 'brand';
+
+/**
+ * 2. IMAGE DOWNLOADER
+ * Downloads from Unsplash and saves with the brand-specific prefix.
+ */
+async function searchUnsplashPhoto(query) {
+  const res = await axios.get('https://api.unsplash.com/search/photos', {
+    params: {
+      query,
+      orientation: 'landscape',
+      per_page: 1
+    },
+    headers: {
+      Authorization: `Client-ID ${ACCESS_KEY}`
+    }
+  });
+
+  const first = res.data?.results?.[0];
+  return first?.urls?.regular || null;
+}
+
+function buildFallbackQueries(query, industryFallback) {
+  const q = (query || '').trim();
+  const fallbacks = [];
+
+  if (q) fallbacks.push(q);
+
+  // soften common “over-specific” words
+  if (q) {
+    fallbacks.push(
+      q.replace(/\b(close-up|closeup|professional|premium|luxury)\b/gi, '').replace(/\s+/g, ' ').trim()
+    );
+  }
+
+  // take first 2–3 main tokens
+  if (q) {
+    const tokens = q.split(/\s+/).filter(Boolean);
+    fallbacks.push(tokens.slice(0, 4).join(' '));
+    fallbacks.push(tokens.slice(0, 2).join(' '));
+  }
+
+  // industry fallback
+  if (industryFallback) fallbacks.push(industryFallback);
+
+  // final safe defaults
+  fallbacks.push('car detailing');
+  fallbacks.push('car interior cleaning');
+
+  // unique + non-empty
+  return [...new Set(fallbacks)].filter(Boolean);
+}
+
+async function fetchUnsplashImage(query, filename) {
+  const filePath = path.join(ASSETS_DIR, filename);
+
+  if (fs.existsSync(filePath)) {
+    console.log(`- Skipping ${filename} (Already exists)`);
+    return;
+  }
+
+  const fallbacks = buildFallbackQueries(query, data?.intelligence?.industry);
+
+  try {
+    let downloadUrl = null;
+
+    for (const q of fallbacks) {
+      console.log(`🔍 Searching Unsplash for: "${q}"...`);
+      downloadUrl = await searchUnsplashPhoto(q);
+      if (downloadUrl) break;
+    }
+
+    if (!downloadUrl) {
+      console.error(`! Unsplash: No results for "${query}" (and fallbacks)`);
+      return;
+    }
+
+    const response = await axios({ url: downloadUrl, method: 'GET', responseType: 'stream' });
+    const writer = fs.createWriteStream(filePath);
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
+  } catch (error) {
+    const errorMsg = error.response?.data?.errors?.[0] || error.message;
+    console.error(`! Unsplash Error for ${filename}:`, errorMsg);
+  }
+}
+
+
+/**
+ * 3. RUNNER
+ * Orchestrates the Hero and Gallery image naming/downloading.
+ */
+async function run() {
+  if (!ACCESS_KEY) {
+    console.error('❌ Error: UNSPLASH_ACCESS_KEY not found in .env file.');
+    return;
+  }
+
+  console.log(`🚀 Starting Image Factory: ${brandName}`);
+
+  // --- TASK 1: THE HERO ---
+  const heroQuery = data?.hero?.image?.image_search_query;
+  if (heroQuery) {
+    const heroFilename = `${brandSlug}-hero.jpg`;
+    await fetchUnsplashImage(heroQuery, heroFilename);
+  } else {
+    console.log('⚠️ Skipping hero image (missing data.hero.image.image_search_query)');
+  }
+
+  // --- TASK 2: THE GALLERY ---
+  // Naming Convention: brand-slug-project-0.jpg
+
+  const galleryObj = data.gallery;
+
+  // Support BOTH shapes:
+  // A) legacy: data.gallery = [ ... ]
+  // B) elite:  data.gallery = { enabled, computed_count, image_source, items: [ ... ] }
+  const isLegacyArray = Array.isArray(galleryObj);
+  const galleryEnabled = isLegacyArray ? true : (galleryObj?.enabled !== false);
+  const galleryItems = isLegacyArray ? galleryObj : (galleryObj?.items || []);
+
+  if (galleryEnabled && galleryItems.length > 0) {
+    const desiredCount =
+      (!isLegacyArray && typeof galleryObj?.computed_count === 'number')
+        ? galleryObj.computed_count
+        : galleryItems.length;
+
+    const itemsToProcess = galleryItems.slice(0, Math.max(0, desiredCount));
+
+    console.log(`📸 Processing ${itemsToProcess.length} Gallery Slots...`);
+
+    const globalQuery =
+      (!isLegacyArray && galleryObj?.image_source?.image_search_query)
+        ? galleryObj.image_source.image_search_query
+        : '';
+
+    for (const [index, item] of itemsToProcess.entries()) {
+      const galleryQuery =
+        item?.image_search_query ||
+        globalQuery ||
+        item?.alt ||
+        data.intelligence?.industry ||
+        'professional services';
+
+      const galleryFilename = `${brandSlug}-project-${index}.jpg`;
+      await fetchUnsplashImage(galleryQuery, galleryFilename);
+    }
+  } else {
+    console.log('ℹ️ No gallery items to process (gallery disabled or empty).');
+  }
+
+  console.log('\n✅ Factory Complete. Assets ready in src/assets/images/');
+  console.log(`💡 Assets prefixed with: ${brandSlug}-`);
+}
+
+run();
 </file>
 
 <file path="src/components/BentoAbout.astro">
@@ -3127,6 +3680,174 @@ const headline = isService ? "Our Core Services" : "System Capabilities";
 </section>
 </file>
 
+<file path="src/components/Hero.astro">
+---
+/**
+ * COMPONENT: Hero
+ * Standards: 2026 Vibe-Engine / Dynamic Asset Discovery
+ * Logic: Updated with Strict CTA Enum and "n/a" Fallback Safety
+ */
+ import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+const { brand, hero, settings } = Astro.props;
+
+// 1. SLUG LOGIC - Must match scripts/setup-site.js exactly
+const brandSlug = brand?.slug || 
+                 (brand?.name || 'brand')
+                    .toLowerCase()
+                    .replace(/'/g, '') 
+                    .replace(/[^a-z0-9]/g, '-');
+
+// 2. IMAGE DISCOVERY
+const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
+const expectedFilename = `${brandSlug}-hero.jpg`;
+const cleanPath = `/src/assets/images/${expectedFilename}`;
+const imageExists = images[cleanPath];
+
+// 3. SAFE CONTENT DEFAULTS
+const headline = hero?.headline || brand?.tagline || "Quality at AI Speed";
+const subtext = hero?.subtext || "Professional Astro architecture delivered in 24 hours.";
+
+// 4. PRIMARY CTA LOGIC (Safe-Check & Enum Support)
+const rawCtaLink = settings?.cta_link || "#contact";
+const isCtaDisabled = rawCtaLink.toLowerCase() === 'n/a';
+
+// Fallback to #contact if AI didn't provide a link or set it to 'n/a'
+const finalCtaLink = isCtaDisabled ? "#contact" : rawCtaLink;
+const finalCtaType = isCtaDisabled ? "anchor" : (settings?.cta_type || "anchor");
+
+const isPrimaryExternal = finalCtaType === 'external' && finalCtaLink.startsWith('http');
+const ctaText = settings?.cta_text || "Get Started";
+
+// 5. SECONDARY CTA LOGIC
+const hasSecondary = settings?.secondary_cta_text && settings?.secondary_cta_link && settings.secondary_cta_link.toLowerCase() !== 'n/a';
+const isSecondaryExternal = settings?.secondary_cta_link?.startsWith('http');
+---
+
+<section id="home" class="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-[var(--bg-color)]">
+  
+  {/* BACKGROUND LAYER: Dynamic Image or Gradient Fallback */}
+  <div class="absolute inset-0 z-0">
+    {imageExists ? (
+      <Image 
+        src={images[cleanPath]()} 
+        alt={hero?.image?.alt || brand?.name || "Hero Background"} 
+        width={1920} 
+        height={1080} 
+        class="w-full h-full object-cover opacity-30 md:opacity-40"
+        loading="eager"
+        fetchpriority="high"
+      />
+    ) : (
+      <div class="w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,var(--accent)_0%,transparent_60%)]"></div>
+    )}
+    <div class="absolute inset-0 bg-gradient-to-b from-[var(--bg-color)]/20 via-[var(--bg-color)]/40 to-[var(--bg-color)]"></div>
+  </div>
+
+  {/* CONTENT LAYER */}
+  <div class="container relative z-10 px-6 mx-auto text-center">
+    
+    <div class="flex items-center justify-center gap-3 mb-8">
+       <span class="h-[1px] w-4 bg-[var(--accent)]"></span>
+       <p class="text-[10px] font-bold tracking-[0.4em] uppercase text-[var(--accent)]">
+        {brand?.availability_status || brand?.name || "System Active"}
+       </p>
+       <span class="h-[1px] w-4 bg-[var(--accent)]"></span>
+    </div>
+    
+    <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-[var(--text-primary)] mb-8">
+        {headline}
+    </h1>
+
+    <p class="max-w-2xl mx-auto mb-12 text-lg md:text-xl text-[var(--text-secondary)] leading-relaxed font-medium opacity-80">
+      {subtext}
+    </p>
+
+    <div class="flex flex-col items-center gap-10">
+      <div class="flex flex-col sm:flex-row items-center gap-4">
+        {/* PRIMARY CTA - Enhanced with Target/Rel logic */}
+        <a 
+          href={finalCtaLink} 
+          target={isPrimaryExternal ? "_blank" : "_self"}
+          rel={isPrimaryExternal ? "noopener noreferrer" : ""}
+          class="w-full sm:w-auto bg-[var(--accent)] px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 rounded-[var(--radius)] inline-block text-black shadow-xl shadow-[var(--accent)]/10"
+        >
+          {ctaText}
+        </a>
+
+        {/* SECONDARY CTA */}
+        {hasSecondary && (
+          <a 
+            href={settings.secondary_cta_link}
+            target={isSecondaryExternal ? "_blank" : "_self"}
+            rel={isSecondaryExternal ? "noopener noreferrer" : ""}
+            class="w-full sm:w-auto border border-[var(--border)] bg-white/5 backdrop-blur-sm px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-[var(--text-primary)] hover:text-[var(--bg-color)] rounded-[var(--radius)] inline-block text-[var(--text-primary)]"
+          >
+            {settings.secondary_cta_text}
+          </a>
+        )}
+      </div>
+      
+      {brand?.objection_handle && (
+        <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 flex items-center gap-4 text-[var(--text-primary)] font-bold italic">
+          {brand.objection_handle}
+        </span>
+      )}
+    </div>
+  </div>
+</section>
+</file>
+
+<file path="src/components/Investment.astro">
+---
+/**
+ * COMPONENT: Investment
+ * Logic: Tiered pricing cards.
+ */
+ const { tiers, brand } = Astro.props;
+---
+
+<section id="investment" class="py-24 bg-[var(--bg-color)] scroll-mt-24">
+  <div class="container mx-auto px-6">
+    <div class="mb-16 text-center">
+      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Investment</h2>
+      <h3 class="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+        Choose Your <span class="text-[var(--accent)]">Plan</span>
+      </h3>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+      {tiers.map((tier: any) => (
+        <div class={`p-10 border ${tier.popular ? 'border-[var(--accent)]' : 'border-[var(--border)]'} rounded-[var(--radius)] bg-[var(--bg-card)] flex flex-col relative`}>
+          {tier.popular && (
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-black px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-full">
+              Most Popular
+            </div>
+          )}
+          <h4 class="text-2xl font-black uppercase tracking-tighter mb-2">{tier.name}</h4>
+          <div class="text-4xl font-black text-[var(--accent)] mb-6">{tier.price}</div>
+          <p class="text-[var(--text-secondary)] text-sm mb-8 min-h-[3rem]">{tier.description}</p>
+          
+          <ul class="space-y-4 mb-10 flex-grow">
+            {tier.features.map((feat: string) => (
+              <li class="text-xs uppercase tracking-wide flex items-center">
+                <span class="w-1.5 h-1.5 bg-[var(--accent)] rounded-full mr-3"></span>
+                {feat}
+              </li>
+            ))}
+          </ul>
+
+          <a href="#contact" class={`text-center py-4 rounded-[var(--radius)] font-bold uppercase text-[10px] tracking-widest transition-all ${tier.popular ? 'bg-[var(--accent)] text-black hover:scale-105' : 'border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--border)]'}`}>
+            Select Plan
+          </a>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+</file>
+
 <file path="src/components/Gallery.astro">
 ---
 import { Image } from 'astro:assets';
@@ -3250,223 +3971,70 @@ function aspectClass(i: number) {
 </section>
 </file>
 
-<file path="src/components/Hero.astro">
----
-/**
- * COMPONENT: Hero
- * Standards: 2026 Vibe-Engine / Dynamic Asset Discovery
- * Logic: Updated with Strict CTA Enum and "n/a" Fallback Safety
- */
- import { Image } from 'astro:assets';
-import type { ImageMetadata } from 'astro';
-
-const { brand, hero, settings } = Astro.props;
-
-// 1. SLUG LOGIC - Must match scripts/setup-site.js exactly
-const brandSlug = brand?.slug || 
-                 (brand?.name || 'brand')
-                    .toLowerCase()
-                    .replace(/'/g, '') 
-                    .replace(/[^a-z0-9]/g, '-');
-
-// 2. IMAGE DISCOVERY
-const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
-const expectedFilename = `${brandSlug}-hero.jpg`;
-const cleanPath = `/src/assets/images/${expectedFilename}`;
-const imageExists = images[cleanPath];
-
-// 3. SAFE CONTENT DEFAULTS
-const headline = hero?.headline || brand?.tagline || "Quality at AI Speed";
-const subtext = hero?.subtext || "Professional Astro architecture delivered in 24 hours.";
-
-// 4. PRIMARY CTA LOGIC (Safe-Check & Enum Support)
-const rawCtaLink = settings?.cta_link || "#contact";
-const isCtaDisabled = rawCtaLink.toLowerCase() === 'n/a';
-
-// Fallback to #contact if AI didn't provide a link or set it to 'n/a'
-const finalCtaLink = isCtaDisabled ? "#contact" : rawCtaLink;
-const finalCtaType = isCtaDisabled ? "anchor" : (settings?.cta_type || "anchor");
-
-const isPrimaryExternal = finalCtaType === 'external' && finalCtaLink.startsWith('http');
-const ctaText = settings?.cta_text || "Get Started";
-
-// 5. SECONDARY CTA LOGIC
-const hasSecondary = settings?.secondary_cta_text && settings?.secondary_cta_link && settings.secondary_cta_link.toLowerCase() !== 'n/a';
-const isSecondaryExternal = settings?.secondary_cta_link?.startsWith('http');
----
-
-<section class="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-[var(--bg-color)]">
-  
-  {/* BACKGROUND LAYER: Dynamic Image or Gradient Fallback */}
-  <div class="absolute inset-0 z-0">
-    {imageExists ? (
-      <Image 
-        src={images[cleanPath]()} 
-        alt={hero?.image?.alt || brand?.name || "Hero Background"} 
-        width={1920} 
-        height={1080} 
-        class="w-full h-full object-cover opacity-30 md:opacity-40"
-        loading="eager"
-        fetchpriority="high"
-      />
-    ) : (
-      <div class="w-full h-full opacity-20 bg-[radial-gradient(circle_at_top_right,var(--accent)_0%,transparent_60%)]"></div>
-    )}
-    <div class="absolute inset-0 bg-gradient-to-b from-[var(--bg-color)]/20 via-[var(--bg-color)]/40 to-[var(--bg-color)]"></div>
-  </div>
-
-  {/* CONTENT LAYER */}
-  <div class="container relative z-10 px-6 mx-auto text-center">
-    
-    <div class="flex items-center justify-center gap-3 mb-8">
-       <span class="h-[1px] w-4 bg-[var(--accent)]"></span>
-       <p class="text-[10px] font-bold tracking-[0.4em] uppercase text-[var(--accent)]">
-        {brand?.availability_status || brand?.name || "System Active"}
-       </p>
-       <span class="h-[1px] w-4 bg-[var(--accent)]"></span>
-    </div>
-    
-    <h1 class="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter leading-[0.85] text-[var(--text-primary)] mb-8">
-        {headline}
-    </h1>
-
-    <p class="max-w-2xl mx-auto mb-12 text-lg md:text-xl text-[var(--text-secondary)] leading-relaxed font-medium opacity-80">
-      {subtext}
-    </p>
-
-    <div class="flex flex-col items-center gap-10">
-      <div class="flex flex-col sm:flex-row items-center gap-4">
-        {/* PRIMARY CTA - Enhanced with Target/Rel logic */}
-        <a 
-          href={finalCtaLink} 
-          target={isPrimaryExternal ? "_blank" : "_self"}
-          rel={isPrimaryExternal ? "noopener noreferrer" : ""}
-          class="w-full sm:w-auto bg-[var(--accent)] px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:scale-105 active:scale-95 rounded-[var(--radius)] inline-block text-black shadow-xl shadow-[var(--accent)]/10"
-        >
-          {ctaText}
-        </a>
-
-        {/* SECONDARY CTA */}
-        {hasSecondary && (
-          <a 
-            href={settings.secondary_cta_link}
-            target={isSecondaryExternal ? "_blank" : "_self"}
-            rel={isSecondaryExternal ? "noopener noreferrer" : ""}
-            class="w-full sm:w-auto border border-[var(--border)] bg-white/5 backdrop-blur-sm px-12 py-5 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-[var(--text-primary)] hover:text-[var(--bg-color)] rounded-[var(--radius)] inline-block text-[var(--text-primary)]"
-          >
-            {settings.secondary_cta_text}
-          </a>
-        )}
-      </div>
-      
-      {brand?.objection_handle && (
-        <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 flex items-center gap-4 text-[var(--text-primary)] font-bold italic">
-          {brand.objection_handle}
-        </span>
-      )}
-    </div>
-  </div>
-</section>
-</file>
-
-<file path="src/components/Investment.astro">
----
-/**
- * COMPONENT: Investment
- * Logic: Tiered pricing cards.
- */
- const { tiers, brand } = Astro.props;
----
-
-<section id="investment" class="py-24 bg-[var(--bg-color)] scroll-mt-24">
-  <div class="container mx-auto px-6">
-    <div class="mb-16 text-center">
-      <h2 class="text-xs font-bold tracking-[0.3em] uppercase text-[var(--accent)] mb-4">Investment</h2>
-      <h3 class="text-4xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        Choose Your <span class="text-[var(--accent)]">Plan</span>
-      </h3>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-      {tiers.map((tier: any) => (
-        <div class={`p-10 border ${tier.popular ? 'border-[var(--accent)]' : 'border-[var(--border)]'} rounded-[var(--radius)] bg-[var(--bg-card)] flex flex-col relative`}>
-          {tier.popular && (
-            <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[var(--accent)] text-black px-4 py-1 text-[10px] font-black uppercase tracking-widest rounded-full">
-              Most Popular
-            </div>
-          )}
-          <h4 class="text-2xl font-black uppercase tracking-tighter mb-2">{tier.name}</h4>
-          <div class="text-4xl font-black text-[var(--accent)] mb-6">{tier.price}</div>
-          <p class="text-[var(--text-secondary)] text-sm mb-8 min-h-[3rem]">{tier.description}</p>
-          
-          <ul class="space-y-4 mb-10 flex-grow">
-            {tier.features.map((feat: string) => (
-              <li class="text-xs uppercase tracking-wide flex items-center">
-                <span class="w-1.5 h-1.5 bg-[var(--accent)] rounded-full mr-3"></span>
-                {feat}
-              </li>
-            ))}
-          </ul>
-
-          <a href="#contact" class={`text-center py-4 rounded-[var(--radius)] font-bold uppercase text-[10px] tracking-widest transition-all ${tier.popular ? 'bg-[var(--accent)] text-black hover:scale-105' : 'border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--border)]'}`}>
-            Select Plan
-          </a>
-        </div>
-      ))}
-    </div>
-  </div>
-</section>
-</file>
-
 <file path="src/components/Navbar.astro">
 ---
 /**
- * Navbar Component - Vibe-Engine & Smart CTA Edition
- * Receives individual props from index.astro to prevent "Prop Drift"
- * Standards: 2026 AI-Ready / flattened JSON compatible.
+ * Navbar Component - Vibe-Engine & Smart CTA Edition (Mobile Drawer Upgrade)
+ * Goals:
+ * - Cleaner mobile UX (drawer + backdrop, scroll lock, ESC to close, click-outside)
+ * - Keep Lighthouse 100/100 friendly (tiny vanilla JS, no deps)
+ * - Preserve existing props + active-section observer
  */
  const { brand, menu, settings } = Astro.props;
 
-// Pull CTA data from the settings object to match our business.json structure
+// Pull CTA data from settings
 const cta_text = settings?.cta_text;
 const cta_link = settings?.cta_link;
 
-// Helper to determine if a link is an external URL or an internal anchor
-const isExternal = cta_link?.startsWith('http');
+// Helper to determine if CTA is external URL
+const isExternal = !!cta_link && (cta_link.startsWith("http://") || cta_link.startsWith("https://"));
+
+// Brand display (supports your newer brand.logo object, but falls back safely)
+const brandText =
+  brand?.logo?.text ||
+  brand?.logo_text ||
+  brand?.name ||
+  "Agency";
 ---
 
 <nav class="sticky top-0 z-[100] w-full border-b border-[var(--border)] bg-[var(--bg-color)]/80 backdrop-blur-md transition-all duration-300">
   <div class="container mx-auto px-6 py-4 flex items-center justify-between relative z-[120]">
-    
-    {/* BRAND LOGO - Uses logo_text if available, falls back to name */}
+    {/* BRAND */}
     <a href="#top" class="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)] hover:opacity-70 transition-opacity">
-      {brand?.logo_text || brand?.name || "Agency"}
+      {brandText}
     </a>
 
-    {/* MOBILE MENU TOGGLE */}
-    <button id="menu-toggle" class="md:hidden text-[var(--text-primary)] relative z-[130] p-2 focus:outline-none" aria-label="Toggle Menu">
+    {/* MOBILE TOGGLE */}
+    <button
+      id="menu-toggle"
+      class="md:hidden text-[var(--text-primary)] relative z-[130] p-2 focus:outline-none"
+      aria-label="Toggle Menu"
+      aria-controls="mobile-menu"
+      aria-expanded="false"
+      type="button"
+    >
       <svg id="menu-icon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path id="menu-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
       </svg>
     </button>
 
-    {/* DESKTOP NAVIGATION */}
+    {/* DESKTOP NAV */}
     <div class="hidden md:flex items-center gap-8">
       {menu && menu.map((item: any) => (
-        <a 
-          href={item.path} 
+        <a
+          href={item.path}
           class="nav-link text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
         >
           {item.label}
         </a>
       ))}
-      
-      {/* Smart CTA Button - Context-aware linking */}
+
+      {/* CTA */}
       {cta_text && (
-        <a 
-          href={cta_link || "#contact"} 
+        <a
+          href={cta_link || "#contact"}
           target={isExternal ? "_blank" : "_self"}
-          rel={isExternal ? "noopener noreferrer" : ""}
+          rel={isExternal ? "noopener noreferrer" : undefined}
           class="px-6 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg-color)] transition-all rounded-[var(--radius)]"
         >
           {cta_text}
@@ -3475,66 +4043,126 @@ const isExternal = cta_link?.startsWith('http');
     </div>
   </div>
 
-  {/* MOBILE MENU OVERLAY */}
-  <div 
-    id="mobile-menu" 
-    class="fixed inset-0 w-full h-screen bg-[var(--bg-color)] hidden flex-col justify-center items-center z-[110]"
+  {/* MOBILE BACKDROP (click to close) */}
+  <div
+    id="mobile-backdrop"
+    class="fixed inset-0 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-200 md:hidden"
+    aria-hidden="true"
+  ></div>
+
+  {/* MOBILE DRAWER */}
+  <aside
+    id="mobile-menu"
+    class="fixed top-0 right-0 h-screen w-[86%] max-w-sm bg-[var(--bg-color)] border-l border-[var(--border)]
+           translate-x-full opacity-100 transition-transform duration-200 md:hidden z-[120]
+           motion-reduce:transition-none"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Mobile navigation"
   >
-    <div class="flex flex-col gap-0 text-center relative z-[125] w-full px-12">
-      {menu && menu.map((item: any) => (
-        <a 
-          href={item.path} 
-          class="mobile-link py-6 text-xl font-bold uppercase tracking-[0.3em] text-[var(--text-primary)] border-b border-[var(--border)] last:border-0 hover:text-[var(--accent)] transition-colors"
-        >
-          {item.label}
-        </a>
-      ))}
-      
+    {/* Drawer header */}
+    <div class="px-6 py-5 flex items-center justify-between border-b border-[var(--border)]">
+      <div class="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">
+        Menu
+      </div>
+
+      <button
+        id="menu-close"
+        type="button"
+        class="p-2 rounded-[var(--radius)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors"
+        aria-label="Close Menu"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    {/* Drawer links */}
+    <div class="px-6 py-6">
+      <div class="flex flex-col">
+        {menu && menu.map((item: any) => (
+          <a
+            href={item.path}
+            class="mobile-link py-4 text-base font-black uppercase tracking-[0.25em] text-[var(--text-primary)]
+                   border-b border-[var(--border)] last:border-0 hover:text-[var(--accent)] transition-colors"
+          >
+            {item.label}
+          </a>
+        ))}
+      </div>
+
+      {/* Drawer CTA */}
       {cta_text && (
-        <div class="mt-12">
-          <a 
-            href={cta_link || "#contact"} 
+        <div class="mt-8">
+          <a
+            href={cta_link || "#contact"}
             target={isExternal ? "_blank" : "_self"}
-            rel={isExternal ? "noopener noreferrer" : ""}
-            class="mobile-link inline-block px-10 py-5 bg-[var(--accent)] text-black text-[10px] font-bold uppercase tracking-[0.4em] rounded-[var(--radius)] shadow-lg active:scale-95 transition-transform"
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            class="mobile-link inline-flex w-full items-center justify-center px-8 py-4 bg-[var(--accent)] text-black
+                   text-[10px] font-black uppercase tracking-[0.35em] rounded-[var(--radius)] shadow-lg
+                   active:scale-95 transition-transform motion-reduce:transition-none"
           >
             {cta_text}
           </a>
+          <p class="mt-3 text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-70 text-center">
+            Tap a link to close
+          </p>
         </div>
       )}
     </div>
-  </div>
+  </aside>
 </nav>
 
 <script>
   const btn = document.getElementById('menu-toggle');
-  const menu = document.getElementById('mobile-menu');
+  const closeBtn = document.getElementById('menu-close');
+  const drawer = document.getElementById('mobile-menu');
+  const backdrop = document.getElementById('mobile-backdrop');
   const iconPath = document.getElementById('menu-path');
   const links = document.querySelectorAll('.mobile-link');
   const navLinks = document.querySelectorAll('.nav-link');
 
+  function openMenu() {
+    drawer?.classList.remove('translate-x-full');
+    backdrop?.classList.remove('pointer-events-none');
+    backdrop?.classList.add('opacity-100');
+    backdrop?.classList.remove('opacity-0');
+    document.body.style.overflow = 'hidden';
+    btn?.setAttribute('aria-expanded', 'true');
+    iconPath?.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+  }
+
+  function closeMenu() {
+    drawer?.classList.add('translate-x-full');
+    backdrop?.classList.add('pointer-events-none');
+    backdrop?.classList.add('opacity-0');
+    backdrop?.classList.remove('opacity-100');
+    document.body.style.overflow = '';
+    btn?.setAttribute('aria-expanded', 'false');
+    iconPath?.setAttribute('d', 'M4 8h16M4 16h16');
+  }
+
   function toggleMenu() {
-    const isHidden = menu?.classList.contains('hidden');
-    if (isHidden) {
-      menu?.classList.remove('hidden');
-      menu?.classList.add('flex');
-      document.body.style.overflow = 'hidden'; 
-      iconPath?.setAttribute('d', 'M6 18L18 6M6 6l12 12');
-    } else {
-      menu?.classList.add('hidden');
-      menu?.classList.remove('flex');
-      document.body.style.overflow = ''; 
-      iconPath?.setAttribute('d', 'M4 8h16M4 16h16');
-    }
+    const isClosed = drawer?.classList.contains('translate-x-full');
+    if (isClosed) openMenu();
+    else closeMenu();
   }
 
   btn?.addEventListener('click', toggleMenu);
-  links.forEach(link => link.addEventListener('click', toggleMenu));
+  closeBtn?.addEventListener('click', closeMenu);
+  backdrop?.addEventListener('click', closeMenu);
+  links.forEach(link => link.addEventListener('click', closeMenu));
 
-  // Active Section Observer for the Vibe System
+  // ESC to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  // Active Section Observer (desktop link highlighting)
   const observerOptions = {
     root: null,
-    rootMargin: '-20% 0px -70% 0px', 
+    rootMargin: '-20% 0px -70% 0px',
     threshold: 0
   };
 
@@ -3555,9 +4183,7 @@ const isExternal = cta_link?.startsWith('http');
     });
   }, observerOptions);
 
-  document.querySelectorAll('section[id]').forEach((section) => {
-    observer.observe(section);
-  });
+  document.querySelectorAll('section[id]').forEach((section) => observer.observe(section));
 </script>
 </file>
 
@@ -3795,8 +4421,9 @@ body {
 ---
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
-import Footer from '../components/Footer.astro'; // ADDED MISSING IMPORT
+import Footer from '../components/Footer.astro';
 import Hero from '../components/Hero.astro';
+import Trustbar from '../components/TrustBar.astro'; // ✅ ADD
 import BentoAbout from '../components/BentoAbout.astro';
 import Features from '../components/Features.astro';
 import Process from '../components/Process.astro';
@@ -3810,47 +4437,44 @@ import ServiceArea from '../components/ServiceArea.astro';
 
 import data from '../data/business.json';
 
-/** * 2026 DATA DESTRUCTURING - SCHEMA ALIGNED
- */
 const {
   intelligence = {},
   strategy = {},
-  settings = {}, // Holds vibe and menu
+  settings = {},
   brand = {},
   about = {},
   hero = {},
+  trustbar = null,          // ✅ ADD (optional, but clean)
   features = [],
   processSteps = [],
   testimonials = [],
   comparison = null,
-  gallery = [],
+  gallery = null,
   investment = [],
   faqs = [],
   service_area = [],
   contact = {}
 } = data;
 
-// FIX: Extract menu from settings per Master Schema
 const navMenu = settings.menu || [];
-
 const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
 
 <Layout title={siteTitle} settings={settings}>
-  
-  <Navbar brand={brand} menu={navMenu} settings={settings} />  
+  <Navbar brand={brand} menu={navMenu} settings={settings} />
 
   <main>
     {/* 1. HERO SECTION */}
     <Hero hero={hero} brand={brand} settings={settings} />
 
+    {/* 1.25 TRUSTBAR (best conversion placement: immediately under hero) */}
+    {strategy.show_trustbar && trustbar?.enabled && trustbar?.items?.length > 0 && (
+      <Trustbar data={trustbar} />
+    )}
+
     {/* 1.5 THE BENTO ABOUT */}
     {strategy.show_about !== false && (brand.name || about.story_text) && (
-      <BentoAbout 
-        brand={brand} 
-        about={about} 
-        intelligence={intelligence}
-      />
+      <BentoAbout brand={brand} about={about} intelligence={intelligence} />
     )}
 
     {/* 2. FEATURES / SERVICES */}
@@ -3874,7 +4498,7 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
     )}
 
     {/* 6. PORTFOLIO / GALLERY */}
-    {strategy.show_gallery && gallery.length > 0 && (
+    {strategy.show_gallery && gallery?.enabled !== false && gallery?.items?.length > 0 && (
       <Gallery gallery={gallery} brand={brand} />
     )}
 
@@ -3884,121 +4508,227 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
     )}
 
     {/* 8. OBJECTION HANDLING */}
-    {strategy.show_faqs && faqs.length > 0 && (
-      <FAQ faqs={faqs} />
-    )}
+    {strategy.show_faqs && faqs.length > 0 && <FAQ faqs={faqs} />}
 
-    {/* 8.5 SERVICE AREA (The Final Local Trust Check) */}
+    {/* 8.5 SERVICE AREA */}
     {strategy.show_service_area && data.service_area && (
-      <ServiceArea 
-        service_area={data.service_area} 
-        intelligence={intelligence} 
-      />
+      <ServiceArea service_area={data.service_area} intelligence={intelligence} />
     )}
 
     {/* 9. FINAL CONVERSION */}
     <Contact contact={contact} intelligence={intelligence} brand={brand} settings={settings} />
   </main>
-
 </Layout>
 </file>
 
 <file path="src/data/business.json">
 {
   "intelligence": {
-  "industry": "Concert Photography",
-  "target_persona": "Rock music fans, Grateful Dead enthusiasts, promoters, and collectors",
-  "tone_of_voice": "casual and fan-focused"
+    "industry": "Mobile car detailing service",
+    "target_persona": "Local car owners with sedans and SUVs who want a premium detail at home or work without visiting a shop",
+    "tone_of_voice": "Premium, confident, friendly, and appointment-focused"
   },
   "strategy": {
-  "show_trustbar": false,
-  "show_about": true,
-  "show_features": true,
-  "show_process": false,
-  "show_testimonials": false,
-  "show_comparison": false,
-  "show_gallery": true,
-  "show_investment": false,
-  "show_faqs": false,
-  "show_service_area": false
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": false,
+    "show_service_area": true
   },
   "settings": {
-  "vibe": "Vintage Boutique",
-  "cta_text": "Inquire About Prints or Licensing",
-  "cta_link": "#contact",
-  "cta_type": "anchor",
-  "secondary_cta_text": "View Gallery",
-  "secondary_cta_link": "#gallery",
-  "menu": [
-  { "label": "Home", "path": "#home" },
-  { "label": "Gallery", "path": "#gallery" },
-  { "label": "About", "path": "#about" },
-  { "label": "Contact", "path": "#contact" }
-  ]
+    "vibe": "Luxury Noir",
+    "cta_text": "Book an Appointment",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Call Now",
+    "secondary_cta_link": "tel:12155555555",
+    "menu": [
+      { "label": "Home", "path": "#home" },
+      { "label": "Services", "path": "#features" },
+      { "label": "Process", "path": "#process" },
+      { "label": "Work", "path": "#gallery" },
+      { "label": "Reviews", "path": "#testimonials" },
+      { "label": "Service Area", "path": "#service-area" },
+      { "label": "Contact", "path": "#contact" }
+    ]
   },
   "brand": {
-  "name": "Dead Head Photography",
-  "slug": "dead-head-photography",
-  "tagline": "Capturing the Spirit of the Dead — Live Since 1981",
-  "email": "[joe@compuserve.com](mailto:joe@compuserve.com)",
-  "phone": "",
-  "office_address": "Remote / Global",
-  "objection_handle": "Authentic concert photography capturing the true vibe of Grateful Dead shows and rock culture."
+    "name": "Biff-Buff Mobile Detailing",
+    "slug": "biff-buff",
+    "tagline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "office_address": "Mobile / On-Site Service",
+    "objection_handle": "Skip the shop. I bring professional tools and careful technique to your driveway or workplace—so your vehicle looks its best on your schedule.",
+    "logo": {
+      "mode": "icon_text",
+      "text": "Biff-Buff",
+      "icon_slug": "sparkles",
+      "image_path": "",
+      "alt": "Biff-Buff Mobile Detailing logo"
+    }
   },
-  "hero": {
-  "headline": "Grateful Dead & Rock Concert Photography Since 1981",
-  "subtext": "Authentic moments from the crowd, the stage, and the soul of the show — captured by a lifelong Dead Head.",
-  "image": {
-  "alt": "Crowd at a Grateful Dead concert with stage lights and fans dancing",
-  "image_search_query": "Grateful Dead concert crowd photography vintage"
-  }
+ "hero": {
+    "headline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "subtext": "High-end interior and exterior detailing for sedans and SUVs. Convenient, careful, and appointment-based — serving local owners who want a showroom-clean vehicle without leaving home.",
+    "image": {
+      "alt": "Professional mobile car detailer washing a luxury SUV in a residential driveway",
+      "image_search_query": "car detailing luxury suv driveway"
+    }
   },
+
+
+  "trustbar": {
+    "enabled": true,
+    "headline": "Trusted by local owners who value a clean, protected vehicle",
+    "items": [
+      { "icon": "shield", "label": "Paint-Safe", "sublabel": "Careful technique" },
+      { "icon": "clock", "label": "On Your Time", "sublabel": "Appointment-based" },
+      { "icon": "sparkles", "label": "Premium Finish", "sublabel": "Interior + exterior" },
+      { "icon": "map", "label": "Mobile Service", "sublabel": "Home or work" }
+    ]
+  },
+
   "about": {
-  "story_text": "I’ve been photographing Grateful Dead shows and rock concerts since 1981, drawn to the energy, community, and once-in-a-lifetime moments that happen in the crowd as much as on stage.",
-  "founder_note": "I’m Dave, a lifelong Dead Head who believes the real magic of a show lives in the people and the shared experience.",
-  "years_experience": "Since 1981"
+    "story_text": "Biff-Buff Mobile Detailing was built for local owners who care about their vehicles and their time. Instead of waiting at a shop, you get professional-level detailing at your home or workplace — with the right tools, products, and a careful process from start to finish.",
+    "founder_note": "I treat every vehicle like it’s my own — no rushed wipe-downs, no corner-cutting. My goal is simple: make your car look incredible, and make the process effortless for you.",
+    "years_experience": "5"
   },
   "features": [
-  {
-  "title": "Authentic Crowd Moments",
-  "description": "Candid photography capturing the fans, dancers, and shared energy that define a Dead show.",
-  "icon_slug": "users"
-  },
-  {
-  "title": "Live Concert Archives",
-  "description": "Decades of rock and Grateful Dead concert photography preserved from the pit and the floor.",
-  "icon_slug": "camera"
-  },
-  {
-  "title": "Prints & Licensing",
-  "description": "High-quality prints and licensing available for collectors, publications, and promoters.",
-  "icon_slug": "image"
-  }
+    {
+      "title": "Mobile Convenience",
+      "description": "I come to your home or workplace with professional equipment — you keep your day moving while your car gets detailed.",
+      "icon_slug": "map-pin"
+    },
+    {
+      "title": "Interior Deep Clean",
+      "description": "Vacuuming, wipe-downs, and focused interior cleaning to restore a clean, fresh cabin feel — without shortcuts.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Exterior Detail Finish",
+      "description": "Thorough wash and finishing touches for a crisp, glossy look — perfect for daily drivers and weekend cars alike.",
+      "icon_slug": "droplets"
+    },
+    {
+      "title": "Care for Nice Cars",
+      "description": "Detail-minded approach designed for owners who want careful handling and consistent, high-quality results.",
+      "icon_slug": "shield-check"
+    }
   ],
-  "gallery": [
-  {
-  "title": "Grateful Dead Crowd Energy",
-  "image_search_query": "Grateful Dead fans dancing crowd"
-  },
-  {
-  "title": "Live Rock Concert Moments",
-  "image_search_query": "rock concert crowd candid photography"
-  },
-  {
-  "title": "Stage and Audience Connection",
-  "image_search_query": "concert audience stage lights vintage"
-  }
+  "processSteps": [
+    {
+      "title": "Request a Time",
+      "description": "Send your vehicle type, location, and preferred day/time. I’ll confirm availability quickly."
+    },
+    {
+      "title": "I Arrive Fully Equipped",
+      "description": "I show up at your home or workplace with professional products and detailing tools for a premium finish."
+    },
+    {
+      "title": "Detail + Final Touches",
+      "description": "Interior and exterior detailed on-site — then a quick final walkthrough so you see the results immediately."
+    }
   ],
+  "testimonials": [
+    {
+      "quote": "Easiest detail I’ve ever booked — the car looked brand new.",
+      "author": "Chris M.",
+      "role": "Local customer"
+    },
+    {
+      "quote": "On time, professional, and the interior came out amazing. Worth it.",
+      "author": "Jamie R.",
+      "role": "SUV owner"
+    },
+    {
+      "quote": "Super convenient. I was working from home while my car got detailed outside.",
+      "author": "Taylor D.",
+      "role": "Busy professional"
+    }
+  ],
+  "service_area": {
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Cherry Hill, NJ",
+      "Haddonfield, NJ",
+      "Bala Cynwyd, PA",
+      "Ardmore, PA",
+      "Conshohocken, PA",
+      "King of Prussia, PA",
+      "Jenkintown, PA",
+      "Media, PA"
+    ],
+    "travel_note": "Outside these areas? I offer custom quotes for extended travel and special requests.",
+    "cta_text": "Request Availability",
+    "cta_link": "#contact",
+    "map_search_query": "mobile car detailing near Philadelphia PA"
+  },
+  "gallery": {
+    "enabled": true,
+    "title": "The Lab",
+    "layout": null,
+    "show_titles": true,
+    "strategy": {
+      "primary_goal": "conversion",
+      "show_gallery": true
+    },
+    "image_source": {
+      "provider": "unsplash",
+      "image_search_query": "professional car detailing before and after interior exterior close-up",
+      "filename_pattern": "{brandSlug}-project-{index}.jpg",
+      "target_folder": "/src/assets/images/"
+    },
+    "computed_count": 5,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Paint-Safe Hand Wash",
+        "caption": "A careful exterior clean that brings back shine without harsh shortcuts.",
+        "tag": "Exterior",
+        "image_search_query": "professional hand car wash detailing foam luxury car driveway"
+      },
+      {
+        "title": "Interior Refresh",
+        "caption": "Clean, tidy cabin feel — the kind you notice immediately when you open the door.",
+        "tag": "Interior",
+        "image_search_query": "car detailing interior cleaning vacuum seats dashboard close-up"
+      },
+      {
+        "title": "Detail Brush Precision",
+        "caption": "Focused work on the small areas that separate a quick wash from a real detail.",
+        "tag": "Precision",
+        "image_search_query": "car detailing brush cleaning vents badges trim close-up"
+      },
+      {
+        "title": "SUV Ready Finish",
+        "caption": "Premium mobile detailing results for SUVs — at home or at work.",
+        "tag": "SUV",
+        "image_search_query": "mobile car detailing luxury suv exterior shine driveway"
+      },
+      {
+        "title": "Gloss & Reflection",
+        "caption": "A crisp finish that looks great in sunlight and under street lights.",
+        "tag": "Finish",
+        "image_search_query": "detailed car paint glossy reflection close-up after detailing"
+      }
+    ]
+  },
   "contact": {
-    "headline": "Ready to Capture the Magic",
-    "subheadline": "Interested in prints, licensing, or collaborations? Let’s talk.",
-    "email": "joe@compuserve.com",
-    "phone": "",
-    "email_recipient": "joe@compuserve.com",
-    "button_text": "Send Inquiry",
-    "office_address": "Remote / Global"
+    "headline": "Book Your Mobile Detail",
+    "subheadline": "Tell me what you drive and where you’d like the detail done. I’ll confirm availability and lock in your appointment.",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "email_recipient": "biff@gmail.com",
+    "button_text": "Request an Appointment",
+    "office_address": "Mobile / On-Site Service"
   }
-  }
+}
 </file>
 
 </files>

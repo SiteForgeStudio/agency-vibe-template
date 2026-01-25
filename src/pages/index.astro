@@ -1,8 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Navbar from '../components/Navbar.astro';
-import Footer from '../components/Footer.astro'; // ADDED MISSING IMPORT
+import Footer from '../components/Footer.astro';
 import Hero from '../components/Hero.astro';
+import Trustbar from '../components/TrustBar.astro'; // ✅ ADD
+import Events from '../components/Events.astro';
 import BentoAbout from '../components/BentoAbout.astro';
 import Features from '../components/Features.astro';
 import Process from '../components/Process.astro';
@@ -16,15 +18,15 @@ import ServiceArea from '../components/ServiceArea.astro';
 
 import data from '../data/business.json';
 
-/** * 2026 DATA DESTRUCTURING - SCHEMA ALIGNED
- */
 const {
   intelligence = {},
   strategy = {},
-  settings = {}, // Holds vibe and menu
+  settings = {},
   brand = {},
   about = {},
   hero = {},
+  trustbar = null,          // ✅ ADD (optional, but clean)
+  events = [],
   features = [],
   processSteps = [],
   testimonials = [],
@@ -36,33 +38,37 @@ const {
   contact = {}
 } = data;
 
-// FIX: Extract menu from settings per Master Schema
 const navMenu = settings.menu || [];
-
 const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
 
 <Layout title={siteTitle} settings={settings}>
-  
-  <Navbar brand={brand} menu={navMenu} settings={settings} />  
+  <Navbar brand={brand} menu={navMenu} settings={settings} />
 
   <main>
     {/* 1. HERO SECTION */}
     <Hero hero={hero} brand={brand} settings={settings} />
 
+    {/* 1.25 TRUSTBAR (best conversion placement: immediately under hero) */}
+    {strategy.show_trustbar && trustbar?.enabled && trustbar?.items?.length > 0 && (
+      <Trustbar data={trustbar} />
+    )}
+
     {/* 1.5 THE BENTO ABOUT */}
     {strategy.show_about !== false && (brand.name || about.story_text) && (
-      <BentoAbout 
-        brand={brand} 
-        about={about} 
-        intelligence={intelligence}
-      />
+      <BentoAbout brand={brand} about={about} intelligence={intelligence} />
     )}
 
     {/* 2. FEATURES / SERVICES */}
     {strategy.show_features && features.length > 0 && (
       <Features features={features} intelligence={intelligence} />
     )}
+
+    {/* 2.5 EVENTS / CLASSES */}
+    {strategy.show_events && events.length > 0 && (
+      <Events events={events} />
+)}
+
 
     {/* 3. METHODOLOGY / PROCESS */}
     {strategy.show_process && processSteps.length > 0 && (
@@ -83,7 +89,6 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
     {strategy.show_gallery && gallery?.enabled !== false && gallery?.items?.length > 0 && (
       <Gallery gallery={gallery} brand={brand} />
     )}
-    
 
     {/* 7. PRICING / INVESTMENT */}
     {strategy.show_investment && investment.length > 0 && (
@@ -91,20 +96,14 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
     )}
 
     {/* 8. OBJECTION HANDLING */}
-    {strategy.show_faqs && faqs.length > 0 && (
-      <FAQ faqs={faqs} />
-    )}
+    {strategy.show_faqs && faqs.length > 0 && <FAQ faqs={faqs} />}
 
-    {/* 8.5 SERVICE AREA (The Final Local Trust Check) */}
+    {/* 8.5 SERVICE AREA */}
     {strategy.show_service_area && data.service_area && (
-      <ServiceArea 
-        service_area={data.service_area} 
-        intelligence={intelligence} 
-      />
+      <ServiceArea service_area={data.service_area} intelligence={intelligence} />
     )}
 
     {/* 9. FINAL CONVERSION */}
     <Contact contact={contact} intelligence={intelligence} brand={brand} settings={settings} />
   </main>
-
 </Layout>

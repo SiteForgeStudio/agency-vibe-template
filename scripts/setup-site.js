@@ -32,6 +32,53 @@ const brandName = data.brand?.name || 'brand';
  * 2. IMAGE DOWNLOADER
  * Downloads from Unsplash and saves with the brand-specific prefix.
  */
+async function searchUnsplashPhoto(query) {
+  const res = await axios.get('https://api.unsplash.com/search/photos', {
+    params: {
+      query,
+      orientation: 'landscape',
+      per_page: 1
+    },
+    headers: {
+      Authorization: `Client-ID ${ACCESS_KEY}`
+    }
+  });
+
+  const first = res.data?.results?.[0];
+  return first?.urls?.regular || null;
+}
+
+function buildFallbackQueries(query, industryFallback) {
+  const q = (query || '').trim();
+  const fallbacks = [];
+
+  if (q) fallbacks.push(q);
+
+  // soften common “over-specific” words
+  if (q) {
+    fallbacks.push(
+      q.replace(/\b(close-up|closeup|professional|premium|luxury)\b/gi, '').replace(/\s+/g, ' ').trim()
+    );
+  }
+
+  // take first 2–3 main tokens
+  if (q) {
+    const tokens = q.split(/\s+/).filter(Boolean);
+    fallbacks.push(tokens.slice(0, 4).join(' '));
+    fallbacks.push(tokens.slice(0, 2).join(' '));
+  }
+
+  // industry fallback
+  if (industryFallback) fallbacks.push(industryFallback);
+
+  // final safe defaults
+  fallbacks.push('car detailing');
+  fallbacks.push('car interior cleaning');
+
+  // unique + non-empty
+  return [...new Set(fallbacks)].filter(Boolean);
+}
+
 async function fetchUnsplashImage(query, filename) {
   const filePath = path.join(ASSETS_DIR, filename);
 
@@ -40,20 +87,23 @@ async function fetchUnsplashImage(query, filename) {
     return;
   }
 
+  const fallbacks = buildFallbackQueries(query, data?.intelligence?.industry);
+
   try {
-    console.log(`🔍 Searching Unsplash for: "${query}"...`);
+    let downloadUrl = null;
 
-    const search = await axios.get('https://api.unsplash.com/photos/random', {
-      params: {
-        query,
-        orientation: 'landscape',
-        client_id: ACCESS_KEY
-      }
-    });
+    for (const q of fallbacks) {
+      console.log(`🔍 Searching Unsplash for: "${q}"...`);
+      downloadUrl = await searchUnsplashPhoto(q);
+      if (downloadUrl) break;
+    }
 
-    const downloadUrl = search.data.urls.regular;
+    if (!downloadUrl) {
+      console.error(`! Unsplash: No results for "${query}" (and fallbacks)`);
+      return;
+    }
+
     const response = await axios({ url: downloadUrl, method: 'GET', responseType: 'stream' });
-
     const writer = fs.createWriteStream(filePath);
     response.data.pipe(writer);
 
@@ -66,6 +116,7 @@ async function fetchUnsplashImage(query, filename) {
     console.error(`! Unsplash Error for ${filename}:`, errorMsg);
   }
 }
+
 
 /**
  * 3. RUNNER

@@ -1,73 +1,77 @@
 {
   "intelligence": {
-  "industry": "Concert Photography",
-  "target_persona": "Rock music fans, Grateful Dead enthusiasts, promoters, and collectors",
-  "tone_of_voice": "casual and fan-focused"
+    "industry": "Mobile car detailing service",
+    "target_persona": "Local car owners with well-maintained sedans and SUVs who want a premium detail at home or work",
+    "tone_of_voice": "Premium, confident, friendly, and appointment-focused"
   },
   "strategy": {
-  "show_trustbar": false,
-  "show_about": true,
-  "show_features": true,
-  "show_process": false,
-  "show_testimonials": false,
-  "show_comparison": false,
-  "show_gallery": true,
-  "show_investment": false,
-  "show_faqs": false,
-  "show_service_area": false
+    "show_trustbar": false,
+    "show_about": true,
+    "show_features": true,
+    "show_process": false,
+    "show_testimonials": false,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": false,
+    "show_service_area": true
   },
   "settings": {
-  "vibe": "Vintage Boutique",
-  "cta_text": "Inquire About Prints or Licensing",
-  "cta_link": "#contact",
-  "cta_type": "anchor",
-  "secondary_cta_text": "View Gallery",
-  "secondary_cta_link": "#gallery",
-  "menu": [
-  { "label": "Home", "path": "#home" },
-  { "label": "Gallery", "path": "#gallery" },
-  { "label": "About", "path": "#about" },
-  { "label": "Contact", "path": "#contact" }
-  ]
+    "vibe": "Luxury Noir",
+    "cta_text": "Book an Appointment",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Call Now",
+    "secondary_cta_link": "tel:2155555555",
+    "menu": [
+      { "label": "Home", "path": "/" },
+      { "label": "Services", "path": "#services" },
+      { "label": "Work", "path": "#gallery" },
+      { "label": "Contact", "path": "#contact" }
+    ]
   },
   "brand": {
-  "name": "Dead Head Photography",
-  "slug": "dead-head-photography",
-  "tagline": "Capturing the Spirit of the Dead — Live Since 1981",
-  "email": "joe@compuserve.com",
-  "phone": "",
-  "office_address": "Remote / Global",
-  "objection_handle": "Authentic concert photography capturing the true vibe of Grateful Dead shows and rock culture."
+    "name": "Biff-Buff",
+    "slug": "biff-buff",
+    "tagline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "objection_handle": "You don’t have to drive or wait at a shop. I bring professional tools and careful technique to your driveway or workplace, so your vehicle looks its best on your schedule."
   },
   "hero": {
-  "headline": "Grateful Dead & Rock Concert Photography Since 1981",
-  "subtext": "Authentic moments from the crowd, the stage, and the soul of the show — captured by a lifelong Dead Head.",
-  "image": {
-  "alt": "Crowd at a Grateful Dead concert with stage lights and fans dancing",
-  "image_search_query": "Grateful Dead concert crowd photography vintage"
-  }
+    "headline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "subtext": "High-end interior and exterior detailing for sedans and SUVs. Convenient, careful, and appointment-based — serving local owners who want their vehicle looking showroom-clean without leaving home.",
+    "image": {
+      "alt": "A luxury SUV being professionally detailed on a driveway",
+      "image_search_query": "mobile car detailing professional working on luxury suv driveway close-up"
+    }
   },
   "about": {
-  "story_text": "I’ve been photographing Grateful Dead shows and rock concerts since 1981, drawn to the energy, community, and once-in-a-lifetime moments that happen in the crowd as much as on stage.",
-  "founder_note": "I’m Dave, a lifelong Dead Head who believes the real magic of a show lives in the people and the shared experience.",
-  "years_experience": "Since 1981"
+    "story_text": "Biff-Buff is a mobile detailing service built for local owners who care about their vehicles. Instead of wasting time at a shop, you get professional-level detailing at your home or workplace — with the tools, products, and attention to detail your car deserves.",
+    "founder_note": "I treat every vehicle like it’s my own — from the first rinse to the final wipe-down. My goal is simple: make your car look incredible, and make the process effortless for you.",
+    "years_experience": "5"
   },
   "features": [
-  {
-  "title": "Authentic Crowd Moments",
-  "description": "Candid photography capturing the fans, dancers, and shared energy that define a Dead show.",
-  "icon_slug": "users"
-  },
-  {
-  "title": "Live Concert Archives",
-  "description": "Decades of rock and Grateful Dead concert photography preserved from the pit and the floor.",
-  "icon_slug": "camera"
-  },
-  {
-  "title": "Prints & Licensing",
-  "description": "High-quality prints and licensing available for collectors, publications, and promoters.",
-  "icon_slug": "image"
-  }
+    {
+      "title": "Mobile Convenience",
+      "description": "I come to your home or workplace with professional equipment — you keep your day moving while your car gets detailed.",
+      "icon_slug": "map-pin"
+    },
+    {
+      "title": "Interior Deep Clean",
+      "description": "Vacuuming, wipe-downs, and focused interior cleaning to restore a clean, fresh cabin feel without shortcuts.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Exterior Detail Finish",
+      "description": "Thorough wash and finish for a crisp, glossy look — perfect for daily drivers and weekend cars alike.",
+      "icon_slug": "droplets"
+    },
+    {
+      "title": "Care for Nice Cars",
+      "description": "Detail-minded approach designed for owners who want careful handling and consistent, high-quality results.",
+      "icon_slug": "shield-check"
+    }
   ],
   "gallery": {
     "enabled": true,
@@ -75,41 +79,73 @@
     "layout": null,
     "show_titles": true,
     "strategy": {
-      "primary_goal": "visual_storytelling",
+      "primary_goal": "conversion",
       "show_gallery": true
     },
     "image_source": {
       "provider": "unsplash",
-      "image_search_query": "Grateful Dead concert crowd deadheads vintage photography",
+      "image_search_query": "professional car detailing before and after interior exterior close-up",
       "filename_pattern": "{brandSlug}-project-{index}.jpg",
       "target_folder": "/src/assets/images/"
     },
-    "computed_count": 12,
-    "computed_layout": "masonry",
+    "computed_count": 5,
+    "computed_layout": "grid",
     "items": [
-      { "title": "Deadheads in Motion", "caption": "Dancers and spinners mid-set", "tag": "crowd", "image_search_query": "Grateful Dead fans dancing crowd" },
-      { "title": "Tie-Dye Horizon", "caption": "Color, light, and community", "tag": "fans", "image_search_query": "tie dye crowd at concert vintage" },
-      { "title": "Before the First Note", "caption": "Anticipation in the lot", "tag": "scene", "image_search_query": "concert parking lot fans vintage photography" },
-      { "title": "Hands in the Air", "caption": "The moment the chorus hits", "tag": "crowd", "image_search_query": "concert crowd hands in air stage lights" },
-      { "title": "Front Row Faces", "caption": "Expressions you can’t fake", "tag": "portraits", "image_search_query": "concert crowd close up candid faces" },
-      { "title": "Lights & Haze", "caption": "Stage glow through the smoke", "tag": "stage", "image_search_query": "rock concert stage lights haze photography" },
-      { "title": "The Long Strange Night", "caption": "Silhouettes and sound", "tag": "vibe", "image_search_query": "concert silhouette crowd night vintage" },
-      { "title": "Community Moment", "caption": "Friends, strangers, family", "tag": "fans", "image_search_query": "friends at concert candid documentary" },
-      { "title": "Mid-Set Magic", "caption": "Pure flow in the crowd", "tag": "crowd", "image_search_query": "psychedelic concert crowd dancing photography" },
-      { "title": "Stage Meets Audience", "caption": "Energy crossing the barrier", "tag": "connection", "image_search_query": "concert audience connection stage lights" },
-      { "title": "Encore Afterglow", "caption": "The last song lingers", "tag": "vibe", "image_search_query": "concert encore crowd glow photography" },
-      { "title": "Icons & Details", "caption": "Stickers, patches, and relics", "tag": "details", "image_search_query": "concert fan jacket patches stickers vintage" }
+      {
+        "title": "Paint-Safe Hand Wash",
+        "caption": "A careful exterior clean that brings back shine without harsh shortcuts.",
+        "tag": "Exterior",
+        "image_search_query": "professional hand car wash detailing foam luxury car driveway"
+      },
+      {
+        "title": "Interior Refresh",
+        "caption": "Clean, tidy cabin feel — the kind you notice immediately when you open the door.",
+        "tag": "Interior",
+        "image_search_query": "car detailing interior cleaning vacuum seats dashboard close-up"
+      },
+      {
+        "title": "Detail Brush Precision",
+        "caption": "Focused work on the small areas that separate a quick wash from a real detail.",
+        "tag": "Precision",
+        "image_search_query": "car detailing brush cleaning vents badges trim close-up"
+      },
+      {
+        "title": "SUV Ready Finish",
+        "caption": "Premium mobile detailing results for SUVs — at home or at work.",
+        "tag": "SUV",
+        "image_search_query": "mobile car detailing luxury suv exterior shine driveway"
+      },
+      {
+        "title": "Gloss & Reflection",
+        "caption": "A crisp finish that looks great in sunlight and under street lights.",
+        "tag": "Finish",
+        "image_search_query": "detailed car paint glossy reflection close-up after detailing"
+      }
     ]
   },
-
+  "service_area": {
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Bala Cynwyd",
+      "Manayunk",
+      "Roxborough",
+      "Ardmore",
+      "Bryn Mawr",
+      "Haverford",
+      "Conshohocken",
+      "King of Prussia"
+    ],
+    "travel_note": "Outside these areas? I can often accommodate extended travel with a custom quote.",
+    "cta_text": "Check Availability",
+    "cta_link": "#contact",
+    "map_search_query": "mobile car detailing Philadelphia PA"
+  },
   "contact": {
-    "headline": "Ready to Capture the Magic",
-    "subheadline": "Interested in prints, licensing, or collaborations? Let’s talk.",
-    "email": "joe@compuserve.com",
-    "phone": "",
-    "email_recipient": "joe@compuserve.com",
-    "button_text": "Send Inquiry",
-    "office_address": "Remote / Global"
+    "headline": "Book Your Mobile Detail",
+    "subheadline": "Tell me what you drive and where you’d like the detail done. I’ll confirm availability and lock in your appointment.",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "email_recipient": "biff@gmail.com",
+    "button_text": "Request an Appointment"
   }
-  }
-  
+}

@@ -1,151 +1,200 @@
 {
   "intelligence": {
-    "industry": "Mobile car detailing service",
-    "target_persona": "Local car owners with well-maintained sedans and SUVs who want a premium detail at home or work",
-    "tone_of_voice": "Premium, confident, friendly, and appointment-focused"
+    "industry": "Yoga studio (classes + memberships)",
+    "target_persona": "Beginners and regular practitioners in Austin who want a welcoming studio with clear class options and an easy way to sign up",
+    "tone_of_voice": "Warm, calm, inviting, modern"
   },
   "strategy": {
-    "show_trustbar": false,
+    "show_trustbar": true,
     "show_about": true,
     "show_features": true,
-    "show_process": false,
-    "show_testimonials": false,
+    "show_process": true,
+    "show_events": true,
+    "show_testimonials": true,
     "show_comparison": false,
-    "show_gallery": true,
+    "show_gallery": false,
     "show_investment": false,
-    "show_faqs": false,
+    "show_faqs": true,
     "show_service_area": true
   },
   "settings": {
-    "vibe": "Luxury Noir",
-    "cta_text": "Book an Appointment",
+    "vibe": "Fresh Minimal",
+    "cta_text": "Request a Free First Class",
     "cta_link": "#contact",
     "cta_type": "anchor",
-    "secondary_cta_text": "Call Now",
-    "secondary_cta_link": "tel:2155555555",
+    "secondary_cta_text": "View Class Times",
+    "secondary_cta_link": "#events",
     "menu": [
-      { "label": "Home", "path": "/" },
-      { "label": "Services", "path": "#services" },
-      { "label": "Work", "path": "#gallery" },
+      { "label": "Home", "path": "#home" },
+      { "label": "About", "path": "#about" },
+      { "label": "Classes", "path": "#events" },
+      { "label": "What We Offer", "path": "#features" },
+      { "label": "How It Works", "path": "#process" },
+      { "label": "Reviews", "path": "#testimonials" },
+      { "label": "FAQs", "path": "#faqs" },
+      { "label": "Service Area", "path": "#service-area" },
       { "label": "Contact", "path": "#contact" }
     ]
   },
   "brand": {
-    "name": "Biff-Buff",
-    "slug": "biff-buff",
-    "tagline": "Premium Mobile Car Detailing — At Your Home or Work",
-    "email": "biff@gmail.com",
-    "phone": "215-555-5555",
-    "objection_handle": "You don’t have to drive or wait at a shop. I bring professional tools and careful technique to your driveway or workplace, so your vehicle looks its best on your schedule."
+    "name": "Eastside Flow Yoga",
+    "slug": "eastside-flow-yoga-austin",
+    "tagline": "Breathe. Move. Reset.",
+    "email": "hello@eastsideflowyoga.com",
+    "phone": "512-555-0179",
+    "objection_handle": "Beginner-friendly classes, clear guidance, and a studio that feels welcoming from day one."
   },
   "hero": {
-    "headline": "Premium Mobile Car Detailing — At Your Home or Work",
-    "subtext": "High-end interior and exterior detailing for sedans and SUVs. Convenient, careful, and appointment-based — serving local owners who want their vehicle looking showroom-clean without leaving home.",
+    "headline": "A Welcoming Yoga Studio in Austin",
+    "subtext": "Beginner-friendly flows, strength-focused sessions, and calmer classes—find your pace and feel better this week.",
     "image": {
-      "alt": "A luxury SUV being professionally detailed on a driveway",
-      "image_search_query": "mobile car detailing professional working on luxury suv driveway close-up"
+      "alt": "Yoga class in a bright, calm studio space",
+      "image_search_query": "yoga class bright studio calm"
     }
   },
-  "about": {
-    "story_text": "Biff-Buff is a mobile detailing service built for local owners who care about their vehicles. Instead of wasting time at a shop, you get professional-level detailing at your home or workplace — with the tools, products, and attention to detail your car deserves.",
-    "founder_note": "I treat every vehicle like it’s my own — from the first rinse to the final wipe-down. My goal is simple: make your car look incredible, and make the process effortless for you.",
-    "years_experience": "5"
-  },
-  "features": [
-    {
-      "title": "Mobile Convenience",
-      "description": "I come to your home or workplace with professional equipment — you keep your day moving while your car gets detailed.",
-      "icon_slug": "map-pin"
-    },
-    {
-      "title": "Interior Deep Clean",
-      "description": "Vacuuming, wipe-downs, and focused interior cleaning to restore a clean, fresh cabin feel without shortcuts.",
-      "icon_slug": "sparkles"
-    },
-    {
-      "title": "Exterior Detail Finish",
-      "description": "Thorough wash and finish for a crisp, glossy look — perfect for daily drivers and weekend cars alike.",
-      "icon_slug": "droplets"
-    },
-    {
-      "title": "Care for Nice Cars",
-      "description": "Detail-minded approach designed for owners who want careful handling and consistent, high-quality results.",
-      "icon_slug": "shield-check"
-    }
-  ],
-  "gallery": {
+  "trustbar": {
     "enabled": true,
-    "title": "The Lab",
-    "layout": null,
-    "show_titles": true,
-    "strategy": {
-      "primary_goal": "conversion",
-      "show_gallery": true
-    },
-    "image_source": {
-      "provider": "unsplash",
-      "image_search_query": "professional car detailing before and after interior exterior close-up",
-      "filename_pattern": "{brandSlug}-project-{index}.jpg",
-      "target_folder": "/src/assets/images/"
-    },
-    "computed_count": 5,
-    "computed_layout": "grid",
+    "headline": "Good yoga starts with a good environment",
     "items": [
-      {
-        "title": "Paint-Safe Hand Wash",
-        "caption": "A careful exterior clean that brings back shine without harsh shortcuts.",
-        "tag": "Exterior",
-        "image_search_query": "professional hand car wash detailing foam luxury car driveway"
-      },
-      {
-        "title": "Interior Refresh",
-        "caption": "Clean, tidy cabin feel — the kind you notice immediately when you open the door.",
-        "tag": "Interior",
-        "image_search_query": "car detailing interior cleaning vacuum seats dashboard close-up"
-      },
-      {
-        "title": "Detail Brush Precision",
-        "caption": "Focused work on the small areas that separate a quick wash from a real detail.",
-        "tag": "Precision",
-        "image_search_query": "car detailing brush cleaning vents badges trim close-up"
-      },
-      {
-        "title": "SUV Ready Finish",
-        "caption": "Premium mobile detailing results for SUVs — at home or at work.",
-        "tag": "SUV",
-        "image_search_query": "mobile car detailing luxury suv exterior shine driveway"
-      },
-      {
-        "title": "Gloss & Reflection",
-        "caption": "A crisp finish that looks great in sunlight and under street lights.",
-        "tag": "Finish",
-        "image_search_query": "detailed car paint glossy reflection close-up after detailing"
-      }
+      { "icon": "check", "label": "Beginner-friendly", "sublabel": "Clear cues, no pressure" },
+      { "icon": "sparkles", "label": "Clean, calming space", "sublabel": "Simple, modern studio" },
+      { "icon": "clock", "label": "Convenient schedule", "sublabel": "Morning + evening options" },
+      { "icon": "heart", "label": "Welcoming community", "sublabel": "All levels included" }
     ]
   },
+  "about": {
+    "story_text": "Eastside Flow Yoga is a modern studio built for real life in Austin—busy schedules, stressed bodies, and the desire to feel better without feeling judged. Classes are approachable, instructors are supportive, and you’ll always know what to do next.",
+    "founder_note": "You don’t need to be flexible to start. You just need a calm place to begin—and a teacher who guides you well.",
+    "years_experience": "6"
+  },
+  "events": [
+    {
+      "date": "Mon 7:00a",
+      "venue": "Beginner Flow",
+      "location": "60 min • All levels welcome",
+      "link": "#contact"
+    },
+    {
+      "date": "Tue 6:30p",
+      "venue": "Strength + Mobility",
+      "location": "60 min • Build stability + control",
+      "link": "#contact"
+    },
+    {
+      "date": "Wed 7:00p",
+      "venue": "Restore + Reset",
+      "location": "60 min • Slow + calming",
+      "link": "#contact"
+    },
+    {
+      "date": "Thu 6:00p",
+      "venue": "Flow (Mixed Levels)",
+      "location": "60 min • Options provided",
+      "link": "#contact"
+    },
+    {
+      "date": "Sat 10:00a",
+      "venue": "Beginner Flow",
+      "location": "60 min • Great first class",
+      "link": "#contact"
+    }
+  ],
+  "features": [
+    {
+      "title": "Beginner Flow",
+      "description": "A supportive class with clear instruction, simple sequences, and time to learn the basics.",
+      "icon_slug": "leaf"
+    },
+    {
+      "title": "Strength + Mobility",
+      "description": "Build stability and feel better in your body with smart movement and controlled flow.",
+      "icon_slug": "bolt"
+    },
+    {
+      "title": "Restore + Reset",
+      "description": "Slower paced, stress-reducing sessions designed to help you unwind and recover.",
+      "icon_slug": "moon"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Pick a class time",
+      "description": "Choose a session that fits your schedule—beginner-friendly options available all week."
+    },
+    {
+      "title": "Arrive a few minutes early",
+      "description": "We’ll get you set up and answer any questions. No experience required."
+    },
+    {
+      "title": "Move at your pace",
+      "description": "You’ll get clear cues and options. Take breaks when you need to."
+    },
+    {
+      "title": "Leave feeling better",
+      "description": "Consistency matters. We’ll help you find a rhythm you can actually maintain."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "I was nervous as a beginner, but the instructors made it easy. The studio feels calm and welcoming.",
+      "author": "Taylor M.",
+      "role": "Beginner student"
+    },
+    {
+      "quote": "Great schedule and the classes actually help my back and stress. It’s become my weekly reset.",
+      "author": "Jordan K.",
+      "role": "Regular member"
+    },
+    {
+      "quote": "Clean space, clear instruction, and no pressure. I leave feeling better every time.",
+      "author": "Alyssa R.",
+      "role": "Drop-in student"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Do I need experience to join a class?",
+      "answer": "No. Beginner Flow is designed for first-timers, and instructors always offer options for different levels."
+    },
+    {
+      "question": "What should I bring?",
+      "answer": "Wear comfortable clothes and bring water. If you have a mat, bring it—if not, ask about rentals."
+    },
+    {
+      "question": "How early should I arrive?",
+      "answer": "For your first class, arrive 10–15 minutes early so we can get you settled."
+    },
+    {
+      "question": "Is it okay if I’m not flexible?",
+      "answer": "Absolutely. Flexibility is a result of practice, not a requirement to start."
+    },
+    {
+      "question": "How do I sign up?",
+      "answer": "Request a free first class or contact us for the current schedule and membership options."
+    }
+  ],
   "service_area": {
-    "main_city": "Philadelphia, PA",
+    "main_city": "Austin, TX",
     "surrounding_cities": [
-      "Bala Cynwyd",
-      "Manayunk",
-      "Roxborough",
-      "Ardmore",
-      "Bryn Mawr",
-      "Haverford",
-      "Conshohocken",
-      "King of Prussia"
+      "East Austin, TX",
+      "Downtown Austin, TX",
+      "Mueller, TX",
+      "Hyde Park, TX",
+      "Riverside, TX",
+      "Travis Heights, TX",
+      "Zilker, TX"
     ],
-    "travel_note": "Outside these areas? I can often accommodate extended travel with a custom quote.",
-    "cta_text": "Check Availability",
+    "travel_note": "We’re a local studio—if you’re nearby, you’re welcome. Parking details can be shared on request.",
+    "cta_text": "Ask about today’s classes",
     "cta_link": "#contact",
-    "map_search_query": "mobile car detailing Philadelphia PA"
+    "map_search_query": "yoga studio east austin tx"
   },
   "contact": {
-    "headline": "Book Your Mobile Detail",
-    "subheadline": "Tell me what you drive and where you’d like the detail done. I’ll confirm availability and lock in your appointment.",
-    "email": "biff@gmail.com",
-    "phone": "215-555-5555",
-    "email_recipient": "biff@gmail.com",
-    "button_text": "Request an Appointment"
+    "headline": "Request your first class",
+    "subheadline": "Tell us your experience level and best times. We’ll reply with class options and next steps.",
+    "email": "hello@eastsideflowyoga.com",
+    "phone": "512-555-0179",
+    "email_recipient": "hello@eastsideflowyoga.com",
+    "button_text": "Request a Class"
   }
 }

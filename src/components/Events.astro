@@ -1,5 +1,10 @@
 ---
-const { events, headline = "Upcoming Shows" } = Astro.props;
+const { events = [], headline = "Upcoming Events", settings = {} } = Astro.props;
+
+const defaultHref = settings?.cta_link || "#contact";
+const defaultButtonText = settings?.events_button_text || "Info";
+
+const isExternal = (href = "") => /^https?:\/\//i.test(href);
 ---
 
 <section id="events" class="py-24 px-6 bg-[var(--bg-color)]">
@@ -7,25 +12,36 @@ const { events, headline = "Upcoming Shows" } = Astro.props;
     <h2 class="text-4xl font-bold mb-12 text-center tracking-tight text-[var(--text-primary)]">
       {headline}
     </h2>
-    
+
     <div class="space-y-4">
-      {events.map((event) => (
-        <div class="flex flex-col md:flex-row items-center justify-between p-6 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--accent)] transition-colors group">
-          <div class="flex items-center gap-8 text-center md:text-left">
-            <div class="text-2xl font-black text-[var(--accent)] uppercase w-20">
-              {event.date}
+      {events.map((event) => {
+        const href = event?.link || defaultHref;
+        const btn = event?.button_text || defaultButtonText;
+        const external = isExternal(href);
+
+        return (
+          <div class="flex flex-col md:flex-row items-center justify-between p-6 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--accent)] transition-colors group">
+            <div class="flex items-center gap-8 text-center md:text-left">
+              <div class="text-2xl font-black text-[var(--accent)] uppercase w-20">
+                {event.date}
+              </div>
+              <div>
+                <h3 class="text-xl font-bold text-[var(--text-primary)]">{event.venue}</h3>
+                <p class="text-[var(--text-secondary)]">{event.location}</p>
+              </div>
             </div>
-            <div>
-              <h3 class="text-xl font-bold text-[var(--text-primary)]">{event.venue}</h3>
-              <p class="text-[var(--text-secondary)]">{event.location}</p>
-            </div>
+
+            <a
+              href={href}
+              target={external ? "_blank" : undefined}
+              rel={external ? "noopener noreferrer" : undefined}
+              class="mt-4 md:mt-0 px-6 py-2 bg-[var(--text-primary)] text-[var(--bg-color)] rounded-full font-bold hover:scale-105 transition-transform"
+            >
+              {btn}
+            </a>
           </div>
-          
-          <a href={event.link} class="mt-4 md:mt-0 px-6 py-2 bg-[var(--text-primary)] text-[var(--bg-color)] rounded-full font-bold hover:scale-105 transition-transform">
-            Tickets & Info
-          </a>
-        </div>
-      ))}
+        );
+      })}
     </div>
   </div>
 </section>

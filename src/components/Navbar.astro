@@ -1,51 +1,66 @@
 ---
 /**
- * Navbar Component - Vibe-Engine & Smart CTA Edition
- * Receives individual props from index.astro to prevent "Prop Drift"
- * Standards: 2026 AI-Ready / flattened JSON compatible.
+ * Navbar Component - Vibe-Engine & Smart CTA Edition (Mobile Drawer Upgrade)
+ * Goals:
+ * - Cleaner mobile UX (drawer + backdrop, scroll lock, ESC to close, click-outside)
+ * - Keep Lighthouse 100/100 friendly (tiny vanilla JS, no deps)
+ * - Preserve existing props + active-section observer
  */
  const { brand, menu, settings } = Astro.props;
 
-// Pull CTA data from the settings object to match our business.json structure
+// Pull CTA data from settings
 const cta_text = settings?.cta_text;
 const cta_link = settings?.cta_link;
 
-// Helper to determine if a link is an external URL or an internal anchor
-const isExternal = cta_link?.startsWith('http');
+// Helper to determine if CTA is external URL
+const isExternal = !!cta_link && (cta_link.startsWith("http://") || cta_link.startsWith("https://"));
+
+// Brand display (supports your newer brand.logo object, but falls back safely)
+const brandText =
+  brand?.logo?.text ||
+  brand?.logo_text ||
+  brand?.name ||
+  "Agency";
 ---
 
 <nav class="sticky top-0 z-[100] w-full border-b border-[var(--border)] bg-[var(--bg-color)]/80 backdrop-blur-md transition-all duration-300">
   <div class="container mx-auto px-6 py-4 flex items-center justify-between relative z-[120]">
-    
-    {/* BRAND LOGO - Uses logo_text if available, falls back to name */}
+    {/* BRAND */}
     <a href="#top" class="text-xl font-black uppercase tracking-tighter text-[var(--text-primary)] hover:opacity-70 transition-opacity">
-      {brand?.logo_text || brand?.name || "Agency"}
+      {brandText}
     </a>
 
-    {/* MOBILE MENU TOGGLE */}
-    <button id="menu-toggle" class="md:hidden text-[var(--text-primary)] relative z-[130] p-2 focus:outline-none" aria-label="Toggle Menu">
+    {/* MOBILE TOGGLE */}
+    <button
+      id="menu-toggle"
+      class="md:hidden text-[var(--text-primary)] relative z-[130] p-2 focus:outline-none"
+      aria-label="Toggle Menu"
+      aria-controls="mobile-menu"
+      aria-expanded="false"
+      type="button"
+    >
       <svg id="menu-icon" xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path id="menu-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
       </svg>
     </button>
 
-    {/* DESKTOP NAVIGATION */}
+    {/* DESKTOP NAV */}
     <div class="hidden md:flex items-center gap-8">
       {menu && menu.map((item: any) => (
-        <a 
-          href={item.path} 
+        <a
+          href={item.path}
           class="nav-link text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
         >
           {item.label}
         </a>
       ))}
-      
-      {/* Smart CTA Button - Context-aware linking */}
+
+      {/* CTA */}
       {cta_text && (
-        <a 
-          href={cta_link || "#contact"} 
+        <a
+          href={cta_link || "#contact"}
           target={isExternal ? "_blank" : "_self"}
-          rel={isExternal ? "noopener noreferrer" : ""}
+          rel={isExternal ? "noopener noreferrer" : undefined}
           class="px-6 py-2 text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent)] hover:text-[var(--bg-color)] transition-all rounded-[var(--radius)]"
         >
           {cta_text}
@@ -54,66 +69,126 @@ const isExternal = cta_link?.startsWith('http');
     </div>
   </div>
 
-  {/* MOBILE MENU OVERLAY */}
-  <div 
-    id="mobile-menu" 
-    class="fixed inset-0 w-full h-screen bg-[var(--bg-color)] hidden flex-col justify-center items-center z-[110]"
+  {/* MOBILE BACKDROP (click to close) */}
+  <div
+    id="mobile-backdrop"
+    class="fixed inset-0 bg-black/50 opacity-0 pointer-events-none transition-opacity duration-200 md:hidden"
+    aria-hidden="true"
+  ></div>
+
+  {/* MOBILE DRAWER */}
+  <aside
+    id="mobile-menu"
+    class="fixed top-0 right-0 h-screen w-[86%] max-w-sm bg-[var(--bg-color)] border-l border-[var(--border)]
+           translate-x-full opacity-100 transition-transform duration-200 md:hidden z-[120]
+           motion-reduce:transition-none"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Mobile navigation"
   >
-    <div class="flex flex-col gap-0 text-center relative z-[125] w-full px-12">
-      {menu && menu.map((item: any) => (
-        <a 
-          href={item.path} 
-          class="mobile-link py-6 text-xl font-bold uppercase tracking-[0.3em] text-[var(--text-primary)] border-b border-[var(--border)] last:border-0 hover:text-[var(--accent)] transition-colors"
-        >
-          {item.label}
-        </a>
-      ))}
-      
+    {/* Drawer header */}
+    <div class="px-6 py-5 flex items-center justify-between border-b border-[var(--border)]">
+      <div class="text-sm font-black uppercase tracking-widest text-[var(--text-primary)]">
+        Menu
+      </div>
+
+      <button
+        id="menu-close"
+        type="button"
+        class="p-2 rounded-[var(--radius)] border border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--accent)] transition-colors"
+        aria-label="Close Menu"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    {/* Drawer links */}
+    <div class="px-6 py-6">
+      <div class="flex flex-col">
+        {menu && menu.map((item: any) => (
+          <a
+            href={item.path}
+            class="mobile-link py-4 text-base font-black uppercase tracking-[0.25em] text-[var(--text-primary)]
+                   border-b border-[var(--border)] last:border-0 hover:text-[var(--accent)] transition-colors"
+          >
+            {item.label}
+          </a>
+        ))}
+      </div>
+
+      {/* Drawer CTA */}
       {cta_text && (
-        <div class="mt-12">
-          <a 
-            href={cta_link || "#contact"} 
+        <div class="mt-8">
+          <a
+            href={cta_link || "#contact"}
             target={isExternal ? "_blank" : "_self"}
-            rel={isExternal ? "noopener noreferrer" : ""}
-            class="mobile-link inline-block px-10 py-5 bg-[var(--accent)] text-black text-[10px] font-bold uppercase tracking-[0.4em] rounded-[var(--radius)] shadow-lg active:scale-95 transition-transform"
+            rel={isExternal ? "noopener noreferrer" : undefined}
+            class="mobile-link inline-flex w-full items-center justify-center px-8 py-4 bg-[var(--accent)] text-black
+                   text-[10px] font-black uppercase tracking-[0.35em] rounded-[var(--radius)] shadow-lg
+                   active:scale-95 transition-transform motion-reduce:transition-none"
           >
             {cta_text}
           </a>
+          <p class="mt-3 text-[10px] uppercase tracking-widest text-[var(--text-secondary)] opacity-70 text-center">
+            Tap a link to close
+          </p>
         </div>
       )}
     </div>
-  </div>
+  </aside>
 </nav>
 
 <script>
   const btn = document.getElementById('menu-toggle');
-  const menu = document.getElementById('mobile-menu');
+  const closeBtn = document.getElementById('menu-close');
+  const drawer = document.getElementById('mobile-menu');
+  const backdrop = document.getElementById('mobile-backdrop');
   const iconPath = document.getElementById('menu-path');
   const links = document.querySelectorAll('.mobile-link');
   const navLinks = document.querySelectorAll('.nav-link');
 
+  function openMenu() {
+    drawer?.classList.remove('translate-x-full');
+    backdrop?.classList.remove('pointer-events-none');
+    backdrop?.classList.add('opacity-100');
+    backdrop?.classList.remove('opacity-0');
+    document.body.style.overflow = 'hidden';
+    btn?.setAttribute('aria-expanded', 'true');
+    iconPath?.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+  }
+
+  function closeMenu() {
+    drawer?.classList.add('translate-x-full');
+    backdrop?.classList.add('pointer-events-none');
+    backdrop?.classList.add('opacity-0');
+    backdrop?.classList.remove('opacity-100');
+    document.body.style.overflow = '';
+    btn?.setAttribute('aria-expanded', 'false');
+    iconPath?.setAttribute('d', 'M4 8h16M4 16h16');
+  }
+
   function toggleMenu() {
-    const isHidden = menu?.classList.contains('hidden');
-    if (isHidden) {
-      menu?.classList.remove('hidden');
-      menu?.classList.add('flex');
-      document.body.style.overflow = 'hidden'; 
-      iconPath?.setAttribute('d', 'M6 18L18 6M6 6l12 12');
-    } else {
-      menu?.classList.add('hidden');
-      menu?.classList.remove('flex');
-      document.body.style.overflow = ''; 
-      iconPath?.setAttribute('d', 'M4 8h16M4 16h16');
-    }
+    const isClosed = drawer?.classList.contains('translate-x-full');
+    if (isClosed) openMenu();
+    else closeMenu();
   }
 
   btn?.addEventListener('click', toggleMenu);
-  links.forEach(link => link.addEventListener('click', toggleMenu));
+  closeBtn?.addEventListener('click', closeMenu);
+  backdrop?.addEventListener('click', closeMenu);
+  links.forEach(link => link.addEventListener('click', closeMenu));
 
-  // Active Section Observer for the Vibe System
+  // ESC to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  // Active Section Observer (desktop link highlighting)
   const observerOptions = {
     root: null,
-    rootMargin: '-20% 0px -70% 0px', 
+    rootMargin: '-20% 0px -70% 0px',
     threshold: 0
   };
 
@@ -134,7 +209,5 @@ const isExternal = cta_link?.startsWith('http');
     });
   }, observerOptions);
 
-  document.querySelectorAll('section[id]').forEach((section) => {
-    observer.observe(section);
-  });
+  document.querySelectorAll('section[id]').forEach((section) => observer.observe(section));
 </script>

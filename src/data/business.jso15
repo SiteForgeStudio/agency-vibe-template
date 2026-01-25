@@ -1,0 +1,207 @@
+{
+  "intelligence": {
+    "industry": "Mobile car detailing service",
+    "target_persona": "Local car owners with sedans and SUVs who want a premium detail at home or work without visiting a shop",
+    "tone_of_voice": "Premium, confident, friendly, and appointment-focused"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": false,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Luxury Noir",
+    "cta_text": "Book an Appointment",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Call Now",
+    "secondary_cta_link": "tel:12155555555",
+    "menu": [
+      { "label": "Home", "path": "#home" },
+      { "label": "Services", "path": "#features" },
+      { "label": "Process", "path": "#process" },
+      { "label": "Work", "path": "#gallery" },
+      { "label": "Reviews", "path": "#testimonials" },
+      { "label": "Service Area", "path": "#service-area" },
+      { "label": "Contact", "path": "#contact" }
+    ]
+  },
+  "brand": {
+    "name": "Biff-Buff Mobile Detailing",
+    "slug": "biff-buff",
+    "tagline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "office_address": "Mobile / On-Site Service",
+    "objection_handle": "Skip the shop. I bring professional tools and careful technique to your driveway or workplace—so your vehicle looks its best on your schedule.",
+    "logo": {
+      "mode": "icon_text",
+      "text": "Biff-Buff",
+      "icon_slug": "sparkles",
+      "image_path": "",
+      "alt": "Biff-Buff Mobile Detailing logo"
+    }
+  },
+ "hero": {
+    "headline": "Premium Mobile Car Detailing — At Your Home or Work",
+    "subtext": "High-end interior and exterior detailing for sedans and SUVs. Convenient, careful, and appointment-based — serving local owners who want a showroom-clean vehicle without leaving home.",
+    "image": {
+      "alt": "Professional mobile car detailer washing a luxury SUV in a residential driveway",
+      "image_search_query": "car detailing luxury suv driveway"
+    }
+  },
+
+
+  "trustbar": {
+    "enabled": true,
+    "headline": "Trusted by local owners who value a clean, protected vehicle",
+    "items": [
+      { "icon": "shield", "label": "Paint-Safe", "sublabel": "Careful technique" },
+      { "icon": "clock", "label": "On Your Time", "sublabel": "Appointment-based" },
+      { "icon": "sparkles", "label": "Premium Finish", "sublabel": "Interior + exterior" },
+      { "icon": "map", "label": "Mobile Service", "sublabel": "Home or work" }
+    ]
+  },
+
+  "about": {
+    "story_text": "Biff-Buff Mobile Detailing was built for local owners who care about their vehicles and their time. Instead of waiting at a shop, you get professional-level detailing at your home or workplace — with the right tools, products, and a careful process from start to finish.",
+    "founder_note": "I treat every vehicle like it’s my own — no rushed wipe-downs, no corner-cutting. My goal is simple: make your car look incredible, and make the process effortless for you.",
+    "years_experience": "5"
+  },
+  "features": [
+    {
+      "title": "Mobile Convenience",
+      "description": "I come to your home or workplace with professional equipment — you keep your day moving while your car gets detailed.",
+      "icon_slug": "map-pin"
+    },
+    {
+      "title": "Interior Deep Clean",
+      "description": "Vacuuming, wipe-downs, and focused interior cleaning to restore a clean, fresh cabin feel — without shortcuts.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Exterior Detail Finish",
+      "description": "Thorough wash and finishing touches for a crisp, glossy look — perfect for daily drivers and weekend cars alike.",
+      "icon_slug": "droplets"
+    },
+    {
+      "title": "Care for Nice Cars",
+      "description": "Detail-minded approach designed for owners who want careful handling and consistent, high-quality results.",
+      "icon_slug": "shield-check"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Request a Time",
+      "description": "Send your vehicle type, location, and preferred day/time. I’ll confirm availability quickly."
+    },
+    {
+      "title": "I Arrive Fully Equipped",
+      "description": "I show up at your home or workplace with professional products and detailing tools for a premium finish."
+    },
+    {
+      "title": "Detail + Final Touches",
+      "description": "Interior and exterior detailed on-site — then a quick final walkthrough so you see the results immediately."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Easiest detail I’ve ever booked — the car looked brand new.",
+      "author": "Chris M.",
+      "role": "Local customer"
+    },
+    {
+      "quote": "On time, professional, and the interior came out amazing. Worth it.",
+      "author": "Jamie R.",
+      "role": "SUV owner"
+    },
+    {
+      "quote": "Super convenient. I was working from home while my car got detailed outside.",
+      "author": "Taylor D.",
+      "role": "Busy professional"
+    }
+  ],
+  "service_area": {
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Cherry Hill, NJ",
+      "Haddonfield, NJ",
+      "Bala Cynwyd, PA",
+      "Ardmore, PA",
+      "Conshohocken, PA",
+      "King of Prussia, PA",
+      "Jenkintown, PA",
+      "Media, PA"
+    ],
+    "travel_note": "Outside these areas? I offer custom quotes for extended travel and special requests.",
+    "cta_text": "Request Availability",
+    "cta_link": "#contact",
+    "map_search_query": "mobile car detailing near Philadelphia PA"
+  },
+  "gallery": {
+    "enabled": true,
+    "title": "The Lab",
+    "layout": null,
+    "show_titles": true,
+    "strategy": {
+      "primary_goal": "conversion",
+      "show_gallery": true
+    },
+    "image_source": {
+      "provider": "unsplash",
+      "image_search_query": "professional car detailing before and after interior exterior close-up",
+      "filename_pattern": "{brandSlug}-project-{index}.jpg",
+      "target_folder": "/src/assets/images/"
+    },
+    "computed_count": 5,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Paint-Safe Hand Wash",
+        "caption": "A careful exterior clean that brings back shine without harsh shortcuts.",
+        "tag": "Exterior",
+        "image_search_query": "professional hand car wash detailing foam luxury car driveway"
+      },
+      {
+        "title": "Interior Refresh",
+        "caption": "Clean, tidy cabin feel — the kind you notice immediately when you open the door.",
+        "tag": "Interior",
+        "image_search_query": "car detailing interior cleaning vacuum seats dashboard close-up"
+      },
+      {
+        "title": "Detail Brush Precision",
+        "caption": "Focused work on the small areas that separate a quick wash from a real detail.",
+        "tag": "Precision",
+        "image_search_query": "car detailing brush cleaning vents badges trim close-up"
+      },
+      {
+        "title": "SUV Ready Finish",
+        "caption": "Premium mobile detailing results for SUVs — at home or at work.",
+        "tag": "SUV",
+        "image_search_query": "mobile car detailing luxury suv exterior shine driveway"
+      },
+      {
+        "title": "Gloss & Reflection",
+        "caption": "A crisp finish that looks great in sunlight and under street lights.",
+        "tag": "Finish",
+        "image_search_query": "detailed car paint glossy reflection close-up after detailing"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Book Your Mobile Detail",
+    "subheadline": "Tell me what you drive and where you’d like the detail done. I’ll confirm availability and lock in your appointment.",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "email_recipient": "biff@gmail.com",
+    "button_text": "Request an Appointment",
+    "office_address": "Mobile / On-Site Service"
+  }
+}
