@@ -80,6 +80,7 @@
       "ai:inference_rules": {
         "show_about": "true for founder-led, story-driven, or mission-based brands",
         "show_features": "true for most businesses offering services or products",
+        "show_events": "true when the business has a schedule, sessions, classes, workshops, tours, appointment slots, or any time-based offerings; only set true if you can populate events[] with 3+ items; otherwise false",
         "show_process": "true for consultative or multi-step services",
         "show_testimonials": "true when trust, credibility, or proof is important",
         "show_comparison": "true when buyers compare alternatives",
@@ -92,6 +93,7 @@
         "show_trustbar": { "type": "boolean" },
         "show_about": { "type": "boolean" },
         "show_features": { "type": "boolean" },
+        "show_events": { "type": "boolean" },
         "show_process": { "type": "boolean" },
         "show_testimonials": { "type": "boolean" },
         "show_comparison": { "type": "boolean" },
@@ -149,6 +151,7 @@
                           "#home",
                           "#about",
                           "#features",
+                          "#events",
                           "#process",
                           "#testimonials",
                           "#comparison",
@@ -259,6 +262,28 @@
         }
       }
     },
+    
+    "events": {
+      "type": "array",
+      "ai:priority": "optional",
+      "ai:purpose": "Display a schedule of classes, sessions, workshops, tours, or upcoming events.",
+      "ai:inference_rules": {
+        "when_to_use": "Use when strategy.show_events is true and time-based offerings exist.",
+        "count_rule": "Provide 3–10 items. If the client is unsure of exact times, assume a simple weekly starter schedule.",
+        "copy_rules": "Keep each field short and scannable. Use link '#contact' unless a real booking URL exists."
+      },
+      "items": {
+        "type": "object",
+        "required": ["date", "venue", "location", "link"],
+        "properties": {
+          "date": { "type": "string", "description": "Short time label (e.g., 'Mon 7:00a', 'Sat 10:00a')." },
+          "venue": { "type": "string", "description": "Event/class/session name." },
+          "location": { "type": "string", "description": "Short descriptor (duration/level/address/notes)." },
+          "link": { "type": "string", "description": "Usually '#contact' or an external booking link." }
+        }
+      }
+    },
+
     "service_area": {
       "type": "object",
       "ai:priority": "optional",

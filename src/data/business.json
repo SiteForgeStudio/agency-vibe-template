@@ -1,200 +1,296 @@
 {
   "intelligence": {
-    "industry": "Yoga studio (classes + memberships)",
-    "target_persona": "Beginners and regular practitioners in Austin who want a welcoming studio with clear class options and an easy way to sign up",
-    "tone_of_voice": "Warm, calm, inviting, modern"
+    "industry": "Residential trash & recycle can cleaning (mobile, on-site)",
+    "target_persona": "Upscale homeowners with large properties (McMansion neighborhoods) who value cleanliness, convenience, and discreet service",
+    "tone_of_voice": "Clean, confident, premium, and straightforward—high-trust local service with a polished feel"
   },
   "strategy": {
     "show_trustbar": true,
     "show_about": true,
     "show_features": true,
+    "show_events": false,
     "show_process": true,
-    "show_events": true,
     "show_testimonials": true,
-    "show_comparison": false,
-    "show_gallery": false,
+    "show_comparison": true,
+    "show_gallery": true,
     "show_investment": false,
     "show_faqs": true,
     "show_service_area": true
   },
   "settings": {
-    "vibe": "Fresh Minimal",
-    "cta_text": "Request a Free First Class",
+    "vibe": "Modern Minimal",
+    "cta_text": "Request Service",
     "cta_link": "#contact",
     "cta_type": "anchor",
-    "secondary_cta_text": "View Class Times",
-    "secondary_cta_link": "#events",
+    "secondary_cta_text": "Call 215-555-5555",
+    "secondary_cta_link": "tel:12155555555",
     "menu": [
       { "label": "Home", "path": "#home" },
-      { "label": "About", "path": "#about" },
-      { "label": "Classes", "path": "#events" },
-      { "label": "What We Offer", "path": "#features" },
+      { "label": "Services", "path": "#features" },
       { "label": "How It Works", "path": "#process" },
-      { "label": "Reviews", "path": "#testimonials" },
-      { "label": "FAQs", "path": "#faqs" },
       { "label": "Service Area", "path": "#service-area" },
+      { "label": "FAQs", "path": "#faqs" },
       { "label": "Contact", "path": "#contact" }
     ]
   },
   "brand": {
-    "name": "Eastside Flow Yoga",
-    "slug": "eastside-flow-yoga-austin",
-    "tagline": "Breathe. Move. Reset.",
-    "email": "hello@eastsideflowyoga.com",
-    "phone": "512-555-0179",
-    "objection_handle": "Beginner-friendly classes, clear guidance, and a studio that feels welcoming from day one."
+    "name": "Trash Can Man",
+    "slug": "trash-can-man",
+    "tagline": "On-site trash & recycling can cleaning for Doylestown’s most discerning homes.",
+    "email": "canman@trashrus.com",
+    "phone": "215-555-5555",
+    "office_address": "Doylestown, PA",
+    "objection_handle": "Licensed & insured. Clean, discreet service that keeps odors and grime where they belong—off your property. :contentReference[oaicite:0]{index=0}"
   },
   "hero": {
-    "headline": "A Welcoming Yoga Studio in Austin",
-    "subtext": "Beginner-friendly flows, strength-focused sessions, and calmer classes—find your pace and feel better this week.",
+    "headline": "Fresh, clean trash cans—without you lifting a finger.",
+    "subtext": "We come to your home and deep-clean your trash and recycling cans with a professional on-site system. No mess. No smell. Just clean bins curb to garage.",
     "image": {
-      "alt": "Yoga class in a bright, calm studio space",
-      "image_search_query": "yoga class bright studio calm"
+      "alt": "Mobile trash can cleaning at a residential driveway",
+      "image_search_query": "trash can cleaning service driveway"
     }
+  },
+  "about": {
+    "story_text": "Trash Can Man was built for homeowners who want their property to feel clean from the front door to the curb. Trash and recycling cans collect grime, odors, and bacteria—especially in warm months. Our on-site cleaning system delivers a consistent, repeatable deep-clean right at your home, so you get fresh bins without the hassle.",
+    "founder_note": "My goal is simple: show up on time, work neatly, and leave you with cans you’re not embarrassed to keep near your home. If it’s not spotless, it’s not finished.",
+    "years_experience": "5+ years"
   },
   "trustbar": {
     "enabled": true,
-    "headline": "Good yoga starts with a good environment",
+    "headline": "Premium service. Zero hassle.",
     "items": [
-      { "icon": "check", "label": "Beginner-friendly", "sublabel": "Clear cues, no pressure" },
-      { "icon": "sparkles", "label": "Clean, calming space", "sublabel": "Simple, modern studio" },
-      { "icon": "clock", "label": "Convenient schedule", "sublabel": "Morning + evening options" },
-      { "icon": "heart", "label": "Welcoming community", "sublabel": "All levels included" }
+      { "icon": "shield", "label": "Licensed & Insured", "sublabel": "Professional, protected service" },
+      { "icon": "sparkles", "label": "Deep Clean & Deodorize", "sublabel": "Residue and odor addressed" },
+      { "icon": "clock", "label": "Fast On-Site Visits", "sublabel": "We come to you" },
+      { "icon": "map", "label": "Local to Doylestown", "sublabel": "Reliable neighborhood service" }
     ]
   },
-  "about": {
-    "story_text": "Eastside Flow Yoga is a modern studio built for real life in Austin—busy schedules, stressed bodies, and the desire to feel better without feeling judged. Classes are approachable, instructors are supportive, and you’ll always know what to do next.",
-    "founder_note": "You don’t need to be flexible to start. You just need a calm place to begin—and a teacher who guides you well.",
-    "years_experience": "6"
-  },
-  "events": [
-    {
-      "date": "Mon 7:00a",
-      "venue": "Beginner Flow",
-      "location": "60 min • All levels welcome",
-      "link": "#contact"
-    },
-    {
-      "date": "Tue 6:30p",
-      "venue": "Strength + Mobility",
-      "location": "60 min • Build stability + control",
-      "link": "#contact"
-    },
-    {
-      "date": "Wed 7:00p",
-      "venue": "Restore + Reset",
-      "location": "60 min • Slow + calming",
-      "link": "#contact"
-    },
-    {
-      "date": "Thu 6:00p",
-      "venue": "Flow (Mixed Levels)",
-      "location": "60 min • Options provided",
-      "link": "#contact"
-    },
-    {
-      "date": "Sat 10:00a",
-      "venue": "Beginner Flow",
-      "location": "60 min • Great first class",
-      "link": "#contact"
-    }
-  ],
   "features": [
     {
-      "title": "Beginner Flow",
-      "description": "A supportive class with clear instruction, simple sequences, and time to learn the basics.",
-      "icon_slug": "leaf"
+      "title": "On-Site Can Cleaning",
+      "description": "We arrive at your home and clean your trash and recycling cans using a dedicated mobile system—no mess left behind.",
+      "icon_slug": "trash"
     },
     {
-      "title": "Strength + Mobility",
-      "description": "Build stability and feel better in your body with smart movement and controlled flow.",
-      "icon_slug": "bolt"
+      "title": "Odor Control That Lasts",
+      "description": "We target the source of smells—buildup and residue—so your bins stay noticeably fresher between pickups.",
+      "icon_slug": "sparkles"
     },
     {
-      "title": "Restore + Reset",
-      "description": "Slower paced, stress-reducing sessions designed to help you unwind and recover.",
-      "icon_slug": "moon"
+      "title": "Sanitary Results",
+      "description": "Regular cleaning helps reduce bacteria and grime that can attract pests and create lingering odors near your garage or side yard.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Curb-to-Garage Convenience",
+      "description": "No scrubbing. No splashing. No chemicals in your driveway. You book—then enjoy cleaner bins.",
+      "icon_slug": "zap"
+    },
+    {
+      "title": "Discreet, Respectful Service",
+      "description": "We work neatly and efficiently, with a premium-home mindset—quiet, careful, and professional.",
+      "icon_slug": "award"
+    },
+    {
+      "title": "Perfect for Busy Households",
+      "description": "Weekly or seasonal buildup? We keep your cans under control so your home feels clean all around.",
+      "icon_slug": "users"
     }
   ],
   "processSteps": [
     {
-      "title": "Pick a class time",
-      "description": "Choose a session that fits your schedule—beginner-friendly options available all week."
+      "title": "Request Service",
+      "description": "Send a quick message through the form and tell us how many trash and recycling cans you want cleaned."
     },
     {
-      "title": "Arrive a few minutes early",
-      "description": "We’ll get you set up and answer any questions. No experience required."
+      "title": "Confirm & Schedule",
+      "description": "We’ll confirm details and schedule a visit that fits your routine—simple, clear communication."
     },
     {
-      "title": "Move at your pace",
-      "description": "You’ll get clear cues and options. Take breaks when you need to."
+      "title": "On-Site Deep Clean",
+      "description": "We arrive with our system and thoroughly clean your cans at your home—controlled, neat, and efficient."
     },
     {
-      "title": "Leave feeling better",
-      "description": "Consistency matters. We’ll help you find a rhythm you can actually maintain."
+      "title": "Fresh Cans, Zero Hassle",
+      "description": "You’re left with noticeably cleaner, fresher bins—ready for curb day and comfortable near your home."
     }
   ],
   "testimonials": [
     {
-      "quote": "I was nervous as a beginner, but the instructors made it easy. The studio feels calm and welcoming.",
-      "author": "Taylor M.",
-      "role": "Beginner student"
+      "quote": "I didn’t realize how much the cans affected the garage area until they were cleaned. Huge difference—fast and professional.",
+      "author": "Melissa R.",
+      "role": "Doylestown Homeowner"
     },
     {
-      "quote": "Great schedule and the classes actually help my back and stress. It’s become my weekly reset.",
-      "author": "Jordan K.",
-      "role": "Regular member"
+      "quote": "Showed up on time, worked neatly, and the bins looked and smelled dramatically better. Exactly what we wanted.",
+      "author": "James T.",
+      "role": "Buckingham Homeowner"
     },
     {
-      "quote": "Clean space, clear instruction, and no pressure. I leave feeling better every time.",
-      "author": "Alyssa R.",
-      "role": "Drop-in student"
+      "quote": "Easy process from start to finish. The service feels premium—quick, polite, and the results are legit.",
+      "author": "Lauren P.",
+      "role": "Neighborhood Resident"
     }
   ],
+  "comparison": {
+    "title": "Trash Can Man vs. the usual options",
+    "items": [
+      {
+        "label": "Cleanliness",
+        "us": "Deep-clean focused on residue, grime, and odor sources",
+        "them": "Quick rinse or DIY scrubbing with inconsistent results"
+      },
+      {
+        "label": "Convenience",
+        "us": "On-site service at your home—no setup required",
+        "them": "You supply tools, time, and cleanup"
+      },
+      {
+        "label": "Professionalism",
+        "us": "Licensed & insured with a premium-home mindset",
+        "them": "Unpredictable quality or no coverage"
+      },
+      {
+        "label": "Mess Control",
+        "us": "Contained process designed to keep your property neat",
+        "them": "Splatter, runoff, and lingering odor around the driveway"
+      }
+    ]
+  },
+  "gallery": {
+    "enabled": true,
+    "title": "Results you can see",
+    "layout": null,
+    "show_titles": true,
+    "strategy": {
+      "primary_goal": "Increase trust and drive contact-form submissions with visual proof of service quality.",
+      "show_gallery": true
+    },
+    "image_source": {
+      "provider": "unsplash",
+      "image_search_query": "trash bin cleaning service",
+      "filename_pattern": "trash-can-man-gallery-{n}.jpg",
+      "target_folder": "src/assets/gallery"
+    },
+    "ai:inference": {
+      "archetype_map": {
+        "Residential trash can cleaning": "before_after_service",
+        "Upscale homeowners": "premium_property"
+      },
+      "archetype_rules": {
+        "before_after_service": { "min": 4, "max": 8 },
+        "premium_property": { "min": 2, "max": 6 }
+      },
+      "boost_rules": {
+        "show_testimonials": { "add": 1, "prefer_max": false },
+        "show_comparison": { "add": 1, "prefer_max": false }
+      },
+      "prefer_min_when": ["Investment not shown", "Early stage business"],
+      "fallback": { "min": 6, "max": 9 },
+      "layout_rules": {
+        "prefer_masonry_when": ["Before/after variety", "Real-world service shots"],
+        "prefer_bento_when": ["Premium aesthetic", "High-end positioning"],
+        "prefer_grid_when": ["Simple proof gallery", "Uniform framing"],
+        "fallback": "masonry"
+      }
+    },
+    "computed_count": 7,
+    "computed_layout": "masonry",
+    "items": [
+      {
+        "title": "On-site cleaning setup",
+        "caption": "Professional mobile system brought directly to your home.",
+        "tag": "On-Site",
+        "image_search_query": "mobile cleaning equipment driveway"
+      },
+      {
+        "title": "Trash can exterior clean",
+        "caption": "Built-up grime removed for a noticeably cleaner look.",
+        "tag": "Exterior",
+        "image_search_query": "trash can cleaning exterior before after"
+      },
+      {
+        "title": "Deep-clean inside the can",
+        "caption": "Residue and buildup addressed where odors start.",
+        "tag": "Interior",
+        "image_search_query": "trash bin interior cleaning"
+      },
+      {
+        "title": "Premium-home friendly service",
+        "caption": "Neat, discreet work that respects your property.",
+        "tag": "Discreet",
+        "image_search_query": "home driveway tidy service professional"
+      },
+      {
+        "title": "Recycling can refresh",
+        "caption": "Sticky spills and grime cleaned up for a fresher bin.",
+        "tag": "Recycling",
+        "image_search_query": "recycling bin cleaning service"
+      },
+      {
+        "title": "Fresh curb day feel",
+        "caption": "Clean cans that look better near the home and garage.",
+        "tag": "Curb Day",
+        "image_search_query": "clean trash cans curbside"
+      },
+      {
+        "title": "Detail finish & deodorize",
+        "caption": "A clean that feels premium—because the small things matter.",
+        "tag": "Finish",
+        "image_search_query": "cleaning service detail finish"
+      }
+    ]
+  },
   "faqs": [
     {
-      "question": "Do I need experience to join a class?",
-      "answer": "No. Beginner Flow is designed for first-timers, and instructors always offer options for different levels."
+      "question": "Do you come to my home to do the cleaning?",
+      "answer": "Yes. We’re a mobile, on-site service. We clean your trash and recycling cans at your property using our dedicated system."
     },
     {
-      "question": "What should I bring?",
-      "answer": "Wear comfortable clothes and bring water. If you have a mat, bring it—if not, ask about rentals."
+      "question": "How long does a visit take?",
+      "answer": "Most visits are quick and efficient. Timing depends on the number of cans, but we aim to be in and out with minimal disruption."
     },
     {
-      "question": "How early should I arrive?",
-      "answer": "For your first class, arrive 10–15 minutes early so we can get you settled."
+      "question": "What kinds of cans do you clean?",
+      "answer": "We clean standard residential trash and recycling cans, including wheeled carts commonly used for curb pickup."
     },
     {
-      "question": "Is it okay if I’m not flexible?",
-      "answer": "Absolutely. Flexibility is a result of practice, not a requirement to start."
+      "question": "Will this help with odors?",
+      "answer": "Yes—odors typically come from residue and buildup. Our process targets the source so your bins stay noticeably fresher."
     },
     {
-      "question": "How do I sign up?",
-      "answer": "Request a free first class or contact us for the current schedule and membership options."
+      "question": "Do I need to be home?",
+      "answer": "Not necessarily. As long as the cans are accessible and we’ve confirmed the details, we can complete the service without you being present."
+    },
+    {
+      "question": "Are you licensed and insured?",
+      "answer": "Yes. We’re licensed and insured for your peace of mind."
     }
   ],
   "service_area": {
-    "main_city": "Austin, TX",
+    "main_city": "Doylestown, PA",
     "surrounding_cities": [
-      "East Austin, TX",
-      "Downtown Austin, TX",
-      "Mueller, TX",
-      "Hyde Park, TX",
-      "Riverside, TX",
-      "Travis Heights, TX",
-      "Zilker, TX"
+      "Buckingham, PA",
+      "New Hope, PA",
+      "Chalfont, PA",
+      "Warrington, PA",
+      "Furlong, PA",
+      "Jamison, PA",
+      "Lahaska, PA",
+      "Pipersville, PA"
     ],
-    "travel_note": "We’re a local studio—if you’re nearby, you’re welcome. Parking details can be shared on request.",
-    "cta_text": "Ask about today’s classes",
+    "travel_note": "Outside these areas? Reach out—extended travel is available with a custom quote.",
+    "cta_text": "Check Availability",
     "cta_link": "#contact",
-    "map_search_query": "yoga studio east austin tx"
+    "map_search_query": "trash can cleaning near Doylestown PA"
   },
   "contact": {
-    "headline": "Request your first class",
-    "subheadline": "Tell us your experience level and best times. We’ll reply with class options and next steps.",
-    "email": "hello@eastsideflowyoga.com",
-    "phone": "512-555-0179",
-    "email_recipient": "hello@eastsideflowyoga.com",
-    "button_text": "Request a Class"
+    "headline": "Request trash can cleaning",
+    "subheadline": "Tell us how many cans you have and where you’re located. We’ll reply to confirm details and schedule your on-site clean.",
+    "email": "canman@trashrus.com",
+    "phone": "215-555-5555",
+    "email_recipient": "canman@trashrus.com",
+    "button_text": "Send Request",
+    "office_address": "Doylestown, PA"
   }
 }
