@@ -1,296 +1,175 @@
 {
   "intelligence": {
-    "industry": "Residential trash & recycle can cleaning (mobile, on-site)",
-    "target_persona": "Upscale homeowners with large properties (McMansion neighborhoods) who value cleanliness, convenience, and discreet service",
-    "tone_of_voice": "Clean, confident, premium, and straightforward—high-trust local service with a polished feel"
+    "industry": "Creative portfolio (brand & web designer)",
+    "target_persona": "Founders, agencies, and small business owners who want a premium brand and website that looks modern and converts without feeling salesy",
+    "tone_of_voice": "Confident, modern, concise, tasteful"
   },
   "strategy": {
     "show_trustbar": true,
     "show_about": true,
     "show_features": true,
-    "show_events": false,
     "show_process": true,
     "show_testimonials": true,
-    "show_comparison": true,
+    "show_comparison": false,
     "show_gallery": true,
     "show_investment": false,
     "show_faqs": true,
-    "show_service_area": true
+    "show_service_area": false
   },
   "settings": {
-    "vibe": "Modern Minimal",
-    "cta_text": "Request Service",
+    "vibe": "Solar Flare",
+    "cta_text": "Request a Project Quote",
     "cta_link": "#contact",
     "cta_type": "anchor",
-    "secondary_cta_text": "Call 215-555-5555",
-    "secondary_cta_link": "tel:12155555555",
+    "secondary_cta_text": "View Work",
+    "secondary_cta_link": "#gallery",
     "menu": [
       { "label": "Home", "path": "#home" },
+      { "label": "About", "path": "#about" },
       { "label": "Services", "path": "#features" },
-      { "label": "How It Works", "path": "#process" },
-      { "label": "Service Area", "path": "#service-area" },
+      { "label": "Process", "path": "#process" },
+      { "label": "Reviews", "path": "#testimonials" },
+      { "label": "Work", "path": "#gallery" },
       { "label": "FAQs", "path": "#faqs" },
       { "label": "Contact", "path": "#contact" }
     ]
   },
   "brand": {
-    "name": "Trash Can Man",
-    "slug": "trash-can-man",
-    "tagline": "On-site trash & recycling can cleaning for Doylestown’s most discerning homes.",
-    "email": "canman@trashrus.com",
-    "phone": "215-555-5555",
-    "office_address": "Doylestown, PA",
-    "objection_handle": "Licensed & insured. Clean, discreet service that keeps odors and grime where they belong—off your property. :contentReference[oaicite:0]{index=0}"
+    "name": "Nova Lane Studio",
+    "slug": "nova-lane-studio",
+    "tagline": "Brand & web design that feels expensive.",
+    "email": "hello@novalanestudio.com",
+    "phone": "215-555-0147",
+    "objection_handle": "If you want your site to feel premium, it has to be clear, fast, and intentional. I build clean systems that look great and make it easy for people to say yes."
   },
   "hero": {
-    "headline": "Fresh, clean trash cans—without you lifting a finger.",
-    "subtext": "We come to your home and deep-clean your trash and recycling cans with a professional on-site system. No mess. No smell. Just clean bins curb to garage.",
+    "headline": "Design that makes your work look premium",
+    "subtext": "Brand identity, web design, and visual systems for founders who want clarity, confidence, and a website that converts without the cringe.",
     "image": {
-      "alt": "Mobile trash can cleaning at a residential driveway",
-      "image_search_query": "trash can cleaning service driveway"
+      "alt": "Designer workspace with modern portfolio materials",
+      "image_search_query": "designer portfolio workspace modern"
     }
-  },
-  "about": {
-    "story_text": "Trash Can Man was built for homeowners who want their property to feel clean from the front door to the curb. Trash and recycling cans collect grime, odors, and bacteria—especially in warm months. Our on-site cleaning system delivers a consistent, repeatable deep-clean right at your home, so you get fresh bins without the hassle.",
-    "founder_note": "My goal is simple: show up on time, work neatly, and leave you with cans you’re not embarrassed to keep near your home. If it’s not spotless, it’s not finished.",
-    "years_experience": "5+ years"
   },
   "trustbar": {
     "enabled": true,
-    "headline": "Premium service. Zero hassle.",
+    "headline": "High-end results, without the agency overhead",
     "items": [
-      { "icon": "shield", "label": "Licensed & Insured", "sublabel": "Professional, protected service" },
-      { "icon": "sparkles", "label": "Deep Clean & Deodorize", "sublabel": "Residue and odor addressed" },
-      { "icon": "clock", "label": "Fast On-Site Visits", "sublabel": "We come to you" },
-      { "icon": "map", "label": "Local to Doylestown", "sublabel": "Reliable neighborhood service" }
+      { "icon": "sparkles", "label": "Premium aesthetic", "sublabel": "Clean, modern, confident" },
+      { "icon": "layers", "label": "Systemized design", "sublabel": "Consistent across pages" },
+      { "icon": "rocket", "label": "Fast delivery", "sublabel": "Clear milestones + pace" },
+      { "icon": "check", "label": "Conversion-first", "sublabel": "Designed to drive action" }
     ]
+  },
+  "about": {
+    "story_text": "Nova Lane Studio helps founders and small teams turn “good” into “premium.” The work is minimal but intentional—strong typography, clear hierarchy, and visual systems that scale. The goal isn’t decoration. It’s clarity that builds trust and makes the next step obvious.",
+    "founder_note": "I like simple sites that feel expensive: fast, focused, and easy to navigate. If you’re building something real, your website should reflect that.",
+    "years_experience": "8"
   },
   "features": [
     {
-      "title": "On-Site Can Cleaning",
-      "description": "We arrive at your home and clean your trash and recycling cans using a dedicated mobile system—no mess left behind.",
-      "icon_slug": "trash"
-    },
-    {
-      "title": "Odor Control That Lasts",
-      "description": "We target the source of smells—buildup and residue—so your bins stay noticeably fresher between pickups.",
+      "title": "Brand Identity Refresh",
+      "description": "Refine your logo, typography, and visual direction into a cohesive brand that looks polished everywhere.",
       "icon_slug": "sparkles"
     },
     {
-      "title": "Sanitary Results",
-      "description": "Regular cleaning helps reduce bacteria and grime that can attract pests and create lingering odors near your garage or side yard.",
-      "icon_slug": "shield"
+      "title": "High-Converting Website Design",
+      "description": "A clean, modern layout with strong messaging and clear CTAs—built for speed, trust, and action.",
+      "icon_slug": "rocket"
     },
     {
-      "title": "Curb-to-Garage Convenience",
-      "description": "No scrubbing. No splashing. No chemicals in your driveway. You book—then enjoy cleaner bins.",
-      "icon_slug": "zap"
-    },
-    {
-      "title": "Discreet, Respectful Service",
-      "description": "We work neatly and efficiently, with a premium-home mindset—quiet, careful, and professional.",
-      "icon_slug": "award"
-    },
-    {
-      "title": "Perfect for Busy Households",
-      "description": "Weekly or seasonal buildup? We keep your cans under control so your home feels clean all around.",
-      "icon_slug": "users"
+      "title": "Visual System + Templates",
+      "description": "Reusable design components for social, pitch decks, and future pages—so your brand stays consistent.",
+      "icon_slug": "layers"
     }
   ],
   "processSteps": [
     {
-      "title": "Request Service",
-      "description": "Send a quick message through the form and tell us how many trash and recycling cans you want cleaned."
+      "title": "Quick discovery",
+      "description": "You share your goals, audience, and references. I confirm scope and define the visual direction."
     },
     {
-      "title": "Confirm & Schedule",
-      "description": "We’ll confirm details and schedule a visit that fits your routine—simple, clear communication."
+      "title": "Messaging + structure",
+      "description": "We shape the content hierarchy: what matters first, what supports it, and what drives action."
     },
     {
-      "title": "On-Site Deep Clean",
-      "description": "We arrive with our system and thoroughly clean your cans at your home—controlled, neat, and efficient."
+      "title": "Design + refinement",
+      "description": "I design the key sections and polish the system. You get a clean preview and focused revisions."
     },
     {
-      "title": "Fresh Cans, Zero Hassle",
-      "description": "You’re left with noticeably cleaner, fresher bins—ready for curb day and comfortable near your home."
+      "title": "Launch-ready handoff",
+      "description": "You receive a deployment-ready site build plus a simple path for future updates."
     }
   ],
   "testimonials": [
     {
-      "quote": "I didn’t realize how much the cans affected the garage area until they were cleaned. Huge difference—fast and professional.",
-      "author": "Melissa R.",
-      "role": "Doylestown Homeowner"
+      "quote": "The site instantly felt more premium. Clean, fast, and the messaging finally makes sense.",
+      "author": "Jordan M.",
+      "role": "Founder"
     },
     {
-      "quote": "Showed up on time, worked neatly, and the bins looked and smelled dramatically better. Exactly what we wanted.",
-      "author": "James T.",
-      "role": "Buckingham Homeowner"
+      "quote": "The process was structured and easy. Every decision had a purpose—and the final look is exactly what we wanted.",
+      "author": "Alyssa K.",
+      "role": "Studio owner"
     },
     {
-      "quote": "Easy process from start to finish. The service feels premium—quick, polite, and the results are legit.",
-      "author": "Lauren P.",
-      "role": "Neighborhood Resident"
+      "quote": "This looks like an agency build, but we got it done quickly and with zero fluff.",
+      "author": "Devon R.",
+      "role": "Consultant"
     }
   ],
-  "comparison": {
-    "title": "Trash Can Man vs. the usual options",
-    "items": [
-      {
-        "label": "Cleanliness",
-        "us": "Deep-clean focused on residue, grime, and odor sources",
-        "them": "Quick rinse or DIY scrubbing with inconsistent results"
-      },
-      {
-        "label": "Convenience",
-        "us": "On-site service at your home—no setup required",
-        "them": "You supply tools, time, and cleanup"
-      },
-      {
-        "label": "Professionalism",
-        "us": "Licensed & insured with a premium-home mindset",
-        "them": "Unpredictable quality or no coverage"
-      },
-      {
-        "label": "Mess Control",
-        "us": "Contained process designed to keep your property neat",
-        "them": "Splatter, runoff, and lingering odor around the driveway"
-      }
-    ]
-  },
   "gallery": {
     "enabled": true,
-    "title": "Results you can see",
+    "title": "Selected work",
     "layout": null,
     "show_titles": true,
-    "strategy": {
-      "primary_goal": "Increase trust and drive contact-form submissions with visual proof of service quality.",
-      "show_gallery": true
-    },
     "image_source": {
       "provider": "unsplash",
-      "image_search_query": "trash bin cleaning service",
-      "filename_pattern": "trash-can-man-gallery-{n}.jpg",
-      "target_folder": "src/assets/gallery"
+      "image_search_query": "branding mockup minimal modern",
+      "filename_pattern": "nova-lane-studio-project-{i}.jpg",
+      "target_folder": "public/images"
     },
-    "ai:inference": {
-      "archetype_map": {
-        "Residential trash can cleaning": "before_after_service",
-        "Upscale homeowners": "premium_property"
-      },
-      "archetype_rules": {
-        "before_after_service": { "min": 4, "max": 8 },
-        "premium_property": { "min": 2, "max": 6 }
-      },
-      "boost_rules": {
-        "show_testimonials": { "add": 1, "prefer_max": false },
-        "show_comparison": { "add": 1, "prefer_max": false }
-      },
-      "prefer_min_when": ["Investment not shown", "Early stage business"],
-      "fallback": { "min": 6, "max": 9 },
-      "layout_rules": {
-        "prefer_masonry_when": ["Before/after variety", "Real-world service shots"],
-        "prefer_bento_when": ["Premium aesthetic", "High-end positioning"],
-        "prefer_grid_when": ["Simple proof gallery", "Uniform framing"],
-        "fallback": "masonry"
-      }
-    },
-    "computed_count": 7,
+    "computed_count": 8,
     "computed_layout": "masonry",
     "items": [
-      {
-        "title": "On-site cleaning setup",
-        "caption": "Professional mobile system brought directly to your home.",
-        "tag": "On-Site",
-        "image_search_query": "mobile cleaning equipment driveway"
-      },
-      {
-        "title": "Trash can exterior clean",
-        "caption": "Built-up grime removed for a noticeably cleaner look.",
-        "tag": "Exterior",
-        "image_search_query": "trash can cleaning exterior before after"
-      },
-      {
-        "title": "Deep-clean inside the can",
-        "caption": "Residue and buildup addressed where odors start.",
-        "tag": "Interior",
-        "image_search_query": "trash bin interior cleaning"
-      },
-      {
-        "title": "Premium-home friendly service",
-        "caption": "Neat, discreet work that respects your property.",
-        "tag": "Discreet",
-        "image_search_query": "home driveway tidy service professional"
-      },
-      {
-        "title": "Recycling can refresh",
-        "caption": "Sticky spills and grime cleaned up for a fresher bin.",
-        "tag": "Recycling",
-        "image_search_query": "recycling bin cleaning service"
-      },
-      {
-        "title": "Fresh curb day feel",
-        "caption": "Clean cans that look better near the home and garage.",
-        "tag": "Curb Day",
-        "image_search_query": "clean trash cans curbside"
-      },
-      {
-        "title": "Detail finish & deodorize",
-        "caption": "A clean that feels premium—because the small things matter.",
-        "tag": "Finish",
-        "image_search_query": "cleaning service detail finish"
-      }
+      { "title": "Brand identity system", "caption": "Typography + color direction", "tag": "Branding", "image_search_query": "branding identity mockup minimal" },
+      { "title": "Homepage redesign", "caption": "Clear hierarchy + strong CTA", "tag": "Web", "image_search_query": "website mockup laptop minimal" },
+      { "title": "Product landing page", "caption": "Premium feel, simple structure", "tag": "Web", "image_search_query": "landing page design mockup" },
+      { "title": "Logo exploration", "caption": "Clean marks + variations", "tag": "Branding", "image_search_query": "logo design sketches minimal" },
+      { "title": "Pitch deck templates", "caption": "Reusable slides + layout system", "tag": "Templates", "image_search_query": "presentation template minimal mockup" },
+      { "title": "Social kit", "caption": "Consistent posts + stories", "tag": "Templates", "image_search_query": "social media template minimal" },
+      { "title": "Packaging direction", "caption": "Modern product presentation", "tag": "Branding", "image_search_query": "packaging mockup minimal modern" },
+      { "title": "Case study layout", "caption": "Story-driven project page", "tag": "Web", "image_search_query": "case study web design layout" }
     ]
   },
   "faqs": [
     {
-      "question": "Do you come to my home to do the cleaning?",
-      "answer": "Yes. We’re a mobile, on-site service. We clean your trash and recycling cans at your property using our dedicated system."
+      "question": "Do you work with clients outside my city?",
+      "answer": "Yes. Most projects are remote and run smoothly with a structured process and clear milestones."
     },
     {
-      "question": "How long does a visit take?",
-      "answer": "Most visits are quick and efficient. Timing depends on the number of cans, but we aim to be in and out with minimal disruption."
+      "question": "What do you need from me to start?",
+      "answer": "A short description of your business, your audience, and a few examples of sites you like. If you don’t have them, I’ll infer a strong starting direction."
     },
     {
-      "question": "What kinds of cans do you clean?",
-      "answer": "We clean standard residential trash and recycling cans, including wheeled carts commonly used for curb pickup."
+      "question": "How many revisions are included?",
+      "answer": "You’ll get focused refinement rounds on the core sections. The goal is clarity and polish—without endless back-and-forth."
     },
     {
-      "question": "Will this help with odors?",
-      "answer": "Yes—odors typically come from residue and buildup. Our process targets the source so your bins stay noticeably fresher."
+      "question": "Can you match an existing brand?",
+      "answer": "Yes. I can align with your current style, or refine it into a more consistent, premium system."
     },
     {
-      "question": "Do I need to be home?",
-      "answer": "Not necessarily. As long as the cans are accessible and we’ve confirmed the details, we can complete the service without you being present."
-    },
-    {
-      "question": "Are you licensed and insured?",
-      "answer": "Yes. We’re licensed and insured for your peace of mind."
+      "question": "What if I don’t have photos yet?",
+      "answer": "No problem. We can start with clean placeholders and swap in your images later without breaking the layout."
     }
   ],
-  "service_area": {
-    "main_city": "Doylestown, PA",
-    "surrounding_cities": [
-      "Buckingham, PA",
-      "New Hope, PA",
-      "Chalfont, PA",
-      "Warrington, PA",
-      "Furlong, PA",
-      "Jamison, PA",
-      "Lahaska, PA",
-      "Pipersville, PA"
-    ],
-    "travel_note": "Outside these areas? Reach out—extended travel is available with a custom quote.",
-    "cta_text": "Check Availability",
-    "cta_link": "#contact",
-    "map_search_query": "trash can cleaning near Doylestown PA"
-  },
   "contact": {
-    "headline": "Request trash can cleaning",
-    "subheadline": "Tell us how many cans you have and where you’re located. We’ll reply to confirm details and schedule your on-site clean.",
-    "email": "canman@trashrus.com",
-    "phone": "215-555-5555",
-    "email_recipient": "canman@trashrus.com",
-    "button_text": "Send Request",
-    "office_address": "Doylestown, PA"
+    "headline": "Let’s build something premium",
+    "subheadline": "Tell me what you do, who it’s for, and what “success” looks like. I’ll reply with the best next step and a simple plan.",
+    "email": "hello@novalanestudio.com",
+    "phone": "215-555-0147",
+    "email_recipient": "hello@novalanestudio.com",
+    "button_text": "Request a Quote",
+    "office_address": ""
   }
 }
