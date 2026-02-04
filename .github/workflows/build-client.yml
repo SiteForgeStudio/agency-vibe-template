@@ -18,7 +18,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node (22)
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -28,18 +28,30 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # 1) Merge base + updates -> clients/<slug>/business.json
       - name: Merge JSON (base + updates -> business.json)
         run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
 
+      # 2) Fetch premium preview images into clients/<slug>/assets/images/*
+      - name: Fetch Unsplash images (premium preview)
+        run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
+        env:
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+
+      # 3) Prepare build: copy clients/<slug>/business.json -> src/data/business.json
+      #    and copy clients/<slug>/assets/images -> src/assets/images (clearing first)
       - name: Prepare build (copy JSON + images into app)
         run: node scripts/prepare-build.mjs "${{ inputs.client_slug }}"
 
+      # 4) Build Astro
       - name: Build Astro
         run: npm run build
 
+      # 5) Zip dist
       - name: Zip dist
         run: zip -r dist.zip dist
 
+      # 6) Upload artifact
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
