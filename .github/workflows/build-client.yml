@@ -1,0 +1,49 @@
+name: Build Client Dist
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "Client slug (folder name under clients/)"
+        required: true
+        type: string
+
+run-name: build-${{ inputs.client_slug }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Merge JSON (base + updates -> business.json)
+        run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
+
+      - name: Prepare build (copy JSON + images into app)
+        run: node scripts/prepare-build.mjs "${{ inputs.client_slug }}"
+
+      - name: Build Astro
+        run: npm run build
+
+      - name: Zip dist
+        run: zip -r dist.zip dist
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ inputs.client_slug }}
+          path: dist.zip
+          if-no-files-found: error
+          retention-days: 7
