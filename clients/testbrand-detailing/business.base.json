@@ -1,0 +1,175 @@
+{
+  "intelligence": {
+    "industry": "Creative portfolio (brand & web designer)",
+    "target_persona": "Founders, agencies, and small business owners who want a premium brand and website that looks modern and converts without feeling salesy",
+    "tone_of_voice": "Confident, modern, concise, tasteful"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": false
+  },
+  "settings": {
+    "vibe": "Solar Flare",
+    "cta_text": "Request a Project Quote",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "View Work",
+    "secondary_cta_link": "#gallery",
+    "menu": [
+      { "label": "Home", "path": "#home" },
+      { "label": "About", "path": "#about" },
+      { "label": "Services", "path": "#features" },
+      { "label": "Process", "path": "#process" },
+      { "label": "Reviews", "path": "#testimonials" },
+      { "label": "Work", "path": "#gallery" },
+      { "label": "FAQs", "path": "#faqs" },
+      { "label": "Contact", "path": "#contact" }
+    ]
+  },
+  "brand": {
+    "name": "Nova Lane Studio",
+    "slug": "nova-lane-studio",
+    "tagline": "Brand & web design that feels expensive.",
+    "email": "hello@novalanestudio.com",
+    "phone": "215-555-0147",
+    "objection_handle": "If you want your site to feel premium, it has to be clear, fast, and intentional. I build clean systems that look great and make it easy for people to say yes."
+  },
+  "hero": {
+    "headline": "Design that makes your work look premium",
+    "subtext": "Brand identity, web design, and visual systems for founders who want clarity, confidence, and a website that converts without the cringe.",
+    "image": {
+      "alt": "Designer workspace with modern portfolio materials",
+      "image_search_query": "designer portfolio workspace modern"
+    }
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "High-end results, without the agency overhead",
+    "items": [
+      { "icon": "sparkles", "label": "Premium aesthetic", "sublabel": "Clean, modern, confident" },
+      { "icon": "layers", "label": "Systemized design", "sublabel": "Consistent across pages" },
+      { "icon": "rocket", "label": "Fast delivery", "sublabel": "Clear milestones + pace" },
+      { "icon": "check", "label": "Conversion-first", "sublabel": "Designed to drive action" }
+    ]
+  },
+  "about": {
+    "story_text": "Nova Lane Studio helps founders and small teams turn “good” into “premium.” The work is minimal but intentional—strong typography, clear hierarchy, and visual systems that scale. The goal isn’t decoration. It’s clarity that builds trust and makes the next step obvious.",
+    "founder_note": "I like simple sites that feel expensive: fast, focused, and easy to navigate. If you’re building something real, your website should reflect that.",
+    "years_experience": "8"
+  },
+  "features": [
+    {
+      "title": "Brand Identity Refresh",
+      "description": "Refine your logo, typography, and visual direction into a cohesive brand that looks polished everywhere.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "High-Converting Website Design",
+      "description": "A clean, modern layout with strong messaging and clear CTAs—built for speed, trust, and action.",
+      "icon_slug": "rocket"
+    },
+    {
+      "title": "Visual System + Templates",
+      "description": "Reusable design components for social, pitch decks, and future pages—so your brand stays consistent.",
+      "icon_slug": "layers"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Quick discovery",
+      "description": "You share your goals, audience, and references. I confirm scope and define the visual direction."
+    },
+    {
+      "title": "Messaging + structure",
+      "description": "We shape the content hierarchy: what matters first, what supports it, and what drives action."
+    },
+    {
+      "title": "Design + refinement",
+      "description": "I design the key sections and polish the system. You get a clean preview and focused revisions."
+    },
+    {
+      "title": "Launch-ready handoff",
+      "description": "You receive a deployment-ready site build plus a simple path for future updates."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "The site instantly felt more premium. Clean, fast, and the messaging finally makes sense.",
+      "author": "Jordan M.",
+      "role": "Founder"
+    },
+    {
+      "quote": "The process was structured and easy. Every decision had a purpose—and the final look is exactly what we wanted.",
+      "author": "Alyssa K.",
+      "role": "Studio owner"
+    },
+    {
+      "quote": "This looks like an agency build, but we got it done quickly and with zero fluff.",
+      "author": "Devon R.",
+      "role": "Consultant"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Selected work",
+    "layout": null,
+    "show_titles": true,
+    "image_source": {
+      "provider": "unsplash",
+      "image_search_query": "branding mockup minimal modern",
+      "filename_pattern": "nova-lane-studio-project-{i}.jpg",
+      "target_folder": "public/images"
+    },
+    "computed_count": 8,
+    "computed_layout": "masonry",
+    "items": [
+      { "title": "Brand identity system", "caption": "Typography + color direction", "tag": "Branding", "image_search_query": "branding identity mockup minimal" },
+      { "title": "Homepage redesign", "caption": "Clear hierarchy + strong CTA", "tag": "Web", "image_search_query": "website mockup laptop minimal" },
+      { "title": "Product landing page", "caption": "Premium feel, simple structure", "tag": "Web", "image_search_query": "landing page design mockup" },
+      { "title": "Logo exploration", "caption": "Clean marks + variations", "tag": "Branding", "image_search_query": "logo design sketches minimal" },
+      { "title": "Pitch deck templates", "caption": "Reusable slides + layout system", "tag": "Templates", "image_search_query": "presentation template minimal mockup" },
+      { "title": "Social kit", "caption": "Consistent posts + stories", "tag": "Templates", "image_search_query": "social media template minimal" },
+      { "title": "Packaging direction", "caption": "Modern product presentation", "tag": "Branding", "image_search_query": "packaging mockup minimal modern" },
+      { "title": "Case study layout", "caption": "Story-driven project page", "tag": "Web", "image_search_query": "case study web design layout" }
+    ]
+  },
+  "faqs": [
+    {
+      "question": "Do you work with clients outside my city?",
+      "answer": "Yes. Most projects are remote and run smoothly with a structured process and clear milestones."
+    },
+    {
+      "question": "What do you need from me to start?",
+      "answer": "A short description of your business, your audience, and a few examples of sites you like. If you don’t have them, I’ll infer a strong starting direction."
+    },
+    {
+      "question": "How many revisions are included?",
+      "answer": "You’ll get focused refinement rounds on the core sections. The goal is clarity and polish—without endless back-and-forth."
+    },
+    {
+      "question": "Can you match an existing brand?",
+      "answer": "Yes. I can align with your current style, or refine it into a more consistent, premium system."
+    },
+    {
+      "question": "What if I don’t have photos yet?",
+      "answer": "No problem. We can start with clean placeholders and swap in your images later without breaking the layout."
+    }
+  ],
+  "contact": {
+    "headline": "Let’s build something premium",
+    "subheadline": "Tell me what you do, who it’s for, and what “success” looks like. I’ll reply with the best next step and a simple plan.",
+    "email": "hello@novalanestudio.com",
+    "phone": "215-555-0147",
+    "email_recipient": "hello@novalanestudio.com",
+    "button_text": "Request a Quote",
+    "office_address": ""
+  }
+}
