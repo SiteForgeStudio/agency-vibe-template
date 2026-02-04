@@ -34,9 +34,8 @@ const brandSlug =
   data.brand?.slug ||
   (data.brand?.name || "brand")
     .toLowerCase()
-    .replace(/'/g, "")
-    .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-");
+    .replace(/'/g, "")        // MATCH Hero.astro
+    .replace(/[^a-z0-9]/g, "-"); // MATCH Hero.astro
 
 async function searchUnsplashPhoto(query) {
   const res = await axios.get("https://api.unsplash.com/search/photos", {

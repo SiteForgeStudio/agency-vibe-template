@@ -40,9 +40,20 @@ The content is organized as follows:
 </file_summary>
 
 <directory_structure>
+.github/
+  workflows/
+    build-client.yml
+clients/
+  testbrand-detailing/
+    business.base.json
+    business.updates.json
 public/
+  _headers
   favicon.svg
 scripts/
+  fetch-unsplash-images.mjs
+  merge-json.mjs
+  prepare-build.mjs
   setup-site.js
 src/
   assets/
@@ -204,6 +215,195 @@ tsconfig.json
 <files>
 This section contains the contents of the repository's files.
 
+<file path="clients/testbrand-detailing/business.base.json">
+{
+  "intelligence": {
+    "industry": "Creative portfolio (brand & web designer)",
+    "target_persona": "Founders, agencies, and small business owners who want a premium brand and website that looks modern and converts without feeling salesy",
+    "tone_of_voice": "Confident, modern, concise, tasteful"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": false
+  },
+  "settings": {
+    "vibe": "Solar Flare",
+    "cta_text": "Request a Project Quote",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "View Work",
+    "secondary_cta_link": "#gallery",
+    "menu": [
+      { "label": "Home", "path": "#home" },
+      { "label": "About", "path": "#about" },
+      { "label": "Services", "path": "#features" },
+      { "label": "Process", "path": "#process" },
+      { "label": "Reviews", "path": "#testimonials" },
+      { "label": "Work", "path": "#gallery" },
+      { "label": "FAQs", "path": "#faqs" },
+      { "label": "Contact", "path": "#contact" }
+    ]
+  },
+  "brand": {
+    "name": "Nova Lane Studio",
+    "slug": "nova-lane-studio",
+    "tagline": "Brand & web design that feels expensive.",
+    "email": "hello@novalanestudio.com",
+    "phone": "215-555-0147",
+    "objection_handle": "If you want your site to feel premium, it has to be clear, fast, and intentional. I build clean systems that look great and make it easy for people to say yes."
+  },
+  "hero": {
+    "headline": "Design that makes your work look premium",
+    "subtext": "Brand identity, web design, and visual systems for founders who want clarity, confidence, and a website that converts without the cringe.",
+    "image": {
+      "alt": "Designer workspace with modern portfolio materials",
+      "image_search_query": "designer portfolio workspace modern"
+    }
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "High-end results, without the agency overhead",
+    "items": [
+      { "icon": "sparkles", "label": "Premium aesthetic", "sublabel": "Clean, modern, confident" },
+      { "icon": "layers", "label": "Systemized design", "sublabel": "Consistent across pages" },
+      { "icon": "rocket", "label": "Fast delivery", "sublabel": "Clear milestones + pace" },
+      { "icon": "check", "label": "Conversion-first", "sublabel": "Designed to drive action" }
+    ]
+  },
+  "about": {
+    "story_text": "Nova Lane Studio helps founders and small teams turn “good” into “premium.” The work is minimal but intentional—strong typography, clear hierarchy, and visual systems that scale. The goal isn’t decoration. It’s clarity that builds trust and makes the next step obvious.",
+    "founder_note": "I like simple sites that feel expensive: fast, focused, and easy to navigate. If you’re building something real, your website should reflect that.",
+    "years_experience": "8"
+  },
+  "features": [
+    {
+      "title": "Brand Identity Refresh",
+      "description": "Refine your logo, typography, and visual direction into a cohesive brand that looks polished everywhere.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "High-Converting Website Design",
+      "description": "A clean, modern layout with strong messaging and clear CTAs—built for speed, trust, and action.",
+      "icon_slug": "rocket"
+    },
+    {
+      "title": "Visual System + Templates",
+      "description": "Reusable design components for social, pitch decks, and future pages—so your brand stays consistent.",
+      "icon_slug": "layers"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Quick discovery",
+      "description": "You share your goals, audience, and references. I confirm scope and define the visual direction."
+    },
+    {
+      "title": "Messaging + structure",
+      "description": "We shape the content hierarchy: what matters first, what supports it, and what drives action."
+    },
+    {
+      "title": "Design + refinement",
+      "description": "I design the key sections and polish the system. You get a clean preview and focused revisions."
+    },
+    {
+      "title": "Launch-ready handoff",
+      "description": "You receive a deployment-ready site build plus a simple path for future updates."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "The site instantly felt more premium. Clean, fast, and the messaging finally makes sense.",
+      "author": "Jordan M.",
+      "role": "Founder"
+    },
+    {
+      "quote": "The process was structured and easy. Every decision had a purpose—and the final look is exactly what we wanted.",
+      "author": "Alyssa K.",
+      "role": "Studio owner"
+    },
+    {
+      "quote": "This looks like an agency build, but we got it done quickly and with zero fluff.",
+      "author": "Devon R.",
+      "role": "Consultant"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Selected work",
+    "layout": null,
+    "show_titles": true,
+    "image_source": {
+      "provider": "unsplash",
+      "image_search_query": "branding mockup minimal modern",
+      "filename_pattern": "nova-lane-studio-project-{i}.jpg",
+      "target_folder": "public/images"
+    },
+    "computed_count": 8,
+    "computed_layout": "masonry",
+    "items": [
+      { "title": "Brand identity system", "caption": "Typography + color direction", "tag": "Branding", "image_search_query": "branding identity mockup minimal" },
+      { "title": "Homepage redesign", "caption": "Clear hierarchy + strong CTA", "tag": "Web", "image_search_query": "website mockup laptop minimal" },
+      { "title": "Product landing page", "caption": "Premium feel, simple structure", "tag": "Web", "image_search_query": "landing page design mockup" },
+      { "title": "Logo exploration", "caption": "Clean marks + variations", "tag": "Branding", "image_search_query": "logo design sketches minimal" },
+      { "title": "Pitch deck templates", "caption": "Reusable slides + layout system", "tag": "Templates", "image_search_query": "presentation template minimal mockup" },
+      { "title": "Social kit", "caption": "Consistent posts + stories", "tag": "Templates", "image_search_query": "social media template minimal" },
+      { "title": "Packaging direction", "caption": "Modern product presentation", "tag": "Branding", "image_search_query": "packaging mockup minimal modern" },
+      { "title": "Case study layout", "caption": "Story-driven project page", "tag": "Web", "image_search_query": "case study web design layout" }
+    ]
+  },
+  "faqs": [
+    {
+      "question": "Do you work with clients outside my city?",
+      "answer": "Yes. Most projects are remote and run smoothly with a structured process and clear milestones."
+    },
+    {
+      "question": "What do you need from me to start?",
+      "answer": "A short description of your business, your audience, and a few examples of sites you like. If you don’t have them, I’ll infer a strong starting direction."
+    },
+    {
+      "question": "How many revisions are included?",
+      "answer": "You’ll get focused refinement rounds on the core sections. The goal is clarity and polish—without endless back-and-forth."
+    },
+    {
+      "question": "Can you match an existing brand?",
+      "answer": "Yes. I can align with your current style, or refine it into a more consistent, premium system."
+    },
+    {
+      "question": "What if I don’t have photos yet?",
+      "answer": "No problem. We can start with clean placeholders and swap in your images later without breaking the layout."
+    }
+  ],
+  "contact": {
+    "headline": "Let’s build something premium",
+    "subheadline": "Tell me what you do, who it’s for, and what “success” looks like. I’ll reply with the best next step and a simple plan.",
+    "email": "hello@novalanestudio.com",
+    "phone": "215-555-0147",
+    "email_recipient": "hello@novalanestudio.com",
+    "button_text": "Request a Quote",
+    "office_address": ""
+  }
+}
+</file>
+
+<file path="clients/testbrand-detailing/business.updates.json">
+{}
+</file>
+
+<file path="public/_headers">
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+</file>
+
 <file path="public/favicon.svg">
 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128">
     <path d="M50.4 78.5a75.1 75.1 0 0 0-28.5 6.9l24.2-65.7c.7-2 1.9-3.2 3.4-3.2h29c1.5 0 2.7 1.2 3.4 3.2l24.2 65.7s-11.6-7-28.5-7L67 45.5c-.4-1.7-1.6-2.8-2.9-2.8-1.3 0-2.5 1.1-2.9 2.7L50.4 78.5Zm-1.1 28.2Zm-4.2-20.2c-2 6.6-.6 15.8 4.2 20.2a17.5 17.5 0 0 1 .2-.7 5.5 5.5 0 0 1 5.7-4.5c2.8.1 4.3 1.5 4.7 4.7.2 1.1.2 2.3.2 3.5v.4c0 2.7.7 5.2 2.2 7.4a13 13 0 0 0 5.7 4.9v-.3l-.2-.3c-1.8-5.6-.5-9.5 4.4-12.8l1.5-1a73 73 0 0 0 3.2-2.2 16 16 0 0 0 6.8-11.4c.3-2 .1-4-.6-6l-.8.6-1.6 1a37 37 0 0 1-22.4 2.7c-5-.7-9.7-2-13.2-6.2Z" />
@@ -214,6 +414,312 @@ This section contains the contents of the repository's files.
         }
     </style>
 </svg>
+</file>
+
+<file path="scripts/fetch-unsplash-images.mjs">
+import fs from "fs";
+import path from "path";
+import axios from "axios";
+
+const slug = process.argv[2];
+if (!slug) {
+  console.error("Usage: node scripts/fetch-unsplash-images.mjs <client_slug>");
+  process.exit(1);
+}
+
+const ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
+if (!ACCESS_KEY) {
+  console.error("Missing UNSPLASH_ACCESS_KEY env var.");
+  process.exit(1);
+}
+
+const root = process.cwd();
+const clientDir = path.join(root, "clients", slug);
+const businessPath = path.join(clientDir, "business.json");
+const clientAssetsDir = path.join(clientDir, "assets", "images");
+
+if (!fs.existsSync(businessPath)) {
+  console.error(`Missing ${businessPath} (run merge-json first)`);
+  process.exit(1);
+}
+
+const data = JSON.parse(fs.readFileSync(businessPath, "utf-8"));
+
+if (!fs.existsSync(clientAssetsDir)) {
+  fs.mkdirSync(clientAssetsDir, { recursive: true });
+}
+
+const brandSlug =
+  data.brand?.slug ||
+  (data.brand?.name || "brand")
+    .toLowerCase()
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-");
+
+async function searchUnsplashPhoto(query) {
+  const res = await axios.get("https://api.unsplash.com/search/photos", {
+    params: { query, orientation: "landscape", per_page: 1 },
+    headers: { Authorization: `Client-ID ${ACCESS_KEY}` },
+    timeout: 30000
+  });
+  const first = res.data?.results?.[0];
+  // Use "regular" as you did; could switch to "full" if you want higher res.
+  return first?.urls?.regular || null;
+}
+
+function buildFallbackQueries(query, industryFallback) {
+  const q = (query || "").trim();
+  const fallbacks = [];
+
+  if (q) fallbacks.push(q);
+
+  if (q) {
+    fallbacks.push(
+      q
+        .replace(/\b(close-up|closeup|professional|premium|luxury|high-end|highend)\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim()
+    );
+  }
+
+  if (q) {
+    const tokens = q.split(/\s+/).filter(Boolean);
+    fallbacks.push(tokens.slice(0, 4).join(" "));
+    fallbacks.push(tokens.slice(0, 2).join(" "));
+  }
+
+  if (industryFallback) fallbacks.push(industryFallback);
+
+  // last safe defaults
+  fallbacks.push("modern service business");
+  fallbacks.push("professional team at work");
+  fallbacks.push("clean minimal office");
+
+  return [...new Set(fallbacks)].filter(Boolean);
+}
+
+async function fetchUnsplashImage(query, filename) {
+  const filePath = path.join(clientAssetsDir, filename);
+
+  if (fs.existsSync(filePath)) {
+    console.log(`- Skipping ${filename} (already exists)`);
+    return;
+  }
+
+  const fallbacks = buildFallbackQueries(query, data?.intelligence?.industry);
+
+  let downloadUrl = null;
+  for (const q of fallbacks) {
+    console.log(`🔍 Unsplash: "${q}"`);
+    try {
+      downloadUrl = await searchUnsplashPhoto(q);
+      if (downloadUrl) break;
+    } catch (e) {
+      const msg = e?.response?.data?.errors?.[0] || e.message;
+      console.log(`  ↳ search error: ${msg}`);
+    }
+  }
+
+  if (!downloadUrl) {
+    console.log(`! No results for: ${query}`);
+    return;
+  }
+
+  const res = await axios({ url: downloadUrl, method: "GET", responseType: "arraybuffer", timeout: 60000 });
+  fs.writeFileSync(filePath, Buffer.from(res.data));
+  console.log(`✅ Saved ${filename}`);
+}
+
+function ensureGallerySlots(dataObj, desiredCount = 6) {
+  // If gallery is missing/empty, generate placeholder items so preview looks premium.
+  if (!dataObj.gallery) {
+    dataObj.gallery = { enabled: true, items: [] };
+  }
+
+  const g = dataObj.gallery;
+  const isLegacyArray = Array.isArray(g);
+  if (isLegacyArray) return dataObj; // leave legacy alone
+
+  if (!Array.isArray(g.items)) g.items = [];
+  while (g.items.length < desiredCount) {
+    g.items.push({
+      alt: "Project photo",
+      image_search_query: ""
+    });
+  }
+
+  if (typeof g.computed_count !== "number") g.computed_count = desiredCount;
+  if (!g.image_source) g.image_source = {};
+  return dataObj;
+}
+
+async function run() {
+  console.log(`🚀 Image Factory (CI): ${brandSlug}`);
+
+  // Ensure gallery has some slots for premium preview (optional but recommended)
+  ensureGallerySlots(data, 6);
+  fs.writeFileSync(businessPath, JSON.stringify(data, null, 2));
+
+  // HERO
+  const heroQuery = data?.hero?.image?.image_search_query || data?.hero?.image?.alt || data?.intelligence?.industry;
+  if (heroQuery) {
+    await fetchUnsplashImage(heroQuery, `${brandSlug}-hero.jpg`);
+  } else {
+    console.log("⚠️ No hero query/alt/industry found.");
+  }
+
+  // GALLERY
+  const galleryObj = data.gallery;
+  const isLegacyArray = Array.isArray(galleryObj);
+  const galleryEnabled = isLegacyArray ? true : galleryObj?.enabled !== false;
+  const galleryItems = isLegacyArray ? galleryObj : (galleryObj?.items || []);
+
+  if (galleryEnabled && galleryItems.length > 0) {
+    const desiredCount =
+      (!isLegacyArray && typeof galleryObj?.computed_count === "number")
+        ? galleryObj.computed_count
+        : galleryItems.length;
+
+    const itemsToProcess = galleryItems.slice(0, Math.max(0, desiredCount));
+    const globalQuery =
+      (!isLegacyArray && galleryObj?.image_source?.image_search_query)
+        ? galleryObj.image_source.image_search_query
+        : "";
+
+    for (const [index, item] of itemsToProcess.entries()) {
+      const q =
+        item?.image_search_query ||
+        globalQuery ||
+        item?.alt ||
+        data?.intelligence?.industry ||
+        "professional services";
+
+      await fetchUnsplashImage(q, `${brandSlug}-project-${index}.jpg`);
+    }
+  } else {
+    console.log("ℹ️ Gallery disabled or empty.");
+  }
+
+  console.log("✅ Images ready under:", clientAssetsDir);
+}
+
+run().catch((e) => {
+  console.error("Fatal:", e);
+  process.exit(1);
+});
+</file>
+
+<file path="scripts/merge-json.mjs">
+import fs from "fs";
+import path from "path";
+
+function isObject(v) {
+  return v && typeof v === "object" && !Array.isArray(v);
+}
+
+function deepMerge(base, updates) {
+  if (Array.isArray(base) || Array.isArray(updates)) return updates ?? base; // arrays replace
+  if (!isObject(base) || !isObject(updates)) return updates ?? base;
+
+  const out = { ...base };
+  for (const [k, v] of Object.entries(updates)) {
+    out[k] = k in base ? deepMerge(base[k], v) : v;
+  }
+  return out;
+}
+
+function readJsonIfExists(p) {
+  if (!fs.existsSync(p)) return null;
+  return JSON.parse(fs.readFileSync(p, "utf-8"));
+}
+
+const slug = process.argv[2];
+if (!slug) {
+  console.error("Usage: node scripts/merge-json.mjs <slug>");
+  process.exit(1);
+}
+
+const clientDir = path.join(process.cwd(), "clients", slug);
+const basePath = path.join(clientDir, "business.base.json");
+const updatesPath = path.join(clientDir, "business.updates.json");
+const outPath = path.join(clientDir, "business.json");
+
+if (!fs.existsSync(basePath)) {
+  console.error(`Missing: ${basePath}`);
+  process.exit(1);
+}
+
+const base = readJsonIfExists(basePath) ?? {};
+const updates = readJsonIfExists(updatesPath) ?? {};
+const merged = deepMerge(base, updates);
+
+fs.writeFileSync(outPath, JSON.stringify(merged, null, 2));
+console.log(`Wrote: ${outPath}`);
+</file>
+
+<file path="scripts/prepare-build.mjs">
+import fs from "fs";
+import path from "path";
+
+function ensureDir(p) {
+  fs.mkdirSync(p, { recursive: true });
+}
+
+function rmDirContents(dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir)) {
+    const p = path.join(dir, entry);
+    fs.rmSync(p, { recursive: true, force: true });
+  }
+}
+
+function copyDir(src, dest) {
+  if (!fs.existsSync(src)) return;
+  ensureDir(dest);
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, entry.name);
+    const d = path.join(dest, entry.name);
+    if (entry.isDirectory()) copyDir(s, d);
+    else fs.copyFileSync(s, d);
+  }
+}
+
+const slug = process.argv[2];
+if (!slug) {
+  console.error("Usage: node scripts/prepare-build.mjs <slug>");
+  process.exit(1);
+}
+
+const root = process.cwd();
+const clientDir = path.join(root, "clients", slug);
+
+const mergedBusiness = path.join(clientDir, "business.json");
+if (!fs.existsSync(mergedBusiness)) {
+  console.error(`Missing merged business.json: ${mergedBusiness}`);
+  process.exit(1);
+}
+
+// Where your app expects these:
+const appBusinessPath = path.join(root, "src", "data", "business.json");
+const appAssetsImages = path.join(root, "src", "assets", "images");
+
+// Where your client images will live:
+const clientImages = path.join(clientDir, "assets", "images");
+
+// 1) Copy JSON
+ensureDir(path.dirname(appBusinessPath));
+fs.copyFileSync(mergedBusiness, appBusinessPath);
+console.log(`Copied business.json -> ${appBusinessPath}`);
+
+// 2) Wipe images to prevent cross-client bleed + dist bloat
+ensureDir(appAssetsImages);
+rmDirContents(appAssetsImages);
+console.log(`Cleared -> ${appAssetsImages}`);
+
+// 3) Copy only this client's images (if any)
+copyDir(clientImages, appAssetsImages);
+console.log(`Copied images from -> ${clientImages}`);
 </file>
 
 <file path="src/components/Fonts.astro">
@@ -2482,6 +2988,70 @@ export default {
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist"]
 }
+</file>
+
+<file path=".github/workflows/build-client.yml">
+name: Build Client Dist
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "Client slug (folder name under clients/)"
+        required: true
+        type: string
+
+run-name: build-${{ inputs.client_slug }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node (22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      # 1) Merge base + updates -> clients/<slug>/business.json
+      - name: Merge JSON (base + updates -> business.json)
+        run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
+
+      # 2) Fetch premium preview images into clients/<slug>/assets/images/*
+      - name: Fetch Unsplash images (premium preview)
+        run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
+        env:
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+
+      # 3) Prepare build: copy clients/<slug>/business.json -> src/data/business.json
+      #    and copy clients/<slug>/assets/images -> src/assets/images (clearing first)
+      - name: Prepare build (copy JSON + images into app)
+        run: node scripts/prepare-build.mjs "${{ inputs.client_slug }}"
+
+      # 4) Build Astro
+      - name: Build Astro
+        run: npm run build
+
+      # 5) Zip dist
+      - name: Zip dist
+        run: zip -r dist.zip dist
+
+      # 6) Upload artifact
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ inputs.client_slug }}
+          path: dist.zip
+          if-no-files-found: error
+          retention-days: 7
 </file>
 
 <file path="src/components/Events.astro">
