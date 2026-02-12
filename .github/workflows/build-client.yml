@@ -33,9 +33,11 @@ jobs:
         run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
 
       # DEBUG: show the brand slug and expected filenames (helps confirm the exact naming)
+      # NOTE: Avoid backticks/template literals here because bash will eat them.
       - name: Debug - show brand.slug + expected image filenames
+        continue-on-error: true
         run: |
-          node -e "const fs=require('fs'); const p=`clients/${{ inputs.client_slug }}/business.json`; const d=JSON.parse(fs.readFileSync(p,'utf8')); const brandSlug=d?.brand?.slug || (d?.brand?.name||'brand').toLowerCase().replace(/'/g,'').replace(/[^a-z0-9]/g,'-'); console.log('brand.slug:', d?.brand?.slug); console.log('derived brandSlug:', brandSlug); console.log('expected hero:', `${brandSlug}-hero.jpg`); console.log('expected gallery sample:', `${brandSlug}-project-0.jpg`);"
+          node -e "const fs=require('fs'); const slug='${{ inputs.client_slug }}'; const p='clients/'+slug+'/business.json'; const d=JSON.parse(fs.readFileSync(p,'utf8')); const brandSlug=(d && d.brand && d.brand.slug) ? d.brand.slug : ((d && d.brand && d.brand.name) ? d.brand.name : 'brand').toLowerCase().replace(/'/g,'').replace(/[^a-z0-9]/g,'-'); console.log('path:', p); console.log('brand.slug:', d?.brand?.slug); console.log('derived brandSlug:', brandSlug); console.log('expected hero:', brandSlug + '-hero.jpg'); console.log('expected gallery sample:', brandSlug + '-project-0.jpg');"
 
       # 2) Fetch premium preview images into clients/<slug>/assets/images/*
       - name: Fetch Unsplash images (premium preview)
