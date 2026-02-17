@@ -1,7 +1,4 @@
 // functions/api/generate.js
-// Cloudflare Pages Function: POST /api/generate
-// Returns: { ok: true, slug, plan, business_json }
-
 function normalizeSlug(s) {
   return String(s || "")
     .toLowerCase()
@@ -12,23 +9,15 @@ function normalizeSlug(s) {
 }
 
 function must(obj, keys) {
-  for (const k of keys) {
-    if (!obj || !(k in obj)) throw new Error(`Missing key: ${k}`);
-  }
+  for (const k of keys) if (!(k in obj)) throw new Error(`Missing key: ${k}`);
 }
 
-const ALLOWED_VIBES = [
-  "Midnight Tech",
-  "Zenith Earth",
-  "Vintage Boutique",
-  "Rugged Industrial",
-  "Modern Minimal",
-  "Luxury Noir",
-  "Legacy Professional",
-  "Solar Flare",
-];
+const ICON_ENUM = new Set([
+  "zap","cpu","layers","rocket","leaf","sprout","sun","scissors","truck","hammer","wrench","trash","sparkles",
+  "heart","award","users","map","shield","star","check","coins","briefcase","clock","phone"
+]);
 
-const ALLOWED_ANCHORS = [
+const MENU_ORDER = [
   "#home",
   "#about",
   "#features",
@@ -43,143 +32,62 @@ const ALLOWED_ANCHORS = [
   "#contact",
 ];
 
-const ICON_TOKENS = [
-  "zap",
-  "cpu",
-  "layers",
-  "rocket",
-  "leaf",
-  "sprout",
-  "sun",
-  "scissors",
-  "truck",
-  "hammer",
-  "wrench",
-  "trash",
-  "sparkles",
-  "heart",
-  "award",
-  "users",
-  "map",
-  "shield",
-  "star",
-  "check",
-  "coins",
-  "briefcase",
-  "clock",
-  "phone",
-];
+const LABELS = {
+  "#home": "Home",
+  "#about": "About",
+  "#features": "Features",
+  "#events": "Events",
+  "#process": "Process",
+  "#testimonials": "Testimonials",
+  "#comparison": "Comparison",
+  "#gallery": "Gallery",
+  "#investment": "Investment",
+  "#faqs": "FAQs",
+  "#service-area": "Service Area",
+  "#contact": "Contact",
+};
 
-function safeString(v, fallback = "") {
-  return typeof v === "string" ? v : fallback;
+function buildMenuFromFlags(strategy) {
+  const enabled = new Set(["#home", "#contact"]);
+
+  if (strategy.show_about) enabled.add("#about");
+  if (strategy.show_features) enabled.add("#features");
+  if (strategy.show_events) enabled.add("#events");
+  if (strategy.show_process) enabled.add("#process");
+  if (strategy.show_testimonials) enabled.add("#testimonials");
+  if (strategy.show_comparison) enabled.add("#comparison");
+  if (strategy.show_gallery) enabled.add("#gallery");
+  if (strategy.show_investment) enabled.add("#investment");
+  if (strategy.show_faqs) enabled.add("#faqs");
+  if (strategy.show_service_area) enabled.add("#service-area");
+
+  return MENU_ORDER
+    .filter((path) => enabled.has(path))
+    .map((path) => ({ label: LABELS[path] || path.replace("#", ""), path }));
 }
 
-function toMenuObjects(menuMaybe) {
-  // Accept either ["#home", ...] OR [{label,path},...]
-  if (!Array.isArray(menuMaybe)) return [];
-  if (menuMaybe.length === 0) return [];
-  if (typeof menuMaybe[0] === "string") {
-    const paths = menuMaybe.filter((p) => ALLOWED_ANCHORS.includes(p));
-    return paths.map((p) => ({
-      label: anchorToLabel(p),
-      path: p,
-    }));
-  }
-  return menuMaybe
-    .filter((it) => it && typeof it === "object")
-    .map((it) => ({
-      label: safeString(it.label, "").trim() || anchorToLabel(it.path),
-      path: ALLOWED_ANCHORS.includes(it.path) ? it.path : "#home",
-    }))
-    .filter((it) => it.label && it.path);
-}
-
-function anchorToLabel(anchor) {
-  switch (anchor) {
-    case "#home":
-      return "Home";
-    case "#about":
-      return "About";
-    case "#features":
-      return "Services";
-    case "#events":
-      return "Events";
-    case "#process":
-      return "Process";
-    case "#testimonials":
-      return "Reviews";
-    case "#comparison":
-      return "Comparison";
-    case "#gallery":
-      return "Gallery";
-    case "#investment":
-      return "Investment";
-    case "#faqs":
-      return "FAQs";
-    case "#service-area":
-      return "Service Area";
-    case "#contact":
-      return "Contact";
-    default:
-      return "Home";
-  }
-}
-
-function ensureHomeAndContact(menu) {
-  const paths = new Set(menu.map((m) => m.path));
-  const out = [...menu];
-
-  if (!paths.has("#home")) out.unshift({ label: "Home", path: "#home" });
-  if (!paths.has("#contact")) out.push({ label: "Contact", path: "#contact" });
-
-  // De-dupe by path (keep first)
-  const seen = new Set();
-  return out.filter((m) => {
-    if (seen.has(m.path)) return false;
-    seen.add(m.path);
-    return true;
-  });
-}
-
-function coerceIconSlug(slug) {
-  const s = String(slug || "").trim();
-  if (ICON_TOKENS.includes(s)) return s;
-  // If model gave lucide-ish names like "user-check", "calendar-alt", "car", etc.
-  // map them to the closest token.
-  const lower = s.toLowerCase();
-  if (lower.includes("truck") || lower.includes("mobile")) return "truck";
-  if (lower.includes("clock") || lower.includes("calendar")) return "clock";
-  if (lower.includes("leaf") || lower.includes("eco")) return "leaf";
-  if (lower.includes("shield") || lower.includes("protect")) return "shield";
-  if (lower.includes("spark") || lower.includes("shine")) return "sparkles";
-  if (lower.includes("award") || lower.includes("cert")) return "award";
-  if (lower.includes("user") || lower.includes("team")) return "users";
-  if (lower.includes("phone") || lower.includes("call")) return "phone";
-  if (lower.includes("map") || lower.includes("area") || lower.includes("pin")) return "map";
-  if (lower.includes("rocket") || lower.includes("fast")) return "rocket";
-  if (lower.includes("layer")) return "layers";
-  if (lower.includes("check")) return "check";
+function enforceIconSlug(slug) {
+  if (ICON_ENUM.has(slug)) return slug;
+  // graceful fallback
   return "layers";
 }
 
-function sanitizeHeroQuery(q) {
-  // Keep it broad and avoid city names (your templates recommend no locations).
-  // Also ensure 4–8-ish words by trimming and collapsing spaces.
-  const raw = String(q || "").replace(/\s+/g, " ").trim();
-  // Remove commas and obvious state abbreviations patterns like "Philadelphia, PA"
-  const noPunct = raw.replace(/[,:;]/g, " ");
-  const words = noPunct
-    .split(" ")
-    .map((w) => w.trim())
-    .filter(Boolean)
-    .filter((w) => !/^[A-Z]{2}$/.test(w)); // remove "PA" etc
+function uniqStrings(arr) {
+  const out = [];
+  const seen = new Set();
+  for (const s of arr || []) {
+    const key = String(s || "").trim().toLowerCase();
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(String(s).trim());
+  }
+  return out;
+}
 
-  // Keep first 8 words max
-  const clipped = words.slice(0, 8);
-  // Ensure minimum 4 words if possible by adding generic fallbacks
-  const fallbacks = ["car", "detailing", "polishing", "driveway"];
-  while (clipped.length < 4) clipped.push(fallbacks[clipped.length] || "detail");
-  return clipped.join(" ");
+function safeStr(x, fallback = "") {
+  const s = String(x ?? "").trim();
+  return s || fallback;
 }
 
 async function openaiJson({ apiKey, model, messages, temperature = 0.3 }) {
@@ -208,280 +116,6 @@ async function openaiJson({ apiKey, model, messages, temperature = 0.3 }) {
   return JSON.parse(content);
 }
 
-function postProcessPlan(plan) {
-  plan = plan || {};
-  plan.intelligence = plan.intelligence || {};
-  plan.strategy = plan.strategy || {};
-  plan.settings = plan.settings || {};
-
-  // Vibe
-  if (!ALLOWED_VIBES.includes(plan.settings.vibe)) plan.settings.vibe = "Modern Minimal";
-
-  // CTA defaults
-  if (!plan.settings.cta_text) plan.settings.cta_text = "Contact Us";
-  if (!plan.settings.cta_link) plan.settings.cta_link = "#contact";
-  if (!plan.settings.cta_type) plan.settings.cta_type = "anchor";
-
-  // Menu
-  const menu = ensureHomeAndContact(toMenuObjects(plan.settings.menu));
-  plan.settings.menu = menu;
-
-  // Strategy defaults (booleans)
-  const boolKeys = [
-    "show_trustbar",
-    "show_about",
-    "show_features",
-    "show_events",
-    "show_process",
-    "show_testimonials",
-    "show_comparison",
-    "show_gallery",
-    "show_investment",
-    "show_faqs",
-    "show_service_area",
-  ];
-  for (const k of boolKeys) {
-    if (typeof plan.strategy[k] !== "boolean") plan.strategy[k] = false;
-  }
-
-  // Intelligence required keys
-  if (!plan.intelligence.industry) plan.intelligence.industry = "Service business";
-  if (!plan.intelligence.target_persona) plan.intelligence.target_persona = "Local customers";
-  if (!plan.intelligence.tone_of_voice) plan.intelligence.tone_of_voice = "friendly and professional";
-
-  return plan;
-}
-
-function postProcessBusinessJson(bj, input) {
-  bj = bj || {};
-  bj.intelligence = bj.intelligence || {};
-  bj.strategy = bj.strategy || {};
-  bj.settings = bj.settings || {};
-  bj.brand = bj.brand || {};
-  bj.hero = bj.hero || {};
-  bj.about = bj.about || {};
-  bj.contact = bj.contact || {};
-
-  // Ensure required intelligence keys
-  bj.intelligence.industry = bj.intelligence.industry || safeString(input.industry) || safeString(input.site_for) || "Service business";
-  bj.intelligence.target_persona = bj.intelligence.target_persona || "Local customers";
-  bj.intelligence.tone_of_voice = bj.intelligence.tone_of_voice || safeString(input.tone_hint) || "friendly and professional";
-
-  // Settings
-  if (!ALLOWED_VIBES.includes(bj.settings.vibe)) bj.settings.vibe = "Modern Minimal";
-  bj.settings.cta_text = bj.settings.cta_text || "Contact Us";
-  bj.settings.cta_link = bj.settings.cta_link || "#contact";
-  bj.settings.cta_type = bj.settings.cta_type || "anchor";
-  if (typeof bj.settings.secondary_cta_text !== "string") bj.settings.secondary_cta_text = "";
-  if (typeof bj.settings.secondary_cta_link !== "string") bj.settings.secondary_cta_link = "";
-  bj.settings.menu = ensureHomeAndContact(toMenuObjects(bj.settings.menu));
-
-  // Strategy booleans
-  const boolKeys = [
-    "show_trustbar",
-    "show_about",
-    "show_features",
-    "show_events",
-    "show_process",
-    "show_testimonials",
-    "show_comparison",
-    "show_gallery",
-    "show_investment",
-    "show_faqs",
-    "show_service_area",
-  ];
-  for (const k of boolKeys) {
-    if (typeof bj.strategy[k] !== "boolean") bj.strategy[k] = false;
-  }
-
-  // Brand required keys: name, tagline, email
-  const businessName = safeString(input.business_name, "").trim();
-  const email = safeString(input.email, "").trim();
-  const phone = safeString(input.phone, "").trim();
-  const mainCity = safeString(input.main_city, "").trim();
-
-  bj.brand.name = safeString(bj.brand.name, "").trim() || businessName || "Your Business";
-  bj.brand.tagline = safeString(bj.brand.tagline, "").trim() || "Professional services made simple.";
-  bj.brand.email = safeString(bj.brand.email, "").trim() || email || "hello@example.com";
-  if (!bj.brand.phone && phone) bj.brand.phone = phone;
-  if (!bj.brand.office_address && mainCity) bj.brand.office_address = mainCity;
-
-  // Slug
-  bj.brand.slug = normalizeSlug(bj.brand.slug || bj.brand.name || businessName || "brand");
-
-  // Hero: headline, subtext, image{alt,image_search_query}
-  bj.hero.headline = safeString(bj.hero.headline, "").trim() || `Welcome to ${bj.brand.name}`;
-  bj.hero.subtext = safeString(bj.hero.subtext, "").trim() || "Clear, professional service—designed for busy customers.";
-  bj.hero.image = bj.hero.image || {};
-  bj.hero.image.alt = safeString(bj.hero.image.alt, "").trim() || "Professional service in action";
-  bj.hero.image.image_search_query = sanitizeHeroQuery(bj.hero.image.image_search_query || `${bj.intelligence.industry} polishing driveway`);
-
-  // About: story_text, founder_note, years_experience
-  bj.about.story_text = safeString(bj.about.story_text, "").trim() || `${bj.brand.name} helps customers with ${bj.intelligence.industry.toLowerCase()} through a simple, reliable process.`;
-  bj.about.founder_note = safeString(bj.about.founder_note, "").trim() || "Owner-led, detail-focused, and committed to doing it right.";
-  bj.about.years_experience = safeString(bj.about.years_experience, "").trim() || "Newly launched";
-
-  // Features array: enforce shape + icon_slug normalization
-  if (!Array.isArray(bj.features)) bj.features = [];
-  bj.features = bj.features
-    .filter((x) => x && typeof x === "object")
-    .map((x) => ({
-      title: safeString(x.title, "").trim(),
-      description: safeString(x.description, "").trim(),
-      icon_slug: coerceIconSlug(x.icon_slug),
-    }))
-    .filter((x) => x.title && x.description)
-    .slice(0, 8);
-
-  // If show_features is true but empty, add 3 safe, generic features
-  if (bj.strategy.show_features && bj.features.length === 0) {
-    bj.features = [
-      { title: "Convenient Scheduling", description: "Pick a time that fits your day with a simple booking flow.", icon_slug: "clock" },
-      { title: "Careful, Professional Service", description: "We focus on details and treat your property/vehicle with care.", icon_slug: "shield" },
-      { title: "Clear Communication", description: "Fast updates, transparent expectations, and an easy next step.", icon_slug: "check" },
-    ];
-  }
-
-  // Contact required keys
-  bj.contact.headline = safeString(bj.contact.headline, "").trim() || "Get in touch";
-  bj.contact.subheadline = safeString(bj.contact.subheadline, "").trim() || "Tell us what you need and we’ll reply with the best next step.";
-  bj.contact.email_recipient = safeString(bj.contact.email_recipient, "").trim() || bj.brand.email;
-  bj.contact.button_text = safeString(bj.contact.button_text, "").trim() || "Contact Us";
-  if (!bj.contact.email && bj.brand.email) bj.contact.email = bj.brand.email;
-  if (!bj.contact.phone && bj.brand.phone) bj.contact.phone = bj.brand.phone;
-  if (typeof bj.contact.office_address !== "string") bj.contact.office_address = "";
-
-  // Optional sections used by templates (only if strategy says show + we have usable data)
-
-  // Trustbar
-  if (bj.strategy.show_trustbar) {
-    if (!bj.trustbar || typeof bj.trustbar !== "object") {
-      bj.trustbar = {
-        enabled: true,
-        headline: "A premium experience—without the hassle",
-        items: [
-          { icon: "sparkles", label: "Polished results", sublabel: "Clean, premium finish" },
-          { icon: "clock", label: "Time-saving", sublabel: "We come to you" },
-          { icon: "shield", label: "Care-first", sublabel: "Detail-oriented work" },
-        ],
-      };
-    }
-  }
-
-  // Process
-  if (bj.strategy.show_process) {
-    if (!Array.isArray(bj.processSteps)) bj.processSteps = [];
-    bj.processSteps = bj.processSteps
-      .filter((x) => x && typeof x === "object")
-      .map((x) => ({
-        title: safeString(x.title, "").trim(),
-        description: safeString(x.description, "").trim(),
-      }))
-      .filter((x) => x.title && x.description)
-      .slice(0, 6);
-
-    if (bj.processSteps.length === 0) {
-      bj.processSteps = [
-        { title: "Request a quote", description: "Tell us what you need and where you’re located." },
-        { title: "Confirm details", description: "We’ll confirm timing, scope, and expectations." },
-        { title: "We deliver the service", description: "Professional work completed on-site, with care." },
-        { title: "Wrap-up", description: "Quick walkthrough and simple next steps if needed." },
-      ];
-    }
-  }
-
-  // FAQs
-  if (bj.strategy.show_faqs) {
-    if (!Array.isArray(bj.faqs)) bj.faqs = [];
-    bj.faqs = bj.faqs
-      .filter((x) => x && typeof x === "object")
-      .map((x) => ({
-        question: safeString(x.question, "").trim(),
-        answer: safeString(x.answer, "").trim(),
-      }))
-      .filter((x) => x.question && x.answer)
-      .slice(0, 8);
-
-    if (bj.faqs.length === 0) {
-      bj.faqs = [
-        { question: "How do I book?", answer: "Use the contact form below and tell us what you need. We’ll confirm the next available time." },
-        { question: "Do you come to my location?", answer: "Yes—this is a mobile service. Share your address and we’ll confirm coverage." },
-        { question: "What do you need from me?", answer: "Just the basics: what you want done, your preferred time window, and any special notes." },
-      ];
-    }
-  }
-
-  // Service Area
-  if (bj.strategy.show_service_area) {
-    if (!bj.service_area || typeof bj.service_area !== "object") bj.service_area = {};
-    if (!bj.service_area.main_city) bj.service_area.main_city = mainCity || "Our Region";
-    if (!Array.isArray(bj.service_area.surrounding_cities)) bj.service_area.surrounding_cities = [];
-    // Keep it non-empty if main city is known
-    if (bj.service_area.surrounding_cities.length === 0 && bj.service_area.main_city && bj.service_area.main_city !== "Our Region") {
-      // Safe generic nearby list (can be edited later)
-      bj.service_area.surrounding_cities = ["Nearby suburbs", "Surrounding communities", "Local neighborhoods"];
-    }
-    if (!bj.service_area.travel_note) {
-      bj.service_area.travel_note = "Outside these areas? We offer custom quotes for extended travel.";
-    }
-  }
-
-  // Gallery
-  if (bj.strategy.show_gallery) {
-    if (!bj.gallery || typeof bj.gallery !== "object") bj.gallery = {};
-    if (typeof bj.gallery.enabled !== "boolean") bj.gallery.enabled = true;
-    bj.gallery.title = bj.gallery.title || "Recent work";
-    if (!bj.gallery.image_source || typeof bj.gallery.image_source !== "object") {
-      bj.gallery.image_source = {
-        provider: "unsplash",
-        image_search_query: sanitizeHeroQuery(`${bj.intelligence.industry} clean detail`),
-        filename_pattern: `${bj.brand.slug}-project-{i}.jpg`,
-        target_folder: "public/images",
-      };
-    }
-    if (!Array.isArray(bj.gallery.items)) bj.gallery.items = [];
-    bj.gallery.items = bj.gallery.items
-      .filter((x) => x && typeof x === "object")
-      .map((x) => ({
-        title: safeString(x.title, "").trim(),
-        caption: safeString(x.caption, "").trim(),
-        tag: safeString(x.tag, "").trim(),
-        image_search_query: sanitizeHeroQuery(x.image_search_query),
-      }))
-      .filter((x) => x.title && x.image_search_query)
-      .slice(0, 12);
-
-    if (bj.gallery.items.length === 0) {
-      bj.gallery.items = [
-        { title: "Before & after detail", caption: "Clean finish and refreshed look", tag: "Detailing", image_search_query: sanitizeHeroQuery("car detailing before after") },
-        { title: "Interior refresh", caption: "A cleaner, more comfortable cabin", tag: "Interior", image_search_query: sanitizeHeroQuery("car interior cleaning vacuum") },
-        { title: "Paint care", caption: "Polished shine with careful technique", tag: "Exterior", image_search_query: sanitizeHeroQuery("polishing car paint closeup") },
-      ];
-    }
-  }
-
-  // IMPORTANT: Do NOT fabricate testimonials/pricing. Only render if provided later.
-  // So force these flags off unless user explicitly provided them in input.
-  if (!input?.allow_testimonials) {
-    bj.strategy.show_testimonials = false;
-    bj.testimonials = Array.isArray(bj.testimonials) ? bj.testimonials.filter(() => false) : [];
-  }
-  if (!input?.allow_investment) {
-    bj.strategy.show_investment = false;
-    bj.investment = Array.isArray(bj.investment) ? bj.investment.filter(() => false) : [];
-  }
-  if (!input?.allow_comparison) {
-    bj.strategy.show_comparison = false;
-    bj.comparison = null;
-  }
-  if (!input?.allow_events) {
-    bj.strategy.show_events = false;
-    bj.events = Array.isArray(bj.events) ? bj.events.filter(() => false) : [];
-  }
-
-  return bj;
-}
-
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -495,16 +129,21 @@ export async function onRequest(context) {
   try {
     const input = await request.json();
 
-    const site_for = safeString(input.site_for, "");
-    const business_name = safeString(input.business_name, "");
-    const email = safeString(input.email, "");
-    const phone = safeString(input.phone, "");
-    const main_city = safeString(input.main_city, "");
-    const tone_hint = safeString(input.tone_hint, "");
-    const goal = safeString(input.goal, "Contact");
+    // Intake facts (authoritative)
+    const site_for = safeStr(input.site_for);
+    const business_name = safeStr(input.business_name);
+    const email = safeStr(input.email);
+    const phone = safeStr(input.phone);
+    const main_city = safeStr(input.main_city);
+    const goal = safeStr(input.goal, "Contact"); // e.g. Quote / Contact / Call
+    const tone_hint = safeStr(input.tone_hint);
 
-    // PASS A: Architect — produce plan aligned with your Master Schema
-    const planRaw = await openaiJson({
+    const baseSlug = normalizeSlug(input.slug || business_name || "brand");
+
+    // ---------------------------
+    // PASS A: Architect (plan)
+    // ---------------------------
+    const plan = await openaiJson({
       apiKey: env.OPENAI_API_KEY,
       model: "gpt-4.1-mini",
       temperature: 0.2,
@@ -513,170 +152,295 @@ export async function onRequest(context) {
           role: "user",
           content: `
 You are SiteForge "Architect".
-Return JSON ONLY with EXACT keys: intelligence, strategy, settings.
+Return JSON ONLY with keys: intelligence, strategy, settings.
 
-Must follow this contract:
+MUST MATCH THIS SHAPE:
 
-intelligence (REQUIRED):
-- industry (string)
-- target_persona (string)
-- tone_of_voice (string)
+intelligence:
+  industry, target_persona, tone_of_voice
 
-strategy (booleans, REQUIRED keys):
-- show_trustbar, show_about, show_features, show_events, show_process, show_testimonials,
+strategy (booleans only):
+  show_trustbar, show_about, show_features, show_events, show_process, show_testimonials,
   show_comparison, show_gallery, show_investment, show_faqs, show_service_area
 
-settings (REQUIRED):
-- vibe must be one of: ${ALLOWED_VIBES.map((v) => `"${v}"`).join(", ")}
-- cta_text (string), cta_link (string), cta_type ("anchor" or "external")
-- secondary_cta_text (string), secondary_cta_link (string)
-- menu: array of { label, path } where path is one of:
-  ${ALLOWED_ANCHORS.join(", ")}
+settings:
+  vibe (enum), cta_text, cta_link, cta_type ("anchor" or "external"),
+  secondary_cta_text, secondary_cta_link
+  menu (DO NOT include; server will build menu from flags)
 
 Rules:
-- Always include #home and #contact in settings.menu.
-- Prefer: show_features=true, show_about=true, show_process=true, show_faqs=true, show_service_area=true for most local services.
-- Do NOT set show_testimonials=true unless user provided testimonials (assume NOT provided).
-- Do NOT set show_investment=true unless user provided pricing (assume NOT provided).
-- show_events must be false unless you can produce 3+ real event items (assume false).
-- show_comparison should default false unless user asked for comparisons (assume false).
-- show_gallery can be true (we can use safe stock/preview images).
+- vibe must be one of:
+  "Midnight Tech","Zenith Earth","Vintage Boutique","Rugged Industrial","Modern Minimal","Luxury Noir","Legacy Professional","Solar Flare"
+- Always assume show_features true for service businesses.
+- show_events ONLY if you can later populate 3–10 events items. Otherwise false.
+- show_investment ONLY if you can provide 2–4 pricing tiers WITHOUT inventing exact prices (use ranges/“Starting at” if needed).
+- show_testimonials ONLY if you can write safe placeholder testimonials (clearly generic) OR you have real ones. Keep them generic.
+- show_comparison ONLY if it’s genuinely helpful (e.g., mobile vs shop, DIY vs pro).
+- show_gallery true for visual services (detailing, landscaping, remodeling, etc.)
 
 User input:
-business_name: ${JSON.stringify(business_name)}
 site_for: ${JSON.stringify(site_for)}
+business_name: ${JSON.stringify(business_name)}
 goal: ${JSON.stringify(goal)}
 tone_hint: ${JSON.stringify(tone_hint)}
 main_city: ${JSON.stringify(main_city)}
 email: ${JSON.stringify(email)}
 phone: ${JSON.stringify(phone)}
 
-JSON ONLY. No markdown.
+Return JSON ONLY.
           `.trim(),
         },
       ],
     });
 
-    const plan = postProcessPlan(planRaw);
     must(plan, ["intelligence", "strategy", "settings"]);
 
-    // PASS B: Builder — produce business_json aligned with Master Schema + templates
-    const businessJsonRaw = await openaiJson({
+    // We build menu ourselves so it never includes dead links
+    plan.settings = plan.settings || {};
+    plan.settings.menu = buildMenuFromFlags(plan.strategy || {});
+    // Force required settings defaults if model omitted
+    plan.settings.cta_text = safeStr(plan.settings.cta_text, goal.toLowerCase() === "quote" ? "Request a Quote" : "Contact Us");
+    plan.settings.cta_link = safeStr(plan.settings.cta_link, "#contact");
+    plan.settings.cta_type = plan.settings.cta_type === "external" ? "external" : "anchor";
+    plan.settings.secondary_cta_text = safeStr(plan.settings.secondary_cta_text, "");
+    plan.settings.secondary_cta_link = safeStr(plan.settings.secondary_cta_link, "");
+
+    // ---------------------------
+    // PASS B: Builder (business_json)
+    // ---------------------------
+    const business_json = await openaiJson({
       apiKey: env.OPENAI_API_KEY,
       model: "gpt-4.1-mini",
-      temperature: 0.25,
+      temperature: 0.35,
       messages: [
         {
           role: "user",
           content: `
 You are SiteForge "Builder".
-Return ONE JSON object that matches this shape (Master Schema names):
+Return ONE JSON object.
+
+It MUST conform to this top-level contract used by Astro:
 
 REQUIRED top-level keys:
 - intelligence, strategy, settings, brand, hero, about, features, contact
 
-OPTIONAL top-level keys (only if strategy says so):
-- trustbar, processSteps, faqs, service_area, gallery
+OPTIONAL keys (only include if strategy says true AND you provide the correct shape):
+- trustbar, events, processSteps, testimonials, comparison, gallery, investment, faqs, service_area
 
-Field requirements:
+STRICT SHAPES:
 
 intelligence:
-- industry, target_persona, tone_of_voice
+  industry, target_persona, tone_of_voice
 
-strategy (booleans):
-- show_trustbar, show_about, show_features, show_events, show_process, show_testimonials,
+strategy:
+  show_trustbar, show_about, show_features, show_events, show_process, show_testimonials,
   show_comparison, show_gallery, show_investment, show_faqs, show_service_area
 
 settings:
-- vibe (enum), cta_text, cta_link, cta_type ("anchor"|"external"),
-  secondary_cta_text, secondary_cta_link,
-  menu: [{label,path}] where path is one of:
-  ${ALLOWED_ANCHORS.join(", ")}
+  vibe, cta_text, cta_link, cta_type, secondary_cta_text, secondary_cta_link, menu
+  menu items are objects: {label, path} and paths are anchors like "#about"
 
 brand:
-- name, slug, tagline, email
-- phone (optional), office_address (optional), objection_handle (optional)
+  name, tagline, email (required)
+  optional: slug, phone, office_address, objection_handle
 
 hero:
-- headline (string)
-- subtext (string)
-- image: { alt, image_search_query }
-  image_search_query must be 4–8 words and MUST NOT include city names.
+  headline, subtext, image {alt, image_search_query}
+  image_search_query: 4–8 words: {subject} {action} {context}
+  DO NOT include city names in image_search_query.
 
 about:
-- story_text, founder_note, years_experience
-  Do NOT claim awards/certs/years that weren’t provided. If unknown, say "Newly launched".
+  story_text, founder_note, years_experience (strings)
 
 features:
-- 3–8 items: { title, description, icon_slug }
-  icon_slug must be one of:
-  ${ICON_TOKENS.join(", ")}
+  3–8 items: {title, description, icon_slug}
+  icon_slug MUST be one of:
+  zap,cpu,layers,rocket,leaf,sprout,sun,scissors,truck,hammer,wrench,trash,sparkles,heart,award,users,map,shield,star,check,coins,briefcase,clock,phone
 
 contact:
-- headline, subheadline, email_recipient, button_text
-- email/phone optional overrides
+  headline, subheadline, email_recipient, button_text
+  optional: email, phone, office_address
 
-service_area (ONLY if strategy.show_service_area=true):
-- main_city (string)
-- surrounding_cities (array of 3–8 strings)
-- travel_note optional
+service_area (if included):
+  main_city, surrounding_cities (array)
+  optional: travel_note, cta_text, cta_link, map_search_query
 
-trustbar (ONLY if strategy.show_trustbar=true):
-- enabled (boolean) + items (2–6) with icon in:
-  ${ICON_TOKENS.join(", ")}
+processSteps (if included):
+  3–5 items: {title, description}
 
-processSteps (ONLY if strategy.show_process=true):
-- 3–6 items with title + description (no fake credentials/claims)
+testimonials (if included):
+  3–6 items: {quote, author, role}
+  Keep clearly generic if unknown (no fake businesses, no “5-star Google” claims).
 
-faqs (ONLY if strategy.show_faqs=true):
-- 3–8 items with question + answer
+comparison (if included):
+  { title, items: [{label, us, them}] } 3–6 items
 
-gallery (ONLY if strategy.show_gallery=true):
-- enabled=true
-- title
-- image_source: { provider:"unsplash", image_search_query, filename_pattern:"${normalizeSlug(business_name) || "brand"}-project-{i}.jpg", target_folder:"public/images" }
-- items: 3–10 items { title, caption?, tag?, image_search_query }
+gallery (if included):
+  { enabled: true, title, layout: null, show_titles: true, items: [{title, caption?, tag?, image_search_query}] }
+  Provide 6–10 items. Each image_search_query MUST be different (vary subject/action/context).
 
-Important:
-- Use the EXACT field names above (subtext, story_text, processSteps, service_area).
-- Output JSON ONLY. No markdown.
+investment (if included):
+  2–4 tiers: { tier_name, price, popular?, features[] }
+  If user did NOT provide exact prices, use ranges or "Starting at" safely.
 
-Plan (must follow):
+faqs (if included):
+  4–8 items: { question, answer }
+
+trustbar (if included):
+  { enabled: true, headline?, items: [{icon, label, sublabel?}] }
+  icon MUST be one of the icon enum (or short emoji). Avoid hard claims.
+
+Plan (follow exactly):
 ${JSON.stringify(plan)}
 
-Authoritative facts from user:
+Authoritative facts:
 business_name: ${JSON.stringify(business_name)}
 email: ${JSON.stringify(email)}
 phone: ${JSON.stringify(phone)}
 main_city: ${JSON.stringify(main_city)}
-tone_hint: ${JSON.stringify(tone_hint)}
 goal: ${JSON.stringify(goal)}
 site_for: ${JSON.stringify(site_for)}
+slug: ${JSON.stringify(baseSlug)}
+
+Return JSON ONLY. No markdown.
           `.trim(),
         },
       ],
     });
 
-    const business_json = postProcessBusinessJson(businessJsonRaw, {
-      business_name,
-      email,
-      phone,
-      main_city,
-      tone_hint,
-      goal,
-      site_for,
-      // Keep these false by default unless caller explicitly opts in
-      allow_testimonials: false,
-      allow_investment: false,
-      allow_comparison: false,
-      allow_events: false,
-    });
-
     must(business_json, ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"]);
 
-    // Final slug lock (always)
-    const slug = normalizeSlug(business_json?.brand?.slug || business_json?.brand?.name || business_name || "brand");
+    // ---------------------------
+    // Server-side normalization to prevent dead links / missing sections
+    // ---------------------------
+    // Lock slug
+    const slug = normalizeSlug(
+      business_json?.brand?.slug || business_json?.brand?.name || business_name || baseSlug || "brand"
+    );
+    business_json.brand = business_json.brand || {};
     business_json.brand.slug = slug;
+
+    // Ensure brand required fields exist
+    business_json.brand.name = safeStr(business_json.brand.name, business_name || "Your Business");
+    business_json.brand.tagline = safeStr(business_json.brand.tagline, `${business_json.brand.name}`);
+    business_json.brand.email = safeStr(business_json.brand.email, email);
+
+    // Ensure optional phone/address carried through
+    if (phone && !business_json.brand.phone) business_json.brand.phone = phone;
+    if (main_city && !business_json.brand.office_address) business_json.brand.office_address = main_city;
+
+    // Force settings.menu built from flags (never trust model menu)
+    business_json.settings = business_json.settings || {};
+    business_json.strategy = business_json.strategy || {};
+    business_json.settings.menu = buildMenuFromFlags(business_json.strategy);
+
+    // Ensure CTA fields present (schema requires these)
+    business_json.settings.cta_text = safeStr(business_json.settings.cta_text, plan?.settings?.cta_text || "Contact Us");
+    business_json.settings.cta_link = safeStr(business_json.settings.cta_link, plan?.settings?.cta_link || "#contact");
+    business_json.settings.cta_type = business_json.settings.cta_type === "external" ? "external" : "anchor";
+    business_json.settings.secondary_cta_text = safeStr(business_json.settings.secondary_cta_text, "");
+    business_json.settings.secondary_cta_link = safeStr(business_json.settings.secondary_cta_link, "");
+
+    // Enforce features icon enum (prevents “car”, “user-check”, etc.)
+    if (Array.isArray(business_json.features)) {
+      business_json.features = business_json.features.map((f) => ({
+        ...f,
+        icon_slug: enforceIconSlug(f?.icon_slug),
+      }));
+    }
+
+    // If show_service_area true, ensure correct service_area shape
+    if (business_json.strategy.show_service_area) {
+      const sa = business_json.service_area || {};
+      const surrounding = uniqStrings(sa.surrounding_cities);
+      business_json.service_area = {
+        main_city: safeStr(sa.main_city, main_city || "Our Region"),
+        surrounding_cities: surrounding.length ? surrounding : [],
+        travel_note: safeStr(sa.travel_note, "Outside these areas? We offer custom quotes for extended travel."),
+        cta_text: safeStr(sa.cta_text, business_json.settings.cta_text),
+        cta_link: safeStr(sa.cta_link, "#contact"),
+        map_search_query: safeStr(sa.map_search_query, ""),
+      };
+    } else {
+      delete business_json.service_area;
+    }
+
+    // If show_gallery true, ensure gallery.enabled and queries are unique-ish
+    if (business_json.strategy.show_gallery) {
+      const g = business_json.gallery || {};
+      const items = Array.isArray(g.items) ? g.items : [];
+      // De-dupe identical queries/titles
+      const seenQ = new Set();
+      const cleaned = [];
+      for (const it of items) {
+        const q = safeStr(it?.image_search_query);
+        const t = safeStr(it?.title, "Project");
+        const key = (q + "|" + t).toLowerCase();
+        if (!q) continue;
+        if (seenQ.has(key)) continue;
+        seenQ.add(key);
+        cleaned.push({
+          title: t,
+          caption: safeStr(it?.caption, ""),
+          tag: safeStr(it?.tag, ""),
+          image_search_query: q,
+        });
+      }
+      business_json.gallery = {
+        enabled: true,
+        title: safeStr(g.title, "Recent Work"),
+        layout: g.layout ?? null,
+        show_titles: typeof g.show_titles === "boolean" ? g.show_titles : true,
+        items: cleaned,
+      };
+      // If model forgot items, create safe defaults based on industry
+      if (business_json.gallery.items.length < 6) {
+        const defaults = [
+          "car detailing polishing luxury car",
+          "car interior cleaning vacuum seats",
+          "car wash foam rinse driveway",
+          "headlight restoration before after",
+          "wheel cleaning tire shine closeup",
+          "paint correction polishing buffer",
+          "ceramic coating application hood",
+          "leather seat conditioning interior",
+        ];
+        const already = new Set(business_json.gallery.items.map((x) => x.image_search_query.toLowerCase()));
+        for (const q of defaults) {
+          if (business_json.gallery.items.length >= 8) break;
+          if (already.has(q.toLowerCase())) continue;
+          business_json.gallery.items.push({ title: "Detailing", caption: "", tag: "", image_search_query: q });
+          already.add(q.toLowerCase());
+        }
+      }
+    } else {
+      delete business_json.gallery;
+    }
+
+    // Guard: only keep optional sections if enabled in strategy
+    const optMap = [
+      ["trustbar", "show_trustbar"],
+      ["events", "show_events"],
+      ["processSteps", "show_process"],
+      ["testimonials", "show_testimonials"],
+      ["comparison", "show_comparison"],
+      ["investment", "show_investment"],
+      ["faqs", "show_faqs"],
+    ];
+    for (const [key, flag] of optMap) {
+      if (!business_json.strategy?.[flag]) delete business_json[key];
+    }
+
+    // Make sure contact recipient is set
+    business_json.contact = business_json.contact || {};
+    business_json.contact.email_recipient = safeStr(
+      business_json.contact.email_recipient,
+      email || business_json.brand.email || ""
+    );
+    // Helpful passthrough fields (your Contact schema allows these)
+    if (email) business_json.contact.email = safeStr(business_json.contact.email, email);
+    if (phone) business_json.contact.phone = safeStr(business_json.contact.phone, phone);
+    if (main_city) business_json.contact.office_address = safeStr(business_json.contact.office_address, main_city);
 
     return new Response(JSON.stringify({ ok: true, slug, plan, business_json }), {
       headers: { "content-type": "application/json" },
