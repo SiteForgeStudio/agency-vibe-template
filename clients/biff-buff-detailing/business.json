@@ -73,12 +73,12 @@
   },
   "brand": {
     "name": "Biff-Buff Detailing",
+    "slug": "biff-buff-detailing",
     "tagline": "Premium Mobile Car Detailing at Your Doorstep",
     "email": "biff@gmail.com",
-    "slug": "biff-buff-detailing",
     "phone": "215-555-5555",
-    "objection_handle": "We come to you, saving you time and hassle while delivering a showroom finish.",
-    "office_address": "Philadelphia, PA"
+    "office_address": "Philadelphia, PA",
+    "objection_handle": "We come to you, saving you time and hassle while delivering a showroom finish."
   },
   "hero": {
     "headline": "Your Car Deserves the Best Finish, Wherever You Are",
@@ -128,6 +128,26 @@
     "email": "biff@gmail.com",
     "phone": "215-555-5555",
     "office_address": "Philadelphia, PA"
+  },
+  "service_area": {
+    "headline": "Our Service Area",
+    "description": "Proudly serving Philadelphia and surrounding neighborhoods with premium mobile car detailing.",
+    "locations": [
+      "Philadelphia",
+      "Nearby Suburbs"
+    ],
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Conshohocken",
+      "King of Prussia",
+      "Cherry Hill",
+      "Bensalem",
+      "Norristown"
+    ],
+    "travel_note": "We proudly serve Philadelphia and nearby communities with mobile detailing convenience.",
+    "cta_text": "Check Availability in Your Area",
+    "cta_link": "#contact",
+    "map_search_query": "Philadelphia mobile car detailing"
   },
   "trustbar": {
     "enabled": true,
@@ -305,19 +325,5 @@
       "question": "Are your products safe for my car’s paint and interior?",
       "answer": "Absolutely, we use premium eco-friendly products designed for all surfaces."
     }
-  ],
-  "service_area": {
-    "main_city": "Philadelphia, PA",
-    "surrounding_cities": [
-      "Conshohocken",
-      "King of Prussia",
-      "Cherry Hill",
-      "Bensalem",
-      "Norristown"
-    ],
-    "travel_note": "We proudly serve Philadelphia and nearby communities with mobile detailing convenience.",
-    "cta_text": "Check Availability in Your Area",
-    "cta_link": "#contact",
-    "map_search_query": "Philadelphia mobile car detailing"
-  }
+  ]
 }
