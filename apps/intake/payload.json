@@ -1,0 +1,94 @@
+{
+    "client_email": "biff@gmail.com",
+    "business_json": {
+      "intelligence": {
+        "business_name": "Biff-Buff Detailing",
+        "site_for": "A mobile car detailing service that comes to homes and offices. Customers are local owners of nice cars who want a premium finish without wasting time.",
+        "goal": "Quote",
+        "tone_hint": "premium but friendly",
+        "main_city": "Philadelphia, PA"
+      },
+      "strategy": {
+        "CTA": "#contact",
+        "show_events": false,
+        "menu": [
+          "#home",
+          "#about",
+          "#features",
+          "#process",
+          "#testimonials",
+          "#investment",
+          "#faqs",
+          "#service-area",
+          "#contact"
+        ]
+      },
+      "settings": {
+        "vibe": "Luxury Noir",
+        "menu": [
+          "#home",
+          "#about",
+          "#features",
+          "#process",
+          "#testimonials",
+          "#investment",
+          "#faqs",
+          "#service-area",
+          "#contact"
+        ]
+      },
+      "brand": {
+        "name": "Biff-Buff Detailing",
+        "tagline": "Premium Mobile Car Detailing in Philadelphia",
+        "slug": "biff-buff-detailing",
+        "email": "biff@gmail.com",
+        "phone": "215-555-5555"
+      },
+      "hero": {
+        "headline": "Luxury Mobile Car Detailing at Your Doorstep",
+        "subheadline": "Expert care for your prized vehicle without the hassle of travel.",
+        "image": {
+          "alt": "Professional detailing technician polishing luxury car outdoors",
+          "image_search_query": "professional detailing technician polishing luxury car outdoors"
+        }
+      },
+      "about": {
+        "headline": "About Biff-Buff Detailing",
+        "content": "Biff-Buff Detailing offers premium mobile car detailing services in Philadelphia, PA. We bring expert care directly to your home or office, ensuring your vehicle receives the highest quality finish with convenience and professionalism."
+      },
+      "features": [
+        {
+          "title": "Convenient Mobile Service",
+          "description": "We come to your location, saving you time and effort while delivering top-tier detailing.",
+          "icon_slug": "truck"
+        },
+        {
+          "title": "Premium Quality Finishes",
+          "description": "Using only the best products and techniques to protect and enhance your vehicle’s appearance.",
+          "icon_slug": "sparkles"
+        },
+        {
+          "title": "Experienced Technicians",
+          "description": "Our skilled team treats every car with meticulous attention to detail and care.",
+          "icon_slug": "users"
+        },
+        {
+          "title": "Eco-Friendly Products",
+          "description": "We use environmentally responsible cleaning solutions that are safe for your car and the planet.",
+          "icon_slug": "leaf"
+        },
+        {
+          "title": "Flexible Scheduling",
+          "description": "Book appointments at times that suit your busy lifestyle, including evenings and weekends.",
+          "icon_slug": "clock"
+        }
+      ],
+      "contact": {
+        "headline": "Get Your Premium Detailing Quote Today",
+        "subheadline": "Contact Biff-Buff Detailing to schedule your mobile service in Philadelphia.",
+        "email_recipient": "biff@gmail.com",
+        "button_text": "Request a Quote"
+      }
+    }
+  }
+  

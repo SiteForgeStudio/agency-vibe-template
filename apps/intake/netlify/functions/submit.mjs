@@ -2,8 +2,9 @@ export default async (req) => {
     try {
       const body = await req.json();
   
-      const url = process.env.APPS_SCRIPT_WEBAPP_URL;
-      const factoryKey = process.env.FACTORY_KEY;
+      const url = process.env.APPS_SCRIPT_WEBAPP_URL || globalThis.APPS_SCRIPT_WEBAPP_URL;
+      const factoryKey = process.env.FACTORY_KEY || globalThis.FACTORY_KEY;
+      
   
       if (!url) throw new Error("Missing APPS_SCRIPT_WEBAPP_URL env var");
       if (!factoryKey) throw new Error("Missing FACTORY_KEY env var");
