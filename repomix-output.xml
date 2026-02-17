@@ -43,7 +43,38 @@ The content is organized as follows:
 .github/
   workflows/
     build-client.yml
+apps/
+  intake/
+    .vscode/
+      extensions.json
+      launch.json
+    functions/
+      api/
+        generate.js
+        submit.js
+    netlify/
+      functions/
+        generate.mjs
+        submit.mjs
+    public/
+      favicon.ico
+      favicon.svg
+    src/
+      pages/
+        index.astro
+    .gitignore
+    astro.config.mjs
+    gen.json
+    netlify.toml
+    package.json
+    payload.json
+    README.md
+    submit.json
+    tsconfig.json
 clients/
+  biff-buff-detailing/
+    business.base.json
+    business.updates.json
   testbrand-detailing/
     business.base.json
     business.updates.json
@@ -203,17 +234,444 @@ src/
 .gitignore
 astro.config.mjs
 Contact.astro
+gen.json
 master-schema.json
 netlify.toml
 package.json
 PROCESS.md
 README.md
+submit.json
+submit.response.json
 tailwind.config.mjs
 tsconfig.json
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="submit.json">
+{
+  "business_json": {
+    "intelligence": {
+      "industry": "Mobile Car Detailing",
+      "target_persona": "Local owners of nice cars seeking premium, convenient car care",
+      "tone_of_voice": "premium but friendly"
+    },
+    "strategy": {
+      "show_trustbar": true,
+      "show_about": true,
+      "show_features": true,
+      "show_events": false,
+      "show_process": true,
+      "show_testimonials": true,
+      "show_comparison": true,
+      "show_gallery": true,
+      "show_investment": true,
+      "show_faqs": true,
+      "show_service_area": true
+    },
+    "settings": {
+      "vibe": "Luxury Noir",
+      "cta_text": "Get a Quote",
+      "cta_link": "#contact",
+      "cta_type": "anchor",
+      "secondary_cta_text": "",
+      "secondary_cta_link": "",
+      "menu": [
+        {
+          "label": "Home",
+          "path": "#home"
+        },
+        {
+          "label": "About",
+          "path": "#about"
+        },
+        {
+          "label": "Features",
+          "path": "#features"
+        },
+        {
+          "label": "Process",
+          "path": "#process"
+        },
+        {
+          "label": "Testimonials",
+          "path": "#testimonials"
+        },
+        {
+          "label": "Comparison",
+          "path": "#comparison"
+        },
+        {
+          "label": "Gallery",
+          "path": "#gallery"
+        },
+        {
+          "label": "Investment",
+          "path": "#investment"
+        },
+        {
+          "label": "FAQs",
+          "path": "#faqs"
+        },
+        {
+          "label": "Service Area",
+          "path": "#service-area"
+        },
+        {
+          "label": "Contact",
+          "path": "#contact"
+        }
+      ]
+    },
+    "brand": {
+      "name": "Biff-Buff Detailing",
+      "slug": "biff-buff-detailing",
+      "tagline": "Premium Mobile Car Detailing at Your Doorstep",
+      "email": "biff@gmail.com",
+      "phone": "215-555-5555",
+      "office_address": "Philadelphia, PA",
+      "objection_handle": "We come to you, saving you time while delivering a flawless finish that protects your investment."
+    },
+    "hero": {
+      "headline": "Luxury Mobile Detailing That Comes To You",
+      "subtext": "Experience a premium finish without leaving your home or office.",
+      "image": {
+        "alt": "Premium car detailing service with luxury finish",
+        "image_search_query": "premium mobile car detailing service luxury finish"
+      }
+    },
+    "about": {
+      "story_text": "Biff-Buff Detailing was founded to bring top-tier car care directly to your doorstep. We understand the value of your time and your vehicle, offering expert detailing that fits your schedule.",
+      "founder_note": "As a car enthusiast, I wanted to create a service that combines convenience with impeccable quality. Your car deserves the best, wherever you are.",
+      "years_experience": "Newly launched"
+    },
+    "features": [
+      {
+        "title": "Convenient Mobile Service",
+        "description": "We come to your home or office, saving you time and hassle.",
+        "icon_slug": "car"
+      },
+      {
+        "title": "Premium Quality Finish",
+        "description": "Using only the highest-grade products for a flawless shine.",
+        "icon_slug": "sparkles"
+      },
+      {
+        "title": "Eco-Friendly Products",
+        "description": "Safe for your car and the environment.",
+        "icon_slug": "leaf"
+      },
+      {
+        "title": "Experienced Detailers",
+        "description": "Skilled professionals dedicated to perfection.",
+        "icon_slug": "user-check"
+      },
+      {
+        "title": "Flexible Scheduling",
+        "description": "Book at a time that suits your busy lifestyle.",
+        "icon_slug": "calendar-alt"
+      }
+    ],
+    "contact": {
+      "headline": "Get Your Premium Detailing Quote Today",
+      "subheadline": "Contact us to schedule your mobile car detailing service.",
+      "email_recipient": "biff@gmail.com",
+      "button_text": "Request a Quote",
+      "email": "biff@gmail.com",
+      "phone": "215-555-5555",
+      "office_address": "Philadelphia, PA"
+    },
+    "service_area": {
+      "headline": "Our Service Area",
+      "description": "Proudly serving Philadelphia and surrounding neighborhoods with premium mobile car detailing.",
+      "locations": [
+        "Philadelphia",
+        "Nearby Suburbs"
+      ]
+    }
+  },
+  "client_email": "biff@gmail.com"
+}
+</file>
+
+<file path="submit.response.json">
+{"ok":true,"status":"PENDING","slug":"biff-buff-detailing","submission_row":5}
+</file>
+
+<file path="apps/intake/.vscode/extensions.json">
+{
+  "recommendations": ["astro-build.astro-vscode"],
+  "unwantedRecommendations": []
+}
+</file>
+
+<file path="apps/intake/.vscode/launch.json">
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "command": "./node_modules/.bin/astro dev",
+      "name": "Development server",
+      "request": "launch",
+      "type": "node-terminal"
+    }
+  ]
+}
+</file>
+
+<file path="apps/intake/public/favicon.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 128 128">
+    <path d="M50.4 78.5a75.1 75.1 0 0 0-28.5 6.9l24.2-65.7c.7-2 1.9-3.2 3.4-3.2h29c1.5 0 2.7 1.2 3.4 3.2l24.2 65.7s-11.6-7-28.5-7L67 45.5c-.4-1.7-1.6-2.8-2.9-2.8-1.3 0-2.5 1.1-2.9 2.7L50.4 78.5Zm-1.1 28.2Zm-4.2-20.2c-2 6.6-.6 15.8 4.2 20.2a17.5 17.5 0 0 1 .2-.7 5.5 5.5 0 0 1 5.7-4.5c2.8.1 4.3 1.5 4.7 4.7.2 1.1.2 2.3.2 3.5v.4c0 2.7.7 5.2 2.2 7.4a13 13 0 0 0 5.7 4.9v-.3l-.2-.3c-1.8-5.6-.5-9.5 4.4-12.8l1.5-1a73 73 0 0 0 3.2-2.2 16 16 0 0 0 6.8-11.4c.3-2 .1-4-.6-6l-.8.6-1.6 1a37 37 0 0 1-22.4 2.7c-5-.7-9.7-2-13.2-6.2Z" />
+    <style>
+        path { fill: #000; }
+        @media (prefers-color-scheme: dark) {
+            path { fill: #FFF; }
+        }
+    </style>
+</svg>
+</file>
+
+<file path="apps/intake/src/pages/index.astro">
+---
+
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro</title>
+	</head>
+	<body>
+		<h1>Astro</h1>
+	</body>
+</html>
+</file>
+
+<file path="apps/intake/.gitignore">
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+</file>
+
+<file path="apps/intake/astro.config.mjs">
+// @ts-check
+import { defineConfig } from 'astro/config';
+
+// https://astro.build/config
+export default defineConfig({});
+</file>
+
+<file path="apps/intake/gen.json">
+Error - Request ID: 01KH9NH6SDG2HBJ3KJ4PV02Q89
+</file>
+
+<file path="apps/intake/netlify.toml">
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+</file>
+
+<file path="apps/intake/package.json">
+{
+  "name": "intake",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.17.1"
+  }
+}
+</file>
+
+<file path="apps/intake/payload.json">
+{
+    "client_email": "biff@gmail.com",
+    "business_json": {
+      "intelligence": {
+        "business_name": "Biff-Buff Detailing",
+        "site_for": "A mobile car detailing service that comes to homes and offices. Customers are local owners of nice cars who want a premium finish without wasting time.",
+        "goal": "Quote",
+        "tone_hint": "premium but friendly",
+        "main_city": "Philadelphia, PA"
+      },
+      "strategy": {
+        "CTA": "#contact",
+        "show_events": false,
+        "menu": [
+          "#home",
+          "#about",
+          "#features",
+          "#process",
+          "#testimonials",
+          "#investment",
+          "#faqs",
+          "#service-area",
+          "#contact"
+        ]
+      },
+      "settings": {
+        "vibe": "Luxury Noir",
+        "menu": [
+          "#home",
+          "#about",
+          "#features",
+          "#process",
+          "#testimonials",
+          "#investment",
+          "#faqs",
+          "#service-area",
+          "#contact"
+        ]
+      },
+      "brand": {
+        "name": "Biff-Buff Detailing",
+        "tagline": "Premium Mobile Car Detailing in Philadelphia",
+        "slug": "biff-buff-detailing",
+        "email": "biff@gmail.com",
+        "phone": "215-555-5555"
+      },
+      "hero": {
+        "headline": "Luxury Mobile Car Detailing at Your Doorstep",
+        "subheadline": "Expert care for your prized vehicle without the hassle of travel.",
+        "image": {
+          "alt": "Professional detailing technician polishing luxury car outdoors",
+          "image_search_query": "professional detailing technician polishing luxury car outdoors"
+        }
+      },
+      "about": {
+        "headline": "About Biff-Buff Detailing",
+        "content": "Biff-Buff Detailing offers premium mobile car detailing services in Philadelphia, PA. We bring expert care directly to your home or office, ensuring your vehicle receives the highest quality finish with convenience and professionalism."
+      },
+      "features": [
+        {
+          "title": "Convenient Mobile Service",
+          "description": "We come to your location, saving you time and effort while delivering top-tier detailing.",
+          "icon_slug": "truck"
+        },
+        {
+          "title": "Premium Quality Finishes",
+          "description": "Using only the best products and techniques to protect and enhance your vehicle’s appearance.",
+          "icon_slug": "sparkles"
+        },
+        {
+          "title": "Experienced Technicians",
+          "description": "Our skilled team treats every car with meticulous attention to detail and care.",
+          "icon_slug": "users"
+        },
+        {
+          "title": "Eco-Friendly Products",
+          "description": "We use environmentally responsible cleaning solutions that are safe for your car and the planet.",
+          "icon_slug": "leaf"
+        },
+        {
+          "title": "Flexible Scheduling",
+          "description": "Book appointments at times that suit your busy lifestyle, including evenings and weekends.",
+          "icon_slug": "clock"
+        }
+      ],
+      "contact": {
+        "headline": "Get Your Premium Detailing Quote Today",
+        "subheadline": "Contact Biff-Buff Detailing to schedule your mobile service in Philadelphia.",
+        "email_recipient": "biff@gmail.com",
+        "button_text": "Request a Quote"
+      }
+    }
+  }
+</file>
+
+<file path="apps/intake/README.md">
+# Astro Starter Kit: Minimal
+
+```sh
+npm create astro@latest -- --template minimal
+```
+
+> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+
+## 🚀 Project Structure
+
+Inside of your Astro project, you'll see the following folders and files:
+
+```text
+/
+├── public/
+├── src/
+│   └── pages/
+│       └── index.astro
+└── package.json
+```
+
+Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+
+There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+
+Any static assets, like images, can be placed in the `public/` directory.
+
+## 🧞 Commands
+
+All commands are run from the root of the project, from a terminal:
+
+| Command                   | Action                                           |
+| :------------------------ | :----------------------------------------------- |
+| `npm install`             | Installs dependencies                            |
+| `npm run dev`             | Starts local dev server at `localhost:4321`      |
+| `npm run build`           | Build your production site to `./dist/`          |
+| `npm run preview`         | Preview your build locally, before deploying     |
+| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
+| `npm run astro -- --help` | Get help using the Astro CLI                     |
+
+## 👀 Want to learn more?
+
+Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+</file>
+
+<file path="apps/intake/submit.json">
+{"client_email": "biff@gmail.com", "business_json": {"intelligence": {"industry": "mobile car detailing", "target_persona": "Local customers who want a reliable, high-quality service", "tone_of_voice": "premium but friendly"}, "strategy": {"show_trustbar": false, "show_about": true, "show_features": true, "show_events": false, "show_process": true, "show_testimonials": true, "show_comparison": false, "show_gallery": false, "show_investment": false, "show_faqs": true, "show_service_area": true, "primary_cta": true, "key_messages": true, "differentiators": true}, "settings": {"vibe": "Luxury Noir", "cta_text": "Request a Quote", "cta_link": "#contact", "cta_type": "anchor", "menu": [{"label": "Home", "path": "#home"}, {"label": "About", "path": "#about"}, {"label": "Services", "path": "#features"}, {"label": "Process", "path": "#process"}, {"label": "Reviews", "path": "#testimonials"}, {"label": "FAQ", "path": "#faqs"}, {"label": "Service Area", "path": "#service-area"}, {"label": "Contact", "path": "#contact"}]}, "brand": {"name": "Biff-Buff Detailing", "slug": "biff-buff-detailing", "tagline": "Trusted mobile car detailing in Philadelphia, PA", "email": "biff@gmail.com", "phone": "215-555-5555", "office_address": "", "objection_handle": ""}, "hero": {"headline": "Premium Mobile Car Detailing in Philadelphia", "subtext": "Expert care for your luxury vehicle, wherever you are", "image": {"alt": "Luxury car receiving mobile detailing service outdoors", "image_search_query": "luxury car mobile detailing Philadelphia outdoors"}}, "about": {"story_text": "Biff-Buff Detailing brings premium car care directly to your home or office in Philadelphia. We specialize in high-quality detailing services tailored for luxury vehicles, ensuring a flawless finish without disrupting your busy schedule. Our friendly and professional team is dedicated to providing convenient, expert service that saves you time and keeps your car looking its best.", "founder_note": "Owner-led, detail-focused, and committed to doing it right.", "years_experience": "Newly launched"}, "features": [{"title": "Mobile Convenience", "description": "We come to you, offering detailing services at your home or workplace to save you time and effort.", "icon_slug": "truck"}, {"title": "Premium Finish", "description": "Expert detailing using top-tier products to protect and enhance your vehicle's appearance.", "icon_slug": "sparkles"}, {"title": "Luxury Vehicle Specialists", "description": "Our team is trained to handle high-end cars with the utmost care and attention to detail.", "icon_slug": "shield"}, {"title": "Friendly Professional Staff", "description": "We pride ourselves on delivering courteous and reliable service every time.", "icon_slug": "users"}, {"title": "Time-Saving Service", "description": "Get your car detailed without interrupting your day, thanks to our efficient mobile operations.", "icon_slug": "clock"}], "contact": {"headline": "Get Your Premium Detailing Quote Today", "subheadline": "Contact Biff-Buff Detailing for expert mobile service in Philadelphia", "email_recipient": "biff@gmail.com", "button_text": "Request a Quote", "email": "biff@gmail.com", "phone": "215-555-5555", "office_address": ""}, "service_area": {"main_city": "Philadelphia, PA", "surrounding_cities": [], "travel_note": "Outside these areas? We offer custom quotes for extended travel.", "cta_text": "Request a Quote", "cta_link": "#contact"}}}
+</file>
+
+<file path="apps/intake/tsconfig.json">
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".astro/types.d.ts", "**/*"],
+  "exclude": ["dist"]
+}
+</file>
+
+<file path="clients/biff-buff-detailing/business.updates.json">
+{}
+</file>
 
 <file path="clients/testbrand-detailing/business.base.json">
 {
@@ -2708,6 +3166,10 @@ export default defineConfig({
 
 </file>
 
+<file path="gen.json">
+{"ok":true,"slug":"biff-buff-detailing","plan":{"intelligence":{"industry":"Mobile Car Detailing","target_persona":"Local owners of nice cars seeking premium, convenient car care","tone_of_voice":"premium but friendly"},"strategy":{"show_trustbar":true,"show_about":true,"show_features":true,"show_events":false,"show_process":true,"show_testimonials":true,"show_comparison":true,"show_gallery":true,"show_investment":true,"show_faqs":true,"show_service_area":true},"settings":{"vibe":"Luxury Noir","cta_text":"Get a Quote","cta_link":"#contact","cta_type":"anchor","menu":[{"label":"Home","path":"#home"},{"label":"About","path":"#about"},{"label":"Features","path":"#features"},{"label":"Process","path":"#process"},{"label":"Testimonials","path":"#testimonials"},{"label":"Comparison","path":"#comparison"},{"label":"Gallery","path":"#gallery"},{"label":"Investment","path":"#investment"},{"label":"FAQs","path":"#faqs"},{"label":"Service Area","path":"#service-area"},{"label":"Contact","path":"#contact"}]}},"business_json":{"intelligence":{"industry":"Mobile Car Detailing","target_persona":"Local owners of nice cars seeking premium, convenient car care","tone_of_voice":"premium but friendly"},"strategy":{"show_trustbar":true,"show_about":true,"show_features":true,"show_events":false,"show_process":true,"show_testimonials":true,"show_comparison":true,"show_gallery":true,"show_investment":true,"show_faqs":true,"show_service_area":true},"settings":{"vibe":"Luxury Noir","cta_text":"Get a Quote","cta_link":"#contact","cta_type":"anchor","secondary_cta_text":"","secondary_cta_link":"","menu":[{"label":"Home","path":"#home"},{"label":"About","path":"#about"},{"label":"Features","path":"#features"},{"label":"Process","path":"#process"},{"label":"Testimonials","path":"#testimonials"},{"label":"Comparison","path":"#comparison"},{"label":"Gallery","path":"#gallery"},{"label":"Investment","path":"#investment"},{"label":"FAQs","path":"#faqs"},{"label":"Service Area","path":"#service-area"},{"label":"Contact","path":"#contact"}]},"brand":{"name":"Biff-Buff Detailing","slug":"biff-buff-detailing","tagline":"Premium Mobile Car Detailing at Your Doorstep","email":"biff@gmail.com","phone":"215-555-5555","office_address":"Philadelphia, PA","objection_handle":"We come to you, saving you time while delivering a flawless finish that protects your investment."},"hero":{"headline":"Luxury Mobile Detailing That Comes To You","subtext":"Experience a premium finish without leaving your home or office.","image":{"alt":"Premium car detailing service with luxury finish","image_search_query":"premium mobile car detailing service luxury finish"}},"about":{"story_text":"Biff-Buff Detailing was founded to bring top-tier car care directly to your doorstep. We understand the value of your time and your vehicle, offering expert detailing that fits your schedule.","founder_note":"As a car enthusiast, I wanted to create a service that combines convenience with impeccable quality. Your car deserves the best, wherever you are.","years_experience":"Newly launched"},"features":[{"title":"Convenient Mobile Service","description":"We come to your home or office, saving you time and hassle.","icon_slug":"car"},{"title":"Premium Quality Finish","description":"Using only the highest-grade products for a flawless shine.","icon_slug":"sparkles"},{"title":"Eco-Friendly Products","description":"Safe for your car and the environment.","icon_slug":"leaf"},{"title":"Experienced Detailers","description":"Skilled professionals dedicated to perfection.","icon_slug":"user-check"},{"title":"Flexible Scheduling","description":"Book at a time that suits your busy lifestyle.","icon_slug":"calendar-alt"}],"contact":{"headline":"Get Your Premium Detailing Quote Today","subheadline":"Contact us to schedule your mobile car detailing service.","email_recipient":"biff@gmail.com","button_text":"Request a Quote","email":"biff@gmail.com","phone":"215-555-5555","office_address":"Philadelphia, PA"},"service_area":{"headline":"Our Service Area","description":"Proudly serving Philadelphia and surrounding neighborhoods with premium mobile car detailing.","locations":["Philadelphia","Nearby Suburbs"]}}}
+</file>
+
 <file path="netlify.toml">
 [build]
   command = "npm run build"
@@ -2793,6 +3255,51 @@ export default {
   "extends": "astro/tsconfigs/strict",
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist"]
+}
+</file>
+
+<file path="apps/intake/functions/api/submit.js">
+export async function onRequest(context) {
+  const { request, env } = context;
+
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ ok: false, error: "Use POST /api/submit" }), {
+      status: 405,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  try {
+    const body = await request.json();
+
+    const url = env.APPS_SCRIPT_WEBAPP_URL;
+    const factoryKey = env.FACTORY_KEY;
+
+    if (!url) throw new Error("Missing APPS_SCRIPT_WEBAPP_URL env var");
+    if (!factoryKey) throw new Error("Missing FACTORY_KEY env var");
+
+    const payload = {
+      factory_key: factoryKey,
+      business_json: body.business_json,
+      client_email: body.client_email || body.business_json?.brand?.email || ""
+    };
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const text = await res.text();
+    if (!res.ok) throw new Error(`Apps Script error ${res.status}: ${text}`);
+
+    return new Response(text, { headers: { "content-type": "application/json" } });
+  } catch (err) {
+    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+      status: 500,
+      headers: { "content-type": "application/json" }
+    });
+  }
 }
 </file>
 
@@ -3330,99 +3837,389 @@ export const iconLibrary = {
 };
 </file>
 
-<file path=".github/workflows/build-client.yml">
-name: Build Client Dist
+<file path="apps/intake/netlify/functions/generate.mjs">
+function normalizeSlug(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/'/g, "")
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+  
+  function must(obj, keys) {
+    for (const k of keys) if (!(k in obj)) throw new Error(`Missing key: ${k}`);
+  }
+  
+  async function openaiJson({ model, messages, temperature = 0.3 }) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error("Missing OPENAI_API_KEY env var");
+  
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature,
+        response_format: { type: "json_object" },
+        messages,
+      }),
+    });
+  
+    const text = await res.text();
+    if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${text}`);
+  
+    const data = JSON.parse(text);
+    const content = data?.choices?.[0]?.message?.content;
+    if (!content) throw new Error("OpenAI returned no content");
+    return JSON.parse(content);
+  }
+  
+  /* =========================
+     Schema adapter (fixes key names + required fields)
+  ========================= */
+  
+  function toMenuObjects(menuPaths) {
+    const labelMap = {
+      "#home": "Home",
+      "#about": "About",
+      "#features": "Services",
+      "#events": "Schedule",
+      "#process": "Process",
+      "#testimonials": "Reviews",
+      "#comparison": "Compare",
+      "#gallery": "Gallery",
+      "#investment": "Pricing",
+      "#faqs": "FAQ",
+      "#service-area": "Service Area",
+      "#contact": "Contact",
+    };
+  
+    return (menuPaths || [])
+      .filter(Boolean)
+      .map((p) => ({ label: labelMap[p] || "Section", path: p }));
+  }
+  
+  function ensureStrategyBooleans(strategy = {}) {
+    const out = {
+      show_trustbar: false,
+      show_about: true,
+      show_features: true,
+      show_events: false,
+      show_process: true,
+      show_testimonials: true,
+      show_comparison: false,
+      show_gallery: false,
+      show_investment: false,
+      show_faqs: true,
+      show_service_area: true,
+      ...strategy,
+    };
+    for (const k of Object.keys(out)) out[k] = Boolean(out[k]);
+    return out;
+  }
+  
+  function adaptToSchema({ draft, input, plan }) {
+    const site_for = input.site_for || "";
+    const tone_hint = input.tone_hint || "";
+    const goal = input.goal || "Contact";
+  
+    // Menu paths may be strings from older outputs; prefer plan.settings.menu then plan.strategy.menu
+    const menuPaths =
+      plan?.settings?.menu ||
+      plan?.strategy?.menu ||
+      draft?.settings?.menu ||
+      draft?.strategy?.menu ||
+      ["#home", "#about", "#features", "#process", "#faqs", "#service-area", "#contact"];
+  
+    // Settings CTA
+    let cta_link = "#contact";
+    let cta_type = "anchor";
+    let cta_text =
+      goal === "Call" ? "Call Now" : goal === "Quote" ? "Request a Quote" : goal === "Book" ? "Book Now" : "Contact Us";
+  
+    // If you later support booking URLs in intake, set cta_type="external" and cta_link=<url>.
+    // For now, always anchor to contact.
+    if (goal === "Call" && !(draft?.brand?.phone || input.phone)) {
+      cta_text = "Contact Us";
+      cta_link = "#contact";
+      cta_type = "anchor";
+    }
+  
+    // Intelligence (required by schema)
+    const industry =
+      draft?.intelligence?.industry ||
+      (site_for.toLowerCase().includes("detailing")
+        ? "mobile car detailing"
+        : site_for
+        ? site_for
+        : "local services");
+  
+    const target_persona =
+      draft?.intelligence?.target_persona ||
+      "Local customers who want a reliable, high-quality service";
+  
+    const tone_of_voice =
+      draft?.intelligence?.tone_of_voice ||
+      (tone_hint ? tone_hint : "Professional, friendly, and clear");
+  
+    const settings = {
+      vibe: draft?.settings?.vibe || plan?.settings?.vibe || "Modern Minimal",
+      cta_text,
+      cta_link,
+      cta_type,
+      menu: toMenuObjects(menuPaths),
+    };
+  
+    // Strategy booleans (required by engine logic)
+    const strategy = ensureStrategyBooleans(draft?.strategy || plan?.strategy || {});
+  
+    // Brand (schema-required: name, tagline, email)
+    const brand = {
+      name: draft?.brand?.name || input.business_name || "Your Business",
+      slug: draft?.brand?.slug || "",
+      tagline:
+        draft?.brand?.tagline ||
+        `Trusted ${industry}${input.main_city ? ` in ${input.main_city}` : ""}`,
+      email: draft?.brand?.email || input.email || "",
+      phone: draft?.brand?.phone || input.phone || "",
+      office_address: draft?.brand?.office_address || "",
+      objection_handle: draft?.brand?.objection_handle || "",
+    };
+  
+    // Hero (schema-required: headline, subtext, image)
+    const hero = {
+      headline: draft?.hero?.headline || "Premium service, made easy",
+      subtext:
+        draft?.hero?.subtext ||
+        draft?.hero?.subheadline ||
+        draft?.hero?.subheadline ||
+        "Fast, simple, and professional from first contact to completion.",
+      image: draft?.hero?.image || {
+        alt: "Service professional at work",
+        image_search_query: "service professional working outdoors",
+      },
+    };
+  
+    // About (schema-required: story_text, founder_note, years_experience)
+    const aboutText =
+      draft?.about?.story_text ||
+      draft?.about?.content ||
+      "We’re built around quality work, clear communication, and a great customer experience.";
+  
+    const about = {
+      story_text: aboutText,
+      founder_note: draft?.about?.founder_note || "Owner-led, detail-focused, and committed to doing it right.",
+      years_experience: draft?.about?.years_experience || "Newly launched",
+    };
+  
+    // Features (schema critical: array of items with title/description/icon_slug)
+    let features = Array.isArray(draft?.features) ? draft.features : [];
+    if (features.length < 3) {
+      features = [
+        ...features,
+        { title: "Easy scheduling", description: "Fast replies and simple booking.", icon_slug: "clock" },
+        { title: "Quality-first work", description: "Careful, consistent results you can trust.", icon_slug: "check" },
+        { title: "Friendly support", description: "Clear communication from start to finish.", icon_slug: "phone" },
+      ].slice(0, 3);
+    }
+  
+    // Contact (schema required: headline, subheadline, email_recipient, button_text)
+    const contact = {
+      headline: draft?.contact?.headline || "Get in touch",
+      subheadline: draft?.contact?.subheadline || "Tell us what you need and we’ll respond shortly.",
+      email_recipient: draft?.contact?.email_recipient || brand.email,
+      button_text: draft?.contact?.button_text || settings.cta_text,
+      email: draft?.contact?.email || brand.email,
+      phone: draft?.contact?.phone || brand.phone,
+      office_address: draft?.contact?.office_address || brand.office_address,
+    };
+  
+    // Optional service area (only if strategy says so)
+    const out = {
+      intelligence: { industry, target_persona, tone_of_voice },
+      strategy,
+      settings,
+      brand,
+      hero,
+      about,
+      features,
+      contact,
+    };
+  
+    if (strategy.show_service_area) {
+      out.service_area = {
+        main_city: input.main_city || "Our Region",
+        surrounding_cities: [],
+        travel_note: "Outside these areas? We offer custom quotes for extended travel.",
+        cta_text: settings.cta_text,
+        cta_link: settings.cta_link,
+      };
+    }
+  
+    // Optional events (only if enabled and we have 3+ items)
+    if (strategy.show_events && Array.isArray(draft?.events) && draft.events.length >= 3) {
+      out.events = draft.events;
+    } else {
+      // Ensure show_events can't be true without events
+      out.strategy.show_events = false;
+    }
+  
+    return out;
+  }
+  
+  /* =========================
+     Netlify Function
+  ========================= */
+  
+  export default async (req) => {
+    try {
+      const input = await req.json();
+  
+      const site_for = input.site_for || "";
+      const business_name = input.business_name || "";
+      const email = input.email || "";
+      const phone = input.phone || "";
+      const main_city = input.main_city || "";
+      const goal = input.goal || "Contact";
+      const tone_hint = input.tone_hint || "";
+  
+      // Pass A: Architect
+      const plan = await openaiJson({
+        model: "gpt-4.1-mini",
+        temperature: 0.3,
+        messages: [
+          {
+            role: "user",
+            content: `
+  You are SiteForge "Architect".
+  Return JSON ONLY with keys: intelligence, strategy, settings.
+  
+  Rules:
+  - settings.vibe must be one of:
+    "Midnight Tech","Zenith Earth","Vintage Boutique","Rugged Industrial","Modern Minimal","Luxury Noir","Legacy Professional","Solar Flare"
+  - settings.menu must be a list of anchor paths from:
+    #home,#about,#features,#events,#process,#testimonials,#comparison,#gallery,#investment,#faqs,#service-area,#contact
+  - Always include #home and #contact.
+  - show_events only if you can populate 3+ events items later; otherwise false.
+  
+  User input:
+  site_for: ${JSON.stringify(site_for)}
+  business_name: ${JSON.stringify(business_name)}
+  goal: ${JSON.stringify(goal)}
+  tone_hint: ${JSON.stringify(tone_hint)}
+  main_city: ${JSON.stringify(main_city)}
+            `.trim(),
+          },
+        ],
+      });
+  
+      must(plan, ["intelligence", "strategy", "settings"]);
+  
+      // Pass B: Builder (draft may not match schema exactly — adapter fixes)
+      const draft = await openaiJson({
+        model: "gpt-4.1-mini",
+        temperature: 0.4,
+        messages: [
+          {
+            role: "user",
+            content: `
+  You are SiteForge "Builder".
+  Return ONE JSON object that includes these keys:
+  intelligence, strategy, settings, brand, hero, about, features, contact
+  
+  Hard rules:
+  - Do NOT invent awards/certs/years/pricing unless user provided.
+  - features: 3–8 items with title, description, icon_slug.
+    icon_slug must be one of:
+    zap,cpu,layers,rocket,leaf,sprout,sun,scissors,truck,hammer,wrench,trash,sparkles,heart,award,users,map,shield,star,check,coins,briefcase,clock,phone
+  - hero.image: alt + image_search_query (4–8 words: subject action context).
+  - contact must include headline, subheadline, email_recipient, button_text.
+  
+  Plan (must follow):
+  ${JSON.stringify(plan)}
+  
+  Authoritative facts from user:
+  business_name: ${JSON.stringify(business_name)}
+  email: ${JSON.stringify(email)}
+  phone: ${JSON.stringify(phone)}
+  main_city: ${JSON.stringify(main_city)}
+  goal: ${JSON.stringify(goal)}
+  site_for: ${JSON.stringify(site_for)}
+  
+  JSON ONLY. No markdown.
+            `.trim(),
+          },
+        ],
+      });
+  
+      must(draft, ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"]);
+  
+      // Lock slug and adapt to CURRENT master schema
+      const slug = normalizeSlug(draft?.brand?.slug || draft?.brand?.name || business_name || "brand");
+      const business_json = adaptToSchema({ draft, input, plan });
+      business_json.brand.slug = slug;
+  
+      // Ensure email/phone are present in brand if provided
+      if (email && !business_json.brand.email) business_json.brand.email = email;
+      if (phone && !business_json.brand.phone) business_json.brand.phone = phone;
+  
+      return new Response(JSON.stringify({ ok: true, slug, plan, business_json }), {
+        headers: { "content-type": "application/json" },
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  };
+</file>
 
-on:
-  workflow_dispatch:
-    inputs:
-      client_slug:
-        description: "Client slug (folder name under clients/)"
-        required: true
-        type: string
+<file path="apps/intake/netlify/functions/submit.mjs">
+export default async (req) => {
+    try {
+      const body = await req.json();
+  
+      const url = process.env.APPS_SCRIPT_WEBAPP_URL || globalThis.APPS_SCRIPT_WEBAPP_URL;
+      const factoryKey = process.env.FACTORY_KEY || globalThis.FACTORY_KEY;
+      
+  
+      if (!url) throw new Error("Missing APPS_SCRIPT_WEBAPP_URL env var");
+      if (!factoryKey) throw new Error("Missing FACTORY_KEY env var");
+  
+      const payload = {
+        factory_key: factoryKey,
+        business_json: body.business_json,
+        client_email: body.client_email || body.business_json?.brand?.email || ""
+      };
+  
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+  
+      const text = await res.text();
+      if (!res.ok) throw new Error(`Apps Script error ${res.status}: ${text}`);
+  
+      return new Response(text, {
+        headers: { "content-type": "application/json" }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+        status: 500,
+        headers: { "content-type": "application/json" }
+      });
+    }
+  };
+</file>
 
-run-name: build-${{ inputs.client_slug }}
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node (22)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install deps
-        run: npm ci
-
-      # 1) Merge base + updates -> clients/<slug>/business.json
-      - name: Merge JSON (base + updates -> business.json)
-        run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
-
-      # DEBUG: show the brand slug and expected filenames (helps confirm the exact naming)
-      - name: Debug - show brand.slug + expected image filenames
-        run: |
-          node -e "const fs=require('fs'); const p=`clients/${{ inputs.client_slug }}/business.json`; const d=JSON.parse(fs.readFileSync(p,'utf8')); const brandSlug=d?.brand?.slug || (d?.brand?.name||'brand').toLowerCase().replace(/'/g,'').replace(/[^a-z0-9]/g,'-'); console.log('brand.slug:', d?.brand?.slug); console.log('derived brandSlug:', brandSlug); console.log('expected hero:', `${brandSlug}-hero.jpg`); console.log('expected gallery sample:', `${brandSlug}-project-0.jpg`);"
-
-      # 2) Fetch premium preview images into clients/<slug>/assets/images/*
-      - name: Fetch Unsplash images (premium preview)
-        run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
-        env:
-          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
-
-      # DEBUG: verify images were downloaded into the client folder
-      - name: Debug - list client downloaded images
-        run: |
-          echo "=== clients/${{ inputs.client_slug }}/assets/images ==="
-          ls -la "clients/${{ inputs.client_slug }}/assets/images" || true
-
-      # 3) Prepare build: copy clients/<slug>/business.json -> src/data/business.json
-      #    and copy clients/<slug>/assets/images -> src/assets/images (clearing first)
-      - name: Prepare build (copy JSON + images into app)
-        run: node scripts/prepare-build.mjs "${{ inputs.client_slug }}"
-
-      # DEBUG: verify src/assets/images contains only this client’s images (post-prepare)
-      - name: Debug - list src/assets/images after prepare-build
-        run: |
-          echo "=== src/assets/images ==="
-          ls -la src/assets/images || true
-
-      # 4) Build Astro
-      - name: Build Astro
-        run: npm run build
-
-      # DEBUG: verify built output contains images referenced/hashed
-      - name: Debug - find images in dist
-        run: |
-          echo "=== dist image-ish files ==="
-          find dist -maxdepth 6 -type f | egrep -i "\.(jpg|jpeg|png|webp|gif|svg)$" || true
-          echo "=== dist paths mentioning hero/project/images/assets ==="
-          find dist -maxdepth 8 -type f | egrep -i "hero|project|images|assets" || true
-
-      # 5) Zip dist
-      - name: Zip dist
-        run: zip -r dist.zip dist
-
-      # DEBUG: show zip contents (top-level + a few image entries)
-      - name: Debug - list dist.zip contents (sample)
-        run: |
-          echo "=== dist.zip listing (first 200 lines) ==="
-          unzip -l dist.zip | head -n 200
-
-      # 6) Upload artifact
-      - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist-${{ inputs.client_slug }}
-          path: dist.zip
-          if-no-files-found: error
-          retention-days: 7
+<file path="clients/biff-buff-detailing/business.base.json">
+{"intelligence":{"business_name":"Biff-Buff Detailing","site_for":"A mobile car detailing service that comes to homes and offices. Customers are local owners of nice cars who want a premium finish without wasting time.","goal":"Quote","tone_hint":"premium but friendly","main_city":"Philadelphia, PA"},"strategy":{"menu":["#home","#about","#features","#process","#testimonials","#investment","#faqs","#service-area","#contact"],"show_events":false},"settings":{"vibe":"Luxury Noir","menu":["#home","#about","#features","#process","#testimonials","#investment","#faqs","#service-area","#contact"]},"brand":{"logo_text":"Biff-Buff Detailing","tagline":"Premium Mobile Car Detailing at Your Doorstep","colors":{"primary":"#1a1a1a","secondary":"#c0a060","accent":"#ffffff"},"font_family":"Montserrat, sans-serif","slug":"biff-buff-detailing","email":"biff@gmail.com","phone":"215-555-5555"},"hero":{"headline":"Experience Luxury Mobile Car Detailing","subheadline":"We bring the showroom shine right to your home or office.","button_text":"Get a Quote","image":{"alt":"Professional detailing technician polishing luxury car","image_search_query":"professional detailing technician polishing luxury car outdoors"}},"about":{"headline":"About Biff-Buff Detailing","content":"Biff-Buff Detailing is dedicated to providing premium mobile car detailing services with convenience and care. We specialize in delivering a flawless finish to luxury vehicles at your home or workplace, saving you time without compromising quality."},"features":[{"title":"Premium Mobile Service","description":"We come to you, whether at home or office, providing top-tier detailing without disrupting your schedule.","icon_slug":"truck"},{"title":"Expert Care for Luxury Cars","description":"Our experienced technicians use the finest products and techniques to protect and enhance your vehicle’s finish.","icon_slug":"shield"},{"title":"Eco-Friendly Products","description":"We use environmentally safe cleaning solutions that are tough on dirt but gentle on your car and the planet.","icon_slug":"leaf"},{"title":"Flexible Scheduling","description":"Book appointments that fit your busy lifestyle with easy online scheduling and prompt service.","icon_slug":"clock"},{"title":"Comprehensive Detailing Packages","description":"From exterior wash to interior deep cleaning, choose the package that suits your car’s needs.","icon_slug":"layers"}],"contact":{"headline":"Get in Touch","subheadline":"Ready for your car’s premium shine? Contact us today!","email_recipient":"biff@gmail.com","button_text":"Request a Quote"},"service_area":{"main_city":"Philadelphia, PA","surrounding_cities":["Conshohocken","King of Prussia","Cherry Hill","Bryn Mawr","Media","Lansdale"]}}
 </file>
 
 <file path="src/components/Comparison.astro">
@@ -3594,29 +4391,397 @@ const statusMessage = isTech
 </Layout>
 </file>
 
-<file path="package.json">
-{
-  "name": "agency-v4",
-  "type": "module",
-  "version": "0.0.1",
-  "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview",
-    "astro": "astro"
-  },
-  "dependencies": {
-    "@astrojs/check": "^0.9.6",
-    "@astrojs/react": "^4.4.2",
-    "@astrojs/tailwind": "^6.0.2",
-    "astro": "^5.16.7",
-    "axios": "^1.13.2",
-    "dotenv": "^17.2.3",
-    "lucide-react": "^0.562.0",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.9.3"
+<file path=".github/workflows/build-client.yml">
+name: Build Client Dist
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_slug:
+        description: "Client slug (folder name under clients/)"
+        required: true
+        type: string
+
+run-name: build-${{ inputs.client_slug }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node (22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      # 1) Merge base + updates -> clients/<slug>/business.json
+      - name: Merge JSON (base + updates -> business.json)
+        run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
+
+      # DEBUG: show the brand slug and expected filenames (helps confirm the exact naming)
+      # NOTE: Avoid backticks/template literals here because bash will eat them.
+      - name: Debug - show brand.slug + expected image filenames
+        continue-on-error: true
+        run: |
+          node -e "const fs=require('fs'); const slug='${{ inputs.client_slug }}'; const p='clients/'+slug+'/business.json'; const d=JSON.parse(fs.readFileSync(p,'utf8')); const brandSlug=(d && d.brand && d.brand.slug) ? d.brand.slug : ((d && d.brand && d.brand.name) ? d.brand.name : 'brand').toLowerCase().replace(/'/g,'').replace(/[^a-z0-9]/g,'-'); console.log('path:', p); console.log('brand.slug:', d?.brand?.slug); console.log('derived brandSlug:', brandSlug); console.log('expected hero:', brandSlug + '-hero.jpg'); console.log('expected gallery sample:', brandSlug + '-project-0.jpg');"
+
+      # 2) Fetch premium preview images into clients/<slug>/assets/images/*
+      - name: Fetch Unsplash images (premium preview)
+        run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
+        env:
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+
+      # DEBUG: verify images were downloaded into the client folder
+      - name: Debug - list client downloaded images
+        run: |
+          echo "=== clients/${{ inputs.client_slug }}/assets/images ==="
+          ls -la "clients/${{ inputs.client_slug }}/assets/images" || true
+
+      # 3) Prepare build: copy clients/<slug>/business.json -> src/data/business.json
+      #    and copy clients/<slug>/assets/images -> src/assets/images (clearing first)
+      - name: Prepare build (copy JSON + images into app)
+        run: node scripts/prepare-build.mjs "${{ inputs.client_slug }}"
+
+      # DEBUG: verify src/assets/images contains only this client’s images (post-prepare)
+      - name: Debug - list src/assets/images after prepare-build
+        run: |
+          echo "=== src/assets/images ==="
+          ls -la src/assets/images || true
+
+      # 4) Build Astro
+      - name: Build Astro
+        run: npm run build
+
+      # DEBUG: verify built output contains images referenced/hashed
+      - name: Debug - find images in dist
+        run: |
+          echo "=== dist image-ish files ==="
+          find dist -maxdepth 6 -type f | egrep -i "\.(jpg|jpeg|png|webp|gif|svg)$" || true
+          echo "=== dist paths mentioning hero/project/images/assets ==="
+          find dist -maxdepth 8 -type f | egrep -i "hero|project|images|assets" || true
+
+      # 5) Zip dist
+      - name: Zip dist
+        run: zip -r dist.zip dist
+
+      # DEBUG: show zip contents (top-level + a few image entries)
+      - name: Debug - list dist.zip contents (sample)
+        run: |
+          echo "=== dist.zip listing (first 200 lines) ==="
+          unzip -l dist.zip | head -n 200
+
+      # 6) Upload artifact
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ inputs.client_slug }}
+          path: dist.zip
+          if-no-files-found: error
+          retention-days: 7
+</file>
+
+<file path="apps/intake/functions/api/generate.js">
+function normalizeSlug(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function must(obj, keys) {
+  for (const k of keys) if (!(k in obj)) throw new Error(`Missing key: ${k}`);
+}
+
+function isObj(v) {
+  return v && typeof v === "object" && !Array.isArray(v);
+}
+
+function labelForAnchor(a) {
+  return (
+    (a === "#home" && "Home") ||
+    (a === "#about" && "About") ||
+    (a === "#features" && "Services") ||
+    (a === "#events" && "Schedule") ||
+    (a === "#process" && "Process") ||
+    (a === "#testimonials" && "Reviews") ||
+    (a === "#comparison" && "Compare") ||
+    (a === "#gallery" && "Gallery") ||
+    (a === "#investment" && "Pricing") ||
+    (a === "#faqs" && "FAQ") ||
+    (a === "#service-area" && "Service Area") ||
+    (a === "#contact" && "Contact") ||
+    "Link"
+  );
+}
+
+function normalizeMenu(menuLike) {
+  // schema requires [{label,path}]
+  if (!menuLike) return null;
+
+  if (Array.isArray(menuLike) && menuLike.length > 0) {
+    const first = menuLike[0];
+
+    // already objects
+    if (isObj(first) && "label" in first && "path" in first) {
+      return menuLike.map((m) => ({
+        label: String(m.label || labelForAnchor(m.path)),
+        path: String(m.path),
+      }));
+    }
+
+    // anchor strings
+    if (typeof first === "string") {
+      return menuLike.map((a) => ({ label: labelForAnchor(a), path: a }));
+    }
+  }
+
+  return null;
+}
+
+function normalizeOutputToSchema(raw, input) {
+  // Fix common drift fields so components always get what they expect.
+  const out = { ...(raw || {}) };
+
+  // intelligence
+  if (raw?.intelligence && !raw.intelligence.industry) {
+    out.intelligence = {
+      industry: raw.intelligence.business_type || raw.intelligence.industry || input.site_for || "service business",
+      target_persona: raw.intelligence.target_audience || raw.intelligence.target_persona || "local customers",
+      tone_of_voice: raw.intelligence.tone || raw.intelligence.tone_of_voice || input.tone_hint || "professional",
+    };
+  }
+
+  // settings.menu normalize
+  if (raw?.settings) {
+    out.settings = { ...raw.settings };
+    const nm = normalizeMenu(raw.settings.menu) || normalizeMenu(raw?.strategy?.menu);
+    if (nm) out.settings.menu = nm;
+  }
+
+  // hero subheadline -> subtext
+  if (raw?.hero) {
+    out.hero = { ...raw.hero };
+    if (!out.hero.subtext && out.hero.subheadline) out.hero.subtext = out.hero.subheadline;
+    delete out.hero.subheadline;
+  }
+
+  // about content/headline -> required keys
+  if (raw?.about) {
+    out.about = { ...raw.about };
+    if (!out.about.story_text && (out.about.content || out.about.story)) out.about.story_text = out.about.content || out.about.story;
+    if (!out.about.founder_note) out.about.founder_note = "Owner-led and detail-focused.";
+    if (!out.about.years_experience) out.about.years_experience = "Newly launched";
+    delete out.about.headline;
+    delete out.about.content;
+  }
+
+  // contact: ensure schema keys exist
+  if (raw?.contact) {
+    out.contact = { ...raw.contact };
+    if (!out.contact.subheadline && out.contact.subtext) out.contact.subheadline = out.contact.subtext;
+    delete out.contact.subtext;
+  }
+
+  // service_area key name
+  if (raw?.serviceArea && !raw?.service_area) {
+    out.service_area = raw.serviceArea;
+    delete out.serviceArea;
+  }
+
+  return out;
+}
+
+async function openaiJson({ apiKey, model, messages, temperature = 0.3 }) {
+  if (!apiKey) throw new Error("Missing OPENAI_API_KEY env var");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      temperature,
+      response_format: { type: "json_object" },
+      messages,
+    }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${text}`);
+
+  const data = JSON.parse(text);
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenAI returned no content");
+  return JSON.parse(content);
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
+
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ ok: false, error: "Use POST /api/generate" }), {
+      status: 405,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  try {
+    const input = await request.json();
+
+    const site_for = input.site_for || "";
+    const business_name = input.business_name || "";
+    const email = input.email || "";
+    const phone = input.phone || "";
+    const main_city = input.main_city || "";
+    const goal = input.goal || "Contact";
+    const tone_hint = input.tone_hint || "";
+
+    // Pass A: Architect (force MASTER schema shape)
+    const plan = await openaiJson({
+      apiKey: env.OPENAI_API_KEY,
+      model: "gpt-4.1-mini",
+      temperature: 0.2,
+      messages: [
+        {
+          role: "user",
+          content: `
+You are SiteForge "Architect".
+Return JSON ONLY with keys: intelligence, strategy, settings.
+
+MASTER SCHEMA SHAPES (MUST MATCH):
+- intelligence: { "industry": string, "target_persona": string, "tone_of_voice": string }
+- strategy: include ALL booleans:
+  show_trustbar,show_about,show_features,show_events,show_process,show_testimonials,show_comparison,show_gallery,show_investment,show_faqs,show_service_area
+- settings: { vibe, cta_text, cta_link, cta_type, menu }
+  menu MUST be an array of objects: [{ "label": string, "path": anchor }]
+  path MUST be one of:
+  #home,#about,#features,#events,#process,#testimonials,#comparison,#gallery,#investment,#faqs,#service-area,#contact
+
+Rules:
+- vibe must be one of:
+  "Midnight Tech","Zenith Earth","Vintage Boutique","Rugged Industrial","Modern Minimal","Luxury Noir","Legacy Professional","Solar Flare"
+- Always include #home and #contact in menu.
+- show_events only if you can populate 3+ events later; otherwise false.
+- cta_type should be "anchor" unless you have a real external booking URL.
+
+User input:
+site_for: ${JSON.stringify(site_for)}
+business_name: ${JSON.stringify(business_name)}
+goal: ${JSON.stringify(goal)}
+tone_hint: ${JSON.stringify(tone_hint)}
+main_city: ${JSON.stringify(main_city)}
+          `.trim(),
+        },
+      ],
+    });
+
+    must(plan, ["intelligence", "strategy", "settings"]);
+
+    // Pass B: Builder (force EXACT master schema output)
+    const raw = await openaiJson({
+      apiKey: env.OPENAI_API_KEY,
+      model: "gpt-4.1-mini",
+      temperature: 0.35,
+      messages: [
+        {
+          role: "user",
+          content: `
+You are SiteForge "Builder".
+Return ONE JSON object that matches the MASTER SCHEMA EXACTLY.
+
+REQUIRED top-level keys:
+intelligence, strategy, settings, brand, hero, about, features, contact
+
+OPTIONAL keys (only if relevant):
+service_area (include ONLY if strategy.show_service_area is true)
+
+MASTER SCHEMA (MUST MATCH):
+- intelligence: { industry, target_persona, tone_of_voice }
+- strategy: include ALL show_* booleans listed in plan.strategy
+- settings: { vibe, cta_text, cta_link, cta_type, secondary_cta_text, secondary_cta_link, menu }
+  menu MUST be [{label, path}] not strings
+- brand: { name, slug, tagline, email, phone, office_address, objection_handle }
+- hero: { headline, subtext, image:{alt,image_search_query} }
+  image_search_query must be 4–8 words, DO NOT include city names
+- about: { story_text, founder_note, years_experience }
+  Do NOT invent years; if unknown use "Newly launched"
+- features: 3–8 items { title, description, icon_slug } using allowed icon slugs
+- contact: { headline, subheadline, email_recipient, button_text, email, phone, office_address }
+
+Hard rules:
+- Do NOT invent awards/certs/pricing.
+- Use user-provided email/phone.
+- Keep copy "premium but friendly" when appropriate.
+- JSON ONLY. No markdown.
+
+Architect plan:
+${JSON.stringify(plan)}
+
+Authoritative facts:
+business_name: ${JSON.stringify(business_name)}
+email: ${JSON.stringify(email)}
+phone: ${JSON.stringify(phone)}
+main_city: ${JSON.stringify(main_city)}
+goal: ${JSON.stringify(goal)}
+site_for: ${JSON.stringify(site_for)}
+          `.trim(),
+        },
+      ],
+    });
+
+    const business_json = normalizeOutputToSchema(raw, {
+      site_for,
+      business_name,
+      email,
+      phone,
+      main_city,
+      goal,
+      tone_hint,
+    });
+
+    must(business_json, ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"]);
+
+    // Lock slug
+    const slug = normalizeSlug(business_json?.brand?.slug || business_json?.brand?.name || business_name || "brand");
+    business_json.brand = business_json.brand || {};
+    business_json.brand.slug = slug;
+
+    // Ensure email/phone are present in brand if provided
+    if (email && !business_json.brand.email) business_json.brand.email = email;
+    if (phone && !business_json.brand.phone) business_json.brand.phone = phone;
+
+    // If show_service_area true but missing, add a minimal one
+    if (business_json?.strategy?.show_service_area && !business_json.service_area) {
+      business_json.service_area = {
+        main_city: main_city || "Our Region",
+        surrounding_cities: [],
+        travel_note: "Outside these areas? We offer custom quotes for extended travel.",
+        cta_text: business_json.settings?.cta_text || "Contact Us",
+        cta_link: "#contact",
+        map_search_query: "",
+      };
+    }
+
+    return new Response(JSON.stringify({ ok: true, slug, plan, business_json }), {
+      headers: { "content-type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
   }
 }
 </file>
@@ -4441,6 +5606,34 @@ if (!testimonials || testimonials.length === 0) return null;
         "office_address": { "type": "string" }
       }
     }
+  }
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "agency-v4",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.6",
+    "@astrojs/react": "^4.4.2",
+    "@astrojs/tailwind": "^6.0.2",
+    "astro": "^5.16.7",
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "lucide-react": "^0.562.0",
+    "openai": "^6.21.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.9.3"
   }
 }
 </file>

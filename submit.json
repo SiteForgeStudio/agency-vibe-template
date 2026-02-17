@@ -1,0 +1,143 @@
+{
+  "business_json": {
+    "intelligence": {
+      "industry": "Mobile Car Detailing",
+      "target_persona": "Local owners of nice cars seeking premium, convenient car care",
+      "tone_of_voice": "premium but friendly"
+    },
+    "strategy": {
+      "show_trustbar": true,
+      "show_about": true,
+      "show_features": true,
+      "show_events": false,
+      "show_process": true,
+      "show_testimonials": true,
+      "show_comparison": true,
+      "show_gallery": true,
+      "show_investment": true,
+      "show_faqs": true,
+      "show_service_area": true
+    },
+    "settings": {
+      "vibe": "Luxury Noir",
+      "cta_text": "Get a Quote",
+      "cta_link": "#contact",
+      "cta_type": "anchor",
+      "secondary_cta_text": "",
+      "secondary_cta_link": "",
+      "menu": [
+        {
+          "label": "Home",
+          "path": "#home"
+        },
+        {
+          "label": "About",
+          "path": "#about"
+        },
+        {
+          "label": "Features",
+          "path": "#features"
+        },
+        {
+          "label": "Process",
+          "path": "#process"
+        },
+        {
+          "label": "Testimonials",
+          "path": "#testimonials"
+        },
+        {
+          "label": "Comparison",
+          "path": "#comparison"
+        },
+        {
+          "label": "Gallery",
+          "path": "#gallery"
+        },
+        {
+          "label": "Investment",
+          "path": "#investment"
+        },
+        {
+          "label": "FAQs",
+          "path": "#faqs"
+        },
+        {
+          "label": "Service Area",
+          "path": "#service-area"
+        },
+        {
+          "label": "Contact",
+          "path": "#contact"
+        }
+      ]
+    },
+    "brand": {
+      "name": "Biff-Buff Detailing",
+      "slug": "biff-buff-detailing",
+      "tagline": "Premium Mobile Car Detailing at Your Doorstep",
+      "email": "biff@gmail.com",
+      "phone": "215-555-5555",
+      "office_address": "Philadelphia, PA",
+      "objection_handle": "We come to you, saving you time while delivering a flawless finish that protects your investment."
+    },
+    "hero": {
+      "headline": "Luxury Mobile Detailing That Comes To You",
+      "subtext": "Experience a premium finish without leaving your home or office.",
+      "image": {
+        "alt": "Premium car detailing service with luxury finish",
+        "image_search_query": "premium mobile car detailing service luxury finish"
+      }
+    },
+    "about": {
+      "story_text": "Biff-Buff Detailing was founded to bring top-tier car care directly to your doorstep. We understand the value of your time and your vehicle, offering expert detailing that fits your schedule.",
+      "founder_note": "As a car enthusiast, I wanted to create a service that combines convenience with impeccable quality. Your car deserves the best, wherever you are.",
+      "years_experience": "Newly launched"
+    },
+    "features": [
+      {
+        "title": "Convenient Mobile Service",
+        "description": "We come to your home or office, saving you time and hassle.",
+        "icon_slug": "car"
+      },
+      {
+        "title": "Premium Quality Finish",
+        "description": "Using only the highest-grade products for a flawless shine.",
+        "icon_slug": "sparkles"
+      },
+      {
+        "title": "Eco-Friendly Products",
+        "description": "Safe for your car and the environment.",
+        "icon_slug": "leaf"
+      },
+      {
+        "title": "Experienced Detailers",
+        "description": "Skilled professionals dedicated to perfection.",
+        "icon_slug": "user-check"
+      },
+      {
+        "title": "Flexible Scheduling",
+        "description": "Book at a time that suits your busy lifestyle.",
+        "icon_slug": "calendar-alt"
+      }
+    ],
+    "contact": {
+      "headline": "Get Your Premium Detailing Quote Today",
+      "subheadline": "Contact us to schedule your mobile car detailing service.",
+      "email_recipient": "biff@gmail.com",
+      "button_text": "Request a Quote",
+      "email": "biff@gmail.com",
+      "phone": "215-555-5555",
+      "office_address": "Philadelphia, PA"
+    },
+    "service_area": {
+      "headline": "Our Service Area",
+      "description": "Proudly serving Philadelphia and surrounding neighborhoods with premium mobile car detailing.",
+      "locations": [
+        "Philadelphia",
+        "Nearby Suburbs"
+      ]
+    }
+  },
+  "client_email": "biff@gmail.com"
+}
