@@ -74,6 +74,7 @@ apps/
 clients/
   biff-buff-detailing/
     business.base.json
+    business.json
     business.updates.json
   testbrand-detailing/
     business.base.json
@@ -519,8 +520,336 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 }
 </file>
 
-<file path="clients/biff-buff-detailing/business.updates.json">
-{}
+<file path="clients/biff-buff-detailing/business.json">
+{
+  "intelligence": {
+    "industry": "mobile car detailing",
+    "target_persona": "local owners of nice cars seeking premium finish without wasting time",
+    "tone_of_voice": "premium but friendly"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": true,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Modern Minimal",
+    "cta_text": "Get a Free Quote",
+    "cta_link": "#quote",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Contact Us",
+    "secondary_cta_link": "mailto:biff@gmail.com",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Process",
+        "path": "#process"
+      },
+      {
+        "label": "Testimonials",
+        "path": "#testimonials"
+      },
+      {
+        "label": "Comparison",
+        "path": "#comparison"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Investment",
+        "path": "#investment"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ]
+  },
+  "brand": {
+    "name": "Biff-Buff Detailing",
+    "slug": "biff-buff-detailing",
+    "tagline": "Premium Mobile Car Detailing at Your Doorstep",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "office_address": "Philadelphia, PA",
+    "objection_handle": "We come to you, saving you time and hassle while delivering a showroom finish."
+  },
+  "hero": {
+    "headline": "Your Car Deserves the Best Finish, Wherever You Are",
+    "subtext": "Expert mobile detailing that fits your schedule and lifestyle.",
+    "image": {
+      "alt": "Luxury car being detailed outdoors",
+      "image_search_query": "luxury car detailing mobile premium finish"
+    }
+  },
+  "about": {
+    "story_text": "At Biff-Buff Detailing, we bring professional car care directly to your home or office. With years of experience and a passion for perfection, we ensure your vehicle looks its absolute best without you having to lift a finger.",
+    "founder_note": "I started Biff-Buff Detailing to provide busy car owners with a premium, convenient service that respects their time and their vehicle. Every detail matters.",
+    "years_experience": "10+ years of professional mobile detailing experience"
+  },
+  "features": [
+    {
+      "title": "Convenient Mobile Service",
+      "description": "We come to your location, saving you time and effort.",
+      "icon_slug": "truck"
+    },
+    {
+      "title": "Premium Quality Products",
+      "description": "Only the best eco-friendly and effective products used.",
+      "icon_slug": "leaf"
+    },
+    {
+      "title": "Experienced Detailers",
+      "description": "Skilled professionals dedicated to flawless results.",
+      "icon_slug": "award"
+    },
+    {
+      "title": "Flexible Scheduling",
+      "description": "Book appointments that fit your busy lifestyle.",
+      "icon_slug": "clock"
+    },
+    {
+      "title": "Comprehensive Detailing",
+      "description": "From exterior shine to interior deep cleaning.",
+      "icon_slug": "sparkles"
+    }
+  ],
+  "contact": {
+    "headline": "Ready for a Showroom Shine?",
+    "subheadline": "Get in touch today to schedule your mobile detailing service.",
+    "email_recipient": "biff@gmail.com",
+    "button_text": "Request a Quote",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "office_address": "Philadelphia, PA"
+  },
+  "service_area": {
+    "headline": "Our Service Area",
+    "description": "Proudly serving Philadelphia and surrounding neighborhoods with premium mobile car detailing.",
+    "locations": [
+      "Philadelphia",
+      "Nearby Suburbs"
+    ],
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Conshohocken",
+      "King of Prussia",
+      "Cherry Hill",
+      "Bensalem",
+      "Norristown"
+    ],
+    "travel_note": "We proudly serve Philadelphia and nearby communities with mobile detailing convenience.",
+    "cta_text": "Check Availability in Your Area",
+    "cta_link": "#contact",
+    "map_search_query": "Philadelphia mobile car detailing"
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Trusted by Local Car Enthusiasts",
+    "items": [
+      {
+        "icon": "shield",
+        "label": "Satisfaction Guaranteed",
+        "sublabel": "We stand behind every detail."
+      },
+      {
+        "icon": "clock",
+        "label": "On-Time Service",
+        "sublabel": "Respecting your schedule always."
+      },
+      {
+        "icon": "leaf",
+        "label": "Eco-Friendly Products",
+        "sublabel": "Safe for your car and the environment."
+      }
+    ]
+  },
+  "processSteps": [
+    {
+      "title": "Book Your Appointment",
+      "description": "Choose a time and location that works for you."
+    },
+    {
+      "title": "We Come to You",
+      "description": "Our expert detailers arrive fully equipped."
+    },
+    {
+      "title": "Enjoy Your Pristine Car",
+      "description": "Experience a flawless finish without leaving home."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Biff-Buff Detailing transformed my car without me having to drive anywhere. Highly recommend!",
+      "author": "Alex M.",
+      "role": "Car Enthusiast"
+    },
+    {
+      "quote": "Professional, punctual, and thorough. My car has never looked better.",
+      "author": "Jamie L.",
+      "role": "Busy Professional"
+    },
+    {
+      "quote": "The convenience of mobile service with top-tier quality is unbeatable.",
+      "author": "Taylor S.",
+      "role": "Local Owner"
+    }
+  ],
+  "comparison": {
+    "title": "Why Choose Biff-Buff Detailing?",
+    "items": [
+      {
+        "label": "Mobile Service",
+        "us": "We come to you anywhere in Philadelphia",
+        "them": "You must drive to a fixed location"
+      },
+      {
+        "label": "Premium Products",
+        "us": "Eco-friendly, high-quality detailing supplies",
+        "them": "Standard or harsh chemicals"
+      },
+      {
+        "label": "Flexible Scheduling",
+        "us": "Appointments tailored to your availability",
+        "them": "Limited hours and availability"
+      },
+      {
+        "label": "Experienced Detailers",
+        "us": "Certified professionals with 10+ years experience",
+        "them": "Inconsistent or less experienced staff"
+      }
+    ]
+  },
+  "gallery": {
+    "enabled": true,
+    "title": "Our Work in Action",
+    "layout": null,
+    "show_titles": true,
+    "items": [
+      {
+        "title": "Exterior Detailing",
+        "caption": "Shiny and spotless finish",
+        "tag": "",
+        "image_search_query": "car exterior detailing shine"
+      },
+      {
+        "title": "Interior Deep Clean",
+        "caption": "Fresh and immaculate cabin",
+        "tag": "",
+        "image_search_query": "car interior deep cleaning"
+      },
+      {
+        "title": "Mobile Setup",
+        "caption": "Detailers working on location",
+        "tag": "",
+        "image_search_query": "mobile car detailing service"
+      },
+      {
+        "title": "Premium Waxing",
+        "caption": "High gloss protective wax",
+        "tag": "",
+        "image_search_query": "car waxing premium finish"
+      },
+      {
+        "title": "Engine Bay Cleaning",
+        "caption": "Detailed engine compartment",
+        "tag": "",
+        "image_search_query": "car engine bay cleaning"
+      },
+      {
+        "title": "Before and After",
+        "caption": "Transformation showcase",
+        "tag": "",
+        "image_search_query": "car detailing before and after"
+      }
+    ]
+  },
+  "investment": {
+    "tiers": [
+      {
+        "tier_name": "Basic Detail",
+        "price": "Starting at $99",
+        "popular": false,
+        "features": [
+          "Exterior wash and dry",
+          "Interior vacuum and wipe down",
+          "Tire cleaning"
+        ]
+      },
+      {
+        "tier_name": "Premium Detail",
+        "price": "Starting at $199",
+        "popular": true,
+        "features": [
+          "Full exterior polish and wax",
+          "Deep interior cleaning",
+          "Window and trim detailing"
+        ]
+      },
+      {
+        "tier_name": "Ultimate Detail",
+        "price": "Starting at $299",
+        "popular": false,
+        "features": [
+          "Complete paint correction",
+          "Engine bay cleaning",
+          "Leather conditioning and protection"
+        ]
+      }
+    ]
+  },
+  "faqs": [
+    {
+      "question": "How long does a mobile detailing appointment take?",
+      "answer": "Depending on the package, appointments typically last between 1 to 3 hours."
+    },
+    {
+      "question": "Do I need to provide water or electricity?",
+      "answer": "No, our team comes fully equipped with all necessary supplies."
+    },
+    {
+      "question": "Can you detail all types of vehicles?",
+      "answer": "Yes, we service cars, SUVs, trucks, and luxury vehicles."
+    },
+    {
+      "question": "What if it rains on the day of my appointment?",
+      "answer": "We will reschedule your appointment to ensure optimal results."
+    },
+    {
+      "question": "Are your products safe for my car’s paint and interior?",
+      "answer": "Absolutely, we use premium eco-friendly products designed for all surfaces."
+    }
+  ]
+}
 </file>
 
 <file path="clients/testbrand-detailing/business.base.json">
@@ -3228,10 +3557,6 @@ Feel free to check [our documentation](https://docs.astro.build) or jump into ou
 }
 </file>
 
-<file path="submit.response.json">
-{"ok":true,"status":"PENDING","slug":"biff-buff-detailing","submission_row":6}
-</file>
-
 <file path="tailwind.config.mjs">
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -3295,6 +3620,332 @@ export async function onRequest(context) {
       status: 500,
       headers: { "content-type": "application/json" }
     });
+  }
+}
+</file>
+
+<file path="clients/biff-buff-detailing/business.updates.json">
+{
+  "intelligence": {
+    "industry": "mobile car detailing",
+    "target_persona": "local owners of nice cars seeking premium finish without wasting time",
+    "tone_of_voice": "premium but friendly"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": true,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Modern Minimal",
+    "cta_text": "Get a Free Quote",
+    "cta_link": "#quote",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Contact Us",
+    "secondary_cta_link": "mailto:biff@gmail.com",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Process",
+        "path": "#process"
+      },
+      {
+        "label": "Testimonials",
+        "path": "#testimonials"
+      },
+      {
+        "label": "Comparison",
+        "path": "#comparison"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Investment",
+        "path": "#investment"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ]
+  },
+  "brand": {
+    "name": "Biff-Buff Detailing",
+    "tagline": "Premium Mobile Car Detailing at Your Doorstep",
+    "email": "biff@gmail.com",
+    "slug": "biff-buff-detailing",
+    "phone": "215-555-5555",
+    "objection_handle": "We come to you, saving you time and hassle while delivering a showroom finish.",
+    "office_address": "Philadelphia, PA"
+  },
+  "hero": {
+    "headline": "Your Car Deserves the Best Finish, Wherever You Are",
+    "subtext": "Expert mobile detailing that fits your schedule and lifestyle.",
+    "image": {
+      "alt": "Luxury car being detailed outdoors",
+      "image_search_query": "luxury car detailing mobile premium finish"
+    }
+  },
+  "about": {
+    "story_text": "At Biff-Buff Detailing, we bring professional car care directly to your home or office. With years of experience and a passion for perfection, we ensure your vehicle looks its absolute best without you having to lift a finger.",
+    "founder_note": "I started Biff-Buff Detailing to provide busy car owners with a premium, convenient service that respects their time and their vehicle. Every detail matters.",
+    "years_experience": "10+ years of professional mobile detailing experience"
+  },
+  "features": [
+    {
+      "title": "Convenient Mobile Service",
+      "description": "We come to your location, saving you time and effort.",
+      "icon_slug": "truck"
+    },
+    {
+      "title": "Premium Quality Products",
+      "description": "Only the best eco-friendly and effective products used.",
+      "icon_slug": "leaf"
+    },
+    {
+      "title": "Experienced Detailers",
+      "description": "Skilled professionals dedicated to flawless results.",
+      "icon_slug": "award"
+    },
+    {
+      "title": "Flexible Scheduling",
+      "description": "Book appointments that fit your busy lifestyle.",
+      "icon_slug": "clock"
+    },
+    {
+      "title": "Comprehensive Detailing",
+      "description": "From exterior shine to interior deep cleaning.",
+      "icon_slug": "sparkles"
+    }
+  ],
+  "contact": {
+    "headline": "Ready for a Showroom Shine?",
+    "subheadline": "Get in touch today to schedule your mobile detailing service.",
+    "email_recipient": "biff@gmail.com",
+    "button_text": "Request a Quote",
+    "email": "biff@gmail.com",
+    "phone": "215-555-5555",
+    "office_address": "Philadelphia, PA"
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Trusted by Local Car Enthusiasts",
+    "items": [
+      {
+        "icon": "shield",
+        "label": "Satisfaction Guaranteed",
+        "sublabel": "We stand behind every detail."
+      },
+      {
+        "icon": "clock",
+        "label": "On-Time Service",
+        "sublabel": "Respecting your schedule always."
+      },
+      {
+        "icon": "leaf",
+        "label": "Eco-Friendly Products",
+        "sublabel": "Safe for your car and the environment."
+      }
+    ]
+  },
+  "processSteps": [
+    {
+      "title": "Book Your Appointment",
+      "description": "Choose a time and location that works for you."
+    },
+    {
+      "title": "We Come to You",
+      "description": "Our expert detailers arrive fully equipped."
+    },
+    {
+      "title": "Enjoy Your Pristine Car",
+      "description": "Experience a flawless finish without leaving home."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Biff-Buff Detailing transformed my car without me having to drive anywhere. Highly recommend!",
+      "author": "Alex M.",
+      "role": "Car Enthusiast"
+    },
+    {
+      "quote": "Professional, punctual, and thorough. My car has never looked better.",
+      "author": "Jamie L.",
+      "role": "Busy Professional"
+    },
+    {
+      "quote": "The convenience of mobile service with top-tier quality is unbeatable.",
+      "author": "Taylor S.",
+      "role": "Local Owner"
+    }
+  ],
+  "comparison": {
+    "title": "Why Choose Biff-Buff Detailing?",
+    "items": [
+      {
+        "label": "Mobile Service",
+        "us": "We come to you anywhere in Philadelphia",
+        "them": "You must drive to a fixed location"
+      },
+      {
+        "label": "Premium Products",
+        "us": "Eco-friendly, high-quality detailing supplies",
+        "them": "Standard or harsh chemicals"
+      },
+      {
+        "label": "Flexible Scheduling",
+        "us": "Appointments tailored to your availability",
+        "them": "Limited hours and availability"
+      },
+      {
+        "label": "Experienced Detailers",
+        "us": "Certified professionals with 10+ years experience",
+        "them": "Inconsistent or less experienced staff"
+      }
+    ]
+  },
+  "gallery": {
+    "enabled": true,
+    "title": "Our Work in Action",
+    "layout": null,
+    "show_titles": true,
+    "items": [
+      {
+        "title": "Exterior Detailing",
+        "caption": "Shiny and spotless finish",
+        "tag": "",
+        "image_search_query": "car exterior detailing shine"
+      },
+      {
+        "title": "Interior Deep Clean",
+        "caption": "Fresh and immaculate cabin",
+        "tag": "",
+        "image_search_query": "car interior deep cleaning"
+      },
+      {
+        "title": "Mobile Setup",
+        "caption": "Detailers working on location",
+        "tag": "",
+        "image_search_query": "mobile car detailing service"
+      },
+      {
+        "title": "Premium Waxing",
+        "caption": "High gloss protective wax",
+        "tag": "",
+        "image_search_query": "car waxing premium finish"
+      },
+      {
+        "title": "Engine Bay Cleaning",
+        "caption": "Detailed engine compartment",
+        "tag": "",
+        "image_search_query": "car engine bay cleaning"
+      },
+      {
+        "title": "Before and After",
+        "caption": "Transformation showcase",
+        "tag": "",
+        "image_search_query": "car detailing before and after"
+      }
+    ]
+  },
+  "investment": {
+    "tiers": [
+      {
+        "tier_name": "Basic Detail",
+        "price": "Starting at $99",
+        "popular": false,
+        "features": [
+          "Exterior wash and dry",
+          "Interior vacuum and wipe down",
+          "Tire cleaning"
+        ]
+      },
+      {
+        "tier_name": "Premium Detail",
+        "price": "Starting at $199",
+        "popular": true,
+        "features": [
+          "Full exterior polish and wax",
+          "Deep interior cleaning",
+          "Window and trim detailing"
+        ]
+      },
+      {
+        "tier_name": "Ultimate Detail",
+        "price": "Starting at $299",
+        "popular": false,
+        "features": [
+          "Complete paint correction",
+          "Engine bay cleaning",
+          "Leather conditioning and protection"
+        ]
+      }
+    ]
+  },
+  "faqs": [
+    {
+      "question": "How long does a mobile detailing appointment take?",
+      "answer": "Depending on the package, appointments typically last between 1 to 3 hours."
+    },
+    {
+      "question": "Do I need to provide water or electricity?",
+      "answer": "No, our team comes fully equipped with all necessary supplies."
+    },
+    {
+      "question": "Can you detail all types of vehicles?",
+      "answer": "Yes, we service cars, SUVs, trucks, and luxury vehicles."
+    },
+    {
+      "question": "What if it rains on the day of my appointment?",
+      "answer": "We will reschedule your appointment to ensure optimal results."
+    },
+    {
+      "question": "Are your products safe for my car’s paint and interior?",
+      "answer": "Absolutely, we use premium eco-friendly products designed for all surfaces."
+    }
+  ],
+  "service_area": {
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Conshohocken",
+      "King of Prussia",
+      "Cherry Hill",
+      "Bensalem",
+      "Norristown"
+    ],
+    "travel_note": "We proudly serve Philadelphia and nearby communities with mobile detailing convenience.",
+    "cta_text": "Check Availability in Your Area",
+    "cta_link": "#contact",
+    "map_search_query": "Philadelphia mobile car detailing"
   }
 }
 </file>
@@ -3831,10 +4482,6 @@ export const iconLibrary = {
   clock: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zm0-16v6l4 2",
   phone: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
 };
-</file>
-
-<file path="gen.json">
-{"ok":true,"slug":"biff-buff-detailing","plan":{"intelligence":{"industry":"Mobile Car Detailing","target_persona":"Local owners of nice cars who want a premium finish without wasting time","tone_of_voice":"premium but friendly"},"strategy":{"show_trustbar":true,"show_about":true,"show_features":true,"show_events":false,"show_process":true,"show_testimonials":false,"show_comparison":false,"show_gallery":true,"show_investment":false,"show_faqs":true,"show_service_area":true},"settings":{"vibe":"Luxury Noir","cta_text":"Get a Quote","cta_link":"#contact","cta_type":"anchor","secondary_cta_text":"Learn More","secondary_cta_link":"#about","menu":[{"label":"Home","path":"#home"},{"label":"About","path":"#about"},{"label":"Features","path":"#features"},{"label":"Process","path":"#process"},{"label":"Gallery","path":"#gallery"},{"label":"FAQs","path":"#faqs"},{"label":"Service Area","path":"#service-area"},{"label":"Contact","path":"#contact"}]}},"business_json":{"intelligence":{"industry":"Mobile Car Detailing","target_persona":"Local owners of nice cars who want a premium finish without wasting time","tone_of_voice":"premium but friendly"},"strategy":{"show_trustbar":true,"show_about":true,"show_features":true,"show_events":false,"show_process":true,"show_testimonials":false,"show_comparison":false,"show_gallery":true,"show_investment":false,"show_faqs":true,"show_service_area":true},"settings":{"vibe":"Luxury Noir","cta_text":"Get a Quote","cta_link":"#contact","cta_type":"anchor","secondary_cta_text":"Learn More","secondary_cta_link":"#about","menu":[{"label":"Home","path":"#home"},{"label":"About","path":"#about"},{"label":"Features","path":"#features"},{"label":"Process","path":"#process"},{"label":"Gallery","path":"#gallery"},{"label":"FAQs","path":"#faqs"},{"label":"Service Area","path":"#service-area"},{"label":"Contact","path":"#contact"}]},"brand":{"name":"Biff-Buff Detailing","slug":"biff-buff-detailing","tagline":"Premium Mobile Car Detailing at Your Doorstep","email":"biff@gmail.com","phone":"215-555-5555","office_address":"Philadelphia, PA"},"hero":{"headline":"Bring Showroom Shine to Your Car Without Leaving Home","subtext":"Expert mobile detailing that fits your busy schedule and delivers a flawless finish every time.","image":{"alt":"Luxury car being detailed outdoors","image_search_query":"premium mobile car detailing service outdoors"}},"about":{"story_text":"Biff-Buff Detailing was founded to bring professional, high-quality car care directly to your doorstep. We understand that your time is valuable and your car deserves the best treatment without the hassle of traditional detailing shops.","founder_note":"As a car enthusiast, I wanted to create a service that combines convenience with exceptional quality. Every vehicle we touch receives the utmost care and attention.","years_experience":"Newly launched"},"features":[{"title":"Convenient Mobile Service","description":"We come to your home or office, saving you time and effort.","icon_slug":"truck"},{"title":"Premium Quality Finish","description":"Using top-tier products and techniques to ensure a flawless shine.","icon_slug":"sparkles"},{"title":"Eco-Friendly Products","description":"Safe for your car and the environment with biodegradable cleaning agents.","icon_slug":"leaf"},{"title":"Flexible Scheduling","description":"Book appointments that fit your busy lifestyle, including weekends.","icon_slug":"clock"},{"title":"Experienced Detailers","description":"Skilled professionals dedicated to meticulous care and customer satisfaction.","icon_slug":"users"}],"contact":{"headline":"Ready for Your Car’s Ultimate Shine?","subheadline":"Contact Biff-Buff Detailing today to schedule your premium mobile service.","email_recipient":"biff@gmail.com","button_text":"Request a Quote","phone":"215-555-5555","email":"biff@gmail.com","office_address":""},"service_area":{"main_city":"Philadelphia, PA","surrounding_cities":["Conshohocken","King of Prussia","Cherry Hill","Bryn Mawr","Media","West Chester","Doylestown"],"travel_note":"We proudly serve Philadelphia and nearby communities within a 30-mile radius."},"trustbar":{"enabled":true,"items":[{"icon":"sparkles","text":"Flawless Finish Guaranteed"},{"icon":"truck","text":"Mobile Service at Your Convenience"},{"icon":"leaf","text":"Eco-Friendly Cleaning Products"},{"icon":"users","text":"Experienced and Trusted Detailers"}]},"processSteps":[{"title":"Schedule Your Appointment","description":"Choose a time and place that works best for you through our easy booking system."},{"title":"We Come to You","description":"Our professional detailers arrive fully equipped at your location."},{"title":"Detailed Cleaning & Polishing","description":"We meticulously clean, polish, and protect every inch of your vehicle."},{"title":"Final Inspection & Customer Approval","description":"We review the results with you to ensure complete satisfaction."}],"faqs":[{"question":"What areas do you serve?","answer":"We serve Philadelphia and surrounding communities within approximately 30 miles."},{"question":"How long does a typical detailing take?","answer":"Most services take between 1.5 to 3 hours depending on the package and vehicle size."},{"question":"Are your cleaning products safe for my car and the environment?","answer":"Yes, we use eco-friendly, biodegradable products that are safe for your vehicle and the planet."},{"question":"Can I schedule a detailing at my office?","answer":"Absolutely! We offer mobile detailing at homes, offices, or any convenient location."}],"gallery":{"enabled":true,"title":"Our Work in Action","image_source":{"provider":"unsplash","image_search_query":"mobile car detailing premium finish","filename_pattern":"biff-buff-detailing-project-{i}.jpg","target_folder":"public/images"},"items":[{"title":"Exterior Hand Wash","caption":"Gentle yet thorough cleaning for a spotless finish.","tag":"","image_search_query":"car exterior hand wash mobile detailing"},{"title":"Interior Vacuuming","caption":"Deep cleaning to remove dust and debris from every corner.","tag":"","image_search_query":"car interior vacuuming detailing"},{"title":"Paint Polishing","caption":"Restoring shine and removing minor imperfections.","tag":"","image_search_query":"car paint polishing mobile detailing"},{"title":"Wheel and Tire Care","caption":"Detailed cleaning and dressing for a showroom look.","tag":"","image_search_query":"car wheel tire cleaning detailing"}]},"testimonials":[],"investment":[],"comparison":null,"events":[]}}
 </file>
 
 <file path="apps/intake/netlify/functions/generate.mjs">
@@ -4387,6 +5034,10 @@ const statusMessage = isTech
 </Layout>
 </file>
 
+<file path="submit.response.json">
+{"ok":true,"status":"PENDING","slug":"biff-buff-detailing","submission_row":7}
+</file>
+
 <file path=".github/workflows/build-client.yml">
 name: Build Client Dist
 
@@ -4715,6 +5366,10 @@ if (!testimonials || testimonials.length === 0) return null;
     </div>
   </div>
 </section>
+</file>
+
+<file path="gen.json">
+{"ok":true,"slug":"biff-buff-detailing","plan":{"intelligence":{"industry":"mobile car detailing","target_persona":"local owners of nice cars seeking premium finish without wasting time","tone_of_voice":"premium but friendly"},"strategy":{"show_trustbar":true,"show_about":true,"show_features":true,"show_events":false,"show_process":true,"show_testimonials":true,"show_comparison":true,"show_gallery":true,"show_investment":true,"show_faqs":true,"show_service_area":true},"settings":{"vibe":"Modern Minimal","cta_text":"Get a Free Quote","cta_link":"#quote","cta_type":"anchor","secondary_cta_text":"Contact Us","secondary_cta_link":"mailto:biff@gmail.com","menu":[{"label":"Home","path":"#home"},{"label":"About","path":"#about"},{"label":"Features","path":"#features"},{"label":"Process","path":"#process"},{"label":"Testimonials","path":"#testimonials"},{"label":"Comparison","path":"#comparison"},{"label":"Gallery","path":"#gallery"},{"label":"Investment","path":"#investment"},{"label":"FAQs","path":"#faqs"},{"label":"Service Area","path":"#service-area"},{"label":"Contact","path":"#contact"}]}},"business_json":{"intelligence":{"industry":"mobile car detailing","target_persona":"local owners of nice cars seeking premium finish without wasting time","tone_of_voice":"premium but friendly"},"strategy":{"show_trustbar":true,"show_about":true,"show_features":true,"show_events":false,"show_process":true,"show_testimonials":true,"show_comparison":true,"show_gallery":true,"show_investment":true,"show_faqs":true,"show_service_area":true},"settings":{"vibe":"Modern Minimal","cta_text":"Get a Free Quote","cta_link":"#quote","cta_type":"anchor","secondary_cta_text":"Contact Us","secondary_cta_link":"mailto:biff@gmail.com","menu":[{"label":"Home","path":"#home"},{"label":"About","path":"#about"},{"label":"Features","path":"#features"},{"label":"Process","path":"#process"},{"label":"Testimonials","path":"#testimonials"},{"label":"Comparison","path":"#comparison"},{"label":"Gallery","path":"#gallery"},{"label":"Investment","path":"#investment"},{"label":"FAQs","path":"#faqs"},{"label":"Service Area","path":"#service-area"},{"label":"Contact","path":"#contact"}]},"brand":{"name":"Biff-Buff Detailing","tagline":"Premium Mobile Car Detailing at Your Doorstep","email":"biff@gmail.com","slug":"biff-buff-detailing","phone":"215-555-5555","objection_handle":"We come to you, saving you time and hassle while delivering a showroom finish.","office_address":"Philadelphia, PA"},"hero":{"headline":"Your Car Deserves the Best Finish, Wherever You Are","subtext":"Expert mobile detailing that fits your schedule and lifestyle.","image":{"alt":"Luxury car being detailed outdoors","image_search_query":"luxury car detailing mobile premium finish"}},"about":{"story_text":"At Biff-Buff Detailing, we bring professional car care directly to your home or office. With years of experience and a passion for perfection, we ensure your vehicle looks its absolute best without you having to lift a finger.","founder_note":"I started Biff-Buff Detailing to provide busy car owners with a premium, convenient service that respects their time and their vehicle. Every detail matters.","years_experience":"10+ years of professional mobile detailing experience"},"features":[{"title":"Convenient Mobile Service","description":"We come to your location, saving you time and effort.","icon_slug":"truck"},{"title":"Premium Quality Products","description":"Only the best eco-friendly and effective products used.","icon_slug":"leaf"},{"title":"Experienced Detailers","description":"Skilled professionals dedicated to flawless results.","icon_slug":"award"},{"title":"Flexible Scheduling","description":"Book appointments that fit your busy lifestyle.","icon_slug":"clock"},{"title":"Comprehensive Detailing","description":"From exterior shine to interior deep cleaning.","icon_slug":"sparkles"}],"contact":{"headline":"Ready for a Showroom Shine?","subheadline":"Get in touch today to schedule your mobile detailing service.","email_recipient":"biff@gmail.com","button_text":"Request a Quote","email":"biff@gmail.com","phone":"215-555-5555","office_address":"Philadelphia, PA"},"trustbar":{"enabled":true,"headline":"Trusted by Local Car Enthusiasts","items":[{"icon":"shield","label":"Satisfaction Guaranteed","sublabel":"We stand behind every detail."},{"icon":"clock","label":"On-Time Service","sublabel":"Respecting your schedule always."},{"icon":"leaf","label":"Eco-Friendly Products","sublabel":"Safe for your car and the environment."}]},"processSteps":[{"title":"Book Your Appointment","description":"Choose a time and location that works for you."},{"title":"We Come to You","description":"Our expert detailers arrive fully equipped."},{"title":"Enjoy Your Pristine Car","description":"Experience a flawless finish without leaving home."}],"testimonials":[{"quote":"Biff-Buff Detailing transformed my car without me having to drive anywhere. Highly recommend!","author":"Alex M.","role":"Car Enthusiast"},{"quote":"Professional, punctual, and thorough. My car has never looked better.","author":"Jamie L.","role":"Busy Professional"},{"quote":"The convenience of mobile service with top-tier quality is unbeatable.","author":"Taylor S.","role":"Local Owner"}],"comparison":{"title":"Why Choose Biff-Buff Detailing?","items":[{"label":"Mobile Service","us":"We come to you anywhere in Philadelphia","them":"You must drive to a fixed location"},{"label":"Premium Products","us":"Eco-friendly, high-quality detailing supplies","them":"Standard or harsh chemicals"},{"label":"Flexible Scheduling","us":"Appointments tailored to your availability","them":"Limited hours and availability"},{"label":"Experienced Detailers","us":"Certified professionals with 10+ years experience","them":"Inconsistent or less experienced staff"}]},"gallery":{"enabled":true,"title":"Our Work in Action","layout":null,"show_titles":true,"items":[{"title":"Exterior Detailing","caption":"Shiny and spotless finish","tag":"","image_search_query":"car exterior detailing shine"},{"title":"Interior Deep Clean","caption":"Fresh and immaculate cabin","tag":"","image_search_query":"car interior deep cleaning"},{"title":"Mobile Setup","caption":"Detailers working on location","tag":"","image_search_query":"mobile car detailing service"},{"title":"Premium Waxing","caption":"High gloss protective wax","tag":"","image_search_query":"car waxing premium finish"},{"title":"Engine Bay Cleaning","caption":"Detailed engine compartment","tag":"","image_search_query":"car engine bay cleaning"},{"title":"Before and After","caption":"Transformation showcase","tag":"","image_search_query":"car detailing before and after"}]},"investment":{"tiers":[{"tier_name":"Basic Detail","price":"Starting at $99","popular":false,"features":["Exterior wash and dry","Interior vacuum and wipe down","Tire cleaning"]},{"tier_name":"Premium Detail","price":"Starting at $199","popular":true,"features":["Full exterior polish and wax","Deep interior cleaning","Window and trim detailing"]},{"tier_name":"Ultimate Detail","price":"Starting at $299","popular":false,"features":["Complete paint correction","Engine bay cleaning","Leather conditioning and protection"]}]},"faqs":[{"question":"How long does a mobile detailing appointment take?","answer":"Depending on the package, appointments typically last between 1 to 3 hours."},{"question":"Do I need to provide water or electricity?","answer":"No, our team comes fully equipped with all necessary supplies."},{"question":"Can you detail all types of vehicles?","answer":"Yes, we service cars, SUVs, trucks, and luxury vehicles."},{"question":"What if it rains on the day of my appointment?","answer":"We will reschedule your appointment to ensure optimal results."},{"question":"Are your products safe for my car’s paint and interior?","answer":"Absolutely, we use premium eco-friendly products designed for all surfaces."}],"service_area":{"main_city":"Philadelphia, PA","surrounding_cities":["Conshohocken","King of Prussia","Cherry Hill","Bensalem","Norristown"],"travel_note":"We proudly serve Philadelphia and nearby communities with mobile detailing convenience.","cta_text":"Check Availability in Your Area","cta_link":"#contact","map_search_query":"Philadelphia mobile car detailing"}}}
 </file>
 
 <file path="master-schema.json">
@@ -5340,419 +5995,6 @@ if (!testimonials || testimonials.length === 0) return null;
 }
 </file>
 
-<file path="apps/intake/functions/api/generate.js">
-// functions/api/generate.js
-function normalizeSlug(s) {
-  return String(s || "")
-    .toLowerCase()
-    .replace(/'/g, "")
-    .replace(/[^a-z0-9]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function must(obj, keys) {
-  for (const k of keys) if (!(k in obj)) throw new Error(`Missing key: ${k}`);
-}
-
-function isObject(v) {
-  return v && typeof v === "object" && !Array.isArray(v);
-}
-
-function pick(obj, path, fallback = undefined) {
-  try {
-    return path.split(".").reduce((acc, k) => (acc ? acc[k] : undefined), obj) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-const ALLOWED_VIBES = [
-  "Midnight Tech",
-  "Zenith Earth",
-  "Vintage Boutique",
-  "Rugged Industrial",
-  "Modern Minimal",
-  "Luxury Noir",
-  "Legacy Professional",
-  "Solar Flare",
-];
-
-const ANCHORS = {
-  home: "#home",
-  about: "#about",
-  features: "#features",
-  events: "#events",
-  process: "#process",
-  testimonials: "#testimonials",
-  comparison: "#comparison",
-  gallery: "#gallery",
-  investment: "#investment",
-  faqs: "#faqs",
-  serviceArea: "#service-area",
-  contact: "#contact",
-};
-
-const ICONS = new Set([
-  "zap",
-  "cpu",
-  "layers",
-  "rocket",
-  "leaf",
-  "sprout",
-  "sun",
-  "scissors",
-  "truck",
-  "hammer",
-  "wrench",
-  "trash",
-  "sparkles",
-  "heart",
-  "award",
-  "users",
-  "map",
-  "shield",
-  "star",
-  "check",
-  "coins",
-  "briefcase",
-  "clock",
-  "phone",
-]);
-
-function coerceIcon(slug, fallback = "check") {
-  if (ICONS.has(slug)) return slug;
-  // common “bad” values we’ve seen from LLMs
-  const map = {
-    car: "truck",
-    "user-check": "users",
-    calendar: "clock",
-    "calendar-alt": "clock",
-    mobile: "cpu",
-    "star-outline": "star",
-  };
-  if (slug && map[String(slug)]) return map[String(slug)];
-  return fallback;
-}
-
-async function openaiJson({ apiKey, model, messages, temperature = 0.3 }) {
-  if (!apiKey) throw new Error("Missing OPENAI_API_KEY env var");
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      temperature,
-      response_format: { type: "json_object" },
-      messages,
-    }),
-  });
-
-  const text = await res.text();
-  if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${text}`);
-
-  const data = JSON.parse(text);
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OpenAI returned no content");
-  return JSON.parse(content);
-}
-
-function buildMenu(strategy) {
-  // Only include sections that are enabled AND expected to have content.
-  const items = [{ label: "Home", path: ANCHORS.home }];
-
-  if (strategy.show_about) items.push({ label: "About", path: ANCHORS.about });
-  if (strategy.show_features) items.push({ label: "Services", path: ANCHORS.features });
-  if (strategy.show_events) items.push({ label: "Schedule", path: ANCHORS.events });
-  if (strategy.show_process) items.push({ label: "Process", path: ANCHORS.process });
-  if (strategy.show_testimonials) items.push({ label: "Reviews", path: ANCHORS.testimonials });
-  if (strategy.show_comparison) items.push({ label: "Compare", path: ANCHORS.comparison });
-  if (strategy.show_gallery) items.push({ label: "Gallery", path: ANCHORS.gallery });
-  if (strategy.show_investment) items.push({ label: "Investment", path: ANCHORS.investment });
-  if (strategy.show_faqs) items.push({ label: "FAQ", path: ANCHORS.faqs });
-  if (strategy.show_service_area) items.push({ label: "Service Area", path: ANCHORS.serviceArea });
-
-  items.push({ label: "Contact", path: ANCHORS.contact });
-  return items;
-}
-
-export async function onRequest(context) {
-  const { request, env } = context;
-
-  if (request.method !== "POST") {
-    return new Response(JSON.stringify({ ok: false, error: "Use POST /api/generate" }), {
-      status: 405,
-      headers: { "content-type": "application/json" },
-    });
-  }
-
-  try {
-    const input = await request.json();
-
-    const site_for = String(input.site_for || "");
-    const business_name = String(input.business_name || "");
-    const email = String(input.email || "");
-    const phone = String(input.phone || "");
-    const main_city = String(input.main_city || "");
-    const goal = String(input.goal || "Contact");
-    const tone_hint = String(input.tone_hint || "");
-
-    // If you don’t have factual inputs for these, keep the strategy conservative:
-    // - no testimonials (would require real quotes)
-    // - no investment (would require real prices/packages)
-    // - comparison/gallery are safe because they can be generic
-    const architect = await openaiJson({
-      apiKey: env.OPENAI_API_KEY,
-      model: "gpt-4.1-mini",
-      temperature: 0.2,
-      messages: [
-        {
-          role: "user",
-          content: `
-You are SiteForge "Architect".
-Return JSON ONLY with keys: intelligence, strategy, settings.
-
-Schema constraints you MUST follow:
-- intelligence must have: industry, target_persona, tone_of_voice
-- strategy booleans allowed:
-  show_trustbar, show_about, show_features, show_events, show_process,
-  show_testimonials, show_comparison, show_gallery, show_investment,
-  show_faqs, show_service_area
-- settings must have: vibe, cta_text, cta_link, cta_type
-- settings.vibe must be one of: ${JSON.stringify(ALLOWED_VIBES)}
-- cta_type must be: "anchor" or "external"
-- cta_link should be "#contact" unless you have a real URL
-
-Important rules:
-- Always set show_features=true.
-- Only set show_testimonials=true if the user provided real testimonials (they did NOT here) => set false.
-- Only set show_investment=true if the user provided pricing/packages (they did NOT here) => set false.
-- Only set show_events=true if you can create 3+ concrete schedule items (not provided) => set false.
-- show_gallery can be true for visual services, BUT if true we must generate distinct image_search_query per item.
-
-User input:
-business_name: ${JSON.stringify(business_name)}
-site_for: ${JSON.stringify(site_for)}
-goal: ${JSON.stringify(goal)}
-tone_hint: ${JSON.stringify(tone_hint)}
-main_city: ${JSON.stringify(main_city)}
-email: ${JSON.stringify(email)}
-phone: ${JSON.stringify(phone)}
-
-Return JSON only.
-          `.trim(),
-        },
-      ],
-    });
-
-    must(architect, ["intelligence", "strategy", "settings"]);
-
-    // Hard-normalize plan to your schema
-    const plan = {
-      intelligence: {
-        industry: String(pick(architect, "intelligence.industry", "service business")),
-        target_persona: String(pick(architect, "intelligence.target_persona", "Local customers")),
-        tone_of_voice: String(pick(architect, "intelligence.tone_of_voice", tone_hint || "friendly and professional")),
-      },
-      strategy: {
-        show_trustbar: !!pick(architect, "strategy.show_trustbar", false),
-        show_about: !!pick(architect, "strategy.show_about", true),
-        show_features: true,
-        show_events: false,
-        show_process: !!pick(architect, "strategy.show_process", true),
-        show_testimonials: false, // do not invent reviews
-        show_comparison: !!pick(architect, "strategy.show_comparison", false),
-        show_gallery: !!pick(architect, "strategy.show_gallery", true),
-        show_investment: false, // do not invent pricing
-        show_faqs: !!pick(architect, "strategy.show_faqs", true),
-        show_service_area: !!pick(architect, "strategy.show_service_area", true),
-      },
-      settings: {
-        vibe: ALLOWED_VIBES.includes(pick(architect, "settings.vibe")) ? architect.settings.vibe : "Modern Minimal",
-        cta_text: String(pick(architect, "settings.cta_text", goal === "Quote" ? "Request a Quote" : "Contact Us")),
-        cta_link: String(pick(architect, "settings.cta_link", "#contact")) || "#contact",
-        cta_type: pick(architect, "settings.cta_type") === "external" ? "external" : "anchor",
-      },
-    };
-
-    // Menu is derived from strategy flags (prevents dead links)
-    const menu = buildMenu(plan.strategy);
-
-    // Builder creates ONLY schema-correct fields.
-    const builder = await openaiJson({
-      apiKey: env.OPENAI_API_KEY,
-      model: "gpt-4.1-mini",
-      temperature: 0.35,
-      messages: [
-        {
-          role: "user",
-          content: `
-You are SiteForge "Builder".
-Return ONE JSON object that conforms to this master-schema shape:
-
-REQUIRED top-level keys:
-- intelligence {industry, target_persona, tone_of_voice}
-- strategy {show_trustbar, show_about, show_features, show_events, show_process, show_testimonials, show_comparison, show_gallery, show_investment, show_faqs, show_service_area}
-- settings {vibe, cta_text, cta_link, cta_type, secondary_cta_text, secondary_cta_link, menu:[{label,path}]}
-- brand {name, slug, tagline, email, phone, office_address, objection_handle}
-- hero {headline, subtext, image:{alt,image_search_query}}
-- about {story_text, founder_note, years_experience}
-- features: [{title, description, icon_slug}]
-- contact {headline, subheadline, email_recipient, button_text, email, phone, office_address}
-
-OPTIONAL (include ONLY if strategy says true; must use these exact shapes):
-- trustbar {enabled, headline, items:[{icon,label,sublabel?}]}
-- processSteps: [{title, description}]  (only if show_process true)
-- comparison {title, items:[{label, us, them}]} (only if show_comparison true)
-- gallery {enabled, title, layout:null, show_titles, image_source:{provider?, image_search_query}, items:[{title,caption?,tag?,image_search_query}]} (only if show_gallery true)
-- faqs: [{question, answer}] (only if show_faqs true)
-- service_area {main_city, surrounding_cities, travel_note?, cta_text?, cta_link?, map_search_query?} (only if show_service_area true)
-- events: [{date, venue, location, link}] only if show_events true (but our plan show_events is false)
-
-Hard rules:
-- Do NOT invent reviews/testimonials; if show_testimonials is false, omit testimonials entirely.
-- Do NOT invent pricing; if show_investment is false, omit investment entirely.
-- features.icon_slug MUST be one of:
-  zap,cpu,layers,rocket,leaf,sprout,sun,scissors,truck,hammer,wrench,trash,sparkles,heart,award,users,map,shield,star,check,coins,briefcase,clock,phone
-- hero.image_search_query must be 4–8 words, NO city names.
-- Use plan EXACTLY for booleans and vibe/cta/menu.
-
-PLAN (authoritative):
-${JSON.stringify({ ...plan, settings: { ...plan.settings, menu } }, null, 2)}
-
-Authoritative facts from user:
-business_name: ${JSON.stringify(business_name)}
-email: ${JSON.stringify(email)}
-phone: ${JSON.stringify(phone)}
-main_city: ${JSON.stringify(main_city)}
-site_for: ${JSON.stringify(site_for)}
-
-Return JSON only. No markdown.
-          `.trim(),
-        },
-      ],
-    });
-
-    must(builder, ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"]);
-
-    // Post-normalize: lock slug + enforce icon slugs + enforce menu
-    const business_json = builder;
-
-    business_json.brand = business_json.brand || {};
-    business_json.brand.name = business_json.brand.name || business_name || "Business";
-    business_json.brand.slug = normalizeSlug(business_json.brand.slug || business_json.brand.name || business_name || "brand");
-
-    if (email) business_json.brand.email = business_json.brand.email || email;
-    if (phone) business_json.brand.phone = business_json.brand.phone || phone;
-
-    // Enforce exact menu from strategy flags (prevents dead links)
-    business_json.settings = business_json.settings || {};
-    business_json.settings.vibe = plan.settings.vibe;
-    business_json.settings.cta_text = plan.settings.cta_text;
-    business_json.settings.cta_link = plan.settings.cta_link;
-    business_json.settings.cta_type = plan.settings.cta_type;
-    business_json.settings.secondary_cta_text = business_json.settings.secondary_cta_text || "";
-    business_json.settings.secondary_cta_link = business_json.settings.secondary_cta_link || "";
-    business_json.settings.menu = menu;
-
-    // Ensure hero uses schema field names
-    if (business_json.hero?.subheadline && !business_json.hero?.subtext) {
-      business_json.hero.subtext = business_json.hero.subheadline;
-      delete business_json.hero.subheadline;
-    }
-
-    // Fix/force allowed icons in features
-    if (Array.isArray(business_json.features)) {
-      business_json.features = business_json.features
-        .slice(0, 8)
-        .map((f) => ({
-          title: String(f?.title || "Service"),
-          description: String(f?.description || ""),
-          icon_slug: coerceIcon(String(f?.icon_slug || "")),
-        }));
-    }
-
-    // If show_gallery true, make sure gallery exists and items have distinct queries
-    if (business_json.strategy?.show_gallery && isObject(business_json.gallery)) {
-      // ok
-    } else if (business_json.strategy?.show_gallery) {
-      // if builder omitted it accidentally, add a safe default
-      business_json.gallery = {
-        enabled: true,
-        title: "Recent Work",
-        layout: null,
-        show_titles: true,
-        image_source: { provider: "unsplash", image_search_query: "car detailing" },
-        items: [
-          { title: "Exterior Wash", image_search_query: "car wash foam driveway" },
-          { title: "Paint Polish", image_search_query: "polishing car paint closeup" },
-          { title: "Interior Detail", image_search_query: "car interior cleaning vacuum" },
-          { title: "Wheel Detail", image_search_query: "cleaning alloy wheels brush" },
-          { title: "Leather Care", image_search_query: "leather seat conditioning car" },
-          { title: "Final Finish", image_search_query: "shiny luxury car outdoor" },
-        ],
-      };
-    }
-
-    // If show_service_area true but wrong shape, normalize it
-    if (business_json.strategy?.show_service_area) {
-      const sa = business_json.service_area || {};
-      business_json.service_area = {
-        main_city: sa.main_city || main_city || "Our Region",
-        surrounding_cities: Array.isArray(sa.surrounding_cities) ? sa.surrounding_cities : [],
-        travel_note: sa.travel_note || "Outside these areas? We offer custom quotes for extended travel.",
-        cta_text: sa.cta_text || plan.settings.cta_text,
-        cta_link: sa.cta_link || "#contact",
-        map_search_query: sa.map_search_query || (main_city ? `Mobile detailing near ${main_city}` : undefined),
-      };
-    } else {
-      delete business_json.service_area;
-    }
-
-    // If show_process true but missing processSteps, add safe generic steps
-    if (business_json.strategy?.show_process && !Array.isArray(business_json.processSteps)) {
-      business_json.processSteps = [
-        { title: "Request a Quote", description: "Tell us your vehicle type, condition, and preferred location." },
-        { title: "Schedule a Time", description: "Pick a time that works for you—home or office." },
-        { title: "We Detail On-Site", description: "We arrive with everything needed for a premium clean." },
-        { title: "Final Walkthrough", description: "We confirm the finish and share care tips to keep it looking great." },
-      ];
-    }
-    if (!business_json.strategy?.show_process) delete business_json.processSteps;
-
-    // If show_faqs true but missing faqs, add safe generic FAQs (no invented policies/prices)
-    if (business_json.strategy?.show_faqs && !Array.isArray(business_json.faqs)) {
-      business_json.faqs = [
-        { question: "Do you bring your own water and power?", answer: "We arrive prepared. If we need access to water or an outlet, we’ll coordinate ahead of time." },
-        { question: "How long does a detail take?", answer: "Time varies by vehicle size and condition. We’ll give an estimate when you request a quote." },
-        { question: "What areas do you serve?", answer: "We serve the main service area listed below and can quote extended travel as needed." },
-        { question: "How do I book?", answer: "Use the contact form or call/text us and we’ll confirm the details." },
-      ];
-    }
-    if (!business_json.strategy?.show_faqs) delete business_json.faqs;
-
-    // Prevent dead sections explicitly
-    if (!business_json.strategy?.show_comparison) delete business_json.comparison;
-    if (!business_json.strategy?.show_trustbar) delete business_json.trustbar;
-    if (!business_json.strategy?.show_gallery) delete business_json.gallery;
-    if (!business_json.strategy?.show_events) delete business_json.events;
-
-    return new Response(JSON.stringify({ ok: true, slug: business_json.brand.slug, plan, business_json }), {
-      headers: { "content-type": "application/json" },
-    });
-  } catch (err) {
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
-      status: 500,
-      headers: { "content-type": "application/json" },
-    });
-  }
-}
-</file>
-
 <file path="scripts/setup-site.js">
 import fs from 'fs';
 import path from 'path';
@@ -6234,6 +6476,463 @@ const showCredit = settings?.show_agency_credit !== false;
     </div>
   </div>
 </section>
+</file>
+
+<file path="apps/intake/functions/api/generate.js">
+// functions/api/generate.js
+function normalizeSlug(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function must(obj, keys) {
+  for (const k of keys) if (!(k in obj)) throw new Error(`Missing key: ${k}`);
+}
+
+const ICON_ENUM = new Set([
+  "zap","cpu","layers","rocket","leaf","sprout","sun","scissors","truck","hammer","wrench","trash","sparkles",
+  "heart","award","users","map","shield","star","check","coins","briefcase","clock","phone"
+]);
+
+const MENU_ORDER = [
+  "#home",
+  "#about",
+  "#features",
+  "#events",
+  "#process",
+  "#testimonials",
+  "#comparison",
+  "#gallery",
+  "#investment",
+  "#faqs",
+  "#service-area",
+  "#contact",
+];
+
+const LABELS = {
+  "#home": "Home",
+  "#about": "About",
+  "#features": "Features",
+  "#events": "Events",
+  "#process": "Process",
+  "#testimonials": "Testimonials",
+  "#comparison": "Comparison",
+  "#gallery": "Gallery",
+  "#investment": "Investment",
+  "#faqs": "FAQs",
+  "#service-area": "Service Area",
+  "#contact": "Contact",
+};
+
+function buildMenuFromFlags(strategy) {
+  const enabled = new Set(["#home", "#contact"]);
+
+  if (strategy.show_about) enabled.add("#about");
+  if (strategy.show_features) enabled.add("#features");
+  if (strategy.show_events) enabled.add("#events");
+  if (strategy.show_process) enabled.add("#process");
+  if (strategy.show_testimonials) enabled.add("#testimonials");
+  if (strategy.show_comparison) enabled.add("#comparison");
+  if (strategy.show_gallery) enabled.add("#gallery");
+  if (strategy.show_investment) enabled.add("#investment");
+  if (strategy.show_faqs) enabled.add("#faqs");
+  if (strategy.show_service_area) enabled.add("#service-area");
+
+  return MENU_ORDER
+    .filter((path) => enabled.has(path))
+    .map((path) => ({ label: LABELS[path] || path.replace("#", ""), path }));
+}
+
+function enforceIconSlug(slug) {
+  if (ICON_ENUM.has(slug)) return slug;
+  // graceful fallback
+  return "layers";
+}
+
+function uniqStrings(arr) {
+  const out = [];
+  const seen = new Set();
+  for (const s of arr || []) {
+    const key = String(s || "").trim().toLowerCase();
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(String(s).trim());
+  }
+  return out;
+}
+
+function safeStr(x, fallback = "") {
+  const s = String(x ?? "").trim();
+  return s || fallback;
+}
+
+async function openaiJson({ apiKey, model, messages, temperature = 0.3 }) {
+  if (!apiKey) throw new Error("Missing OPENAI_API_KEY env var");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      temperature,
+      response_format: { type: "json_object" },
+      messages,
+    }),
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(`OpenAI error ${res.status}: ${text}`);
+
+  const data = JSON.parse(text);
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenAI returned no content");
+  return JSON.parse(content);
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
+
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ ok: false, error: "Use POST /api/generate" }), {
+      status: 405,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  try {
+    const input = await request.json();
+
+    // Intake facts (authoritative)
+    const site_for = safeStr(input.site_for);
+    const business_name = safeStr(input.business_name);
+    const email = safeStr(input.email);
+    const phone = safeStr(input.phone);
+    const main_city = safeStr(input.main_city);
+    const goal = safeStr(input.goal, "Contact"); // e.g. Quote / Contact / Call
+    const tone_hint = safeStr(input.tone_hint);
+
+    const baseSlug = normalizeSlug(input.slug || business_name || "brand");
+
+    // ---------------------------
+    // PASS A: Architect (plan)
+    // ---------------------------
+    const plan = await openaiJson({
+      apiKey: env.OPENAI_API_KEY,
+      model: "gpt-4.1-mini",
+      temperature: 0.2,
+      messages: [
+        {
+          role: "user",
+          content: `
+You are SiteForge "Architect".
+Return JSON ONLY with keys: intelligence, strategy, settings.
+
+MUST MATCH THIS SHAPE:
+
+intelligence:
+  industry, target_persona, tone_of_voice
+
+strategy (booleans only):
+  show_trustbar, show_about, show_features, show_events, show_process, show_testimonials,
+  show_comparison, show_gallery, show_investment, show_faqs, show_service_area
+
+settings:
+  vibe (enum), cta_text, cta_link, cta_type ("anchor" or "external"),
+  secondary_cta_text, secondary_cta_link
+  menu (DO NOT include; server will build menu from flags)
+
+Rules:
+- vibe must be one of:
+  "Midnight Tech","Zenith Earth","Vintage Boutique","Rugged Industrial","Modern Minimal","Luxury Noir","Legacy Professional","Solar Flare"
+- Always assume show_features true for service businesses.
+- show_events ONLY if you can later populate 3–10 events items. Otherwise false.
+- show_investment ONLY if you can provide 2–4 pricing tiers WITHOUT inventing exact prices (use ranges/“Starting at” if needed).
+- show_testimonials ONLY if you can write safe placeholder testimonials (clearly generic) OR you have real ones. Keep them generic.
+- show_comparison ONLY if it’s genuinely helpful (e.g., mobile vs shop, DIY vs pro).
+- show_gallery true for visual services (detailing, landscaping, remodeling, etc.)
+
+User input:
+site_for: ${JSON.stringify(site_for)}
+business_name: ${JSON.stringify(business_name)}
+goal: ${JSON.stringify(goal)}
+tone_hint: ${JSON.stringify(tone_hint)}
+main_city: ${JSON.stringify(main_city)}
+email: ${JSON.stringify(email)}
+phone: ${JSON.stringify(phone)}
+
+Return JSON ONLY.
+          `.trim(),
+        },
+      ],
+    });
+
+    must(plan, ["intelligence", "strategy", "settings"]);
+
+    // We build menu ourselves so it never includes dead links
+    plan.settings = plan.settings || {};
+    plan.settings.menu = buildMenuFromFlags(plan.strategy || {});
+    // Force required settings defaults if model omitted
+    plan.settings.cta_text = safeStr(plan.settings.cta_text, goal.toLowerCase() === "quote" ? "Request a Quote" : "Contact Us");
+    plan.settings.cta_link = safeStr(plan.settings.cta_link, "#contact");
+    plan.settings.cta_type = plan.settings.cta_type === "external" ? "external" : "anchor";
+    plan.settings.secondary_cta_text = safeStr(plan.settings.secondary_cta_text, "");
+    plan.settings.secondary_cta_link = safeStr(plan.settings.secondary_cta_link, "");
+
+    // ---------------------------
+    // PASS B: Builder (business_json)
+    // ---------------------------
+    const business_json = await openaiJson({
+      apiKey: env.OPENAI_API_KEY,
+      model: "gpt-4.1-mini",
+      temperature: 0.35,
+      messages: [
+        {
+          role: "user",
+          content: `
+You are SiteForge "Builder".
+Return ONE JSON object.
+
+It MUST conform to this top-level contract used by Astro:
+
+REQUIRED top-level keys:
+- intelligence, strategy, settings, brand, hero, about, features, contact
+
+OPTIONAL keys (only include if strategy says true AND you provide the correct shape):
+- trustbar, events, processSteps, testimonials, comparison, gallery, investment, faqs, service_area
+
+STRICT SHAPES:
+
+intelligence:
+  industry, target_persona, tone_of_voice
+
+strategy:
+  show_trustbar, show_about, show_features, show_events, show_process, show_testimonials,
+  show_comparison, show_gallery, show_investment, show_faqs, show_service_area
+
+settings:
+  vibe, cta_text, cta_link, cta_type, secondary_cta_text, secondary_cta_link, menu
+  menu items are objects: {label, path} and paths are anchors like "#about"
+
+brand:
+  name, tagline, email (required)
+  optional: slug, phone, office_address, objection_handle
+
+hero:
+  headline, subtext, image {alt, image_search_query}
+  image_search_query: 4–8 words: {subject} {action} {context}
+  DO NOT include city names in image_search_query.
+
+about:
+  story_text, founder_note, years_experience (strings)
+
+features:
+  3–8 items: {title, description, icon_slug}
+  icon_slug MUST be one of:
+  zap,cpu,layers,rocket,leaf,sprout,sun,scissors,truck,hammer,wrench,trash,sparkles,heart,award,users,map,shield,star,check,coins,briefcase,clock,phone
+
+contact:
+  headline, subheadline, email_recipient, button_text
+  optional: email, phone, office_address
+
+service_area (if included):
+  main_city, surrounding_cities (array)
+  optional: travel_note, cta_text, cta_link, map_search_query
+
+processSteps (if included):
+  3–5 items: {title, description}
+
+testimonials (if included):
+  3–6 items: {quote, author, role}
+  Keep clearly generic if unknown (no fake businesses, no “5-star Google” claims).
+
+comparison (if included):
+  { title, items: [{label, us, them}] } 3–6 items
+
+gallery (if included):
+  { enabled: true, title, layout: null, show_titles: true, items: [{title, caption?, tag?, image_search_query}] }
+  Provide 6–10 items. Each image_search_query MUST be different (vary subject/action/context).
+
+investment (if included):
+  2–4 tiers: { tier_name, price, popular?, features[] }
+  If user did NOT provide exact prices, use ranges or "Starting at" safely.
+
+faqs (if included):
+  4–8 items: { question, answer }
+
+trustbar (if included):
+  { enabled: true, headline?, items: [{icon, label, sublabel?}] }
+  icon MUST be one of the icon enum (or short emoji). Avoid hard claims.
+
+Plan (follow exactly):
+${JSON.stringify(plan)}
+
+Authoritative facts:
+business_name: ${JSON.stringify(business_name)}
+email: ${JSON.stringify(email)}
+phone: ${JSON.stringify(phone)}
+main_city: ${JSON.stringify(main_city)}
+goal: ${JSON.stringify(goal)}
+site_for: ${JSON.stringify(site_for)}
+slug: ${JSON.stringify(baseSlug)}
+
+Return JSON ONLY. No markdown.
+          `.trim(),
+        },
+      ],
+    });
+
+    must(business_json, ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"]);
+
+    // ---------------------------
+    // Server-side normalization to prevent dead links / missing sections
+    // ---------------------------
+    // Lock slug
+    const slug = normalizeSlug(
+      business_json?.brand?.slug || business_json?.brand?.name || business_name || baseSlug || "brand"
+    );
+    business_json.brand = business_json.brand || {};
+    business_json.brand.slug = slug;
+
+    // Ensure brand required fields exist
+    business_json.brand.name = safeStr(business_json.brand.name, business_name || "Your Business");
+    business_json.brand.tagline = safeStr(business_json.brand.tagline, `${business_json.brand.name}`);
+    business_json.brand.email = safeStr(business_json.brand.email, email);
+
+    // Ensure optional phone/address carried through
+    if (phone && !business_json.brand.phone) business_json.brand.phone = phone;
+    if (main_city && !business_json.brand.office_address) business_json.brand.office_address = main_city;
+
+    // Force settings.menu built from flags (never trust model menu)
+    business_json.settings = business_json.settings || {};
+    business_json.strategy = business_json.strategy || {};
+    business_json.settings.menu = buildMenuFromFlags(business_json.strategy);
+
+    // Ensure CTA fields present (schema requires these)
+    business_json.settings.cta_text = safeStr(business_json.settings.cta_text, plan?.settings?.cta_text || "Contact Us");
+    business_json.settings.cta_link = safeStr(business_json.settings.cta_link, plan?.settings?.cta_link || "#contact");
+    business_json.settings.cta_type = business_json.settings.cta_type === "external" ? "external" : "anchor";
+    business_json.settings.secondary_cta_text = safeStr(business_json.settings.secondary_cta_text, "");
+    business_json.settings.secondary_cta_link = safeStr(business_json.settings.secondary_cta_link, "");
+
+    // Enforce features icon enum (prevents “car”, “user-check”, etc.)
+    if (Array.isArray(business_json.features)) {
+      business_json.features = business_json.features.map((f) => ({
+        ...f,
+        icon_slug: enforceIconSlug(f?.icon_slug),
+      }));
+    }
+
+    // If show_service_area true, ensure correct service_area shape
+    if (business_json.strategy.show_service_area) {
+      const sa = business_json.service_area || {};
+      const surrounding = uniqStrings(sa.surrounding_cities);
+      business_json.service_area = {
+        main_city: safeStr(sa.main_city, main_city || "Our Region"),
+        surrounding_cities: surrounding.length ? surrounding : [],
+        travel_note: safeStr(sa.travel_note, "Outside these areas? We offer custom quotes for extended travel."),
+        cta_text: safeStr(sa.cta_text, business_json.settings.cta_text),
+        cta_link: safeStr(sa.cta_link, "#contact"),
+        map_search_query: safeStr(sa.map_search_query, ""),
+      };
+    } else {
+      delete business_json.service_area;
+    }
+
+    // If show_gallery true, ensure gallery.enabled and queries are unique-ish
+    if (business_json.strategy.show_gallery) {
+      const g = business_json.gallery || {};
+      const items = Array.isArray(g.items) ? g.items : [];
+      // De-dupe identical queries/titles
+      const seenQ = new Set();
+      const cleaned = [];
+      for (const it of items) {
+        const q = safeStr(it?.image_search_query);
+        const t = safeStr(it?.title, "Project");
+        const key = (q + "|" + t).toLowerCase();
+        if (!q) continue;
+        if (seenQ.has(key)) continue;
+        seenQ.add(key);
+        cleaned.push({
+          title: t,
+          caption: safeStr(it?.caption, ""),
+          tag: safeStr(it?.tag, ""),
+          image_search_query: q,
+        });
+      }
+      business_json.gallery = {
+        enabled: true,
+        title: safeStr(g.title, "Recent Work"),
+        layout: g.layout ?? null,
+        show_titles: typeof g.show_titles === "boolean" ? g.show_titles : true,
+        items: cleaned,
+      };
+      // If model forgot items, create safe defaults based on industry
+      if (business_json.gallery.items.length < 6) {
+        const defaults = [
+          "car detailing polishing luxury car",
+          "car interior cleaning vacuum seats",
+          "car wash foam rinse driveway",
+          "headlight restoration before after",
+          "wheel cleaning tire shine closeup",
+          "paint correction polishing buffer",
+          "ceramic coating application hood",
+          "leather seat conditioning interior",
+        ];
+        const already = new Set(business_json.gallery.items.map((x) => x.image_search_query.toLowerCase()));
+        for (const q of defaults) {
+          if (business_json.gallery.items.length >= 8) break;
+          if (already.has(q.toLowerCase())) continue;
+          business_json.gallery.items.push({ title: "Detailing", caption: "", tag: "", image_search_query: q });
+          already.add(q.toLowerCase());
+        }
+      }
+    } else {
+      delete business_json.gallery;
+    }
+
+    // Guard: only keep optional sections if enabled in strategy
+    const optMap = [
+      ["trustbar", "show_trustbar"],
+      ["events", "show_events"],
+      ["processSteps", "show_process"],
+      ["testimonials", "show_testimonials"],
+      ["comparison", "show_comparison"],
+      ["investment", "show_investment"],
+      ["faqs", "show_faqs"],
+    ];
+    for (const [key, flag] of optMap) {
+      if (!business_json.strategy?.[flag]) delete business_json[key];
+    }
+
+    // Make sure contact recipient is set
+    business_json.contact = business_json.contact || {};
+    business_json.contact.email_recipient = safeStr(
+      business_json.contact.email_recipient,
+      email || business_json.brand.email || ""
+    );
+    // Helpful passthrough fields (your Contact schema allows these)
+    if (email) business_json.contact.email = safeStr(business_json.contact.email, email);
+    if (phone) business_json.contact.phone = safeStr(business_json.contact.phone, phone);
+    if (main_city) business_json.contact.office_address = safeStr(business_json.contact.office_address, main_city);
+
+    return new Response(JSON.stringify({ ok: true, slug, plan, business_json }), {
+      headers: { "content-type": "application/json" },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+      status: 500,
+      headers: { "content-type": "application/json" },
+    });
+  }
+}
 </file>
 
 <file path="src/components/Gallery.astro">

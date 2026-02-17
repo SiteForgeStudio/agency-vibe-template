@@ -1,190 +1,162 @@
-import fs from "fs";
-import path from "path";
-import axios from "axios";
+// scripts/fetch-unsplash-images.mjs
+import fs from "node:fs";
+import path from "node:path";
 
-const slug = process.argv[2];
-if (!slug) {
-  console.error("Usage: node scripts/fetch-unsplash-images.mjs <client_slug>");
-  process.exit(1);
+const UNSPLASH_API = "https://api.unsplash.com";
+
+function readJson(p) {
+  return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
-const ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY;
-if (!ACCESS_KEY) {
-  console.error("Missing UNSPLASH_ACCESS_KEY env var.");
-  process.exit(1);
+function ensureDir(p) {
+  fs.mkdirSync(p, { recursive: true });
 }
 
-const root = process.cwd();
-const clientDir = path.join(root, "clients", slug);
-const businessPath = path.join(clientDir, "business.json");
-const clientAssetsDir = path.join(clientDir, "assets", "images");
-
-if (!fs.existsSync(businessPath)) {
-  console.error(`Missing ${businessPath} (run merge-json first)`);
-  process.exit(1);
+async function fetchJson(url, headers) {
+  const res = await fetch(url, { headers });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`Unsplash error ${res.status}: ${text}`);
+  return JSON.parse(text);
 }
 
-const data = JSON.parse(fs.readFileSync(businessPath, "utf-8"));
-
-if (!fs.existsSync(clientAssetsDir)) {
-  fs.mkdirSync(clientAssetsDir, { recursive: true });
+async function downloadToFile(url, destPath) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Download failed ${res.status}: ${url}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(destPath, buf);
 }
 
-const brandSlug =
-  data.brand?.slug ||
-  (data.brand?.name || "brand")
-    .toLowerCase()
-    .replace(/'/g, "")        // MATCH Hero.astro
-    .replace(/[^a-z0-9]/g, "-"); // MATCH Hero.astro
-
-async function searchUnsplashPhoto(query) {
-  const res = await axios.get("https://api.unsplash.com/search/photos", {
-    params: { query, orientation: "landscape", per_page: 1 },
-    headers: { Authorization: `Client-ID ${ACCESS_KEY}` },
-    timeout: 30000
-  });
-  const first = res.data?.results?.[0];
-  // Use "regular" as you did; could switch to "full" if you want higher res.
-  return first?.urls?.regular || null;
+function safeQuery(q) {
+  return String(q || "").trim().replace(/\s+/g, " ");
 }
 
-function buildFallbackQueries(query, industryFallback) {
-  const q = (query || "").trim();
-  const fallbacks = [];
+function buildFallbackQueries(industry) {
+  const base = safeQuery(industry) || "local service";
+  // Deliberately varied “subject action context” style queries
+  return [
+    `${base} professional working`,
+    `${base} close up detail work`,
+    `${base} tools on site`,
+    `${base} premium service`,
+    `${base} before and after`,
+    `${base} customer service`,
+    `${base} modern workspace`,
+  ];
+}
 
-  if (q) fallbacks.push(q);
+function pickSearchQuery({ business, galleryItem, fallbackQueries, idx }) {
+  const fromItem = safeQuery(galleryItem?.image_search_query);
+  if (fromItem) return fromItem;
 
-  if (q) {
-    fallbacks.push(
-      q
-        .replace(/\b(close-up|closeup|professional|premium|luxury|high-end|highend)\b/gi, "")
-        .replace(/\s+/g, " ")
-        .trim()
-    );
+  // If item has a title, use it as part of the query
+  const title = safeQuery(galleryItem?.title);
+  if (title) return safeQuery(`${business} ${title}`);
+
+  // fallback: rotate through varied queries
+  return fallbackQueries[idx % fallbackQueries.length];
+}
+
+function listExistingImages(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => /\.(jpg|jpeg|png|webp)$/i.test(f));
+}
+
+export default async function main(clientSlug) {
+  const slug = clientSlug || process.argv[2];
+  if (!slug) {
+    console.error("Usage: node scripts/fetch-unsplash-images.mjs <client_slug>");
+    process.exit(1);
   }
 
-  if (q) {
-    const tokens = q.split(/\s+/).filter(Boolean);
-    fallbacks.push(tokens.slice(0, 4).join(" "));
-    fallbacks.push(tokens.slice(0, 2).join(" "));
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+  if (!accessKey) throw new Error("Missing UNSPLASH_ACCESS_KEY");
+
+  const clientJsonPath = path.join("clients", slug, "business.json");
+  const clientData = readJson(clientJsonPath);
+
+  const outDir = path.join("clients", slug, "assets", "images");
+  ensureDir(outDir);
+
+  // If you already have images, we still refresh to match current gallery/hero.
+  // (You can change this behavior if you want caching.)
+  for (const f of listExistingImages(outDir)) {
+    fs.rmSync(path.join(outDir, f), { force: true });
   }
 
-  if (industryFallback) fallbacks.push(industryFallback);
-
-  // last safe defaults
-  fallbacks.push("modern service business");
-  fallbacks.push("professional team at work");
-  fallbacks.push("clean minimal office");
-
-  return [...new Set(fallbacks)].filter(Boolean);
-}
-
-async function fetchUnsplashImage(query, filename) {
-  const filePath = path.join(clientAssetsDir, filename);
-
-  if (fs.existsSync(filePath)) {
-    console.log(`- Skipping ${filename} (already exists)`);
-    return;
-  }
-
-  const fallbacks = buildFallbackQueries(query, data?.intelligence?.industry);
-
-  let downloadUrl = null;
-  for (const q of fallbacks) {
-    console.log(`🔍 Unsplash: "${q}"`);
-    try {
-      downloadUrl = await searchUnsplashPhoto(q);
-      if (downloadUrl) break;
-    } catch (e) {
-      const msg = e?.response?.data?.errors?.[0] || e.message;
-      console.log(`  ↳ search error: ${msg}`);
-    }
-  }
-
-  if (!downloadUrl) {
-    console.log(`! No results for: ${query}`);
-    return;
-  }
-
-  const res = await axios({ url: downloadUrl, method: "GET", responseType: "arraybuffer", timeout: 60000 });
-  fs.writeFileSync(filePath, Buffer.from(res.data));
-  console.log(`✅ Saved ${filename}`);
-}
-
-function ensureGallerySlots(dataObj, desiredCount = 6) {
-  // If gallery is missing/empty, generate placeholder items so preview looks premium.
-  if (!dataObj.gallery) {
-    dataObj.gallery = { enabled: true, items: [] };
-  }
-
-  const g = dataObj.gallery;
-  const isLegacyArray = Array.isArray(g);
-  if (isLegacyArray) return dataObj; // leave legacy alone
-
-  if (!Array.isArray(g.items)) g.items = [];
-  while (g.items.length < desiredCount) {
-    g.items.push({
-      alt: "Project photo",
-      image_search_query: ""
-    });
-  }
-
-  if (typeof g.computed_count !== "number") g.computed_count = desiredCount;
-  if (!g.image_source) g.image_source = {};
-  return dataObj;
-}
-
-async function run() {
-  console.log(`🚀 Image Factory (CI): ${brandSlug}`);
-
-  // Ensure gallery has some slots for premium preview (optional but recommended)
-  ensureGallerySlots(data, 6);
-  fs.writeFileSync(businessPath, JSON.stringify(data, null, 2));
+  const brandSlug = clientData?.brand?.slug || slug;
 
   // HERO
-  const heroQuery = data?.hero?.image?.image_search_query || data?.hero?.image?.alt || data?.intelligence?.industry;
-  if (heroQuery) {
-    await fetchUnsplashImage(heroQuery, `${brandSlug}-hero.jpg`);
-  } else {
-    console.log("⚠️ No hero query/alt/industry found.");
-  }
+  const heroQuery = safeQuery(clientData?.hero?.image?.image_search_query) ||
+    safeQuery(clientData?.intelligence?.industry) ||
+    "professional service";
+  const heroPage = 1;
+
+  const heroSearchUrl =
+    `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(heroQuery)}&orientation=landscape&per_page=30&page=${heroPage}`;
+  const headers = { Authorization: `Client-ID ${accessKey}` };
+  const heroData = await fetchJson(heroSearchUrl, headers);
+
+  const heroResults = heroData?.results || [];
+  if (heroResults.length === 0) throw new Error(`No Unsplash results for hero query: "${heroQuery}"`);
+
+  // Use a non-1st image when possible to avoid “same image everywhere”
+  const heroPick = heroResults[Math.min(3, heroResults.length - 1)];
+  const heroUrl = heroPick?.urls?.regular || heroPick?.urls?.full;
+  if (!heroUrl) throw new Error("No hero image URL found from Unsplash response");
+  await downloadToFile(heroUrl, path.join(outDir, `${brandSlug}-hero.jpg`));
 
   // GALLERY
-  const galleryObj = data.gallery;
-  const isLegacyArray = Array.isArray(galleryObj);
-  const galleryEnabled = isLegacyArray ? true : galleryObj?.enabled !== false;
-  const galleryItems = isLegacyArray ? galleryObj : (galleryObj?.items || []);
+  const galleryEnabled = !!clientData?.gallery?.enabled;
+  const galleryItems = Array.isArray(clientData?.gallery?.items) ? clientData.gallery.items : [];
+  const industry = safeQuery(clientData?.intelligence?.industry);
+  const fallbackQueries = buildFallbackQueries(industry);
 
   if (galleryEnabled && galleryItems.length > 0) {
-    const desiredCount =
-      (!isLegacyArray && typeof galleryObj?.computed_count === "number")
-        ? galleryObj.computed_count
-        : galleryItems.length;
+    for (let i = 0; i < galleryItems.length; i++) {
+      const item = galleryItems[i];
+      const q = pickSearchQuery({
+        business: industry,
+        galleryItem: item,
+        fallbackQueries,
+        idx: i,
+      });
 
-    const itemsToProcess = galleryItems.slice(0, Math.max(0, desiredCount));
-    const globalQuery =
-      (!isLegacyArray && galleryObj?.image_source?.image_search_query)
-        ? galleryObj.image_source.image_search_query
-        : "";
+      // vary page to diversify results for similar queries
+      const page = (i % 3) + 1; // 1..3
+      const searchUrl =
+        `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(q)}&orientation=landscape&per_page=30&page=${page}`;
 
-    for (const [index, item] of itemsToProcess.entries()) {
-      const q =
-        item?.image_search_query ||
-        globalQuery ||
-        item?.alt ||
-        data?.intelligence?.industry ||
-        "professional services";
+      const data = await fetchJson(searchUrl, headers);
+      const results = data?.results || [];
 
-      await fetchUnsplashImage(q, `${brandSlug}-project-${index}.jpg`);
+      if (results.length === 0) {
+        // hard fallback: use a generic but varied query
+        const fb = fallbackQueries[i % fallbackQueries.length];
+        const fbUrl =
+          `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(fb)}&orientation=landscape&per_page=30&page=${page}`;
+        const fbData = await fetchJson(fbUrl, headers);
+        const fbResults = fbData?.results || [];
+        if (fbResults.length === 0) continue;
+
+        const pick = fbResults[Math.min(5, fbResults.length - 1)];
+        const imgUrl = pick?.urls?.regular || pick?.urls?.full;
+        if (imgUrl) {
+          await downloadToFile(imgUrl, path.join(outDir, `${brandSlug}-project-${i}.jpg`));
+        }
+        continue;
+      }
+
+      const pick = results[Math.min(5, results.length - 1)];
+      const imgUrl = pick?.urls?.regular || pick?.urls?.full;
+      if (imgUrl) {
+        await downloadToFile(imgUrl, path.join(outDir, `${brandSlug}-project-${i}.jpg`));
+      }
     }
-  } else {
-    console.log("ℹ️ Gallery disabled or empty.");
   }
 
-  console.log("✅ Images ready under:", clientAssetsDir);
+  console.log(`Downloaded images to ${outDir}`);
 }
 
-run().catch((e) => {
-  console.error("Fatal:", e);
-  process.exit(1);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
