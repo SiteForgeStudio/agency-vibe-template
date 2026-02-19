@@ -37,208 +37,55 @@ function normalizeSlug(s) {
 
 function titleFromAnchor(anchor) {
   const map = {
-    "#home": "Home",
-    "#about": "About",
-    "#features": "Features",
-    "#events": "Events",
-    "#process": "Process",
-    "#testimonials": "Testimonials",
-    "#comparison": "Comparison",
-    "#gallery": "Gallery",
-    "#investment": "Investment",
-    "#faqs": "FAQs",
-    "#service-area": "Service Area",
-    "#contact": "Contact",
+    "#home": "Home", "#about": "About", "#features": "Features",
+    "#events": "Events", "#process": "Process", "#testimonials": "Testimonials",
+    "#comparison": "Comparison", "#gallery": "Gallery", "#investment": "Investment",
+    "#faqs": "FAQs", "#service-area": "Service Area", "#contact": "Contact",
   };
   return map[anchor] || anchor.replace(/^#/, "").replace(/-/g, " ");
 }
 
 function isNewSchema(obj) {
-  // “new schema” signals (Master Manifest 2026)
   return (
-    !!obj &&
-    isObject(obj) &&
-    isObject(obj.intelligence) &&
-    typeof obj.intelligence.industry === "string" &&
-    isObject(obj.brand) &&
-    typeof obj.brand.name === "string" &&
-    isObject(obj.hero) &&
-    typeof obj.hero.subtext === "string"
-  );
-}
-
-function isLegacySchema(obj) {
-  // “legacy schema” signals (your older generate output)
-  return (
-    !!obj &&
-    isObject(obj) &&
-    isObject(obj.intelligence) &&
-    (typeof obj.intelligence.business_name === "string" ||
-      typeof obj.intelligence.site_for === "string")
+    !!obj && isObject(obj) && isObject(obj.intelligence) &&
+    isObject(obj.brand) && isObject(obj.hero)
   );
 }
 
 function migrateLegacyToNew(legacy) {
-  // Best-effort migration so Astro can render ALL sections deterministically.
-  const intelligenceLegacy = legacy?.intelligence || {};
-  const strategyLegacy = legacy?.strategy || {};
-  const settingsLegacy = legacy?.settings || {};
-  const brandLegacy = legacy?.brand || {};
-  const heroLegacy = legacy?.hero || {};
-  const aboutLegacy = legacy?.about || {};
-  const featuresLegacy = legacy?.features || [];
-  const contactLegacy = legacy?.contact || {};
-  const serviceAreaLegacy = legacy?.service_area || legacy?.serviceArea || {};
-
-  const businessName =
-    intelligenceLegacy.business_name ||
-    brandLegacy.logo_text ||
-    brandLegacy.name ||
-    "Your Business";
-
-  const siteFor = intelligenceLegacy.site_for || "";
-  // crude industry inference fallback (better comes from your new generate)
-  const industry =
-    (typeof siteFor === "string" && siteFor.trim()) ||
-    "local services";
-
-  const tone =
-    intelligenceLegacy.tone_hint ||
-    intelligenceLegacy.tone_of_voice ||
-    "friendly and professional";
-
-  const persona =
-    "Local customers seeking a high-quality service";
-
-  const slug = normalizeSlug(
-    brandLegacy.slug || brandLegacy.name || brandLegacy.logo_text || businessName
-  );
-
-  // legacy menus were ["#home", "#about", ...]
-  const legacyMenu = Array.isArray(settingsLegacy.menu)
-    ? settingsLegacy.menu
-    : Array.isArray(strategyLegacy.menu)
-      ? strategyLegacy.menu
-      : [];
-
-  const menu =
-    legacyMenu.length > 0
-      ? legacyMenu.map((p) => ({ label: titleFromAnchor(p), path: p }))
-      : [
-          { label: "Home", path: "#home" },
-          { label: "About", path: "#about" },
-          { label: "Features", path: "#features" },
-          { label: "Contact", path: "#contact" },
-        ];
-
-  const vibe =
-    settingsLegacy.vibe ||
-    "Modern Minimal";
-
-  // strategy booleans weren’t present in legacy — give safe defaults that
-  // still allow the template to render sections if content exists later.
-  const showEvents = !!strategyLegacy.show_events;
-
-  const migrated = {
-    intelligence: {
-      industry: String(industry).trim() || "local services",
-      target_persona: persona,
-      tone_of_voice: String(tone).trim() || "friendly and professional",
-    },
+  const strategy = legacy?.strategy || {};
+  const brand = legacy?.brand || {};
+  
+  return {
+    intelligence: legacy.intelligence || { industry: "local services", target_persona: "customers", tone_of_voice: "professional" },
     strategy: {
-      show_trustbar: false,
-      show_about: true,
-      show_features: true,
-      show_events: showEvents,
-      show_process: true,
-      show_testimonials: true,
-      show_comparison: false,
-      show_gallery: true,
-      show_investment: true,
-      show_faqs: true,
-      show_service_area: true,
+      show_trustbar: !!strategy.show_trustbar,
+      show_about: strategy.show_about !== false,
+      show_features: strategy.show_features !== false,
+      show_events: !!strategy.show_events,
+      show_process: !!strategy.show_process,
+      show_testimonials: !!strategy.show_testimonials,
+      show_comparison: !!strategy.show_comparison,
+      show_gallery: strategy.show_gallery !== false,
+      show_investment: !!strategy.show_investment,
+      show_faqs: !!strategy.show_faqs,
+      show_service_area: !!strategy.show_service_area,
     },
-    settings: {
-      vibe,
-      cta_text: "Get Started",
-      cta_link: "#contact",
-      cta_type: "anchor",
-      secondary_cta_text: "",
-      secondary_cta_link: "",
-      menu,
-    },
+    settings: legacy.settings || { vibe: "Modern Minimal", cta_text: "Get Started", cta_link: "#contact" },
     brand: {
-      name: brandLegacy.name || brandLegacy.logo_text || businessName,
-      slug,
-      tagline: brandLegacy.tagline || "A service you can trust",
-      email: brandLegacy.email || contactLegacy.email_recipient || "",
-      phone: brandLegacy.phone || "",
-      office_address: brandLegacy.office_address || "",
-      objection_handle: brandLegacy.objection_handle || "",
+      name: brand.name || "Your Business",
+      slug: normalizeSlug(brand.slug || brand.name || "brand"),
+      tagline: brand.tagline || "Professional Service",
+      email: brand.email || "",
+      phone: brand.phone || "",
+      objection_handle: brand.objection_handle || ""
     },
-    hero: {
-      headline:
-        heroLegacy.headline || `Welcome to ${businessName}`,
-      subtext:
-        heroLegacy.subheadline ||
-        heroLegacy.subtext ||
-        "Professional service designed around your needs.",
-      image: {
-        alt:
-          heroLegacy?.image?.alt || "Hero image",
-        image_search_query:
-          heroLegacy?.image?.image_search_query || "local service professional at work",
-      },
-    },
-    about: {
-      story_text:
-        aboutLegacy.content ||
-        aboutLegacy.story_text ||
-        `${businessName} serves customers with a focus on quality, convenience, and care.`,
-      founder_note:
-        aboutLegacy.founder_note ||
-        "Owner-led and detail-focused.",
-      years_experience:
-        aboutLegacy.years_experience ||
-        "Newly launched",
-    },
-    features: Array.isArray(featuresLegacy) ? featuresLegacy : [],
-    contact: {
-      headline: contactLegacy.headline || "Get in touch",
-      subheadline: contactLegacy.subheadline || "We’d love to help. Reach out today.",
-      email_recipient:
-        contactLegacy.email_recipient || brandLegacy.email || "",
-      button_text: contactLegacy.button_text || "Contact Us",
-      email: brandLegacy.email || "",
-      phone: brandLegacy.phone || "",
-      office_address: brandLegacy.office_address || "",
-    },
+    hero: legacy.hero || { headline: "Welcome", subtext: "Service you can trust", image: { alt: "Hero", image_search_query: "professional service" } },
+    about: legacy.about || { story_text: "", founder_note: "", years_experience: "" },
+    features: legacy.features || [],
+    gallery: legacy.gallery || { enabled: true, computed_layout: "grid", items: [] },
+    contact: legacy.contact || { headline: "Contact Us", subheadline: "", email_recipient: "", button_text: "Submit" }
   };
-
-  // Service area normalization
-  const mainCity =
-    intelligenceLegacy.main_city ||
-    serviceAreaLegacy.main_city ||
-    "";
-
-  const surrounding =
-    serviceAreaLegacy.surrounding_cities ||
-    serviceAreaLegacy.locations ||
-    [];
-
-  if (mainCity || (Array.isArray(surrounding) && surrounding.length)) {
-    migrated.service_area = {
-      main_city: mainCity || "Our Region",
-      surrounding_cities: Array.isArray(surrounding) ? surrounding : [],
-      travel_note:
-        serviceAreaLegacy.travel_note ||
-        "Outside these areas? We offer custom quotes for extended travel.",
-      cta_text: "Request a Quote",
-      cta_link: "#contact",
-    };
-  }
-
-  return migrated;
 }
 
 const clientSlug = process.argv[2];
@@ -254,44 +101,14 @@ const outPath = path.join("clients", clientSlug, "business.json");
 const baseRaw = readJson(basePath) || {};
 const updatesRaw = readJson(updatesPath) || {};
 
-// 1) Normalize base + updates into the NEW schema if needed
-const base =
-  isNewSchema(baseRaw)
-    ? baseRaw
-    : isLegacySchema(baseRaw)
-      ? migrateLegacyToNew(baseRaw)
-      : baseRaw;
+const base = isNewSchema(baseRaw) ? baseRaw : migrateLegacyToNew(baseRaw);
+const updates = isNewSchema(updatesRaw) ? updatesRaw : updatesRaw;
 
-const updates =
-  isNewSchema(updatesRaw)
-    ? updatesRaw
-    : isLegacySchema(updatesRaw)
-      ? migrateLegacyToNew(updatesRaw)
-      : updatesRaw;
-
-// 2) Merge (updates overrides base)
 const merged = deepMerge(base, updates);
 
-// 3) Guarantee a stable brand.slug
-merged.brand = merged.brand || {};
-merged.brand.slug = normalizeSlug(
-  merged.brand.slug || merged.brand.name || clientSlug
-);
+// Final safety on brand slug and gallery
+merged.brand.slug = normalizeSlug(merged.brand.slug || clientSlug);
+if (!merged.gallery) merged.gallery = { enabled: true, computed_layout: "grid", items: [] };
 
-// 4) If menu exists, ensure it’s array of {label,path} objects
-if (Array.isArray(merged?.settings?.menu)) {
-  const menuOk = merged.settings.menu.every(
-    (x) => x && typeof x === "object" && typeof x.label === "string" && typeof x.path === "string"
-  );
-
-  if (!menuOk) {
-    // try to coerce from anchor strings
-    merged.settings.menu = merged.settings.menu
-      .filter((x) => typeof x === "string")
-      .map((p) => ({ label: titleFromAnchor(p), path: p }));
-  }
-}
-
-// 5) Write merged
 writeJson(outPath, merged);
 console.log(`Wrote ${outPath}`);

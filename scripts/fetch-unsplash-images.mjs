@@ -4,159 +4,69 @@ import path from "node:path";
 
 const UNSPLASH_API = "https://api.unsplash.com";
 
-function readJson(p) {
-  return JSON.parse(fs.readFileSync(p, "utf8"));
-}
-
-function ensureDir(p) {
-  fs.mkdirSync(p, { recursive: true });
-}
+function readJson(p) { return JSON.parse(fs.readFileSync(p, "utf8")); }
+function ensureDir(p) { fs.mkdirSync(p, { recursive: true }); }
 
 async function fetchJson(url, headers) {
   const res = await fetch(url, { headers });
-  const text = await res.text();
-  if (!res.ok) throw new Error(`Unsplash error ${res.status}: ${text}`);
-  return JSON.parse(text);
+  if (!res.ok) throw new Error(`Unsplash error ${res.status}`);
+  return JSON.parse(await res.text());
 }
 
 async function downloadToFile(url, destPath) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`Download failed ${res.status}: ${url}`);
   const buf = Buffer.from(await res.arrayBuffer());
   fs.writeFileSync(destPath, buf);
 }
 
-function safeQuery(q) {
-  return String(q || "").trim().replace(/\s+/g, " ");
-}
-
 function buildFallbackQueries(industry) {
-  const base = safeQuery(industry) || "local service";
-  // Deliberately varied “subject action context” style queries
-  return [
-    `${base} professional working`,
-    `${base} close up detail work`,
-    `${base} tools on site`,
-    `${base} premium service`,
-    `${base} before and after`,
-    `${base} customer service`,
-    `${base} modern workspace`,
-  ];
-}
-
-function pickSearchQuery({ business, galleryItem, fallbackQueries, idx }) {
-  const fromItem = safeQuery(galleryItem?.image_search_query);
-  if (fromItem) return fromItem;
-
-  // If item has a title, use it as part of the query
-  const title = safeQuery(galleryItem?.title);
-  if (title) return safeQuery(`${business} ${title}`);
-
-  // fallback: rotate through varied queries
-  return fallbackQueries[idx % fallbackQueries.length];
-}
-
-function listExistingImages(dir) {
-  if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir).filter((f) => /\.(jpg|jpeg|png|webp)$/i.test(f));
+  const base = industry || "professional service";
+  return [`${base} detail`, `${base} workspace`, `${base} tools`, `${base} expert at work` ];
 }
 
 export default async function main(clientSlug) {
   const slug = clientSlug || process.argv[2];
-  if (!slug) {
-    console.error("Usage: node scripts/fetch-unsplash-images.mjs <client_slug>");
-    process.exit(1);
-  }
-
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;
   if (!accessKey) throw new Error("Missing UNSPLASH_ACCESS_KEY");
 
-  const clientJsonPath = path.join("clients", slug, "business.json");
-  const clientData = readJson(clientJsonPath);
-
+  const clientData = readJson(path.join("clients", slug, "business.json"));
   const outDir = path.join("clients", slug, "assets", "images");
   ensureDir(outDir);
 
-  // If you already have images, we still refresh to match current gallery/hero.
-  // (You can change this behavior if you want caching.)
-  for (const f of listExistingImages(outDir)) {
-    fs.rmSync(path.join(outDir, f), { force: true });
-  }
-
   const brandSlug = clientData?.brand?.slug || slug;
-
-  // HERO
-  const heroQuery = safeQuery(clientData?.hero?.image?.image_search_query) ||
-    safeQuery(clientData?.intelligence?.industry) ||
-    "professional service";
-  const heroPage = 1;
-
-  const heroSearchUrl =
-    `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(heroQuery)}&orientation=landscape&per_page=30&page=${heroPage}`;
   const headers = { Authorization: `Client-ID ${accessKey}` };
-  const heroData = await fetchJson(heroSearchUrl, headers);
 
-  const heroResults = heroData?.results || [];
-  if (heroResults.length === 0) throw new Error(`No Unsplash results for hero query: "${heroQuery}"`);
+  // --- HERO ---
+  const heroQ = clientData?.hero?.image?.image_search_query || clientData?.intelligence?.industry || "service";
+  const heroData = await fetchJson(`${UNSPLASH_API}/search/photos?query=${encodeURIComponent(heroQ)}&orientation=landscape`, headers);
+  const heroUrl = heroData?.results?.[0]?.urls?.regular;
+  if (heroUrl) await downloadToFile(heroUrl, path.join(outDir, `${brandSlug}-hero.jpg`));
 
-  // Use a non-1st image when possible to avoid “same image everywhere”
-  const heroPick = heroResults[Math.min(3, heroResults.length - 1)];
-  const heroUrl = heroPick?.urls?.regular || heroPick?.urls?.full;
-  if (!heroUrl) throw new Error("No hero image URL found from Unsplash response");
-  await downloadToFile(heroUrl, path.join(outDir, `${brandSlug}-hero.jpg`));
+  // --- GALLERY ---
+  const gallery = clientData?.gallery || {};
+  const isEnabled = clientData?.strategy?.show_gallery !== false;
+  
+  if (isEnabled) {
+    const items = Array.isArray(gallery.items) ? gallery.items : [];
+    const count = gallery.computed_count || (items.length > 0 ? items.length : 6);
+    const globalQ = gallery.image_source?.image_search_query || clientData?.intelligence?.industry || "professional";
+    const fallbacks = buildFallbackQueries(clientData?.intelligence?.industry);
 
-  // GALLERY
-  const galleryEnabled = !!clientData?.gallery?.enabled;
-  const galleryItems = Array.isArray(clientData?.gallery?.items) ? clientData.gallery.items : [];
-  const industry = safeQuery(clientData?.intelligence?.industry);
-  const fallbackQueries = buildFallbackQueries(industry);
+    console.log(`Fetching ${count} gallery images for ${brandSlug}...`);
 
-  if (galleryEnabled && galleryItems.length > 0) {
-    for (let i = 0; i < galleryItems.length; i++) {
-      const item = galleryItems[i];
-      const q = pickSearchQuery({
-        business: industry,
-        galleryItem: item,
-        fallbackQueries,
-        idx: i,
-      });
-
-      // vary page to diversify results for similar queries
-      const page = (i % 3) + 1; // 1..3
-      const searchUrl =
-        `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(q)}&orientation=landscape&per_page=30&page=${page}`;
-
-      const data = await fetchJson(searchUrl, headers);
-      const results = data?.results || [];
-
-      if (results.length === 0) {
-        // hard fallback: use a generic but varied query
-        const fb = fallbackQueries[i % fallbackQueries.length];
-        const fbUrl =
-          `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(fb)}&orientation=landscape&per_page=30&page=${page}`;
-        const fbData = await fetchJson(fbUrl, headers);
-        const fbResults = fbData?.results || [];
-        if (fbResults.length === 0) continue;
-
-        const pick = fbResults[Math.min(5, fbResults.length - 1)];
-        const imgUrl = pick?.urls?.regular || pick?.urls?.full;
-        if (imgUrl) {
-          await downloadToFile(imgUrl, path.join(outDir, `${brandSlug}-project-${i}.jpg`));
-        }
-        continue;
-      }
-
-      const pick = results[Math.min(5, results.length - 1)];
-      const imgUrl = pick?.urls?.regular || pick?.urls?.full;
-      if (imgUrl) {
-        await downloadToFile(imgUrl, path.join(outDir, `${brandSlug}-project-${i}.jpg`));
+    for (let i = 0; i < count; i++) {
+      const specificQ = items[i]?.image_search_query || globalQ;
+      const searchUrl = `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(specificQ)}&orientation=landscape&page=${(i % 3) + 1}`;
+      
+      try {
+        const data = await fetchJson(searchUrl, headers);
+        const imgUrl = data?.results?.[Math.min(2, data.results.length - 1)]?.urls?.regular;
+        if (imgUrl) await downloadToFile(imgUrl, path.join(outDir, `${brandSlug}-project-${i}.jpg`));
+      } catch (e) {
+        console.error(`Failed gallery image ${i}, skipping.`);
       }
     }
   }
-
-  console.log(`Downloaded images to ${outDir}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
-}
+if (import.meta.url === `file://${process.argv[1]}`) main();
