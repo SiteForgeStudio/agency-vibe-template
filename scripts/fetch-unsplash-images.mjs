@@ -9,10 +9,7 @@ function ensureDir(p) { fs.mkdirSync(p, { recursive: true }); }
 
 async function fetchJson(url, headers) {
   const res = await fetch(url, { headers });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Unsplash error ${res.status}: ${text}`);
-  }
+  if (!res.ok) throw new Error(`Unsplash error ${res.status}`);
   return JSON.parse(await res.text());
 }
 
@@ -22,66 +19,58 @@ async function downloadToFile(url, destPath) {
   fs.writeFileSync(destPath, buf);
 }
 
-const clientSlug = process.argv[2];
-if (!clientSlug) {
-  console.error("Usage: node scripts/fetch-unsplash-images.mjs <client_slug>");
-  process.exit(1);
-}
-
-const accessKey = process.env.UNSPLASH_ACCESS_KEY;
-if (!accessKey) {
-  console.warn("⚠️  No UNSPLASH_ACCESS_KEY found. Skipping image fetch and using placeholders.");
-  // Don't exit, just return so the build can continue
-  return; 
-}
-
-const headers = { Authorization: `Client-ID ${accessKey}` };
-const clientDir = path.join("clients", clientSlug);
-const clientData = readJson(path.join(clientDir, "business.json"));
-const outDir = path.join(clientDir, "assets", "images");
-ensureDir(outDir);
-
-const brandSlug = clientData?.brand?.slug || clientSlug;
-
 async function run() {
-  // --- 1. FETCH HERO IMAGE ---
-  const heroQuery = clientData.hero?.image?.image_search_query || "professional background";
-  console.log(`🔍 Fetching Hero Image: ${heroQuery}`);
-  const heroSearch = await fetchJson(`${UNSPLASH_API}/search/photos?query=${encodeURIComponent(heroQuery)}&orientation=landscape&per_page=1`, headers);
-  if (heroSearch.results?.[0]) {
-    await downloadToFile(heroSearch.results[0].urls.regular, path.join(outDir, `${brandSlug}-hero.jpg`));
+  const slug = process.argv[2];
+  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
+
+  if (!accessKey) {
+    console.warn("⚠️  UNSPLASH_ACCESS_KEY not found. Skipping image download. Build will use existing assets.");
+    return; // This return is now legal because it's inside an async function
   }
 
-  // --- 2. FETCH GALLERY IMAGES ---
-  const gallery = clientData.gallery || {};
-  const isEnabled = clientData.strategy?.show_gallery !== false;
+  const headers = { Authorization: `Client-ID ${accessKey}` };
+  const clientDir = path.join("clients", slug);
+  const outDir = path.join(clientDir, "assets", "images");
   
-  if (isEnabled) {
-    const items = Array.isArray(gallery.items) ? gallery.items : [];
-    // Use computed_count from AI or fallback to 6
-    const count = gallery.computed_count || (items.length > 0 ? items.length : 6);
-    const globalQuery = gallery.image_source?.image_search_query || clientData.intelligence?.industry || "service";
-    
-    console.log(`📸 Fetching ${count} gallery images for layout: ${gallery.computed_layout || 'grid'}`);
+  if (!fs.existsSync(path.join(clientDir, "business.json"))) {
+      console.error("❌ business.json not found. Run merge-json first.");
+      process.exit(1);
+  }
 
+  const clientData = readJson(path.join(clientDir, "business.json"));
+  ensureDir(outDir);
+  const brandSlug = clientData?.brand?.slug || slug;
+
+  // --- Hero Fetch ---
+  try {
+    const heroQ = clientData.hero?.image?.image_search_query || "professional background";
+    const heroData = await fetchJson(`${UNSPLASH_API}/search/photos?query=${encodeURIComponent(heroQ)}&orientation=landscape`, headers);
+    if (heroData.results?.[0]) {
+      await downloadToFile(heroData.results[0].urls.regular, path.join(outDir, `${brandSlug}-hero.jpg`));
+      console.log("✅ Hero image saved.");
+    }
+  } catch (e) { console.warn("Failed hero fetch:", e.message); }
+
+  // --- Gallery Fetch ---
+  const gallery = clientData.gallery || {};
+  if (clientData.strategy?.show_gallery !== false) {
+    const count = gallery.computed_count || 6;
+    const globalQ = gallery.image_source?.image_search_query || "service";
+    
     for (let i = 0; i < count; i++) {
-      const itemQuery = items[i]?.image_search_query || globalQuery;
-      // Vary the page to get different results for same industry
-      const page = (i % 5) + 1;
-      const searchUrl = `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(itemQuery)}&orientation=landscape&per_page=1&page=${page}`;
-      
       try {
-        const searchRes = await fetchJson(searchUrl, headers);
-        if (searchRes.results?.[0]) {
-          const dest = path.join(outDir, `${brandSlug}-project-${i}.jpg`);
-          await downloadToFile(searchRes.results[0].urls.regular, dest);
-          console.log(`   Saved image ${i}: ${dest}`);
+        const searchUrl = `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(globalQ)}&orientation=landscape&page=${i+1}`;
+        const data = await fetchJson(searchUrl, headers);
+        if (data.results?.[0]) {
+          await downloadToFile(data.results[0].urls.regular, path.join(outDir, `${brandSlug}-project-${i}.jpg`));
+          console.log(`✅ Gallery image ${i} saved.`);
         }
-      } catch (err) {
-        console.error(`   Error fetching image ${i}:`, err.message);
-      }
+      } catch (e) { console.warn(`Failed gallery image ${i}:`, e.message); }
     }
   }
 }
 
-run().catch(console.error);
+run().catch(err => {
+  console.error("Factory Fetch Error:", err);
+  process.exit(0); // Exit with 0 so the GitHub Action keeps going
+});
