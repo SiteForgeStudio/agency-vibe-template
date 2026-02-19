@@ -2,12 +2,10 @@
 import { Image } from 'astro:assets';
 const { gallery, brand } = Astro.props;
 
-// 1. ASSET DISCOVERY
-// This scans your images folder so Astro can optimize them at build time.
+// 1. ASSET DISCOVERY [cite: 42]
 const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
 
-// 2. THE SLUG HANDSHAKE
-// Standardized slug generation to match your fetch-unsplash-images.mjs output.
+// 2. THE SLUG HANDSHAKE [cite: 44]
 const brandSlug =
   brand?.slug ||
   (brand?.name || 'brand')
@@ -15,19 +13,16 @@ const brandSlug =
     .replace(/'/g, '')
     .replace(/[^a-z0-9]/g, '-');
 
-// 3. RESILIENT GUARD
-// We no longer require gallery.items to exist to render.
+// 3. RESILIENT GUARD [cite: 45]
 const items = Array.isArray(gallery?.items) ? gallery.items : [];
 const count = gallery?.computed_count || items.length || 0;
 
-// Only hide if the gallery is explicitly disabled or there is no intended count/data.
+// Hide only if explicitly disabled or no data intended [cite: 48]
 if (!gallery || gallery.enabled === false || (items.length === 0 && count === 0)) {
   return null;
 }
 
-// 4. DATA PREPARATION
-// If the AI provided a count but no items array, we create a skeleton array.
-// This ensures {visibleItems.map} actually runs even with an empty base JSON.
+// 4. DATA PREPARATION [cite: 49, 51]
 const visibleItems = items.length > 0 
   ? items.slice(0, count) 
   : Array.from({ length: count }).map((_, i) => ({ title: `Project ${i + 1}` }));
@@ -36,7 +31,7 @@ const title = gallery.title || 'Portfolio';
 const layout = gallery.computed_layout || 'grid';
 const showTitles = gallery.show_titles !== false;
 
-// 5. LAYOUT HELPERS
+// 5. LAYOUT HELPERS [cite: 53]
 const wrapperClass =
   layout === 'masonry'
     ? 'columns-1 md:columns-2 lg:columns-3 gap-8 [column-fill:_balance]'
@@ -62,9 +57,6 @@ function aspectClass(i: number) {
     const k = i % 6;
     return k === 0 ? 'min-h-[420px]' : 'min-h-[220px]';
   }
-  if (layout === 'masonry') {
-    return i % 3 === 0 ? 'min-h-[400px]' : i % 3 === 1 ? 'min-h-[300px]' : 'min-h-[350px]';
-  }
   return 'aspect-video';
 }
 ---
@@ -79,18 +71,13 @@ function aspectClass(i: number) {
 
   <div class={`container mx-auto px-6 ${wrapperClass}`}>
     {visibleItems.map((item: any, index: number) => {
-      // Matches the filename logic in fetch-unsplash-images.mjs [cite: 14]
       const expectedFilename = `${brandSlug}-project-${index}.jpg`;
       const imagePath = `/src/assets/images/${expectedFilename}`;
       const hasImage = images[imagePath];
 
-      const bentoClass = layout === 'bento' ? bentoSpan(index) : '';
-      const sizeClass = aspectClass(index);
-      const masonryCardExtras = layout === 'masonry' ? 'mb-8 inline-block w-full break-inside-avoid' : '';
-
       return (
-        <div class={`${layout === 'bento' ? bentoClass : ''} ${masonryCardExtras}`}>
-          <div class={`${cardBase} ${sizeClass}`}>
+        <div class={`${layout === 'bento' ? bentoSpan(index) : ''}`}>
+          <div class={`${cardBase} ${aspectClass(index)}`}>
             {hasImage ? (
               <Image
                 src={images[imagePath]()}
@@ -101,21 +88,12 @@ function aspectClass(i: number) {
               />
             ) : (
               <div class="flex flex-col items-center justify-center h-full bg-slate-900/50 p-6 border-2 border-dashed border-white/10">
-                <span class="text-red-400 font-mono text-xs mb-2 text-center">Missing: {expectedFilename}</span>
-                <span class="text-[10px] text-white/20 uppercase tracking-widest">Image Factory Syncing...</span>
+                <span class="text-red-400 font-mono text-xs mb-2">Missing: {expectedFilename}</span>
               </div>
             )}
-
-            {showTitles && (item.title || item.description) && (
-              <div class="absolute inset-0 bg-gradient-to-t from-[var(--bg-color)] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-8">
-                <p class="text-[var(--accent)] font-black uppercase tracking-widest text-sm mb-2">
-                  {item.title}
-                </p>
-                {item.description && (
-                   <p class="text-[var(--text-secondary)] text-xs line-clamp-2">
-                    {item.description}
-                  </p>
-                )}
+            {showTitles && item.title && (
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent p-8 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                <p class="text-[var(--accent)] font-black uppercase text-sm">{item.title}</p>
               </div>
             )}
           </div>

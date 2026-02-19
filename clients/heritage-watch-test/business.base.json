@@ -1,25 +1,48 @@
 {
-    "brand": {
-      "name": "Heritage Watch Restoration",
-      "slug": "heritage-watch-test",
-      "tagline": "Reviving the Heartbeat of History"
-    },
-    "hero": {
-      "headline": "Precision Restoration for Vintage Timepieces",
-      "subtext": "We specialize in mechanical watches from the 1950s, preserving legacy with every tick.",
-      "image": {
-        "alt": "Close up of vintage watch gears",
-        "image_search_query": "vintage mechanical watch movement gears macro"
-      }
-    },
-    "strategy": {
-      "show_gallery": true
-    },
-    "gallery": {
-      "enabled": true,
-      "computed_layout": "bento",
-      "image_source": {
-        "image_search_query": "luxury vintage watch collection"
-      }
+  "brand": {
+    "name": "Heritage Watch Restoration",
+    "slug": "heritage-watch-test",
+    "tagline": "Reviving the Heartbeat of History"
+  },
+  "hero": {
+    "headline": "Precision Restoration for Vintage Timepieces",
+    "subtext": "We specialize in mechanical watches from the 1950s, preserving legacy with every tick.",
+    "image": {
+      "alt": "Close up of vintage watch gears",
+      "image_search_query": "vintage mechanical watch movement gears macro"
+    }
+  },
+  "strategy": {
+    "show_gallery": true,
+    "show_about": true,
+    "show_trustbar": false,
+    "show_features": true,
+    "show_contact": true
+  },
+  "settings": {
+    "vibe": "Legacy Professional",
+    "menu": [
+      { "label": "Home", "path": "#home" },
+      { "label": "About", "path": "#about" },
+      { "label": "Gallery", "path": "#gallery" },
+      { "label": "Contact", "path": "#contact" }
+    ]
+  },
+  "gallery": {
+    "enabled": true,
+    "title": "Masterpiece Gallery",
+    "computed_layout": "bento",
+    "computed_count": 6,
+    "items": [
+      { "title": "1954 Omega Seamaster" },
+      { "title": "Rolex Submariner Service" },
+      { "title": "Patek Philippe Restoration" },
+      { "title": "Vintage Chronograph" },
+      { "title": "Movement Calibration" },
+      { "title": "Final Testing" }
+    ],
+    "image_source": {
+      "image_search_query": "luxury vintage watch collection"
     }
   }
+}
