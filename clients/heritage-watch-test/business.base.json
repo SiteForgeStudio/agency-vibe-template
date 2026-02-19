@@ -2,7 +2,10 @@
   "brand": {
     "name": "Heritage Watch Restoration",
     "slug": "heritage-watch-test",
-    "tagline": "Reviving the Heartbeat of History"
+    "tagline": "Reviving the Heartbeat of History",
+    "email": "service@heritagewatch.test",
+    "phone": "555-0123",
+    "office_address": "123 Horology Lane, Philadelphia, PA"
   },
   "hero": {
     "headline": "Precision Restoration for Vintage Timepieces",
@@ -15,12 +18,14 @@
   "strategy": {
     "show_gallery": true,
     "show_about": true,
-    "show_trustbar": false,
     "show_features": true,
     "show_contact": true
   },
   "settings": {
     "vibe": "Legacy Professional",
+    "cta_text": "Book Restoration",
+    "cta_link": "#contact",
+    "show_agency_credit": true,
     "menu": [
       { "label": "Home", "path": "#home" },
       { "label": "About", "path": "#about" },
@@ -33,14 +38,7 @@
     "title": "Masterpiece Gallery",
     "computed_layout": "bento",
     "computed_count": 6,
-    "items": [
-      { "title": "1954 Omega Seamaster" },
-      { "title": "Rolex Submariner Service" },
-      { "title": "Patek Philippe Restoration" },
-      { "title": "Vintage Chronograph" },
-      { "title": "Movement Calibration" },
-      { "title": "Final Testing" }
-    ],
+    "items": [{}, {}, {}, {}, {}, {}],
     "image_source": {
       "image_search_query": "luxury vintage watch collection"
     }
