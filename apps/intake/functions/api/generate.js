@@ -1,9 +1,137 @@
 /**
  * apps/intake/functions/api/generate.js
+ * 100/100 Astro/Tailwind Data-Driven Engine
  */
 import { SYSTEM_RULES, VIBE_GUIDE, ICON_LIST } from './prompts.js';
 
-// ... (Keep your MASTER_SCHEMA constant exactly as it is) ...
+const MASTER_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact", "gallery"],
+  properties: {
+    intelligence: { 
+      type: "object", 
+      additionalProperties: false,
+      required: ["industry", "target_persona", "tone_of_voice"], 
+      properties: { 
+        industry: { type: "string" }, 
+        target_persona: { type: "string" }, 
+        tone_of_voice: { type: "string" } 
+      } 
+    },
+    strategy: { 
+      type: "object", 
+      additionalProperties: false,
+      required: ["show_trustbar", "show_about", "show_features", "show_events", "show_process", "show_testimonials", "show_gallery", "show_investment", "show_faqs", "show_service_area"],
+      properties: { 
+        show_trustbar: { type: "boolean" }, 
+        show_about: { type: "boolean" }, 
+        show_features: { type: "boolean" }, 
+        show_events: { type: "boolean" }, 
+        show_process: { type: "boolean" }, 
+        show_testimonials: { type: "boolean" }, 
+        show_gallery: { type: "boolean" }, 
+        show_investment: { type: "boolean" }, 
+        show_faqs: { type: "boolean" }, 
+        show_service_area: { type: "boolean" } 
+      } 
+    },
+    settings: { 
+      type: "object", 
+      additionalProperties: false,
+      required: ["vibe", "menu", "cta_text", "cta_link", "cta_type"], 
+      properties: { 
+        vibe: { type: "string" }, 
+        cta_text: { type: "string" }, 
+        cta_link: { type: "string" }, 
+        cta_type: { type: "string" }, 
+        menu: { 
+          type: "array", 
+          items: { 
+            type: "object", 
+            additionalProperties: false,
+            required: ["label", "path"],
+            properties: { label: { type: "string" }, path: { type: "string" } } 
+          } 
+        } 
+      } 
+    },
+    brand: { 
+      type: "object", 
+      additionalProperties: false,
+      required: ["name", "tagline", "email", "phone", "objection_handle", "slug"], 
+      properties: { 
+        name: { type: "string" }, 
+        tagline: { type: "string" }, 
+        email: { type: "string" }, 
+        phone: { type: "string" }, 
+        objection_handle: { type: "string" },
+        slug: { type: "string" }
+      } 
+    },
+    hero: { 
+      type: "object", 
+      additionalProperties: false,
+      required: ["headline", "subtext", "image"], 
+      properties: { 
+        headline: { type: "string" }, 
+        subtext: { type: "string" }, 
+        image: { 
+          type: "object", 
+          additionalProperties: false,
+          required: ["alt", "image_search_query"], 
+          properties: { alt: { type: "string" }, image_search_query: { type: "string" } } 
+        } 
+      } 
+    },
+    about: { 
+      type: "object", 
+      additionalProperties: false,
+      required: ["story_text", "founder_note", "years_experience"], 
+      properties: { 
+        story_text: { type: "string" }, 
+        founder_note: { type: "string" }, 
+        years_experience: { type: "string" } 
+      } 
+    },
+    features: { 
+      type: "array", 
+      items: { 
+        type: "object", 
+        additionalProperties: false,
+        required: ["title", "description", "icon_slug"], 
+        properties: { title: { type: "string" }, description: { type: "string" }, icon_slug: { type: "string" } } 
+      } 
+    },
+    gallery: {
+      type: "object",
+      additionalProperties: false,
+      required: ["enabled", "computed_layout", "computed_count", "image_source"],
+      properties: {
+        enabled: { type: "boolean" },
+        computed_layout: { type: "string" },
+        computed_count: { type: "number" },
+        image_source: {
+          type: "object",
+          additionalProperties: false,
+          required: ["image_search_query"],
+          properties: { image_search_query: { type: "string" } }
+        }
+      }
+    },
+    contact: { 
+      type: "object", 
+      additionalProperties: false,
+      required: ["headline", "subheadline", "email_recipient", "button_text"], 
+      properties: { 
+        headline: { type: "string" }, 
+        subheadline: { type: "string" }, 
+        email_recipient: { type: "string" }, 
+        button_text: { type: "string" } 
+      } 
+    }
+  }
+};
 
 export default {
   async fetch(request, env) {
@@ -59,52 +187,49 @@ export default {
               }
 
               async function submitToFactory() {
-    if (!currentJson) return;
-    
-    const submitBtn = document.querySelector('button[onclick="submitToFactory()"]');
-    document.getElementById('load-text').innerText = "Initializing Factory Build...";
-    document.getElementById('loading').classList.remove('hidden');
-    submitBtn.disabled = true;
+                  if (!currentJson) return;
+                  const submitBtn = document.querySelector('button[onclick="submitToFactory()"]');
+                  document.getElementById('load-text').innerText = "Initializing Factory Build...";
+                  document.getElementById('loading').classList.remove('hidden');
+                  submitBtn.disabled = true;
 
-    try {
-        const res = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Apps Script requires no-cors for simple POST redirects
-            body: JSON.stringify({
-                factory_key: "forge_v4_secret", // Replace with your actual FACTORY_KEY
-                business_json: currentJson,
-                client_email: document.getElementById('email').value
-            })
-        });
-
-        // With no-cors, we won't see the JSON body, but we can assume success if no error is thrown
-        alert("Build Initialized! Your preview site will be ready in about 3-5 minutes. Check your email for the link.");
-        window.location.reload();
-
-    } catch (e) {
-        alert("Submission Error: " + e.message);
-        submitBtn.disabled = false;
-    } finally {
-        document.getElementById('loading').classList.add('hidden');
-    }
-}
+                  try {
+                      await fetch(APPS_SCRIPT_URL, {
+                          method: 'POST',
+                          mode: 'no-cors',
+                          body: JSON.stringify({
+                              factory_key: "forge_v4_secret",
+                              business_json: currentJson,
+                              client_email: document.getElementById('email').value
+                          })
+                      });
+                      alert("Build Initialized! Your preview site will be ready in 3-5 minutes.");
+                      window.location.reload();
+                  } catch (e) {
+                      alert("Submission Error: " + e.message);
+                      submitBtn.disabled = false;
+                  } finally {
+                      document.getElementById('loading').classList.add('hidden');
+                  }
+              }
           </script>
       </body></html>`;
       return new Response(html, { headers: { "Content-Type": "text/html" } });
     }
 
-    // --- API POST LOGIC ---
     try {
       const { story, businessName, clientEmail } = await request.json();
 
+      // PASS 1: Strategy & Vibe
       const strategyData = await callAI(env, {
         system: SYSTEM_RULES + VIBE_GUIDE,
         prompt: "Business: " + businessName + ". Story: " + story + ". Return intelligence, strategy, and vibe_selection.",
       });
 
+      // PASS 2: Full Content with Gallery Logic
       const fullContent = await callAI(env, {
         system: SYSTEM_RULES + "\nContext: Industry is " + strategyData.intelligence.industry + ", Vibe is " + strategyData.vibe_selection,
-        prompt: "Generate complete business.json for: " + story + ". Create a URL-friendly 'slug' based on the business name and put it in the brand object.",
+        prompt: "Generate complete business.json for: " + story + ". Ensure you follow the GALLERY LOGIC for count and layout. Create a clean slug for the brand object.",
         schema: MASTER_SCHEMA
       });
 
@@ -116,7 +241,7 @@ export default {
             ...fullContent.brand, 
             name: businessName, 
             email: clientEmail || fullContent.brand.email,
-            slug: (businessName).toLowerCase().replace(/[^a-z0-9]/g, '-') // Force local slug safety
+            slug: (businessName).toLowerCase().replace(/[^a-z0-9]/g, '-')
         }
       };
 
@@ -130,5 +255,24 @@ export default {
 };
 
 async function callAI(env, { system, prompt, schema }) {
-  // ... (Keep existing callAI logic) ...
+  const body = {
+    model: "gpt-4o",
+    messages: [{ role: "system", content: system }, { role: "user", content: prompt }],
+    temperature: 0.7
+  };
+  if (schema) {
+    body.response_format = { type: "json_schema", json_schema: { name: "business_json", strict: true, schema: schema } };
+  } else {
+    body.response_format = { type: "json_object" };
+  }
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + env.OPENAI_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message);
+  return JSON.parse(json.choices[0].message.content);
 }

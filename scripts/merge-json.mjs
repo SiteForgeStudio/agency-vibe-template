@@ -35,16 +35,6 @@ function normalizeSlug(s) {
     .replace(/^-|-$/g, "");
 }
 
-function titleFromAnchor(anchor) {
-  const map = {
-    "#home": "Home", "#about": "About", "#features": "Features",
-    "#events": "Events", "#process": "Process", "#testimonials": "Testimonials",
-    "#comparison": "Comparison", "#gallery": "Gallery", "#investment": "Investment",
-    "#faqs": "FAQs", "#service-area": "Service Area", "#contact": "Contact",
-  };
-  return map[anchor] || anchor.replace(/^#/, "").replace(/-/g, " ");
-}
-
 function isNewSchema(obj) {
   return (
     !!obj && isObject(obj) && isObject(obj.intelligence) &&
@@ -101,12 +91,12 @@ const outPath = path.join("clients", clientSlug, "business.json");
 const baseRaw = readJson(basePath) || {};
 const updatesRaw = readJson(updatesPath) || {};
 
+// If base isn't in new format, migrate it first
 const base = isNewSchema(baseRaw) ? baseRaw : migrateLegacyToNew(baseRaw);
-const updates = isNewSchema(updatesRaw) ? updatesRaw : updatesRaw;
+// Updates can be partial or full
+const merged = deepMerge(base, updatesRaw);
 
-const merged = deepMerge(base, updates);
-
-// Final safety on brand slug and gallery
+// Final safety on brand slug and gallery structure
 merged.brand.slug = normalizeSlug(merged.brand.slug || clientSlug);
 if (!merged.gallery) merged.gallery = { enabled: true, computed_layout: "grid", items: [] };
 

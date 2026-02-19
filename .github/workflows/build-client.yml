@@ -64,7 +64,9 @@ jobs:
 
       # 4) Build Astro
       - name: Build Astro
-        run: npm run build
+        run: |
+          rm -rf dist/
+          npm run build
 
       # DEBUG: verify built output contains images referenced/hashed
       - name: Debug - find images in dist
