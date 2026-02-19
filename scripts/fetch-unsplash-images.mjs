@@ -30,8 +30,9 @@ if (!clientSlug) {
 
 const accessKey = process.env.UNSPLASH_ACCESS_KEY;
 if (!accessKey) {
-  console.error("Missing UNSPLASH_ACCESS_KEY in environment.");
-  process.exit(1);
+  console.warn("⚠️  No UNSPLASH_ACCESS_KEY found. Skipping image fetch and using placeholders.");
+  // Don't exit, just return so the build can continue
+  return; 
 }
 
 const headers = { Authorization: `Client-ID ${accessKey}` };
