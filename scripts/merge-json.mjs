@@ -17,27 +17,27 @@ const basePath = path.join("clients", clientSlug, "business.base.json");
 const updatesPath = path.join("clients", clientSlug, "business.updates.json");
 const outPath = path.join("clients", clientSlug, "business.json");
 
-const baseData = readJson(basePath);
-if (!baseData) {
-  console.error("❌ No business.base.json found!");
-  process.exit(1);
+const base = readJson(basePath);
+if (!base) {
+    console.error("❌ Critical: business.base.json missing.");
+    process.exit(1);
 }
 
-const updatesData = readJson(updatesPath) || {};
+const updates = readJson(updatesPath) || {};
 
-// Standardized Merge
+// TRANSPARENT MERGE: No hardcoded defaults, no "migrations"
+// We trust the AI's structure from Pass 2.
 const merged = {
-  ...baseData,
-  ...updatesData,
-  brand: { ...baseData.brand, ...updatesData.brand },
-  strategy: { ...baseData.strategy, ...updatesData.strategy },
-  settings: { ...baseData.settings, ...updatesData.settings },
-  gallery: { ...baseData.gallery, ...updatesData.gallery }
+  ...base,
+  ...updates,
+  strategy: { ...(base.strategy || {}), ...(updates.strategy || {}) },
+  settings: { ...(base.settings || {}), ...(updates.settings || {}) },
+  brand: { ...(base.brand || {}), ...(updates.brand || {}) }
 };
 
-// Force lowercase slug for asset matching
-merged.brand.slug = (merged.brand.slug || merged.brand.name || clientSlug)
-  .toLowerCase().replace(/[^a-z0-9]/g, '-');
+// Force a clean slug
+merged.brand.slug = (merged.brand?.slug || merged.brand?.name || clientSlug)
+  .toLowerCase().replace(/[^a-z0-9]/g, "-");
 
 writeJson(outPath, merged);
-console.log(`✅ Merged business.json created for ${clientSlug}`);
+console.log(`✅ Success: Merged business.json created for ${clientSlug}`);
