@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Builder | Intake</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0a0a0a; color: #f5f5f5; }
+        .glass { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div id="intake-form" class="max-w-2xl w-full glass p-8 rounded-2xl shadow-2xl transition-all duration-500">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">Start Your Build</h1>
+            <p class="text-gray-400 mt-2">Tell us the story of your business. Our AI will handle the rest.</p>
+        </header>
+
+        <div class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Business Name</label>
+                <input type="text" id="businessName" placeholder="e.g. Heritage Watch Restoration" 
+                    class="w-full bg-black/50 border border-white/10 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">The Story (What you do, who it's for, why it's special)</label>
+                <textarea id="story" rows="5" placeholder="Tell the AI about your passion, your process, or your history..." 
+                    class="w-full bg-black/50 border border-white/10 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-400 mb-2">Contact Email</label>
+                <input type="email" id="clientEmail" placeholder="client@example.com" 
+                    class="w-full bg-black/50 border border-white/10 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+            </div>
+
+            <button onclick="generateSite()" id="submit-btn" class="w-full py-4 bg-white text-black font-bold rounded-lg hover:bg-blue-400 hover:text-white transition-all transform active:scale-95">
+                Generate My Strategy
+            </button>
+        </div>
+    </div>
+
+    <div id="loading" class="hidden fixed inset-0 bg-black/90 flex flex-col items-center justify-center z-50">
+        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-xl font-medium text-white">AI is ghostwriting your brand...</p>
+        <p class="text-sm text-gray-500 mt-2">Determining vibe, strategy, and asset queries.</p>
+    </div>
+
+    <script>
+        async function generateSite() {
+            const payload = {
+                businessName: document.getElementById('businessName').value,
+                story: document.getElementById('story').value,
+                clientEmail: document.getElementById('clientEmail').value
+            };
+
+            if (!payload.businessName || !payload.story) return alert("Please fill out the name and story.");
+
+            // Show Loading
+            document.getElementById('loading').classList.remove('hidden');
+            
+            try {
+                // Change this to your live URL when deployed
+                const response = await fetch('http://localhost:8787', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                
+                if (result.error) throw new Error(result.error);
+
+                // Success! Store result in localStorage for the next step
+                localStorage.setItem('generated_business', JSON.stringify(result));
+                
+                // For now, alert the success. Next step will be pushing to GitHub.
+                alert("Strategy Generated Successfully! Vibe: " + result.settings.vibe);
+                console.log(result);
+
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
