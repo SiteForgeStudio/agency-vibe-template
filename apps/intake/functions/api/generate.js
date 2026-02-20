@@ -1,36 +1,57 @@
 /**
  * GENERATE.JS - The Elite Factory Middleware
- * 1. Takes AI output
- * 2. Hydrates missing keys (Anti-Thin Logic)
- * 3. Ghostwrites professional copy where client was vague
+ * Updated with Hydration + Layout Strategy + GitHub Commit Logic
  */
+import { Octokit } from "@octokit/rest"; // Assuming you use Octokit
 
 export async function generateClientSite(aiResponse, clientSlug) {
-  // --- 1. THE HYDRATION LAYER ---
+  // 1. THE HYDRATION LAYER (The QC Filter)
   const hydratedData = hydrateProjectData(aiResponse, clientSlug);
 
-  // --- 2. GITHUB COMMIT LOGIC (Placeholder for your current push logic) ---
-  console.log(`🚀 Factory: Preparing to commit hydrated data for ${clientSlug}`);
-  
-  // Here you would call your existing GitHub API logic to save:
-  // clients/${clientSlug}/business.base.json
-  
-  return hydratedData;
+  // 2. GITHUB COMMIT LOGIC (Restore your specific implementation here)
+  const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+  const owner = "YourOrg";
+  const repo = "agency-vibe-template";
+  const filePath = `clients/${clientSlug}/business.base.json`;
+
+  try {
+    const content = Buffer.from(JSON.stringify(hydratedData, null, 2)).toString('base64');
+    
+    // Check if file exists to get SHA for updates
+    let sha;
+    try {
+      const { data } = await octokit.repos.getContent({ owner, repo, path: filePath });
+      sha = data.sha;
+    } catch (e) { /* New File */ }
+
+    await octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: filePath,
+      message: `Factory: Commit hydrated data for ${clientSlug}`,
+      content,
+      sha
+    });
+
+    console.log(`✅ Factory: Committed hydrated data for ${clientSlug}`);
+    return hydratedData;
+  } catch (error) {
+    console.error("❌ GitHub Commit Failed:", error);
+    throw error;
+  }
 }
 
 /**
  * Ensures no section feels "thin" or empty.
- * Injects mandatory arrays and ghostwrites mission statements.
  */
 function hydrateProjectData(raw, slug) {
-  const data = JSON.parse(JSON.stringify(raw)); // Deep clone
+  const data = JSON.parse(JSON.stringify(raw)); 
 
-  // A. THE SLUG GUARD
+  // A. SLUG & BRAND CONSISTENCY
   data.brand = data.brand || {};
   data.brand.slug = (data.brand.slug || slug).toLowerCase().replace(/[^a-z0-9]/g, '-');
 
   // B. NAVIGATION & CTA HYDRATION
-  // Prevents the "Empty Navbar" issue seen in previous builds
   if (!data.settings) data.settings = {};
   if (!data.settings.menu || data.settings.menu.length === 0) {
     data.settings.menu = [
@@ -42,48 +63,41 @@ function hydrateProjectData(raw, slug) {
   }
   data.settings.cta_text = data.settings.cta_text || "Get Started";
   data.settings.cta_link = data.settings.cta_link || "#contact";
-  
-  // Ensure a Vibe is always officially part of the engine
-  const validVibes = ["Legacy Professional", "Solar Flare", "Midnight Tech", "Modern Minimal"];
-  if (!validVibes.includes(data.settings.vibe)) {
-    data.settings.vibe = "Legacy Professional"; 
-  }
 
-  // C. THE "ANTI-THIN" ABOUT SECTION
-  if (data.strategy?.show_about) {
-    data.about = data.about || {};
-    data.intelligence = data.intelligence || {};
+  // C. INDUSTRY-AWARE LAYOUT LOGIC
+  const industry = (data.intelligence?.industry || "").toLowerCase();
+  const isLuxury = industry.includes("watch") || industry.includes("luxury") || industry.includes("jewelry");
+  const isEvent = data.strategy?.show_events || industry.includes("entertainment") || industry.includes("theatre");
 
-    // Ghostwrite the Story if it's too short or missing
-    if (!data.about.story_text || data.about.story_text.length < 20) {
-      data.about.story_text = `${data.brand.name} was founded on a commitment to uncompromising quality. We specialize in merging traditional techniques with modern precision to deliver results that stand the test of time.`;
-    }
-
-    // Ghostwrite a high-impact quote
-    data.about.founder_note = data.about.founder_note || "Excellence is not an act, but a habit.";
-    data.about.years_experience = data.about.years_experience || "15+";
-    data.intelligence.industry = data.intelligence.industry || "Premium Services";
-  }
-
-  // D. GALLERY SKELETON (Resilient Handshake)
-  // Ensures the Gallery component has enough "hooks" to render the images 
-  // currently being downloaded by your Unsplash fetcher.
   if (data.strategy?.show_gallery) {
     data.gallery = data.gallery || { enabled: true };
-    const count = data.gallery.computed_count || 6;
     
+    // Auto-assign layout if AI didn't choose
+    if (!data.gallery.computed_layout) {
+      if (isLuxury) data.gallery.computed_layout = "bento";
+      else if (isEvent) data.gallery.computed_layout = "masonry";
+      else data.gallery.computed_layout = "grid";
+    }
+
+    const count = data.gallery.computed_count || 6;
     if (!data.gallery.items || data.gallery.items.length === 0) {
       data.gallery.items = Array.from({ length: count }).map((_, i) => ({
-        title: `Project ${i + 1}`,
-        description: "Exhibition of our master-level craftsmanship."
+        title: `Project ${i + 1}`
       }));
     }
   }
 
-  // E. CONTACT HYDRATION
-  // Ensures the Footer and Contact sections don't show "N/A"
-  data.brand.email = (data.brand.email && data.brand.email !== 'n/a') ? data.brand.email : `hello@${data.brand.slug}.com`;
-  data.brand.phone = (data.brand.phone && data.brand.phone !== 'n/a') ? data.brand.phone : "Contact for Appointment";
+  // D. THE "ANTI-THIN" ABOUT SECTION
+  if (data.strategy?.show_about) {
+    data.about = data.about || {};
+    if (!data.about.story_text || data.about.story_text.length < 20) {
+      data.about.story_text = isLuxury 
+        ? `${data.brand.name} preserves the heritage of fine craftsmanship, combining traditional techniques with modern precision.`
+        : `${data.brand.name} is dedicated to delivering excellence through passion and expertise.`;
+    }
+    data.about.founder_note = data.about.founder_note || "Precision in every detail.";
+    data.about.years_experience = data.about.years_experience || "15+";
+  }
 
   return data;
 }
