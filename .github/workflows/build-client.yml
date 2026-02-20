@@ -8,6 +8,7 @@ on:
         required: true
         type: string
 
+# This name allows the Apps Script to find the correct run quickly
 run-name: build-${{ inputs.client_slug }}
 
 jobs:
@@ -23,74 +24,37 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: package-lock.json
 
       - name: Install deps
         run: npm ci
 
-      # 1) Merge base + updates -> clients/<slug>/business.json
-      - name: Merge JSON (base + updates -> business.json)
+      # 1. Merge logic: Creates business.json in the client folder
+      - name: Merge JSON (base + updates)
         run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
 
-      # DEBUG: show the brand slug and expected filenames (helps confirm the exact naming)
-      # NOTE: Avoid backticks/template literals here because bash will eat them.
-      - name: Debug - show brand.slug + expected image filenames
-        continue-on-error: true
-        run: |
-          node -e "const fs=require('fs'); const slug='${{ inputs.client_slug }}'; const p='clients/'+slug+'/business.json'; const d=JSON.parse(fs.readFileSync(p,'utf8')); const brandSlug=(d && d.brand && d.brand.slug) ? d.brand.slug : ((d && d.brand && d.brand.name) ? d.brand.name : 'brand').toLowerCase().replace(/'/g,'').replace(/[^a-z0-9]/g,'-'); console.log('path:', p); console.log('brand.slug:', d?.brand?.slug); console.log('derived brandSlug:', brandSlug); console.log('expected hero:', brandSlug + '-hero.jpg'); console.log('expected gallery sample:', brandSlug + '-project-0.jpg');"
-
-      # 2) Fetch premium preview images into clients/<slug>/assets/images/*
-      - name: Fetch Unsplash images (premium preview)
+      # 2. Fetch images directly to the client's asset folder
+      - name: Fetch Unsplash images
         run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
         env:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
 
-      # DEBUG: verify images were downloaded into the client folder
-      - name: Debug - list client downloaded images
-        run: |
-          echo "=== clients/${{ inputs.client_slug }}/assets/images ==="
-          ls -la "clients/${{ inputs.client_slug }}/assets/images" || true
-
-      # 3) Prepare build: copy clients/<slug>/business.json -> src/data/business.json
-      #    and copy clients/<slug>/assets/images -> src/assets/images (clearing first)
-      - name: Prepare build (copy JSON + images into app)
-        run: node scripts/prepare-build.mjs "${{ inputs.client_slug }}"
-
-      # DEBUG: verify src/assets/images contains only this client’s images (post-prepare)
-      - name: Debug - list src/assets/images after prepare-build
-        run: |
-          echo "=== src/assets/images ==="
-          ls -la src/assets/images || true
-
-      # 4) Build Astro
+      # 3. Build Astro using the DYNAMIC Handshake
+      # We skip 'prepare-build' and let index.astro fetch data via CLIENT_ID
       - name: Build Astro
-        run: |
-          rm -rf dist/
-          npm run build
+        run: npm run build
+        env:
+          CLIENT_ID: ${{ inputs.client_slug }}
 
-      # DEBUG: verify built output contains images referenced/hashed
-      - name: Debug - find images in dist
-        run: |
-          echo "=== dist image-ish files ==="
-          find dist -maxdepth 6 -type f | egrep -i "\.(jpg|jpeg|png|webp|gif|svg)$" || true
-          echo "=== dist paths mentioning hero/project/images/assets ==="
-          find dist -maxdepth 8 -type f | egrep -i "hero|project|images|assets" || true
-
-      # 5) Zip dist
+      # 4. Zip the dist folder
+      # Note: We zip the contents so Netlify gets a clean root
       - name: Zip dist
         run: zip -r dist.zip dist
 
-      # DEBUG: show zip contents (top-level + a few image entries)
-      - name: Debug - list dist.zip contents (sample)
-        run: |
-          echo "=== dist.zip listing (first 200 lines) ==="
-          unzip -l dist.zip | head -n 200
-
-      # 6) Upload artifact
+      # 5. Upload artifact
+      # The name MUST match the downloadDistZipFromRun_ function in Apps Script
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ inputs.client_slug }}
           path: dist.zip
-          if-no-files-found: error
           retention-days: 7

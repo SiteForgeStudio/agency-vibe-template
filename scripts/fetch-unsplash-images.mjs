@@ -24,8 +24,8 @@ async function run() {
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;
 
   if (!accessKey) {
-    console.warn("⚠️  UNSPLASH_ACCESS_KEY not found. Skipping image download. Build will use existing assets.");
-    return; // This return is now legal because it's inside an async function
+    console.warn("⚠️  UNSPLASH_ACCESS_KEY not found. Skipping image download.");
+    return;
   }
 
   const headers = { Authorization: `Client-ID ${accessKey}` };
@@ -41,28 +41,40 @@ async function run() {
   ensureDir(outDir);
   const brandSlug = clientData?.brand?.slug || slug;
 
-  // --- Hero Fetch ---
-  try {
-    const heroQ = clientData.hero?.image?.image_search_query || "professional background";
-    const heroData = await fetchJson(`${UNSPLASH_API}/search/photos?query=${encodeURIComponent(heroQ)}&orientation=landscape`, headers);
-    if (heroData.results?.[0]) {
-      await downloadToFile(heroData.results[0].urls.regular, path.join(outDir, `${brandSlug}-hero.jpg`));
-      console.log("✅ Hero image saved.");
-    }
-  } catch (e) { console.warn("Failed hero fetch:", e.message); }
+  // --- 1. HERO FETCH (With Skip Logic) ---
+  const heroPath = path.join(outDir, `${brandSlug}-hero.jpg`);
+  if (fs.existsSync(heroPath)) {
+    console.log(`⏩ Skipping Hero: ${brandSlug}-hero.jpg already exists.`);
+  } else {
+    try {
+      const heroQ = clientData.hero?.image?.image_search_query || "professional background";
+      const heroData = await fetchJson(`${UNSPLASH_API}/search/photos?query=${encodeURIComponent(heroQ)}&orientation=landscape`, headers);
+      if (heroData.results?.[0]) {
+        await downloadToFile(heroData.results[0].urls.regular, heroPath);
+        console.log("✅ Hero image saved.");
+      }
+    } catch (e) { console.warn("Failed hero fetch:", e.message); }
+  }
 
-  // --- Gallery Fetch ---
+  // --- 2. GALLERY FETCH (With Skip Logic) ---
   const gallery = clientData.gallery || {};
   if (clientData.strategy?.show_gallery !== false) {
     const count = gallery.computed_count || 6;
     const globalQ = gallery.image_source?.image_search_query || "service";
     
     for (let i = 0; i < count; i++) {
+      const galleryPath = path.join(outDir, `${brandSlug}-project-${i}.jpg`);
+      
+      if (fs.existsSync(galleryPath)) {
+        console.log(`⏩ Skipping Gallery ${i}: File already exists.`);
+        continue;
+      }
+
       try {
         const searchUrl = `${UNSPLASH_API}/search/photos?query=${encodeURIComponent(globalQ)}&orientation=landscape&page=${i+1}`;
         const data = await fetchJson(searchUrl, headers);
         if (data.results?.[0]) {
-          await downloadToFile(data.results[0].urls.regular, path.join(outDir, `${brandSlug}-project-${i}.jpg`));
+          await downloadToFile(data.results[0].urls.regular, galleryPath);
           console.log(`✅ Gallery image ${i} saved.`);
         }
       } catch (e) { console.warn(`Failed gallery image ${i}:`, e.message); }
@@ -72,5 +84,5 @@ async function run() {
 
 run().catch(err => {
   console.error("Factory Fetch Error:", err);
-  process.exit(0); // Exit with 0 so the GitHub Action keeps going
+  process.exit(0); 
 });

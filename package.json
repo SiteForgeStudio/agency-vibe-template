@@ -4,7 +4,8 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "merge": "node scripts/merge-json.mjs",
+    "build": "node scripts/merge-json.mjs $CLIENT_ID && CLIENT_ID=$CLIENT_ID astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
