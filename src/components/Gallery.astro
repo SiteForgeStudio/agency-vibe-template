@@ -1,28 +1,28 @@
 ---
 import { Image } from 'astro:assets';
 const { gallery, brand } = Astro.props;
+const clientId = process.env.CLIENT_ID;
 
-// 1. ASSET DISCOVERY [cite: 42]
-const images = import.meta.glob<{ default: ImageMetadata }>('/src/assets/images/*.{jpeg,jpg,png,gif,webp}');
+// 1. DYNAMIC ASSET DISCOVERY (Factory Isolated)
+// We only look in the clients folder. Astro only crunches what we match.
+const images = import.meta.glob<{ default: ImageMetadata }>('/clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
 
-// 2. THE SLUG HANDSHAKE [cite: 44]
-const brandSlug =
-  brand?.slug ||
-  (brand?.name || 'brand')
-    .toLowerCase()
-    .replace(/'/g, '')
-    .replace(/[^a-z0-9]/g, '-');
+// 2. THE SLUG HANDSHAKE
+const brandSlug = brand?.slug || 
+                 (brand?.name || 'brand')
+                    .toLowerCase()
+                    .replace(/'/g, '') 
+                    .replace(/[^a-z0-9]/g, '-');
 
-// 3. RESILIENT GUARD [cite: 45]
+// 3. RESILIENT GUARD
 const items = Array.isArray(gallery?.items) ? gallery.items : [];
 const count = gallery?.computed_count || items.length || 0;
 
-// Hide only if explicitly disabled or no data intended [cite: 48]
 if (!gallery || gallery.enabled === false || (items.length === 0 && count === 0)) {
   return null;
 }
 
-// 4. DATA PREPARATION [cite: 49, 51]
+// 4. DATA PREPARATION
 const visibleItems = items.length > 0 
   ? items.slice(0, count) 
   : Array.from({ length: count }).map((_, i) => ({ title: `Project ${i + 1}` }));
@@ -31,7 +31,7 @@ const title = gallery.title || 'Portfolio';
 const layout = gallery.computed_layout || 'grid';
 const showTitles = gallery.show_titles !== false;
 
-// 5. LAYOUT HELPERS [cite: 53]
+// 5. LAYOUT HELPERS
 const wrapperClass =
   layout === 'masonry'
     ? 'columns-1 md:columns-2 lg:columns-3 gap-8 [column-fill:_balance]'
@@ -71,29 +71,31 @@ function aspectClass(i: number) {
 
   <div class={`container mx-auto px-6 ${wrapperClass}`}>
     {visibleItems.map((item: any, index: number) => {
-      const expectedFilename = `${brandSlug}-project-${index}.jpg`;
-      const imagePath = `/src/assets/images/${expectedFilename}`;
-      const hasImage = images[imagePath];
+      // THE HANDSHAKE: Match exactly what the fetcher downloaded
+      const imagePath = `/clients/${clientId}/assets/images/${brandSlug}-project-${index}.jpg`;
+      const imageAsset = images[imagePath];
 
       return (
-        <div class={`${layout === 'bento' ? bentoSpan(index) : ''}`}>
+        <div class={`${layout === 'bento' ? bentoSpan(index) : ''} ${layout === 'masonry' ? 'mb-8 break-inside-avoid' : ''}`}>
           <div class={`${cardBase} ${aspectClass(index)}`}>
-            {hasImage ? (
+            {imageAsset ? (
               <Image
-                src={images[imagePath]()}
+                src={imageAsset()}
                 alt={item.title || 'Gallery Image'}
-                width={1200}
-                height={800}
+                widths={[400, 800, 1200]}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
               />
             ) : (
               <div class="flex flex-col items-center justify-center h-full bg-slate-900/50 p-6 border-2 border-dashed border-white/10">
-                <span class="text-red-400 font-mono text-xs mb-2">Missing: {expectedFilename}</span>
+                <span class="text-[var(--accent)] font-mono text-[10px] opacity-50 uppercase tracking-widest">
+                   Awaiting Asset {index}
+                </span>
               </div>
             )}
             {showTitles && item.title && (
               <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent p-8 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                <p class="text-[var(--accent)] font-black uppercase text-sm">{item.title}</p>
+                <p class="text-[var(--accent)] font-black uppercase text-sm tracking-widest">{item.title}</p>
               </div>
             )}
           </div>
