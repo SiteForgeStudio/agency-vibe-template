@@ -4,12 +4,19 @@
  * Part of the "Perfect Site" Engine
  * Standards: Zero-friction deployment, Dynamic Vibe-based styling.
  */
- const { brand, settings, contact } = Astro.props;
+ const { brand, settings } = Astro.props;
 
 const currentYear = new Date().getFullYear();
-// We use a simple boolean from settings to decide if your agency credit shows
-// Defaults to true unless explicitly set to false in business.json
 const showCredit = settings?.show_agency_credit !== false; 
+
+// 1. DYNAMIC NAVIGATION
+// Fallback menu in case the specific client manifest is lean
+const footerMenu = settings?.menu || [
+  { label: "Home", path: "#home" },
+  { label: "About", path: "#about" },
+  { label: "Gallery", path: "#gallery" },
+  { label: "Contact", path: "#contact" }
+];
 ---
 
 <footer class="bg-[var(--bg-card)] border-t border-[var(--border)] pt-20 pb-10">
@@ -19,10 +26,10 @@ const showCredit = settings?.show_agency_credit !== false;
       {/* 1. BRAND IDENTITY */}
       <div class="md:col-span-2">
         <h2 class="text-2xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-4">
-          {brand?.name || "Our Studio"}
+          {brand?.name || "Professional Services"}
         </h2>
         <p class="text-[var(--text-secondary)] text-sm max-w-xs leading-relaxed opacity-70">
-          {brand?.tagline || "Professional services delivered with precision and quality."}
+          {brand?.tagline || brand?.description || "Quality services delivered with precision."}
         </p>
       </div>
 
@@ -30,7 +37,7 @@ const showCredit = settings?.show_agency_credit !== false;
       <div>
         <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] mb-6">Sitemap</h3>
         <ul class="space-y-4">
-          {settings?.menu?.map((item: any) => (
+          {footerMenu.map((item: any) => (
             <li>
               <a href={item.path} class="text-sm text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
                 {item.label}
@@ -40,11 +47,10 @@ const showCredit = settings?.show_agency_credit !== false;
         </ul>
       </div>
 
-     {/* 3. OFFICIAL BRAND CONTACT (With Safe-Check Logic) */}
+     {/* 3. OFFICIAL BRAND CONTACT */}
      <div>
       <h3 class="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] mb-6">Connect</h3>
       <ul class="space-y-3">
-        {/* EMAIL SAFE-CHECK */}
         {brand?.email && brand.email.toLowerCase() !== 'n/a' && (
           <li>
             <a 
@@ -56,7 +62,6 @@ const showCredit = settings?.show_agency_credit !== false;
           </li>
         )}
 
-        {/* PHONE SAFE-CHECK */}
         {brand?.phone && brand.phone.toLowerCase() !== "n/a" && (
           <li class="text-sm text-[var(--text-secondary)] flex items-center gap-2">
             <span class="opacity-50">T:</span>
@@ -69,8 +74,6 @@ const showCredit = settings?.show_agency_credit !== false;
           </li>
         )}
 
-
-        {/* ADDRESS SAFE-CHECK */}
         {brand?.office_address && brand.office_address.toLowerCase() !== 'n/a' && (
           <li class="text-xs text-[var(--text-secondary)] opacity-70 leading-relaxed max-w-[200px] pt-2">
             {brand.office_address}
@@ -78,11 +81,12 @@ const showCredit = settings?.show_agency_credit !== false;
         )}
       </ul>
     </div>
+  </div>
 
     {/* 4. BOTTOM BAR & AGENCY CREDIT */}
     <div class="pt-8 border-t border-[var(--border)] flex flex-col md:flex-row justify-between items-center gap-6">
       <p class="text-[10px] font-medium text-[var(--text-secondary)] opacity-50 uppercase tracking-widest text-center md:text-left">
-        &copy; {currentYear} {brand?.name || "The Studio"}. All Rights Reserved.
+        &copy; {currentYear} {brand?.name || "Professional Services"}. All Rights Reserved.
       </p>
       
       {showCredit && (

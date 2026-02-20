@@ -1,96 +1,50 @@
 ---
 /**
  * Main Layout - 2026 High-Performance Vibe Engine
- * Strategy: Hybrid (CSS Structure + JS Variable Injection)
- * Goal: Custom Agency Quality at AI Speed
+ * Strategy: Tenant-Blind Handshake (Environment Variable Driven)
  */
- import data from '../data/business.json';
- import Footer from '../components/Footer.astro';
+ import { getClientData } from '../lib/dataFetcher';
 import '../styles/vibe-system.css';
 
 interface Props {
     title?: string;
     vibeOverride?: string;
+    settings?: any; // Added to receive settings from index.astro
 }
 
 const { title, vibeOverride } = Astro.props;
 
-// 1. VIBE NORMALIZATION (Maintains your established slug system)
+// 1. DYNAMIC DATA FETCH (No more hardcoded imports)
+const data = getClientData();
+if (!data) throw new Error("Layout failed to fetch client data.");
+
+// 2. VIBE NORMALIZATION
 const rawVibe = vibeOverride || data.settings?.vibe || 'midnight-tech';
 const activeVibe = rawVibe.toLowerCase().replace(/\s+/g, '-');
 
-// 2. THE VIBE LIBRARY (Agency-Grade Presets)
 const vibeLibrary = {
-  'midnight-tech': {
-    accent: '#00f2ff',      // Neon Cyan
-    bg: '#020617',          // Deep Space Navy
-    text: '#f8fafc',        // Ghost White
-    radius: '4px',
-    font: "'JetBrains Mono', monospace"
-  },
-  'zenith-earth': {
-    accent: '#10b981',      // Emerald Green
-    bg: '#f0fdf4',          // Mint Cream
-    text: '#064e3b',        // Deep Forest
-    radius: '24px',
-    font: "'Outfit', sans-serif"
-  },
-  'vintage-boutique': {
-    accent: '#b45309',      // Polished Gold
-    bg: '#fffbeb',          // Warm Ivory
-    text: '#451a03',        // Espresso
-    radius: '12px',
-    font: "'Cormorant Garamond', serif"
-  },
-  'rugged-industrial': {
-    accent: '#f97316',      // Safety Orange
-    bg: '#000000',          // Pure Black
-    text: '#ffffff',
-    radius: '0px',
-    font: "'Inter', sans-serif"
-  },
-  'modern-minimal': {
-    accent: '#6366f1',      // Indigo
-    bg: '#ffffff',          // Pure White
-    text: '#1e293b',        // Slate
-    radius: '8px',
-    font: "'Inter', sans-serif"
-  },
-  'luxury-noir': {
-    accent: '#D4AF37',      // Metallic Gold
-    bg: '#050505',          // Pure Rich Black
-    text: '#ffffff',        // White
-    radius: '2px',          // Sharp, premium edges
-    font: "'Cormorant Garamond', serif"
-  },
-  'legacy-professional': {
-    accent: '#1e40af',      // Trust Blue (Deep Navy)
-    bg: '#ffffff',          // Pure White
-    text: '#0f172a',        // Slate 900
-    radius: '6px',          // Professional, stable rounding
-    font: "'Inter', sans-serif"
-  },
-  'solar-flare': {
-    accent: '#fbbf24',      // Amber/Electric Yellow
-    bg: '#0f172a',          // Dark Slate (High contrast for energy)
-    text: '#f8fafc',        // Off-white
-    radius: '16px',         // Friendly, high-energy rounding
-    font: "'Outfit', sans-serif"
-  }
+  'midnight-tech': { accent: '#00f2ff', bg: '#020617', text: '#f8fafc', radius: '4px', font: "'JetBrains Mono', monospace" },
+  'zenith-earth': { accent: '#10b981', bg: '#f0fdf4', text: '#064e3b', radius: '24px', font: "'Outfit', sans-serif" },
+  'vintage-boutique': { accent: '#b45309', bg: '#fffbeb', text: '#451a03', radius: '12px', font: "'Cormorant Garamond', serif" },
+  'rugged-industrial': { accent: '#f97316', bg: '#000000', text: '#ffffff', radius: '0px', font: "'Inter', sans-serif" },
+  'modern-minimal': { accent: '#6366f1', bg: '#ffffff', text: '#1e293b', radius: '8px', font: "'Inter', sans-serif" },
+  'luxury-noir': { accent: '#D4AF37', bg: '#050505', text: '#ffffff', radius: '2px', font: "'Cormorant Garamond', serif" },
+  'legacy-professional': { accent: '#1e40af', bg: '#ffffff', text: '#0f172a', radius: '6px', font: "'Inter', sans-serif" },
+  'solar-flare': { accent: '#fbbf24', bg: '#0f172a', text: '#f8fafc', radius: '16px', font: "'Outfit', sans-serif" }
 };
 
 const config = vibeLibrary[activeVibe] || vibeLibrary['midnight-tech'];
 
-const { brand, settings, contact, intelligence } = data;
+// 3. DYNAMIC SEO & SCHEMA
+const seoTitle = title || `${data.brand.name} | ${data.brand.tagline || 'Professional Services'}`;
+const seoDescription = data.brand.objection_handle || data.brand.tagline || "Professional services you can trust.";
 
-// 3. SEO & SCHEMA (Untouched to prevent breaking your metadata)
-const seoTitle = title || `${data.brand.name} | ${data.brand.tagline}`;
 const ldJson = {
   "@context": "https://schema.org",
   "@type": data.intelligence?.industry?.includes('Music') ? "EventVenue" : "LocalBusiness",
   "name": data.brand.name,
   "description": data.brand.tagline,
-  "image": `/images/${data.hero?.image?.src}`
+  "url": data.settings?.site_url || "#"
 };
 ---
 
@@ -98,7 +52,7 @@ const ldJson = {
 <html lang="en" data-vibe={activeVibe}>
     <head>
         <meta charset="UTF-8" />
-        <meta name="description" content={data.brand.objection_handle} />
+        <meta name="description" content={seoDescription} />
         <meta name="viewport" content="width=device-width" />
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <title>{seoTitle}</title>
@@ -126,7 +80,6 @@ const ldJson = {
                 --radius: var(--v-radius);
                 --font-main: var(--v-font);
                 
-                /* Computed variables: 90/10 mix removes the "Gray" feeling */
                 --bg-card: color-mix(in srgb, var(--bg-color) 90%, var(--accent));
                 --border: color-mix(in srgb, var(--accent) 25%, transparent);
                 --text-secondary: color-mix(in srgb, var(--text-primary) 70%, transparent);
@@ -134,31 +87,22 @@ const ldJson = {
         </style>
     </head>
     <body class="bg-[var(--bg-color)] text-[var(--text-primary)] font-[var(--font-main)] transition-colors duration-500 selection:bg-[var(--accent)] selection:text-[var(--bg-color)]">
+        
         <slot />
 
-        {/* GLOBAL FOOTER EXECUTION */}
-        <Footer 
-            brand={brand} 
-            settings={settings} 
-            contact={contact} 
-            intelligence={intelligence} 
-        />
+        {/* NOTE: Redundant Footer removed here. 
+            Footer is now managed exclusively by index.astro 
+        */}
         
         <style is:global>
             html { scroll-behavior: smooth; }
-            
-            /* Global Font Override to ensure the Vibe Library font wins */
             body { font-family: var(--font-main) !important; }
-
-            /* Professional Agency Heading Style */
             h1, h2, h3, h4, .brand-heading {
                 font-weight: 900;
                 letter-spacing: -0.04em;
                 text-transform: uppercase;
                 line-height: 0.9;
             }
-
-            /* Fix for images to ensure they match the vibe's radius */
             img, .vibe-container {
                 border-radius: var(--radius);
             }
