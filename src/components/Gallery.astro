@@ -1,106 +1,68 @@
 ---
-import { Image } from 'astro:assets';
-const { gallery, brand } = Astro.props;
-const clientId = process.env.CLIENT_ID;
+/**
+ * GALLERY COMPONENT
+ * Part of the "Perfect Site" Engine
+ * Standards: Asset Isolation, Dynamic Vibe-based layout.
+ */
+ import { Image } from 'astro:assets';
 
-// 1. DYNAMIC ASSET DISCOVERY (Factory Isolated)
-// We only look in the clients folder. Astro only crunches what we match.
-const images = import.meta.glob<{ default: ImageMetadata }>('/clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
+const { brand, gallery, id } = Astro.props;
 
-// 2. THE SLUG HANDSHAKE
-const brandSlug = brand?.slug || 
-                 (brand?.name || 'brand')
-                    .toLowerCase()
-                    .replace(/'/g, '') 
-                    .replace(/[^a-z0-9]/g, '-');
+// 1. DYNAMIC ASSET ISOLATION
+// We glob ALL potential client images, but we FILTER strictly by the current ID
+const allImages = import.meta.glob('/clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
 
-// 3. RESILIENT GUARD
-const items = Array.isArray(gallery?.items) ? gallery.items : [];
-const count = gallery?.computed_count || items.length || 0;
+// Only grab images that belong to THIS specific client
+const clientImagePaths = Object.keys(allImages).filter((path) => 
+  path.includes(`/clients/${id}/assets/images/`)
+);
 
-if (!gallery || gallery.enabled === false || (items.length === 0 && count === 0)) {
-  return null;
-}
+// 2. MAPPING LOGIC
+// We match the JSON items to the actual files found in the folder
+const galleryItems = gallery?.items?.map((item: any, index: number) => {
+  const fileName = `${brand?.slug || id}-project-${index}`;
+  const matchedPath = clientImagePaths.find((path) => path.includes(fileName));
+  
+  return {
+    ...item,
+    imagePath: matchedPath ? allImages[matchedPath] : null
+  };
+}).filter((item: any) => item.imagePath) || [];
 
-// 4. DATA PREPARATION
-const visibleItems = items.length > 0 
-  ? items.slice(0, count) 
-  : Array.from({ length: count }).map((_, i) => ({ title: `Project ${i + 1}` }));
-
-const title = gallery.title || 'Portfolio';
-const layout = gallery.computed_layout || 'grid';
-const showTitles = gallery.show_titles !== false;
-
-// 5. LAYOUT HELPERS
-const wrapperClass =
-  layout === 'masonry'
-    ? 'columns-1 md:columns-2 lg:columns-3 gap-8 [column-fill:_balance]'
-    : layout === 'bento'
-      ? 'grid grid-cols-1 md:grid-cols-6 gap-8'
-      : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8';
-
-const cardBase =
-  'group relative overflow-hidden rounded-[var(--radius)] bg-[var(--bg-card)] border border-[var(--border)]';
-
-function bentoSpan(i: number) {
-  const k = i % 6;
-  if (k === 0) return 'md:col-span-4 md:row-span-2';
-  if (k === 1) return 'md:col-span-2 md:row-span-1';
-  if (k === 2) return 'md:col-span-2 md:row-span-1';
-  if (k === 3) return 'md:col-span-3 md:row-span-1';
-  if (k === 4) return 'md:col-span-3 md:row-span-1';
-  return 'md:col-span-6 md:row-span-1';
-}
-
-function aspectClass(i: number) {
-  if (layout === 'bento') {
-    const k = i % 6;
-    return k === 0 ? 'min-h-[420px]' : 'min-h-[220px]';
-  }
-  return 'aspect-video';
-}
+const layoutClass = gallery?.layout === 'bento' ? "grid-cols-1 md:grid-cols-3 gap-4" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8";
 ---
 
-<section id="gallery" class="py-24 bg-[var(--bg-color)] scroll-mt-20">
-  <div class="container mx-auto px-6 mb-12 text-center">
-    <h2 class="text-4xl md:text-5xl font-black uppercase text-[var(--text-primary)]">
-      {title.split(' ').slice(0, -1).join(' ') || title}{' '}
-      <span class="text-[var(--accent)]">{title.split(' ').slice(-1)[0]}</span>
-    </h2>
-  </div>
+<section id="gallery" class="py-24 bg-[var(--bg-primary)]">
+  <div class="container mx-auto px-6">
+    <div class="mb-16">
+      <h2 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
+        {gallery?.title || "Our Work"}
+      </h2>
+      <div class="h-1 w-20 bg-[var(--accent)] mt-4"></div>
+    </div>
 
-  <div class={`container mx-auto px-6 ${wrapperClass}`}>
-    {visibleItems.map((item: any, index: number) => {
-      // THE HANDSHAKE: Match exactly what the fetcher downloaded
-      const imagePath = `/clients/${clientId}/assets/images/${brandSlug}-project-${index}.jpg`;
-      const imageAsset = images[imagePath];
-
-      return (
-        <div class={`${layout === 'bento' ? bentoSpan(index) : ''} ${layout === 'masonry' ? 'mb-8 break-inside-avoid' : ''}`}>
-          <div class={`${cardBase} ${aspectClass(index)}`}>
-            {imageAsset ? (
-              <Image
-                src={imageAsset()}
-                alt={item.title || 'Gallery Image'}
-                widths={[400, 800, 1200]}
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
+    <div class={`grid ${layoutClass}`}>
+      {galleryItems.map((item: any) => (
+        <div class="group relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] rounded-xl">
+          <div class="aspect-square overflow-hidden">
+            {item.imagePath && (
+              <Image 
+                src={item.imagePath()} 
+                alt={item.title || "Gallery Image"}
+                width={800}
+                height={800}
+                class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
               />
-            ) : (
-              <div class="flex flex-col items-center justify-center h-full bg-slate-900/50 p-6 border-2 border-dashed border-white/10">
-                <span class="text-[var(--accent)] font-mono text-[10px] opacity-50 uppercase tracking-widest">
-                   Awaiting Asset {index}
-                </span>
-              </div>
-            )}
-            {showTitles && item.title && (
-              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent p-8 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                <p class="text-[var(--accent)] font-black uppercase text-sm tracking-widest">{item.title}</p>
-              </div>
             )}
           </div>
+          <div class="p-6">
+             <h3 class="text-lg font-bold text-[var(--text-primary)] uppercase tracking-tight">
+                {item.title}
+             </h3>
+             <p class="text-sm text-[var(--text-secondary)] opacity-70 mt-1">{item.tag}</p>
+          </div>
         </div>
-      );
-    })}
+      ))}
+    </div>
   </div>
 </section>

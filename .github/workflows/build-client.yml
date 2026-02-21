@@ -4,11 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       client_slug:
-        description: "Client slug (folder name under clients/)"
+        description: "Client slug"
         required: true
         type: string
 
-# This name allows the Apps Script to find the correct run quickly
 run-name: build-${{ inputs.client_slug }}
 
 jobs:
@@ -19,7 +18,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup Node (22)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -28,31 +27,31 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      # 1. Merge logic: Creates business.json in the client folder
-      - name: Merge JSON (base + updates)
+      # 1. THE PURGE: Delete all optimized assets and cache from previous runs
+      - name: Purge Astro Cache
+        run: rm -rf .astro node_modules/.astro dist
+
+      # 2. THE CLEANSE: Wipe the global image folder to ensure no leaks
+      - name: Wipe Global Assets
+        run: rm -rf src/assets/images/*
+
+      - name: Merge JSON
         run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
 
-      # 2. Fetch images directly to the client's asset folder
       - name: Fetch Unsplash images
         run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
         env:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
 
-      # 3. Build Astro using the DYNAMIC Handshake
-      # We skip 'prepare-build' and let index.astro fetch data via CLIENT_ID
       - name: Build Astro
         run: npm run build
         env:
           CLIENT_ID: ${{ inputs.client_slug }}
 
-      # 4. Zip the dist folder
-      # Note: We zip the contents so Netlify gets a clean root
       - name: Zip dist
         run: zip -r dist.zip dist
 
-      # 5. Upload artifact
-      # The name MUST match the downloadDistZipFromRun_ function in Apps Script
-      - name: Upload dist artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ inputs.client_slug }}
