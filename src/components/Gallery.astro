@@ -2,9 +2,6 @@
 import { Image } from 'astro:assets';
 const { brand, gallery, id } = Astro.props;
 
-/** * ANTI-POLLUTION & PATH ALIGNMENT:
- * We move up to the root clients folder and filter strictly by client ID.
- */
 const allImages = import.meta.glob('../../clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
 
 const clientImagePaths = Object.keys(allImages).filter(path => 
@@ -26,7 +23,7 @@ const galleryItems = gallery?.items?.map((item: any, index: number) => {
   <div class="container mx-auto px-6">
     <div class="mb-16">
       <h2 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        {gallery?.title || "Project Gallery"}
+        {gallery?.title || "Our Work"}
       </h2>
       <div class="h-1 w-20 bg-[var(--accent)] mt-4"></div>
     </div>

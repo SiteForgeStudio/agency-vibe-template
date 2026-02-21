@@ -32,6 +32,7 @@ jobs:
           rm -rf .astro
           rm -rf node_modules/.astro
           rm -rf dist
+          rm -rf dist.zip
           rm -rf src/assets/images/*
 
       - name: Merge JSON
@@ -47,6 +48,7 @@ jobs:
         env:
           CLIENT_ID: ${{ inputs.client_slug }}
 
+      # FIXED: Zip the CONTENT of dist, not the dist folder itself
       - name: Zip dist
         run: |
           cd dist
