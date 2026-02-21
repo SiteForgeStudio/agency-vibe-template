@@ -1,8 +1,7 @@
 ---
 /**
  * INDEX.ASTRO - The Universal Factory Canvas
- * This file no longer cares which client it is building.
- * It pulls dynamic data from the Fetcher based on the CLIENT_ID env variable.
+ * Fixed: Now passes the Client ID to isolated components to enable image discovery.
  */
  import { getClientData } from '../lib/dataFetcher';
 import Layout from '../layouts/Layout.astro';
@@ -23,8 +22,10 @@ import Contact from '../components/Contact.astro';
 import ServiceArea from '../components/ServiceArea.astro';
 
 // 1. DYNAMIC HANDSHAKE
-// This replaces: import data from '../data/business.json';
 const data = getClientData();
+
+// Capture the ID for asset isolation logic
+const clientId = data.id;
 
 const {
   intelligence = {},
@@ -54,8 +55,8 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
   <Navbar brand={brand} menu={navMenu} settings={settings} />
 
   <main>
-    {/* 1. HERO SECTION */}
-    <Hero hero={hero} brand={brand} settings={settings} />
+    {/* 1. HERO SECTION - Now receiving the ID */}
+    <Hero hero={hero} brand={brand} settings={settings} id={clientId} />
 
     {/* 1.25 TRUSTBAR */}
     {strategy.show_trustbar && trustbar?.enabled && (trustbar?.items?.length > 0 || trustbar?.computed_count > 0) && (
@@ -92,9 +93,9 @@ const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional
       <Comparison comparison={comparison} intelligence={intelligence} />
     )}
 
-    {/* 6. PORTFOLIO / GALLERY */}
+    {/* 6. PORTFOLIO / GALLERY - Now receiving the ID */}
     {strategy.show_gallery && gallery?.enabled !== false && (gallery?.items?.length > 0 || gallery?.computed_count > 0) && (
-      <Gallery gallery={gallery} brand={brand} />
+      <Gallery gallery={gallery} brand={brand} id={clientId} />
     )}
 
     {/* 7. PRICING / INVESTMENT */}
