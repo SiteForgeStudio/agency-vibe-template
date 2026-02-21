@@ -1,57 +1,47 @@
 ---
-/**
- * GALLERY COMPONENT
- * Part of the "Perfect Site" Engine
- * Standards: Asset Isolation, Dynamic Vibe-based layout.
- */
- import { Image } from 'astro:assets';
-
+import { Image } from 'astro:assets';
 const { brand, gallery, id } = Astro.props;
 
-// 1. DYNAMIC ASSET ISOLATION
-// We glob ALL potential client images, but we FILTER strictly by the current ID
-const allImages = import.meta.glob('/clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
+/** * ANTI-POLLUTION & PATH ALIGNMENT:
+ * We move up to the root clients folder and filter strictly by client ID.
+ */
+const allImages = import.meta.glob('../../clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
 
-// Only grab images that belong to THIS specific client
-const clientImagePaths = Object.keys(allImages).filter((path) => 
-  path.includes(`/clients/${id}/assets/images/`)
+const clientImagePaths = Object.keys(allImages).filter(path => 
+  path.includes(`/clients/${id}/`)
 );
 
-// 2. MAPPING LOGIC
-// We match the JSON items to the actual files found in the folder
 const galleryItems = gallery?.items?.map((item: any, index: number) => {
   const fileName = `${brand?.slug || id}-project-${index}`;
-  const matchedPath = clientImagePaths.find((path) => path.includes(fileName));
+  const matchedPath = clientImagePaths.find(path => path.includes(fileName));
   
   return {
     ...item,
-    imagePath: matchedPath ? allImages[matchedPath] : null
+    imageAsset: matchedPath ? allImages[matchedPath] : null
   };
-}).filter((item: any) => item.imagePath) || [];
-
-const layoutClass = gallery?.layout === 'bento' ? "grid-cols-1 md:grid-cols-3 gap-4" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8";
+}).filter(i => i.imageAsset);
 ---
 
 <section id="gallery" class="py-24 bg-[var(--bg-primary)]">
   <div class="container mx-auto px-6">
     <div class="mb-16">
       <h2 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
-        {gallery?.title || "Our Work"}
+        {gallery?.title || "Project Gallery"}
       </h2>
       <div class="h-1 w-20 bg-[var(--accent)] mt-4"></div>
     </div>
 
-    <div class={`grid ${layoutClass}`}>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       {galleryItems.map((item: any) => (
         <div class="group relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] rounded-xl">
           <div class="aspect-square overflow-hidden">
-            {item.imagePath && (
+            {item.imageAsset && (
               <Image 
-                src={item.imagePath()} 
-                alt={item.title || "Gallery Image"}
-                width={800}
-                height={800}
-                class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                src={item.imageAsset()} 
+                alt={item.title} 
+                width={800} 
+                height={800} 
+                class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
               />
             )}
           </div>

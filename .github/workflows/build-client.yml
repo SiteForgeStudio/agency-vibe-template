@@ -22,18 +22,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: 'npm'
 
       - name: Install deps
         run: npm ci
 
-      # 1. THE PURGE: Delete all optimized assets and cache from previous runs
-      - name: Purge Astro Cache
-        run: rm -rf .astro node_modules/.astro dist
-
-      # 2. THE CLEANSE: Wipe the global image folder to ensure no leaks
-      - name: Wipe Global Assets
-        run: rm -rf src/assets/images/*
+      - name: Deep Clean Environment
+        run: |
+          rm -rf .astro
+          rm -rf node_modules/.astro
+          rm -rf dist
+          rm -rf src/assets/images/*
 
       - name: Merge JSON
         run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
@@ -44,16 +43,19 @@ jobs:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
 
       - name: Build Astro
-        run: npm run build
+        run: npx astro build
         env:
           CLIENT_ID: ${{ inputs.client_slug }}
 
       - name: Zip dist
-        run: zip -r dist.zip dist
+        run: |
+          cd dist
+          zip -r ../dist.zip .
+          cd ..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist-${{ inputs.client_slug }}
           path: dist.zip
-          retention-days: 7
+          retention-days: 1

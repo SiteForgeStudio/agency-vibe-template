@@ -1,58 +1,53 @@
 ---
-/**
- * HERO COMPONENT
- * Part of the "Perfect Site" Engine
- */
- import { Image } from 'astro:assets';
-
+import { Image } from 'astro:assets';
 const { brand, hero, id } = Astro.props;
 
-// STRICT ISOLATION: Only look in the specific client folder
-const allHeroImages = import.meta.glob('/clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
+/** * ANTI-POLLUTION & PATH ALIGNMENT:
+ * We use a relative path '../../' to move from src/components up to the project root.
+ */
+const heroImages = import.meta.glob('../../clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
 const heroFileName = `${brand?.slug || id}-hero`;
-const heroPath = Object.keys(allHeroImages).find((path) => 
-  path.includes(`/clients/${id}/assets/images/`) && path.includes(heroFileName)
+
+// Filter to find the specific image for this client
+const heroPath = Object.keys(heroImages).find(path => 
+  path.includes(`/clients/${id}/`) && path.includes(heroFileName)
 );
 
-const heroImage = heroPath ? allHeroImages[heroPath] : null;
+const heroImageAsset = heroPath ? heroImages[heroPath] : null;
 ---
 
-<section id="home" class="relative min-h-[90vh] flex items-center pt-20 overflow-hidden bg-[var(--bg-primary)]">
-  <div class="container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
-    
-    <div class="max-w-2xl">
-      <div class="inline-block px-3 py-1 mb-6 border border-[var(--accent)] text-[var(--accent)] text-[10px] font-bold uppercase tracking-[0.3em] rounded-full">
-        {brand?.tagline || "Industry Leader"}
-      </div>
-      
-      <h1 class="text-6xl md:text-8xl font-black text-[var(--text-primary)] leading-[0.9] tracking-tighter mb-8 uppercase">
+<section id="home" class="relative min-h-[80vh] flex items-center bg-[var(--bg-primary)] overflow-hidden">
+  <div class="container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <div>
+      <h1 class="text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] leading-[0.85] mb-6">
         {hero?.headline || brand?.name}
       </h1>
-      
-      <p class="text-xl text-[var(--text-secondary)] leading-relaxed mb-10 max-w-lg opacity-80">
-        {hero?.subtext || "Premium services delivered with professional precision and unmatched quality."}
+      <p class="text-lg text-[var(--text-secondary)] opacity-80 mb-8 max-w-md">
+        {hero?.subtext}
       </p>
-
-      <div class="flex flex-wrap gap-4">
-        <a href="#contact" class="px-8 py-4 bg-[var(--accent)] text-black font-black uppercase text-sm tracking-widest hover:brightness-110 transition-all">
-          {hero?.cta || "Get Started"}
+      {hero?.cta && (
+        <a href="#contact" class="inline-block px-10 py-4 bg-[var(--accent)] text-black font-bold uppercase tracking-widest hover:scale-105 transition-transform">
+          {hero.cta}
         </a>
-      </div>
+      )}
     </div>
-
+    
     <div class="relative">
-      <div class="aspect-[4/5] overflow-hidden rounded-2xl border border-[var(--border)] shadow-2xl relative">
-        {heroImage && (
+      <div class="aspect-[4/5] rounded-2xl overflow-hidden border border-[var(--border)] shadow-2xl">
+        {heroImageAsset ? (
           <Image 
-            src={heroImage()} 
-            alt={brand?.name || "Hero Image"}
-            width={1200}
-            height={1500}
-            class="object-cover w-full h-full scale-105"
+            src={heroImageAsset()} 
+            alt={brand?.name || "Hero Image"} 
+            width={1000} 
+            height={1250} 
+            class="object-cover w-full h-full"
             loading="eager"
           />
+        ) : (
+          <div class="w-full h-full bg-[var(--bg-card)] flex items-center justify-center text-[var(--text-secondary)]">
+            Hero Image Not Found
+          </div>
         )}
-        <div class="absolute inset-0 bg-gradient-to-t from-[var(--bg-primary)] via-transparent to-transparent opacity-40"></div>
       </div>
     </div>
   </div>
