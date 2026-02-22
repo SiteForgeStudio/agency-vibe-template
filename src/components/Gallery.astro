@@ -3,7 +3,7 @@ import { Image } from 'astro:assets';
 const { brand, gallery, id } = Astro.props;
 
 // FIX: eager import so assets are real modules
-const allImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}', { eager: true });
+const allImages = import.meta.glob('/src/assets/generated/*/*.{jpg,jpeg,png,webp}', { eager: true });
 
 // Get only this client's images
 const clientImageEntries = Object.entries(allImages).filter(([path]) =>

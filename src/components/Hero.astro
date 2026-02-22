@@ -2,7 +2,7 @@
 import { Image } from 'astro:assets';
 const { brand, hero, id } = Astro.props;
 
-const heroImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}', { eager: true });
+const allImages = import.meta.glob('/src/assets/generated/*/*.{jpg,jpeg,png,webp}', { eager: true });
 const heroFileName = `${brand?.slug || id}-hero`;
 
 const heroPath = Object.keys(heroImages).find(path => 
