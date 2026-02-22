@@ -21,7 +21,7 @@ if (!ACCESS_KEY) {
  */
 
 const clientDir = path.resolve("clients", slug);
-const clientJsonPath = path.join(clientDir, "client.json");
+const clientJsonPath = path.join(clientDir, "business.json");
 
 const clientsGeneratedDir = path.join(clientDir, "generated");
 const astroGeneratedDir = path.resolve("src", "assets", "generated", slug);
