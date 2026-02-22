@@ -33,7 +33,7 @@ jobs:
           rm -rf node_modules/.astro
           rm -rf dist
           rm -rf dist.zip
-          rm -rf src/assets/images/*
+          rm -rf src/assets/generated
 
       - name: Merge JSON
         run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
@@ -42,6 +42,11 @@ jobs:
         run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
         env:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+
+      - name: Debug generated images
+        run: |
+              echo "Generated folder contents:"
+              ls -R src/assets/generated || echo "No generated folder"    
 
       - name: Build Astro
         run: npx astro build
