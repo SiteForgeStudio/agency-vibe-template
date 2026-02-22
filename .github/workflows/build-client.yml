@@ -31,6 +31,7 @@ jobs:
         run: |
           rm -rf .astro
           rm -rf node_modules/.astro
+          rm -rf node_modules/.vite
           rm -rf dist
           rm -rf dist.zip
           rm -rf src/assets/generated
