@@ -2,10 +2,10 @@
 import { Image } from 'astro:assets';
 const { brand, gallery, id } = Astro.props;
 
-const allImages = import.meta.glob('../../clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
+const allImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}');
 
 const clientImagePaths = Object.keys(allImages).filter(path => 
-  path.includes(`/clients/${id}/`)
+  path.includes(`/generated/${id}/`)
 );
 
 const galleryItems = gallery?.items?.map((item: any, index: number) => {

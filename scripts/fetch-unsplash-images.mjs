@@ -36,8 +36,12 @@ async function run() {
 
   const headers = { Authorization: `Client-ID ${accessKey}` };
   const clientDir = path.join("clients", slug);
-  const outDir = path.join(clientDir, "assets", "images");
-  
+  const outDir = path.join("src", "assets", "generated", slug);
+  if (fs.existsSync(outDir)) {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
+  ensureDir(outDir);
+    
   // 1. Check for merged business.json
   const businessPath = path.join(clientDir, "business.json");
   if (!fs.existsSync(businessPath)) {

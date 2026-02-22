@@ -24,3 +24,12 @@ pnpm-debug.log*
 .idea/
 
 .dev.var
+
+node_modules/
+dist/
+_astro/
+src/assets/generated/
+*.bak
+*.xml
+submit.response.json
+success/

@@ -2,15 +2,11 @@
 import { Image } from 'astro:assets';
 const { brand, hero, id } = Astro.props;
 
-/** * ANTI-POLLUTION & PATH ALIGNMENT:
- * We use a relative path '../../' to move from src/components up to the project root.
- */
-const heroImages = import.meta.glob('../../clients/*/assets/images/*.{jpeg,jpg,png,gif,webp}');
+const heroImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}');
 const heroFileName = `${brand?.slug || id}-hero`;
 
-// Filter to find the specific image for this client
 const heroPath = Object.keys(heroImages).find(path => 
-  path.includes(`/clients/${id}/`) && path.includes(heroFileName)
+  path.includes(`/generated/${id}/`) && path.includes(heroFileName)
 );
 
 const heroImageAsset = heroPath ? heroImages[heroPath] : null;
@@ -45,7 +41,7 @@ const heroImageAsset = heroPath ? heroImages[heroPath] : null;
           />
         ) : (
           <div class="w-full h-full bg-[var(--bg-card)] flex items-center justify-center text-[var(--text-secondary)]">
-            Hero Image Not Found
+            Image Not Found
           </div>
         )}
       </div>
