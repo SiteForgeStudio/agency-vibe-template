@@ -17,26 +17,45 @@ if (!ACCESS_KEY) {
 }
 
 /**
- * FACTORY PATHS
- *
- * clients/{slug}/generated      ← source of truth
- * src/assets/generated/{slug}   ← Astro build layer
+ * Factory paths
  */
 
-const clientsDir = path.resolve("clients", slug, "generated");
-const astroDir = path.resolve("src", "assets", "generated", slug);
+const clientDir = path.resolve("clients", slug);
+const clientJsonPath = path.join(clientDir, "client.json");
 
-// Ensure both directories exist
-fs.mkdirSync(clientsDir, { recursive: true });
-fs.mkdirSync(astroDir, { recursive: true });
+const clientsGeneratedDir = path.join(clientDir, "generated");
+const astroGeneratedDir = path.resolve("src", "assets", "generated", slug);
+
+fs.mkdirSync(clientsGeneratedDir, { recursive: true });
+fs.mkdirSync(astroGeneratedDir, { recursive: true });
+
+/**
+ * Load client.json
+ */
+
+if (!fs.existsSync(clientJsonPath)) {
+  console.error("Missing client.json at:", clientJsonPath);
+  process.exit(1);
+}
+
+const clientData = JSON.parse(
+  fs.readFileSync(clientJsonPath, "utf-8")
+);
+
+console.log("Loaded client config");
+
+/**
+ * Download helper
+ */
 
 function downloadImage(url, filename) {
+
   return new Promise((resolve, reject) => {
 
-    const clientsPath = path.join(clientsDir, filename);
-    const astroPath = path.join(astroDir, filename);
+    const clientPath = path.join(clientsGeneratedDir, filename);
+    const astroPath = path.join(astroGeneratedDir, filename);
 
-    const tempPath = clientsPath + ".tmp";
+    const tempPath = clientPath + ".tmp";
 
     const file = fs.createWriteStream(tempPath);
 
@@ -53,11 +72,8 @@ function downloadImage(url, filename) {
 
         file.close(() => {
 
-          // Move to clients source-of-truth
-          fs.renameSync(tempPath, clientsPath);
-
-          // Copy into Astro layer
-          fs.copyFileSync(clientsPath, astroPath);
+          fs.renameSync(tempPath, clientPath);
+          fs.copyFileSync(clientPath, astroPath);
 
           resolve();
 
@@ -73,16 +89,21 @@ function downloadImage(url, filename) {
     });
 
   });
+
 }
 
-async function fetchImage(query) {
+/**
+ * Unsplash fetch
+ */
 
-  const apiUrl =
-    `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape`;
+function fetchImage(query) {
+
+  const url =
+    `https://api.unsplash.com/photos/random?orientation=landscape&query=${encodeURIComponent(query)}`;
 
   return new Promise((resolve, reject) => {
 
-    https.get(apiUrl, {
+    https.get(url, {
       headers: {
         Authorization: `Client-ID ${ACCESS_KEY}`
       }
@@ -99,16 +120,19 @@ async function fetchImage(query) {
           const json = JSON.parse(data);
 
           if (!json.urls?.regular) {
+
+            console.error("Unsplash response:", json);
+
             reject(new Error("No image URL returned"));
             return;
+
           }
 
           resolve(json.urls.regular);
 
-        } catch (err) {
-
+        }
+        catch (err) {
           reject(err);
-
         }
 
       });
@@ -116,64 +140,92 @@ async function fetchImage(query) {
     }).on("error", reject);
 
   });
+
 }
+
+/**
+ * Main run
+ */
 
 async function run() {
 
-  console.log(`Factory image generation started for: ${slug}`);
+  console.log("Factory image generation started for:", slug);
 
-  console.log("Clients layer:", clientsDir);
-  console.log("Astro layer:", astroDir);
+  // HERO
 
-  // HERO IMAGE
+  const heroQuery =
+    clientData.hero?.image?.image_search_query;
 
-  const heroFile = `${slug}-hero.jpg`;
-
-  try {
-
-    const heroUrl = await fetchImage(`${slug} modern architecture`);
-
-    await downloadImage(heroUrl, heroFile);
-
-    console.log("✓ Hero saved:", heroFile);
-
-  } catch (err) {
-
-    console.error("Hero generation failed:", err);
-
-  }
-
-  // GALLERY IMAGES
-
-  const galleryCount = 7;
-
-  for (let i = 0; i < galleryCount; i++) {
-
-    const filename = `${slug}-project-${i}.jpg`;
+  if (heroQuery) {
 
     try {
 
-      const imgUrl = await fetchImage(`${slug} project ${i}`);
+      const url = await fetchImage(heroQuery);
 
-      await downloadImage(imgUrl, filename);
+      const filename = `${slug}-hero.jpg`;
 
-      console.log("✓ Gallery saved:", filename);
+      await downloadImage(url, filename);
 
-    } catch (err) {
+      console.log("✓ Hero generated:", heroQuery);
 
-      console.error(`Gallery image ${i} failed:`, err);
+    }
+    catch (err) {
+      console.error("Hero failed:", err);
+    }
+
+  }
+  else {
+
+    console.warn("No hero query found");
+
+  }
+
+  // GALLERY
+
+  const galleryItems =
+    clientData.gallery?.items || [];
+
+  for (let i = 0; i < galleryItems.length; i++) {
+
+    const item = galleryItems[i];
+
+    if (!item.image_search_query) continue;
+
+    try {
+
+      const url =
+        await fetchImage(item.image_search_query);
+
+      const filename =
+        `${slug}-project-${i}.jpg`;
+
+      await downloadImage(url, filename);
+
+      console.log(
+        "✓ Gallery generated:",
+        item.image_search_query
+      );
+
+    }
+    catch (err) {
+
+      console.error(
+        "Gallery failed:",
+        item.image_search_query,
+        err
+      );
 
     }
 
   }
 
-  console.log("Factory image generation complete.");
+  console.log("Factory image generation complete");
 
 }
 
 run().catch(err => {
 
-  console.error("Factory image generation failed:", err);
+  console.error(err);
 
   process.exit(1);
 
