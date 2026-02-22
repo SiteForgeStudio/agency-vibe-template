@@ -2,7 +2,7 @@
 import { Image } from 'astro:assets';
 const { brand, hero, id } = Astro.props;
 
-const heroImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}');
+const heroImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}', { eager: true });
 const heroFileName = `${brand?.slug || id}-hero`;
 
 const heroPath = Object.keys(heroImages).find(path => 
@@ -10,6 +10,7 @@ const heroPath = Object.keys(heroImages).find(path =>
 );
 
 const heroImageAsset = heroPath ? heroImages[heroPath] : null;
+const heroImage = heroImageAsset?.default;
 ---
 
 <section id="home" class="relative min-h-[80vh] flex items-center bg-[var(--bg-primary)] overflow-hidden">
@@ -30,9 +31,9 @@ const heroImageAsset = heroPath ? heroImages[heroPath] : null;
     
     <div class="relative">
       <div class="aspect-[4/5] rounded-2xl overflow-hidden border border-[var(--border)] shadow-2xl">
-        {heroImageAsset ? (
+        {heroImage ? (
           <Image 
-            src={heroImageAsset()} 
+            src={heroImage}
             alt={brand?.name || "Hero Image"} 
             width={1000} 
             height={1250} 

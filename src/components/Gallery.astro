@@ -2,25 +2,34 @@
 import { Image } from 'astro:assets';
 const { brand, gallery, id } = Astro.props;
 
-const allImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}');
+// FIX: eager import so assets are real modules
+const allImages = import.meta.glob('../../assets/generated/*/*.{jpeg,jpg,png,gif,webp}', { eager: true });
 
-const clientImagePaths = Object.keys(allImages).filter(path => 
+// Get only this client's images
+const clientImageEntries = Object.entries(allImages).filter(([path]) =>
   path.includes(`/generated/${id}/`)
 );
 
-const galleryItems = gallery?.items?.map((item: any, index: number) => {
+// Build gallery items
+const galleryItems = (gallery?.items || []).map((item: any, index: number) => {
+
   const fileName = `${brand?.slug || id}-project-${index}`;
-  const matchedPath = clientImagePaths.find(path => path.includes(fileName));
-  
+
+  const match = clientImageEntries.find(([path]) =>
+    path.includes(fileName)
+  );
+
   return {
     ...item,
-    imageAsset: matchedPath ? allImages[matchedPath] : null
+    imageAsset: match ? match[1] : null
   };
-}).filter(i => i.imageAsset);
+
+}).filter(item => item.imageAsset);
 ---
 
 <section id="gallery" class="py-24 bg-[var(--bg-primary)]">
   <div class="container mx-auto px-6">
+
     <div class="mb-16">
       <h2 class="text-4xl font-black uppercase tracking-tighter text-[var(--text-primary)]">
         {gallery?.title || "Our Work"}
@@ -29,27 +38,40 @@ const galleryItems = gallery?.items?.map((item: any, index: number) => {
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
       {galleryItems.map((item: any) => (
+
         <div class="group relative overflow-hidden bg-[var(--bg-card)] border border-[var(--border)] rounded-xl">
+
           <div class="aspect-square overflow-hidden">
-            {item.imageAsset && (
-              <Image 
-                src={item.imageAsset()} 
-                alt={item.title} 
-                width={800} 
-                height={800} 
-                class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
-              />
-            )}
+
+            <Image 
+              src={item.imageAsset}
+              alt={item.title}
+              width={800}
+              height={800}
+              class="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
+            />
+
           </div>
+
           <div class="p-6">
-             <h3 class="text-lg font-bold text-[var(--text-primary)] uppercase tracking-tight">
-                {item.title}
-             </h3>
-             <p class="text-sm text-[var(--text-secondary)] opacity-70 mt-1">{item.tag}</p>
+
+            <h3 class="text-lg font-bold text-[var(--text-primary)] uppercase tracking-tight">
+              {item.title}
+            </h3>
+
+            <p class="text-sm text-[var(--text-secondary)] opacity-70 mt-1">
+              {item.tag}
+            </p>
+
           </div>
+
         </div>
+
       ))}
+
     </div>
+
   </div>
 </section>
