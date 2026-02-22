@@ -1,30 +1,47 @@
 ---
 import { Image } from 'astro:assets';
+
 const { brand, gallery, id } = Astro.props;
 
-// FIX: eager import so assets are real modules
-const allImages = import.meta.glob('/src/assets/generated/*/*.{jpg,jpeg,png,webp}', { eager: true });
+/**
+ * FACTORY RULE:
+ * Always use absolute /src glob.
+ * Always eager.
+ */
+const allImages = import.meta.glob(
+  '/src/assets/generated/*/*.{jpg,jpeg,png,webp}',
+  { eager: true }
+);
 
-// Get only this client's images
+/**
+ * Scope images to this client only.
+ * Prevents cross-client contamination.
+ */
 const clientImageEntries = Object.entries(allImages).filter(([path]) =>
   path.includes(`/generated/${id}/`)
 );
 
-// Build gallery items
-const galleryItems = (gallery?.items || []).map((item: any, index: number) => {
+/**
+ * Build gallery items deterministically.
+ * File naming convention:
+ *   {slug}-project-{index}.jpg
+ */
+const galleryItems = (gallery?.items || [])
+  .map((item: any, index: number) => {
 
-  const fileName = `${brand?.slug || id}-project-${index}`;
+    const fileName = `${brand?.slug || id}-project-${index}`;
 
-  const match = clientImageEntries.find(([path]) =>
-    path.includes(fileName)
-  );
+    const match = clientImageEntries.find(([path]) =>
+      path.includes(fileName)
+    );
 
-  return {
-    ...item,
-    imageAsset: match ? match[1] : null
-  };
+    return {
+      ...item,
+      imageAsset: match?.[1]?.default || null
+    };
 
-}).filter(item => item.imageAsset);
+  })
+  .filter(item => item.imageAsset);
 ---
 
 <section id="gallery" class="py-24 bg-[var(--bg-primary)]">

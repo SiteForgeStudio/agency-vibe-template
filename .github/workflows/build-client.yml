@@ -14,19 +14,32 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      CLIENT_ID: ${{ inputs.client_slug }}
+      CLIENT_SLUG: ${{ inputs.client_slug }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Validate slug
+        run: |
+          if [ -z "$CLIENT_ID" ]; then
+            echo "CLIENT_ID is empty"
+            exit 1
+          fi
+          echo "Building client: $CLIENT_ID"
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
 
       - name: Install deps
         run: npm ci
 
+      # HARD factory reset to prevent cross-client contamination
       - name: Deep Clean Environment
         run: |
           rm -rf .astro
@@ -35,27 +48,33 @@ jobs:
           rm -rf dist
           rm -rf dist.zip
           rm -rf src/assets/generated
+          mkdir -p src/assets/generated
 
+      # Merge base + updates into final business.json
       - name: Merge JSON
-        run: node scripts/merge-json.mjs "${{ inputs.client_slug }}"
+        run: node scripts/merge-json.mjs "$CLIENT_ID"
 
+      # Fetch images scoped to client
       - name: Fetch Unsplash images
-        run: node scripts/fetch-unsplash-images.mjs "${{ inputs.client_slug }}"
+        run: node scripts/fetch-unsplash-images.mjs "$CLIENT_ID"
         env:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
 
-      - name: Debug generated images
-        run: |
-              echo "Generated folder contents:"
-              ls -R src/assets/generated || echo "No generated folder"    
+      - name: Prepare assets (factory verification)
+        run: node scripts/prepare-assets.mjs "${{ inputs.client_slug }}"    
 
+      # Safety verification
+      - name: Verify generated assets
+        run: |
+          echo "Generated assets:"
+          ls -R src/assets/generated || echo "No generated assets"
+
+      # Build Astro using explicit client context
       - name: Build Astro
         run: npx astro build
-        env:
-          CLIENT_ID: ${{ inputs.client_slug }}
 
-      # FIXED: Zip the CONTENT of dist, not the dist folder itself
-      - name: Zip dist
+      # Package ONLY the contents of dist
+      - name: Package dist
         run: |
           cd dist
           zip -r ../dist.zip .
