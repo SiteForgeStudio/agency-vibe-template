@@ -25,7 +25,7 @@ import ServiceArea from '../components/ServiceArea.astro';
 const data = getClientData();
 
 // Capture the ID for asset isolation logic
-const clientId = data.id;
+const clientId = data.id || data.brand?.slug;
 
 const {
   intelligence = {},
