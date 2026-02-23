@@ -8,6 +8,9 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: write        
+
 run-name: build-${{ inputs.client_slug }}
 
 jobs:
@@ -59,6 +62,22 @@ jobs:
         run: node scripts/fetch-unsplash-images.mjs "$CLIENT_ID"
         env:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+
+      - name: Persist generated images
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add clients/${CLIENT_ID}/generated
+
+          if git diff --cached --quiet; then
+            echo "No new images to commit"
+          else
+            git commit -m "Persist generated images for ${CLIENT_ID}"
+            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref }}
+          fi    
 
       - name: DEBUG after fetch
         run: |
