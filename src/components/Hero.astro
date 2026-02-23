@@ -1,56 +1,72 @@
 ---
 import { Image } from "astro:assets";
 
-const { clientId, business } = Astro.props;
+const { brand, hero, id } = Astro.props;
 
-const heroImage = await import(
-  `../assets/generated/${clientId}/${clientId}-hero.jpg`
+/**
+ * STATIC GLOB (factory safe)
+ */
+const allImages = import.meta.glob(
+  "/src/assets/generated/*/*.{jpg,jpeg,png,webp}",
+  { eager: true }
 );
+
+const heroFileName = `${brand?.slug || id}-hero`;
+
+const match = Object.entries(allImages).find(([path]) =>
+  path.includes(`/generated/${id}/`) &&
+  path.includes(heroFileName)
+);
+
+const heroImage = match?.[1]?.default;
 ---
 
-<section class="hero">
+<section class="relative w-full min-h-[90vh] overflow-hidden">
 
-  <Image
-    src={heroImage}
-    alt={`${business.name} hero image`}
-    width={1920}
-    height={1080}
+  {heroImage && (
+    <Image
+      src={heroImage}
+      alt={hero?.headline || brand?.name}
+      width={1920}
+      height={1080}
 
-    format="avif"
-    quality={85}
+      widths={[640, 960, 1280, 1600, 1920]}
+      sizes="100vw"
 
-    loading="eager"
-    fetchpriority="high"
+      format="avif"
+      quality={85}
 
-    sizes="100vw"
+      loading="eager"
+      fetchpriority="high"
 
-    class="hero-image"
-  />
+      class="absolute inset-0 w-full h-full object-cover"
+    />
+  )}
 
-  <div class="hero-content">
-    <h1>{business.name}</h1>
-    <p>{business.tagline}</p>
+  {/* Overlay */}
+  <div class="absolute inset-0 bg-black/50"></div>
+
+  {/* Content */}
+  <div class="relative z-10 flex flex-col items-center justify-center text-center min-h-[90vh] px-6">
+
+    <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-tight mb-6">
+      {hero?.headline || brand?.name}
+    </h1>
+
+    {hero?.subtext && (
+      <p class="text-lg md:text-xl text-white/90 max-w-2xl mb-8">
+        {hero.subtext}
+      </p>
+    )}
+
+    {hero?.cta && (
+      <a
+        href="#contact"
+        class="px-8 py-4 bg-[var(--accent)] text-black font-bold uppercase tracking-wide hover:scale-105 transition-transform"
+      >
+        {hero.cta}
+      </a>
+    )}
+
   </div>
-
 </section>
-
-<style>
-.hero {
-  position: relative;
-}
-
-.hero-image {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.hero-content {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-</style>
