@@ -1,3 +1,23 @@
+console.log("\nDEBUG prepare-assets");
+
+console.log("CLIENT_ID:", slug);
+
+console.log("Looking in:", astroGeneratedDir);
+
+if (fs.existsSync(astroGeneratedDir)) {
+
+  const files = fs.readdirSync(astroGeneratedDir);
+
+  console.log("Files found:", files.length);
+
+  files.forEach(f => console.log(" -", f));
+
+}
+else {
+  console.log("Directory does not exist");
+}
+
+
 import fs from "node:fs";
 import path from "node:path";
 

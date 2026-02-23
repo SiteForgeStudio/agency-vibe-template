@@ -357,3 +357,33 @@ run().catch(err => {
   process.exit(1);
 
 });
+
+/**
+ * DEBUG: VERIFY FILE OUTPUT
+ */
+
+function listDir(dir, label) {
+
+  console.log(`\nDEBUG: Listing ${label}`);
+
+  if (!fs.existsSync(dir)) {
+    console.log("Directory does not exist:", dir);
+    return;
+  }
+
+  const files = fs.readdirSync(dir);
+
+  if (files.length === 0) {
+    console.log("Directory is EMPTY");
+    return;
+  }
+
+  files.forEach(file => {
+    console.log(" -", file);
+  });
+}
+
+listDir(clientsGeneratedDir, "CLIENTS GENERATED");
+listDir(astroGeneratedDir, "ASTRO GENERATED");
+
+console.log("\nFactory image generation complete.");

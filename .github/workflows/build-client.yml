@@ -60,6 +60,14 @@ jobs:
         env:
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
 
+      - name: DEBUG after fetch
+        run: |
+         echo "---- CLIENTS GENERATED ----"
+         ls -R clients || true
+
+         echo "---- ASTRO GENERATED ----"
+         ls -R src/assets/generated || true    
+
       - name: Prepare assets (factory verification)
         run: node scripts/prepare-assets.mjs "${{ inputs.client_slug }}"    
 

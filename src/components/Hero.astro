@@ -1,19 +1,22 @@
 ---
 import { Image } from 'astro:assets';
-const { brand, hero, id } = Astro.props;
 
-// Correct glob
-const allImages = import.meta.glob('/src/assets/generated/*/*.{jpg,jpeg,png,webp}', { eager: true });
+const { brand, hero } = Astro.props;
 
-const heroFileName = `${brand?.slug || id}-hero`;
+const slug = brand?.slug;
 
-// Find matching file
+const allImages = import.meta.glob(
+  '/src/assets/generated/*/*.{jpg,jpeg,png,webp}',
+  { eager: true }
+);
+
+const heroFileName = `${slug}-hero`;
+
 const match = Object.entries(allImages).find(([path]) =>
-  path.includes(`/generated/${id}/`) &&
+  path.includes(`/generated/${slug}/`) &&
   path.includes(heroFileName)
 );
 
-// Astro eager glob returns module with .default
 const heroImage = match?.[1]?.default;
 ---
 
