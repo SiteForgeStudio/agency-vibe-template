@@ -1,11 +1,8 @@
 ---
 import { Image } from "astro:assets";
 
-const { brand, hero, id } = Astro.props;
+const { brand, hero, settings, id } = Astro.props;
 
-/**
- * STATIC GLOB (factory safe)
- */
 const allImages = import.meta.glob(
   "/src/assets/generated/*/*.{jpg,jpeg,png,webp}",
   { eager: true }
@@ -21,52 +18,107 @@ const match = Object.entries(allImages).find(([path]) =>
 const heroImage = match?.[1]?.default;
 ---
 
-<section class="relative w-full min-h-[90vh] overflow-hidden">
+<section class="relative w-full min-h-[92vh] flex items-center justify-center overflow-hidden">
 
+  {/* Background image */}
   {heroImage && (
     <Image
       src={heroImage}
       alt={hero?.headline || brand?.name}
       width={1920}
       height={1080}
-
-      widths={[640, 960, 1280, 1600, 1920]}
+      widths={[640,960,1280,1600,1920]}
       sizes="100vw"
-
       format="avif"
       quality={85}
-
       loading="eager"
       fetchpriority="high"
-
       class="absolute inset-0 w-full h-full object-cover"
     />
   )}
 
-  {/* Overlay */}
-  <div class="absolute inset-0 bg-black/50"></div>
+  {/* Premium gradient overlay */}
+  <div class="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70"></div>
+
+  {/* Subtle center glow using vibe accent */}
+  <div class="absolute inset-0 opacity-[0.08] bg-[radial-gradient(circle_at_center,var(--accent),transparent_70%)]"></div>
 
   {/* Content */}
-  <div class="relative z-10 flex flex-col items-center justify-center text-center min-h-[90vh] px-6">
+  <div class="relative z-10 px-6 text-center">
 
-    <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-white leading-tight mb-6">
-      {hero?.headline || brand?.name}
-    </h1>
+    <div class="max-w-4xl mx-auto">
 
-    {hero?.subtext && (
-      <p class="text-lg md:text-xl text-white/90 max-w-2xl mb-8">
-        {hero.subtext}
-      </p>
-    )}
+      <h1 class="
+        text-4xl
+        md:text-6xl
+        lg:text-7xl
+        font-black
+        tracking-tight
+        text-white
+        leading-[1.05]
+        mb-6
+      ">
+        {hero?.headline || brand?.name}
+      </h1>
 
-    {hero?.cta && (
-      <a
-        href="#contact"
-        class="px-8 py-4 bg-[var(--accent)] text-black font-bold uppercase tracking-wide hover:scale-105 transition-transform"
-      >
-        {hero.cta}
-      </a>
-    )}
+      {hero?.subtext && (
+        <p class="
+          text-lg
+          md:text-xl
+          text-white/90
+          max-w-2xl
+          mx-auto
+          mb-10
+        ">
+          {hero.subtext}
+        </p>
+      )}
+
+      {/* CTA group */}
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+
+        {settings?.cta_text && (
+          <a
+            href={settings.cta_link || "#contact"}
+            class="
+              px-8 py-4
+              bg-[var(--accent)]
+              text-black
+              font-bold
+              uppercase
+              tracking-wide
+              hover:scale-105
+              transition-transform
+              shadow-lg
+            "
+          >
+            {settings.cta_text}
+          </a>
+        )}
+
+        {settings?.secondary_cta_text && (
+          <a
+            href={settings.secondary_cta_link || "#gallery"}
+            class="
+              px-8 py-4
+              border
+              border-white/30
+              text-white
+              font-semibold
+              uppercase
+              tracking-wide
+              hover:bg-white/10
+              transition-colors
+            "
+          >
+            {settings.secondary_cta_text}
+          </a>
+        )}
+
+      </div>
+
+    </div>
 
   </div>
+
 </section>
