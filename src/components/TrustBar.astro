@@ -2,11 +2,8 @@
 import { iconLibrary } from '../lib/icons';
 const { data } = Astro.props;
 
-/*
-  Smart Icon Logic: 
-  Checks if the icon string exists in our SVG library. 
-  If not, it renders the raw string (ideal for Emojis).
-*/
+const normalizeIcon = (icon) =>
+  icon?.toLowerCase().replace(/[_\s]/g, "-");
 ---
 
 <section class="py-8 bg-[var(--bg-color)] border-b border-[var(--border)]">
@@ -18,15 +15,18 @@ const { data } = Astro.props;
       </p>
     )}
 
-    <ul class="grid grid-cols-2 md:grid-cols-4 gap-6 items-center text-center">
+    <ul class="grid gap-8 items-center text-center
+               grid-cols-2
+               md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]
+               justify-items-center">
+
       {data.items.map((item) => (
-        <li class="flex flex-col items-center gap-2 group">
-          
+        <li class="flex flex-col items-center gap-2 group transition-transform duration-300 hover:-translate-y-1">
+
           <div class="w-10 h-10 flex items-center justify-center">
-            {item.icon && iconLibrary[item.icon] ? (
-              /* SVG PATH FOUND */
+            {item.icon && iconLibrary[normalizeIcon(item.icon)] ? (
               <svg 
-                class="w-8 h-8 text-[var(--accent)]" 
+                class="w-8 h-8 text-[var(--accent)] drop-shadow-[0_0_6px_var(--accent)]"
                 viewBox="0 0 24 24" 
                 fill="none" 
                 stroke="currentColor" 
@@ -34,10 +34,9 @@ const { data } = Astro.props;
                 stroke-linecap="round" 
                 stroke-linejoin="round"
               >
-                <path d={iconLibrary[item.icon]} />
+                <path d={iconLibrary[normalizeIcon(item.icon)]} />
               </svg>
             ) : (
-              /* NO SVG FOUND - FALLBACK TO EMOJI */
               <span class="text-2xl">{item.icon}</span>
             )}
           </div>
