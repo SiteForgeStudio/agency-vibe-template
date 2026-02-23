@@ -1,25 +1,7 @@
-console.log("\nDEBUG prepare-assets");
-
-console.log("CLIENT_ID:", slug);
-
-console.log("Looking in:", astroGeneratedDir);
-
-if (fs.existsSync(astroGeneratedDir)) {
-
-  const files = fs.readdirSync(astroGeneratedDir);
-
-  console.log("Files found:", files.length);
-
-  files.forEach(f => console.log(" -", f));
-
-}
-else {
-  console.log("Directory does not exist");
-}
-
-
 import fs from "node:fs";
 import path from "node:path";
+
+console.log("\nDEBUG prepare-assets");
 
 const clientId = process.argv[2];
 
@@ -28,10 +10,15 @@ if (!clientId) {
   process.exit(1);
 }
 
-const generatedDir = path.resolve(`src/assets/generated/${clientId}`);
+const generatedDir = path.resolve(
+  "src",
+  "assets",
+  "generated",
+  clientId
+);
 
-console.log(`Preparing assets for client: ${clientId}`);
-console.log(`Checking: ${generatedDir}`);
+console.log("CLIENT_ID:", clientId);
+console.log("Looking in:", generatedDir);
 
 if (!fs.existsSync(generatedDir)) {
   console.error("❌ Generated assets folder does not exist.");
@@ -46,5 +33,8 @@ if (files.length === 0) {
   console.error("❌ No images found in generated folder.");
   process.exit(1);
 }
+
+console.log("Files found:", files.length);
+files.forEach(f => console.log(" -", f));
 
 console.log(`✅ Found ${files.length} generated images.`);
