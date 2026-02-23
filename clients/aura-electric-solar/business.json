@@ -1,0 +1,263 @@
+{
+  "intelligence": {
+    "industry": "Renewable Energy & Solar Architecture",
+    "target_persona": "Luxury homeowners and eco-conscious architects seeking high-end energy integration",
+    "tone_of_voice": "Visionary, technical, and premium"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": true,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Solar Flare",
+    "cta_text": "Request Energy Audit",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "View Case Studies",
+    "secondary_cta_link": "#gallery",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Process",
+        "path": "#process"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Investment",
+        "path": "#investment"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ]
+  },
+  "brand": {
+    "name": "Aura Electric & Solar",
+    "tagline": "Powering the Future, Preserving the Grid",
+    "email": "solutions@aura-electric.test",
+    "slug": "aura-electric-solar",
+    "phone": "215-555-0987",
+    "objection_handle": "Licensed, Bonded, and 100% Carbon Neutral since 2018.",
+    "office_address": "Philadelphia, PA"
+  },
+  "hero": {
+    "headline": "Smart Energy Systems for Modern Living",
+    "subtext": "Architectural-grade solar integration and Tesla Powerwall systems that look as good as they perform.",
+    "image": {
+      "alt": "Modern luxury home with integrated solar roof at dusk",
+      "image_search_query": "modern luxury home solar panels night dusk"
+    }
+  },
+  "about": {
+    "story_text": "Aura Electric & Solar was founded to bridge the gap between industrial-strength electrical engineering and the aesthetic demands of high-end residential architecture. We don't just install panels; we design energy ecosystems.",
+    "founder_note": "Energy should be as beautiful as the home it powers. Our mission is to provide energy independence without compromising on design.",
+    "years_experience": "Over 15 years of master-level electrical engineering and solar design."
+  },
+  "features": [
+    {
+      "title": "Tesla Powerwall Certified",
+      "description": "Expert integration of battery backup systems for 24/7 energy independence.",
+      "icon_slug": "battery-charging"
+    },
+    {
+      "title": "Architectural Solar",
+      "description": "Custom-designed arrays that complement your home's unique roofline and aesthetic.",
+      "icon_slug": "sun"
+    },
+    {
+      "title": "Smart Grid Monitoring",
+      "description": "Real-time energy tracking via custom mobile dashboards for every installation.",
+      "icon_slug": "activity"
+    },
+    {
+      "title": "EV Infrastructure",
+      "description": "High-speed charging solutions integrated directly into your home's solar ecosystem.",
+      "icon_slug": "zap"
+    },
+    {
+      "title": "Net-Zero Consulting",
+      "description": "Comprehensive energy audits to help you achieve a 100% carbon-neutral lifestyle.",
+      "icon_slug": "leaf"
+    }
+  ],
+  "contact": {
+    "headline": "Own Your Power.",
+    "subheadline": "Contact Aura today for a comprehensive energy consultation and site audit.",
+    "email_recipient": "solutions@aura-electric.test",
+    "button_text": "Request Energy Audit",
+    "email": "solutions@aura-electric.test",
+    "phone": "215-555-0987",
+    "office_address": "Philadelphia, PA"
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "The Aura Standard",
+    "items": [
+      {
+        "icon": "shield-check",
+        "label": "Licensed & Bonded",
+        "sublabel": "Top-tier insurance and certification for total peace of mind."
+      },
+      {
+        "icon": "zap",
+        "label": "Efficiency First",
+        "sublabel": "We maximize every square inch of solar exposure."
+      },
+      {
+        "icon": "home",
+        "label": "Aesthetic First",
+        "sublabel": "No bulky rails or visible conduits?just clean design."
+      }
+    ]
+  },
+  "processSteps": [
+    {
+      "title": "Energy Consultation",
+      "description": "We analyze your current consumption and architectural goals."
+    },
+    {
+      "title": "Custom Engineering",
+      "description": "Our engineers design a system tailored specifically to your home."
+    },
+    {
+      "title": "Precision Install",
+      "description": "Clean, efficient installation by our in-house master electricians."
+    },
+    {
+      "title": "Grid Activation",
+      "description": "Final testing, monitoring setup, and flip the switch to independence."
+    }
+  ],
+  "testimonials": [
+    {
+      "quote": "Aura made solar look like it was part of the original architectural plan. Truly impressive work.",
+      "author": "Marcus V.",
+      "role": "Architect"
+    },
+    {
+      "quote": "Total energy independence. My Tesla Powerwall has already saved us during two major outages.",
+      "author": "Sarah L.",
+      "role": "Homeowner"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "The Portfolio",
+    "layout": "bento",
+    "show_titles": true,
+    "items": [
+      {
+        "title": "Main Line Estate",
+        "image_search_query": "luxury home solar roof"
+      },
+      {
+        "title": "Tesla Powerwall Array",
+        "image_search_query": "tesla powerwall installation garage"
+      },
+      {
+        "title": "Sleek Solar Tiles",
+        "image_search_query": "solar shingles roof close up"
+      },
+      {
+        "title": "EV Charging Station",
+        "image_search_query": "luxury garage ev charger solar"
+      },
+      {
+        "title": "Off-Grid Cabin",
+        "image_search_query": "modern glass cabin solar forest"
+      },
+      {
+        "title": "Smart Energy Hub",
+        "image_search_query": "electric panel smart home technology"
+      },
+      {
+        "title": "Modern Solar Pergola",
+        "image_search_query": "solar panel terrace luxury"
+      }
+    ],
+    "computed_layout": "grid"
+  },
+  "investment": [
+    {
+      "tier_name": "Grid-Assist",
+      "price": "Starting at $15k",
+      "popular": false,
+      "features": [
+        "Entry-level solar array",
+        "Standard grid-tie inverter",
+        "Energy monitoring app"
+      ]
+    },
+    {
+      "tier_name": "Independence",
+      "price": "Starting at $35k",
+      "popular": true,
+      "features": [
+        "Full architectural solar",
+        "1x Tesla Powerwall 3",
+        "EV charger integration"
+      ]
+    },
+    {
+      "tier_name": "The Fortress",
+      "price": "Starting at $60k+",
+      "popular": false,
+      "features": [
+        "Max-density solar array",
+        "Multiple Powerwall units",
+        "Full smart-home backup"
+      ]
+    }
+  ],
+  "faqs": [
+    {
+      "question": "How long does a typical installation take?",
+      "answer": "Most residential projects are completed within 3 to 5 days once permits are secured."
+    },
+    {
+      "question": "Will solar work on my specific roof type?",
+      "answer": "We work with standing seam metal, slate, and flat roofs using specialized mounting systems."
+    }
+  ],
+  "service_area": {
+    "main_city": "Philadelphia, PA",
+    "surrounding_cities": [
+      "Main Line",
+      "Bucks County",
+      "Montgomery County",
+      "Princeton"
+    ],
+    "travel_note": "We serve the greater tri-state area for architectural solar projects.",
+    "cta_text": "Check My Solar Potential",
+    "cta_link": "#contact",
+    "map_search_query": "Philadelphia PA solar energy services"
+  }
+}
