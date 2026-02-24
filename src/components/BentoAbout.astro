@@ -6,147 +6,121 @@ if (!about && !brand) return null;
 const story =
   about?.story_text ||
   brand?.tagline ||
-  "Redefining the standard of excellence.";
+  "We exist to redefine what premium service means.";
 
 const founderNote =
   about?.founder_note ||
   brand?.objection_handle ||
-  "Precision in every detail.";
+  "Every detail matters. Excellence is engineered.";
 
-const years = about?.years_experience || "10+";
+const years =
+  about?.years_experience ||
+  intelligence?.years_experience ||
+  "10+";
 
-const industry = intelligence?.industry || "Premium Services";
+const industry =
+  intelligence?.industry ||
+  "Premium Services";
 
 const brandName = brand?.name || "Our Brand";
 const brandParts = brandName.split(" ");
 const firstWord = brandParts[0];
 const restOfName = brandParts.slice(1).join(" ");
-
-const authority = [
-  `${years} Years Experience`,
-  "Licensed & Insured",
-  "Locally Owned",
-  "Premium Equipment"
-];
 ---
 
-<section id="about" class="py-28 px-6 bg-[var(--bg-color)] scroll-mt-20 relative overflow-hidden">
+<section id="about" class="py-24 px-6 bg-[var(--bg-color)] scroll-mt-20">
 
-  <!-- Ambient glow -->
-  <div class="absolute inset-0 pointer-events-none">
-    <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[var(--accent)] opacity-[0.03] blur-[140px]"></div>
-    <div class="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[var(--accent)] opacity-[0.02] blur-[120px]"></div>
-  </div>
+  <div class="max-w-7xl mx-auto">
 
-  <div class="max-w-6xl mx-auto relative z-10">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-5 auto-rows-[minmax(180px,auto)]">
 
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-5 auto-rows-fr">
+      {/* FOUNDATION CARD */}
+      <div class="md:col-span-8 md:row-span-2 p-8 md:p-12 bg-[var(--bg-card)] rounded-[var(--radius)] border border-[var(--border)] relative overflow-hidden group flex flex-col justify-start">
 
-      <!-- PRIMARY STORY -->
-      <div class="md:col-span-8 md:row-span-2 min-h-[420px] p-10 md:p-14 bg-[var(--bg-card)] rounded-[var(--radius)] flex flex-col justify-end relative border border-[var(--border)] group overflow-hidden transition-all duration-500 hover:border-[var(--accent)]/40">
+        {/* Accent glow */}
+        <div class="absolute -top-20 -left-20 w-64 h-64 bg-[var(--accent)] opacity-[0.04] blur-[100px] group-hover:opacity-10 transition-opacity"></div>
 
-        <div class="absolute -top-32 -left-32 w-72 h-72 bg-[var(--accent)] opacity-[0.04] blur-[120px] group-hover:opacity-15 transition-opacity"></div>
-
-        <span class="text-[10px] font-bold uppercase tracking-[0.45em] text-[var(--accent)] mb-6 block">
-          // OUR_FOUNDATION
+        {/* Label */}
+        <span class="text-[10px] font-bold uppercase tracking-[0.35em] text-[var(--accent)] mb-6">
+          Foundation
         </span>
 
-        <h2 class="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-6 leading-[0.85]">
+        {/* Brand Title */}
+        <h2 class="text-4xl md:text-6xl font-black tracking-tight text-[var(--text-primary)] leading-[1.05] mb-6">
+
           {firstWord}
-          <span class="text-[var(--accent)] block">{restOfName}</span>
+
+          {restOfName && (
+            <span class="block text-[var(--accent)]">
+              {restOfName}
+            </span>
+          )}
+
         </h2>
 
-        <p class="text-[var(--text-secondary)] text-sm md:text-lg leading-relaxed max-w-xl font-medium">
+        {/* Story */}
+        <p class="text-[var(--text-secondary)] text-base md:text-lg leading-relaxed max-w-2xl">
           {story}
         </p>
 
-        <!-- Floating authority indicator -->
-        <div class="mt-8 text-xs uppercase tracking-widest text-[var(--accent)] font-bold opacity-80">
-          Serving the {industry} sector
-        </div>
-
       </div>
 
 
-      <!-- FOUNDER NOTE -->
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-between bg-[var(--bg-card)] relative overflow-hidden group">
+      {/* FOUNDER NOTE CARD */}
+      <div class="md:col-span-4 p-6 md:p-8 bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-start">
 
-        {/* subtle accent glow */}
-        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--accent),transparent_60%)] opacity-[0.06]"></div>
-        </div>
-      
-        {/* quote mark — contained and intentional */}
-        <div class="relative z-10">
-      
-          <svg
-            class="w-6 h-6 text-[var(--accent)] mb-4 opacity-80"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M7 17h4l2-6V7H9v4h2l-2 6zm8 0h4l2-6V7h-4v4h2l-2 6z"/>
-          </svg>
-      
-          <p class="text-[var(--text-secondary)] text-sm md:text-base leading-relaxed font-medium">
-            {founderNote}
-          </p>
-      
-        </div>
-      
-        <div class="relative z-10 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] opacity-70">
-          Founder Philosophy
-        </div>
-      
-      </div>
-
-      <!-- AUTHORITY STACK -->
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg-card)] hover:border-[var(--accent)]/40 transition-all duration-500 group">
-
-        <span class="text-xs uppercase tracking-widest font-bold opacity-60 mb-6 block">
-          Authority
+        <span class="text-[10px] uppercase tracking-[0.3em] text-[var(--accent)] mb-4 font-bold">
+          Founder Note
         </span>
 
-        <div class="flex flex-col gap-4">
-
-          {authority.map(item => (
-            <div class="flex items-center gap-3">
-
-              <div class="w-2 h-2 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"></div>
-
-              <span class="font-bold text-[var(--text-primary)] text-sm">
-                {item}
-              </span>
-
-            </div>
-          ))}
-
-        </div>
-
-      </div>
-
-
-      <!-- EXPERIENCE ANCHOR CARD -->
-      <div class="md:col-span-4 p-6 md:p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--text-primary)] text-[var(--bg-color)] hover:scale-[1.02] transition-transform duration-300 group">
-
-        <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-2">
-          Experience
-        </span>
-      
-        <div class="flex items-end gap-2 leading-none">
-          <span class="text-3xl md:text-4xl font-black tracking-tight">
-            {years}
-          </span>
-      
-          <span class="text-xs uppercase tracking-widest text-[var(--accent)] opacity-80 pb-[2px]">
-            Proven
-          </span>
-        </div>
-      
-        <p class="text-[10px] uppercase tracking-[0.15em] mt-3 opacity-40 font-semibold">
-          {industry}
+        <p class="text-[var(--text-secondary)] text-sm leading-relaxed">
+          {founderNote}
         </p>
-      
+
+        <div class="mt-6 text-[10px] uppercase tracking-[0.25em] text-[var(--text-secondary)]">
+          — {brandName}
+        </div>
+
       </div>
+
+
+      {/* EXPERIENCE CARD */}
+      <div class="md:col-span-4 p-6 md:p-8 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--text-primary)] text-[var(--bg-color)] flex flex-col justify-between group hover:scale-[1.015] transition-transform duration-300">
+
+        <div>
+
+          <span class="text-[10px] uppercase tracking-[0.35em] opacity-60 font-bold">
+            Experience
+          </span>
+
+          <div class="mt-3 text-3xl md:text-4xl font-black tracking-tight">
+            {years}
+          </div>
+
+        </div>
+
+        <div class="mt-6 text-[10px] uppercase tracking-[0.25em] opacity-60">
+          {industry}
+        </div>
+
+      </div>
+
+
+      {/* TRUST STAT CARD (auto-intelligence driven) */}
+      <div class="md:col-span-4 p-6 md:p-8 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg-card)] flex flex-col justify-between group hover:border-[var(--accent)] transition-colors">
+
+        <span class="text-[10px] uppercase tracking-[0.35em] text-[var(--accent)] font-bold">
+          Positioning
+        </span>
+
+        <p class="text-sm text-[var(--text-secondary)] mt-3 leading-relaxed">
+          Positioned as a premium leader in the {industry.toLowerCase()} space through consistent execution and client trust.
+        </p>
+
+        <div class="mt-6 h-[2px] w-10 bg-[var(--accent)] opacity-60"></div>
+
+      </div>
+
 
     </div>
 
