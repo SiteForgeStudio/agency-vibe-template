@@ -1,68 +1,144 @@
 ---
-/**
- * COMPONENT: BentoAbout
- * Logic: Asymmetric brand story grid.
- * Fix: Properly receives intelligence prop and uses Vibe Engine variables.
- */
- const { brand, about, intelligence } = Astro.props; 
+const { brand, about, intelligence } = Astro.props;
 
-// 1. DATA SAFETY - Prevents "undefined" crashes if the AI didn't provide data
 if (!about && !brand) return null;
 
-// Fallback logic to ensure boxes aren't empty
-const story = about?.story_text || brand?.tagline || "Redefining the standard of excellence.";
-const founderNote = about?.founder_note || brand?.objection_handle || "Precision in every detail.";
+const story =
+  about?.story_text ||
+  brand?.tagline ||
+  "Redefining the standard of excellence.";
+
+const founderNote =
+  about?.founder_note ||
+  brand?.objection_handle ||
+  "Precision in every detail.";
+
 const years = about?.years_experience || "10+";
+
 const industry = intelligence?.industry || "Premium Services";
 
-// TEXT LOGIC - Splits the brand name for that high-end 2-tone look
 const brandName = brand?.name || "Our Brand";
-const brandParts = brandName.split(' ');
+const brandParts = brandName.split(" ");
 const firstWord = brandParts[0];
-const restOfName = brandParts.slice(1).join(' ');
+const restOfName = brandParts.slice(1).join(" ");
+
+const authority = [
+  `${years} Years Experience`,
+  "Licensed & Insured",
+  "Locally Owned",
+  "Premium Equipment"
+];
 ---
 
-<section id="about" class="py-24 px-6 bg-[var(--bg-color)] scroll-mt-20">
-  <div class="max-w-6xl mx-auto">
-    
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 auto-rows-fr">
-      
-      <div class="md:col-span-8 md:row-span-2 min-h-[400px] p-8 md:p-12 bg-[var(--bg-card)] rounded-[var(--radius)] flex flex-col justify-end relative border border-[var(--border)] group overflow-hidden">
-        
-        <div class="absolute -top-24 -left-24 w-64 h-64 bg-[var(--accent)] opacity-[0.03] blur-[80px] group-hover:opacity-10 transition-opacity"></div>
-        
-        <div class="relative z-10">
-            <span class="text-[10px] font-bold uppercase tracking-[0.4em] text-[var(--accent)] mb-4 block">// THE_MISSION</span>
-            <h2 class="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-6 leading-[0.85]">
-                {firstWord} <span class="text-[var(--accent)] block">{restOfName}</span>
-            </h2>
-            <p class="text-[var(--text-secondary)] text-sm md:text-lg leading-relaxed max-w-xl font-medium">
-                {story}
-            </p>
-        </div>
-      </div>
+<section id="about" class="py-28 px-6 bg-[var(--bg-color)] scroll-mt-20 relative overflow-hidden">
 
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--bg-color)] relative group">
-        <span class="text-6xl absolute -top-2 left-4 text-[var(--accent)] opacity-10 font-serif group-hover:opacity-30 transition-opacity">“</span>
-        <p class="text-[var(--text-secondary)] text-sm italic relative z-10 pt-4 leading-relaxed">
-            {founderNote}
+  <!-- Ambient glow -->
+  <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[var(--accent)] opacity-[0.03] blur-[140px]"></div>
+    <div class="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-[var(--accent)] opacity-[0.02] blur-[120px]"></div>
+  </div>
+
+  <div class="max-w-6xl mx-auto relative z-10">
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-5 auto-rows-fr">
+
+      <!-- PRIMARY STORY -->
+      <div class="md:col-span-8 md:row-span-2 min-h-[420px] p-10 md:p-14 bg-[var(--bg-card)] rounded-[var(--radius)] flex flex-col justify-end relative border border-[var(--border)] group overflow-hidden transition-all duration-500 hover:border-[var(--accent)]/40">
+
+        <div class="absolute -top-32 -left-32 w-72 h-72 bg-[var(--accent)] opacity-[0.04] blur-[120px] group-hover:opacity-15 transition-opacity"></div>
+
+        <span class="text-[10px] font-bold uppercase tracking-[0.45em] text-[var(--accent)] mb-6 block">
+          // OUR_FOUNDATION
+        </span>
+
+        <h2 class="text-5xl md:text-7xl font-black uppercase tracking-tighter text-[var(--text-primary)] mb-6 leading-[0.85]">
+          {firstWord}
+          <span class="text-[var(--accent)] block">{restOfName}</span>
+        </h2>
+
+        <p class="text-[var(--text-secondary)] text-sm md:text-lg leading-relaxed max-w-xl font-medium">
+          {story}
         </p>
-        <div class="mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)]">
-            — {brandName} Strategy
+
+        <!-- Floating authority indicator -->
+        <div class="mt-8 text-xs uppercase tracking-widest text-[var(--accent)] font-bold opacity-80">
+          Serving the {industry} sector
         </div>
+
       </div>
 
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--text-primary)] text-[var(--bg-color)] hover:scale-[1.02] transition-transform">
-         <div class="flex flex-col">
-            <span class="text-xs uppercase tracking-widest font-bold opacity-60 mb-1">Track Record</span>
-            <div class="flex items-baseline gap-2">
-                <span class="text-5xl font-black tracking-tighter">{years}</span>
-                <span class="text-lg font-bold uppercase text-[var(--accent)]">Years</span>
+
+      <!-- FOUNDER NOTE -->
+      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--bg-color)] relative group hover:border-[var(--accent)]/40 transition-all">
+
+        <span class="text-7xl absolute -top-6 left-4 text-[var(--accent)] opacity-10 font-serif group-hover:opacity-30 transition-opacity">
+          ”
+        </span>
+
+        <p class="text-[var(--text-secondary)] text-sm italic relative z-10 pt-6 leading-relaxed">
+          {founderNote}
+        </p>
+
+        <div class="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)]">
+          — {brandName}
+        </div>
+
+      </div>
+
+
+      <!-- AUTHORITY STACK -->
+      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg-card)] hover:border-[var(--accent)]/40 transition-all duration-500 group">
+
+        <span class="text-xs uppercase tracking-widest font-bold opacity-60 mb-6 block">
+          Authority
+        </span>
+
+        <div class="flex flex-col gap-4">
+
+          {authority.map(item => (
+            <div class="flex items-center gap-3">
+
+              <div class="w-2 h-2 rounded-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]"></div>
+
+              <span class="font-bold text-[var(--text-primary)] text-sm">
+                {item}
+              </span>
+
             </div>
-            <p class="text-[9px] uppercase tracking-[0.1em] mt-4 opacity-50 font-bold">Sector: {industry}</p>
-         </div>
+          ))}
+
+        </div>
+
+      </div>
+
+
+      <!-- EXPERIENCE ANCHOR CARD -->
+      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--text-primary)] text-[var(--bg-color)] flex flex-col justify-center hover:scale-[1.03] transition-all duration-500">
+
+        <span class="text-xs uppercase tracking-widest font-bold opacity-60 mb-2">
+          Experience
+        </span>
+
+        <div class="flex items-baseline gap-3">
+
+          <span class="text-6xl font-black tracking-tighter">
+            {years}
+          </span>
+
+          <span class="text-lg font-bold uppercase text-[var(--accent)]">
+            Years
+          </span>
+
+        </div>
+
+        <p class="text-[10px] uppercase tracking-[0.2em] mt-4 opacity-50 font-bold">
+          Proven Excellence
+        </p>
+
       </div>
 
     </div>
+
   </div>
+
 </section>

@@ -2,56 +2,103 @@
 import { iconLibrary } from '../lib/icons';
 const { data } = Astro.props;
 
-const normalizeIcon = (icon) =>
-  icon?.toLowerCase().replace(/[_\s]/g, "-");
+const normalizeIcon = (icon) => {
+  if (!icon) return null;
+
+  const key = icon
+    .toLowerCase()
+    .replace(/([a-z])([A-Z])/g, "$1-$2")
+    .replace(/[\s_]+/g, "-")
+    .trim();
+
+  if (iconLibrary[key]) return key;
+
+  const fallbackMap = {
+    "shield-check": "shield",
+    "check-circle": "check",
+    "verified": "shield",
+    "guarantee": "award",
+    "rating": "star",
+    "reviews": "users"
+  };
+
+  return fallbackMap[key] || null;
+};
 ---
 
-<section class="py-8 bg-[var(--bg-color)] border-b border-[var(--border)]">
-  <div class="max-w-6xl mx-auto px-6">
-    
+<section class="relative py-12">
+
+  <!-- subtle divider -->
+  <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--border)] to-transparent"></div>
+
+  <div class="max-w-5xl mx-auto px-6">
+
     {data?.headline && (
-      <p class="text-center text-sm uppercase tracking-widest text-[var(--text-secondary)] mb-6">
+      <p class="text-center text-xs uppercase tracking-[0.25em] text-[var(--text-secondary)] mb-10">
         {data.headline}
       </p>
     )}
 
-    <ul class="grid gap-8 items-center text-center
-               grid-cols-2
-               md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]
-               justify-items-center">
+    <ul class="flex flex-wrap justify-center gap-x-12 gap-y-10">
 
-      {data.items.map((item) => (
-        <li class="flex flex-col items-center gap-2 group transition-transform duration-300 hover:-translate-y-1">
+      {data.items.map((item) => {
+        const iconKey = normalizeIcon(item.icon);
 
-          <div class="w-10 h-10 flex items-center justify-center">
-            {item.icon && iconLibrary[normalizeIcon(item.icon)] ? (
-              <svg 
-                class="w-8 h-8 text-[var(--accent)] drop-shadow-[0_0_6px_var(--accent)]"
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                stroke-width="2" 
-                stroke-linecap="round" 
-                stroke-linejoin="round"
-              >
-                <path d={iconLibrary[normalizeIcon(item.icon)]} />
-              </svg>
-            ) : (
-              <span class="text-2xl">{item.icon}</span>
-            )}
-          </div>
+        return (
+          <li class="group flex flex-col items-center text-center max-w-[160px]">
 
-          <span class="font-bold text-[var(--text-primary)]">
-            {item.label}
-          </span>
+            {/* Icon container */}
+            <div class="
+              relative mb-3
+              w-12 h-12
+              flex items-center justify-center
+              rounded-xl
+              bg-[var(--surface)]
+              border border-[var(--border)]
+              transition-all duration-300
+              group-hover:scale-110
+              group-hover:border-[var(--accent)]
+            ">
 
-          {item.sublabel && (
-            <span class="text-sm text-[var(--text-secondary)]">
-              {item.sublabel}
+              {iconKey ? (
+                <svg 
+                  class="w-6 h-6 text-[var(--accent)]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d={iconLibrary[iconKey]} />
+                </svg>
+              ) : (
+                <span class="text-xl">{item.icon}</span>
+              )}
+
+            </div>
+
+            {/* Label */}
+            <span class="font-semibold text-sm text-[var(--text-primary)] leading-tight">
+              {item.label}
             </span>
-          )}
-        </li>
-      ))}
+
+            {/* Sublabel */}
+            {item.sublabel && (
+              <span class="text-xs text-[var(--text-secondary)] mt-1">
+                {item.sublabel}
+              </span>
+            )}
+
+          </li>
+        );
+      })}
+
     </ul>
+
   </div>
+
+  <!-- subtle divider -->
+  <div class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[var(--border)] to-transparent"></div>
+
 </section>
