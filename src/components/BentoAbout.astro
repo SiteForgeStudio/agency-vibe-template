@@ -69,22 +69,35 @@ const authority = [
 
 
       <!-- FOUNDER NOTE -->
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--bg-color)] relative group hover:border-[var(--accent)]/40 transition-all">
+      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-between bg-[var(--bg-card)] relative overflow-hidden group">
 
-        <span class="text-7xl absolute -top-6 left-4 text-[var(--accent)] opacity-10 font-serif group-hover:opacity-30 transition-opacity">
-          ”
-        </span>
-
-        <p class="text-[var(--text-secondary)] text-sm italic relative z-10 pt-6 leading-relaxed">
-          {founderNote}
-        </p>
-
-        <div class="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-primary)]">
-          — {brandName}
+        {/* subtle accent glow */}
+        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--accent),transparent_60%)] opacity-[0.06]"></div>
         </div>
-
+      
+        {/* quote mark — contained and intentional */}
+        <div class="relative z-10">
+      
+          <svg
+            class="w-6 h-6 text-[var(--accent)] mb-4 opacity-80"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M7 17h4l2-6V7H9v4h2l-2 6zm8 0h4l2-6V7h-4v4h2l-2 6z"/>
+          </svg>
+      
+          <p class="text-[var(--text-secondary)] text-sm md:text-base leading-relaxed font-medium">
+            {founderNote}
+          </p>
+      
+        </div>
+      
+        <div class="relative z-10 mt-6 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] opacity-70">
+          Founder Philosophy
+        </div>
+      
       </div>
-
 
       <!-- AUTHORITY STACK -->
       <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--bg-card)] hover:border-[var(--accent)]/40 transition-all duration-500 group">
@@ -113,28 +126,26 @@ const authority = [
 
 
       <!-- EXPERIENCE ANCHOR CARD -->
-      <div class="md:col-span-4 p-8 border border-[var(--border)] rounded-[var(--radius)] bg-[var(--text-primary)] text-[var(--bg-color)] flex flex-col justify-center hover:scale-[1.03] transition-all duration-500">
+      <div class="md:col-span-4 p-6 md:p-8 border border-[var(--border)] rounded-[var(--radius)] flex flex-col justify-center bg-[var(--text-primary)] text-[var(--bg-color)] hover:scale-[1.02] transition-transform duration-300 group">
 
-        <span class="text-xs uppercase tracking-widest font-bold opacity-60 mb-2">
+        <span class="text-[10px] uppercase tracking-[0.25em] opacity-50 mb-2">
           Experience
         </span>
-
-        <div class="flex items-baseline gap-3">
-
-          <span class="text-6xl font-black tracking-tighter">
+      
+        <div class="flex items-end gap-2 leading-none">
+          <span class="text-3xl md:text-4xl font-black tracking-tight">
             {years}
           </span>
-
-          <span class="text-lg font-bold uppercase text-[var(--accent)]">
-            Years
+      
+          <span class="text-xs uppercase tracking-widest text-[var(--accent)] opacity-80 pb-[2px]">
+            Proven
           </span>
-
         </div>
-
-        <p class="text-[10px] uppercase tracking-[0.2em] mt-4 opacity-50 font-bold">
-          Proven Excellence
+      
+        <p class="text-[10px] uppercase tracking-[0.15em] mt-3 opacity-40 font-semibold">
+          {industry}
         </p>
-
+      
       </div>
 
     </div>
