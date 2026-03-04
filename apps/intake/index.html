@@ -51,42 +51,81 @@
 
     <script>
         async function generateSite() {
-            const payload = {
-                businessName: document.getElementById('businessName').value,
-                story: document.getElementById('story').value,
-                clientEmail: document.getElementById('clientEmail').value
-            };
-
-            if (!payload.businessName || !payload.story) return alert("Please fill out the name and story.");
-
-            // Show Loading
-            document.getElementById('loading').classList.remove('hidden');
-            
-            try {
-                // Change this to your live URL when deployed
-                const response = await fetch('http://localhost:8787', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                
-                if (result.error) throw new Error(result.error);
-
-                // Success! Store result in localStorage for the next step
-                localStorage.setItem('generated_business', JSON.stringify(result));
-                
-                // For now, alert the success. Next step will be pushing to GitHub.
-                alert("Strategy Generated Successfully! Vibe: " + result.settings.vibe);
-                console.log(result);
-
-            } catch (err) {
-                alert("Error: " + err.message);
-            } finally {
-                document.getElementById('loading').classList.add('hidden');
+          const payload = {
+            businessName: document.getElementById("businessName").value.trim(),
+            story: document.getElementById("story").value.trim(),
+            clientEmail: document.getElementById("clientEmail").value.trim()
+          };
+      
+          if (!payload.businessName || !payload.story) {
+            return alert("Please fill out the name and story.");
+          }
+      
+          document.getElementById("loading").classList.remove("hidden");
+      
+          try {
+            const res = await fetch("/api/generate", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+      
+            const result = await res.json();
+      
+            if (!res.ok || result.ok === false) {
+              throw new Error(result.error || `Generate failed (${res.status})`);
             }
+      
+            // Your generate API returns { ok, client_slug, business_json }
+            const business = result.business_json;
+      
+            // Store only the business JSON (this is what submit needs)
+            localStorage.setItem("generated_business_json", JSON.stringify(business));
+            localStorage.setItem("generated_client_slug", result.client_slug);
+      
+            alert(
+              `Strategy Generated ✅\n` +
+              `Client: ${result.client_slug}\n` +
+              `Vibe: ${business?.settings?.vibe || "Unknown"}`
+            );
+      
+            console.log("Generated business_json:", business);
+      
+            // OPTIONAL: if you want to auto-submit right after generate, uncomment:
+            // await submitToFactory(payload.clientEmail);
+      
+          } catch (err) {
+            alert("Error: " + (err?.message || String(err)));
+            console.error(err);
+          } finally {
+            document.getElementById("loading").classList.add("hidden");
+          }
         }
-    </script>
+      
+        // OPTIONAL: separate submit step (recommended UX: Generate -> Review -> Submit)
+        async function submitToFactory(emailOverride) {
+          const businessJsonText = localStorage.getItem("generated_business_json");
+          if (!businessJsonText) throw new Error("No generated business JSON in localStorage.");
+      
+          const business_json = JSON.parse(businessJsonText);
+      
+          const res = await fetch("/api/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              business_json,
+              client_email: emailOverride || business_json?.brand?.email || ""
+            }),
+          });
+      
+          const result = await res.json();
+          if (!res.ok || result.ok === false) {
+            throw new Error(result.error || `Submit failed (${res.status})`);
+          }
+      
+          alert(`Submitted ✅\nSlug: ${result.slug || business_json?.brand?.slug || "(unknown)"}`);
+          console.log("Submit result:", result);
+        }
+      </script>
 </body>
 </html>
