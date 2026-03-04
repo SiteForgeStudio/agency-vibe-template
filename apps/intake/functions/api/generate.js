@@ -78,8 +78,10 @@ async function callAI_({ businessName, story }, env) {
         { role: "system", content: system },
         { role: "user", content: user }
       ],
-      // Strongly nudges JSON-only output
-      response_format: { type: "json_object" }
+      // ✅ JSON-only output for Responses API
+      text: {
+        format: { type: "json_object" }
+      }
     }),
   });
 
