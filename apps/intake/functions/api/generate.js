@@ -1,162 +1,306 @@
+import Ajv from "ajv";
+import schema from "../../schema/master-schema.json"; // adjust path if needed
 import { SYSTEM_RULES, VIBE_GUIDE, ICON_LIST } from "./prompts.js";
 
-/**
- * Cloudflare Pages Function
- * POST /api/generate
- *
- * Expected body:
- * {
- *   businessName: string,
- *   story: string,
- *   clientEmail?: string
- * }
- */
+const ajv = new Ajv({ allErrors: true, strict: false });
+const validate = ajv.compile(schema);
+
 export async function onRequestPost({ request, env }) {
   try {
     const body = await request.json();
     const businessName = String(body.businessName || "").trim();
     const story = String(body.story || "").trim();
+    const clientEmail = String(body.clientEmail || "").trim();
 
     if (!businessName || !story) {
       return json({ ok: false, error: "Missing businessName or story" }, 400);
     }
 
-    // 1) Call your AI provider (you must wire this)
-    // Recommended: keep this as a single function so swapping providers is easy.
-    const aiResponse = await callAI_({ businessName, story }, env);
+    const raw = await callAI_({ businessName, story, clientEmail }, env);
 
-    // 2) Hydrate / normalize
-    const clientSlug = normalizeSlug_(aiResponse?.brand?.slug || businessName);
-    const hydrated = hydrateProjectData_(aiResponse, clientSlug);
+    // 1) Normalize/migrate common drift → master schema shape
+    let data = normalizeToMasterSchema_(raw, { businessName, story, clientEmail });
 
-    // 3) OPTIONAL: Commit base.json here (if you still want that in Cloudflare)
-    // If you prefer: do NOT commit here; let Apps Script be the only writer to GitHub.
-    if (env.GITHUB_TOKEN && env.GITHUB_OWNER && env.GITHUB_REPO) {
-      await githubPutFile_(
-        env,
-        `clients/${clientSlug}/business.base.json`,
-        JSON.stringify(hydrated, null, 2),
-        `Factory: commit base for ${clientSlug}`,
-        true
-      );
+    // 2) Enforce inspiration invariants (queries/items)
+    data = ensureInspirationQueries_(data);
+
+    // 3) Validate hard
+    const ok = validate(data);
+    if (!ok) {
+      return json({
+        ok: false,
+        error: "Schema validation failed",
+        validation_errors: (validate.errors || []).map(e => ({
+          path: e.instancePath,
+          message: e.message,
+          keyword: e.keyword,
+        })),
+      }, 422);
     }
 
-    return json({ ok: true, client_slug: clientSlug, business_json: hydrated });
+    // slug normalization
+    const clientSlug = normalizeSlug_(data.brand?.slug || businessName);
+    data.brand.slug = clientSlug;
+
+    return json({ ok: true, client_slug: clientSlug, business_json: data });
   } catch (err) {
     return json({ ok: false, error: String(err?.message || err) }, 500);
   }
 }
 
-/* -----------------------------
-   AI CALL (PLUG YOUR PROVIDER)
------------------------------- */
-async function callAI_({ businessName, story }, env) {
-  if (!env.OPENAI_API_KEY) throw new Error("Missing env.OPENAI_API_KEY");
+/** Deterministic migration into master schema */
+function normalizeToMasterSchema_(raw, ctx) {
+  const r = JSON.parse(JSON.stringify(raw || {}));
+  const out = {};
 
-  const system = [
-    SYSTEM_RULES,
-    VIBE_GUIDE,
-    `ICON LIST (choose only from these for icon fields): ${ICON_LIST}`,
-    `OUTPUT RULES:
-- Return ONLY valid JSON (no markdown, no commentary).
-- Must include: brand, intelligence, strategy, settings, hero, about, trustbar, gallery, contact (at minimum).
-- All menu links must be # anchors.
-- Every image object must include image_search_query (5-8 words).`
-  ].join("\n\n");
+  // --- intelligence (required) ---
+  out.intelligence = {
+    industry:
+      r.intelligence?.industry ||
+      r.brand?.industry ||
+      r.industry ||
+      "Service business",
+    target_persona:
+      r.intelligence?.target_persona ||
+      r.intelligence?.target_audience ||
+      r.target_persona ||
+      "Customers looking for a premium local provider",
+    tone_of_voice:
+      r.intelligence?.tone_of_voice ||
+      r.tone_of_voice ||
+      r.intelligence?.market_position ||
+      "Premium, trustworthy, direct"
+  };
 
-  const user = `Business Name: ${businessName}\n\nStory:\n${story}`;
+  // --- strategy (toggles) ---
+  // accept drift where toggles might be missing; default sensible values
+  const s = r.strategy || {};
+  out.strategy = {
+    show_trustbar: bool_(s.show_trustbar, true),
+    show_about: bool_(s.show_about, true),
+    show_features: bool_(s.show_features, true),
+    show_events: bool_(s.show_events, false),
+    show_process: bool_(s.show_process, false),
+    show_testimonials: bool_(s.show_testimonials, false),
+    show_comparison: bool_(s.show_comparison, false),
+    show_gallery: bool_(s.show_gallery, true),
+    show_investment: bool_(s.show_investment, false),
+    show_faqs: bool_(s.show_faqs, false),
+    show_service_area: bool_(s.show_service_area, false),
+  };
 
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: env.OPENAI_MODEL || "gpt-4.1-mini",
-      input: [
-        { role: "system", content: system },
-        { role: "user", content: user }
-      ],
-      // ✅ JSON-only output for Responses API
-      text: {
-        format: { type: "json_object" }
-      }
-    }),
-  });
+  // --- settings (required) ---
+  const vibe =
+    r.settings?.vibe ||
+    r.strategy?.vibe ||
+    "Modern Minimal";
 
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`OpenAI error (${res.status}): ${t}`);
+  out.settings = {
+    vibe: vibe,
+    menu: normalizeMenu_(r.settings?.menu || r.strategy?.menu_links || r.menu || null),
+    cta_text: r.settings?.cta_text || r.strategy?.cta?.text || "Get Started",
+    cta_link: r.settings?.cta_link || r.strategy?.cta?.href || "#contact",
+    cta_type: inferCtaType_(r.settings?.cta_type, r.settings?.cta_link || r.strategy?.cta?.href || "#contact"),
+    secondary_cta_text: r.settings?.secondary_cta_text || "",
+    secondary_cta_link: r.settings?.secondary_cta_link || ""
+  };
+
+  // --- brand (required) ---
+  out.brand = {
+    name: r.brand?.name || ctx.businessName,
+    slug: r.brand?.slug || normalizeSlug_(ctx.businessName),
+    tagline: r.brand?.tagline || r.brand?.positioning || "Built for quality and trust.",
+    email: r.brand?.email || ctx.clientEmail || "contact@example.com",
+    phone: r.brand?.phone || "",
+    office_address: r.brand?.office_address || "",
+    objection_handle: r.brand?.objection_handle || ""
+  };
+
+  // --- hero (required) ---
+  const heroQuery =
+    r.hero?.image?.image_search_query ||
+    r.hero?.background_image_search_query ||
+    r.hero?.image_search_query ||
+    null;
+
+  out.hero = {
+    headline: r.hero?.headline || r.hero?.title || `Welcome to ${out.brand.name}`,
+    subtext: r.hero?.subtext || r.hero?.subheadline || r.hero?.subtitle || "A premium experience built around your needs.",
+    image: {
+      alt: r.hero?.image?.alt || r.hero?.image_alt || `${out.intelligence.industry} hero image`,
+      image_search_query: heroQuery || "" // filled by ensureInspirationQueries_
+    }
+  };
+
+  // --- about (required) ---
+  out.about = {
+    story_text: r.about?.story_text || r.about?.content || r.about?.story || ctx.story || "",
+    founder_note: r.about?.founder_note || "Crafted with care and pride.",
+    years_experience: r.about?.years_experience || "10+"
+  };
+
+  // --- trustbar (optional but schema-defined) ---
+  if (r.trustbar) {
+    out.trustbar = normalizeTrustbar_(r.trustbar);
+  } else if (out.strategy.show_trustbar) {
+    out.trustbar = {
+      enabled: true,
+      headline: "Why Choose Us",
+      items: [
+        { icon: "award", label: "Pro-grade quality" },
+        { icon: "shield", label: "Trusted and insured" },
+        { icon: "clock", label: "On-time delivery" }
+      ]
+    };
   }
 
-  const data = await res.json();
+  // --- features (required) ---
+  out.features = normalizeFeatures_(r.features);
 
-  // Responses API commonly returns text in output[0].content[0].text
-  const text =
-    data?.output?.[0]?.content?.find(c => c.type === "output_text")?.text
-    ?? data?.output_text
-    ?? null;
+  // --- gallery (optional but used when show_gallery true) ---
+  out.gallery = normalizeGallery_(r.gallery, out.strategy.show_gallery);
 
-  if (!text) throw new Error("OpenAI returned no text output");
+  // --- contact (required) ---
+  out.contact = {
+    headline: r.contact?.headline || "Get in Touch",
+    subheadline: r.contact?.subheadline || r.contact?.content || "Tell us what you need and we’ll respond quickly.",
+    email: r.contact?.email || out.brand.email,
+    phone: r.contact?.phone || out.brand.phone,
+    email_recipient: r.contact?.email_recipient || out.brand.email,
+    button_text: r.contact?.button_text || r.contact?.submit_text || "Send Message",
+    office_address: r.contact?.office_address || out.brand.office_address
+  };
 
-  let json;
-  try { json = JSON.parse(text); }
-  catch { throw new Error("OpenAI did not return valid JSON"); }
-
-  return json;
+  return out;
 }
 
-/* -----------------------------
-   HYDRATION (YOUR LOGIC, SAFE)
------------------------------- */
-function hydrateProjectData_(raw, slug) {
-  const data = JSON.parse(JSON.stringify(raw || {}));
-
-  data.brand = data.brand || {};
-  data.brand.slug = normalizeSlug_(data.brand.slug || slug);
-
-  data.settings = data.settings || {};
-  if (!Array.isArray(data.settings.menu) || data.settings.menu.length === 0) {
-    data.settings.menu = [
-      { label: "Home", path: "#home" },
-      { label: "About", path: "#about" },
-      { label: "Gallery", path: "#gallery" },
-      { label: "Contact", path: "#contact" },
-    ];
+function ensureInspirationQueries_(data) {
+  // HERO query guarantee
+  if (!data.hero?.image?.image_search_query) {
+    const industry = (data.intelligence?.industry || "service").toLowerCase();
+    // 4–8 words, broad context, no locations
+    data.hero.image.image_search_query =
+      `${industry} professional service in action`.split(" ").slice(0, 8).join(" ");
   }
-  data.settings.cta_text = data.settings.cta_text || "Get Started";
-  data.settings.cta_link = data.settings.cta_link || "#contact";
 
-  const industry = String(data.intelligence?.industry || "").toLowerCase();
-  const isLuxury = industry.includes("watch") || industry.includes("luxury") || industry.includes("jewelry");
-  const isEvent = Boolean(data.strategy?.show_events) || industry.includes("entertainment") || industry.includes("theatre");
+  // GALLERY guarantee
+  const wantsGallery = Boolean(data.strategy?.show_gallery);
+  if (wantsGallery) {
+    data.gallery = data.gallery || { enabled: true, items: [] };
+    data.gallery.enabled = true;
 
-  if (data.strategy?.show_gallery) {
-    data.gallery = data.gallery || { enabled: true };
-    if (!data.gallery.computed_layout) {
-      data.gallery.computed_layout = isLuxury ? "bento" : isEvent ? "masonry" : "grid";
-    }
     const count = data.gallery.computed_count || 6;
-    if (!Array.isArray(data.gallery.items) || data.gallery.items.length === 0) {
-      data.gallery.items = Array.from({ length: count }).map((_, i) => ({ title: `Project ${i + 1}` }));
-    }
-  }
+    const base = `${(data.intelligence?.industry || "service")} work showcase`.trim();
 
-  if (data.strategy?.show_about) {
-    data.about = data.about || {};
-    if (!data.about.story_text || String(data.about.story_text).length < 20) {
-      data.about.story_text = isLuxury
-        ? `${data.brand.name || "This brand"} preserves the heritage of fine craftsmanship with modern precision.`
-        : `${data.brand.name || "This brand"} delivers excellence through passion and expertise.`;
+    // ensure items exist
+    if (!Array.isArray(data.gallery.items)) data.gallery.items = [];
+    while (data.gallery.items.length < count) {
+      data.gallery.items.push({
+        title: `Project ${data.gallery.items.length + 1}`,
+        image_search_query: ""
+      });
     }
-    data.about.founder_note = data.about.founder_note || "Precision in every detail.";
-    data.about.years_experience = data.about.years_experience || "15+";
+
+    data.gallery.items = data.gallery.items.map((it, i) => ({
+      ...it,
+      title: it.title || `Project ${i + 1}`,
+      image_search_query: it.image_search_query || `${base} ${i + 1}`.slice(0, 80)
+    }));
   }
 
   return data;
 }
 
+function normalizeGallery_(g, showGallery) {
+  const gg = g || {};
+  const enabled = Boolean(gg.enabled ?? showGallery);
+
+  // support legacy: gallery.images[] → gallery.items[]
+  let items = gg.items;
+  if (!Array.isArray(items) && Array.isArray(gg.images)) {
+    items = gg.images.map((im, i) => ({
+      title: im.title || im.alt || `Project ${i + 1}`,
+      image_search_query: im.image_search_query || ""
+    }));
+  }
+  if (!Array.isArray(items)) items = [];
+
+  return {
+    enabled,
+    title: gg.title || "Gallery",
+    layout: gg.layout ?? null,
+    show_titles: gg.show_titles ?? true,
+    computed_count: gg.computed_count ?? (enabled ? 6 : null),
+    computed_layout: gg.computed_layout ?? (enabled ? "grid" : null),
+    items
+  };
+}
+
+function normalizeFeatures_(f) {
+  if (Array.isArray(f) && f.length) return f.map(x => ({
+    title: x.title || "Feature",
+    description: x.description || "",
+    icon_slug: x.icon_slug || x.icon || "sparkles"
+  }));
+
+  // safe default (features is required)
+  return [
+    { title: "Premium Quality", description: "Crafted for performance and trust.", icon_slug: "award" },
+    { title: "Fast Response", description: "Clear communication and quick turnaround.", icon_slug: "clock" },
+    { title: "Trusted Service", description: "Reliable from start to finish.", icon_slug: "shield" }
+  ];
+}
+
+function normalizeTrustbar_(t) {
+  const tt = t || {};
+  let items = tt.items;
+  if (!Array.isArray(items) && Array.isArray(tt.points)) {
+    items = tt.points.map(p => ({ icon: p.icon || "check", label: p.text || "" }));
+  }
+  if (!Array.isArray(items)) items = [];
+  return {
+    enabled: Boolean(tt.enabled ?? true),
+    headline: tt.headline || "Why Choose Us",
+    items: items.slice(0, 8)
+  };
+}
+
+function normalizeMenu_(menuLike) {
+  const fallback = [
+    { label: "Home", path: "#home" },
+    { label: "About", path: "#about" },
+    { label: "Features", path: "#features" },
+    { label: "Gallery", path: "#gallery" },
+    { label: "Contact", path: "#contact" }
+  ];
+
+  if (!Array.isArray(menuLike) || !menuLike.length) return fallback;
+
+  // support legacy: {name, href}
+  const mapped = menuLike.map(m => ({
+    label: m.label || m.name || "Link",
+    path: m.path || m.href || "#contact"
+  }));
+
+  // enforce allowed anchors (schema enum)
+  const allowed = new Set([
+    "#home","#about","#features","#events","#process","#testimonials","#comparison",
+    "#gallery","#investment","#faqs","#service-area","#contact"
+  ]);
+
+  return mapped.map(m => ({
+    label: String(m.label || "").trim() || "Link",
+    path: allowed.has(m.path) ? m.path : "#contact"
+  }));
+}
+
+function inferCtaType_(ctaType, link) {
+  if (ctaType === "anchor" || ctaType === "external") return ctaType;
+  return String(link || "").startsWith("#") ? "anchor" : "external";
+}
+function bool_(v, dflt) {
+  return typeof v === "boolean" ? v : dflt;
+}
 function normalizeSlug_(s) {
   return String(s || "")
     .toLowerCase()
@@ -164,61 +308,6 @@ function normalizeSlug_(s) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
-
-/* -----------------------------
-   GITHUB PUT FILE via REST API
------------------------------- */
-async function githubPutFile_(env, repoPath, contentString, message, overwrite = true) {
-  const owner = env.GITHUB_OWNER;
-  const repo = env.GITHUB_REPO;
-  const token = env.GITHUB_TOKEN;
-
-  if (!owner || !repo || !token) return;
-
-  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${repoPath}`;
-
-  // Get SHA if exists
-  let sha = undefined;
-  const existing = await fetch(apiUrl, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-  });
-
-  if (existing.status === 200) {
-    if (!overwrite) return;
-    const json = await existing.json();
-    sha = json.sha;
-  }
-
-  const payload = {
-    message,
-    content: base64_(contentString),
-    ...(sha ? { sha } : {}),
-  };
-
-  const res = await fetch(apiUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`GitHub PUT failed (${res.status}): ${t}`);
-  }
-}
-
-function base64_(str) {
-  // Cloudflare-safe base64 (no Buffer)
-  const bytes = new TextEncoder().encode(str);
-  let binary = "";
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-  return btoa(binary);
-}
-
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {
     status,

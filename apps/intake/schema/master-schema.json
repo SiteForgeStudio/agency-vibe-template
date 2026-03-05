@@ -1,0 +1,592 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Vibe-Engine Master Manifest 2026",
+    "description": "AI-driven interview, strategy, and build contract for automated Astro static websites.",
+    "type": "object",
+    "required": [
+      "intelligence",
+      "strategy",
+      "settings",
+      "brand",
+      "hero",
+      "about",
+      "features",
+      "contact"
+    ],
+    "properties": {
+      "definitions": {
+        "iconToken": {
+          "description": "Icon key from iconLibrary OR short emoji/symbol fallback.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "zap",
+                "cpu",
+                "layers",
+                "rocket",
+                "leaf",
+                "sprout",
+                "sun",
+                "scissors",
+                "truck",
+                "hammer",
+                "wrench",
+                "trash",
+                "sparkles",
+                "heart",
+                "award",
+                "users",
+                "map",
+                "shield",
+                "star",
+                "check",
+                "coins",
+                "briefcase",
+                "clock",
+                "phone"
+              ]
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4,
+              "description": "Emoji fallback (ex: \"⭐\", \"🛡️\", \"📍\"). Keep it short."
+            }
+          ]
+        }
+      },
+  
+      "intelligence": {
+        "type": "object",
+        "ai:priority": "critical",
+        "ai:purpose": "Establish foundational context so AI can behave like a web strategist.",
+        "ai:questions": [
+          "What is this website for?",
+          "Who is the ideal customer?",
+          "How should the brand sound to visitors?"
+        ],
+        "required": ["industry", "target_persona", "tone_of_voice"],
+        "properties": {
+          "industry": { "type": "string" },
+          "target_persona": { "type": "string" },
+          "tone_of_voice": { "type": "string" }
+        }
+      },
+      "strategy": {
+        "type": "object",
+        "ai:priority": "critical",
+        "ai:purpose": "Determine which site components should render based on business needs.",
+        "ai:inference_rules": {
+          "show_about": "true for founder-led, story-driven, or mission-based brands",
+          "show_features": "true for most businesses offering services or products",
+          "show_events": "true when the business has a schedule, sessions, classes, workshops, tours, appointment slots, or any time-based offerings; only set true if you can populate events[] with 3+ items; otherwise false",
+          "show_process": "true for consultative or multi-step services",
+          "show_testimonials": "true when trust, credibility, or proof is important",
+          "show_comparison": "true when buyers compare alternatives",
+          "show_gallery": "true for visual, portfolio-based, or physical work",
+          "show_investment": "true when pricing tiers are standardized",
+          "show_faqs": "true when customer objections are common",
+          "show_service_area": "true for location-based businesses"
+        },
+        "properties": {
+          "show_trustbar": { "type": "boolean" },
+          "show_about": { "type": "boolean" },
+          "show_features": { "type": "boolean" },
+          "show_events": { "type": "boolean" },
+          "show_process": { "type": "boolean" },
+          "show_testimonials": { "type": "boolean" },
+          "show_comparison": { "type": "boolean" },
+          "show_gallery": { "type": "boolean" },
+          "show_investment": { "type": "boolean" },
+          "show_faqs": { "type": "boolean" },
+          "show_service_area": { "type": "boolean" }
+        }
+      },
+      "settings": {
+        "type": "object",
+        "ai:priority": "critical",
+        "ai:purpose": "Control global UI, branding vibe, and navigation behavior.",
+        "ai:inference_rules": {
+          "vibe": {
+            "Midnight Tech": "SaaS, AI, fintech, cybersecurity",
+            "Zenith Earth": "wellness, eco-friendly, sustainability",
+            "Vintage Boutique": "handcrafted, artisanal, lifestyle brands",
+            "Rugged Industrial": "construction, manufacturing, trades",
+            "Modern Minimal": "consultants, startups, professional services",
+            "Luxury Noir": "premium, high-end, exclusive brands",
+            "Legacy Professional": "law, finance, healthcare",
+            "Solar Flare": "creative, bold, entertainment, youth-focused"
+          }
+        },
+        "required": ["vibe", "menu", "cta_text", "cta_link", "cta_type"],
+        "properties": {
+          "vibe": {
+            "type": "string",
+            "enum": [
+              "Midnight Tech",
+              "Zenith Earth",
+              "Vintage Boutique",
+              "Rugged Industrial",
+              "Modern Minimal",
+              "Luxury Noir",
+              "Legacy Professional",
+              "Solar Flare"
+            ]
+          },
+          "cta_text": { "type": "string" },
+          "cta_link": { "type": "string" },
+          "cta_type": { "type": "string", "enum": ["anchor", "external"] },
+          "secondary_cta_text": { "type": "string" },
+          "secondary_cta_link": { "type": "string" },
+          "menu": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["label", "path"],
+              "properties": {
+                "label": { "type": "string" },
+                "path": { "type": "string",
+                          "enum": [
+                            "#home",
+                            "#about",
+                            "#features",
+                            "#events",
+                            "#process",
+                            "#testimonials",
+                            "#comparison",
+                            "#gallery",
+                            "#investment",
+                            "#faqs",
+                            "#service-area",
+                            "#contact"
+                          ],
+                          "description": "Must match an existing section id. Use only these anchors to prevent broken nav links."
+                        }
+              }
+            }
+          }
+        }
+      },
+      "brand": {
+        "type": "object",
+        "ai:priority": "critical",
+        "ai:purpose": "Define the public-facing identity of the business.",
+        "ui:component": "BrandMeta",
+        "ai:questions": [
+          "What is the business name?",
+          "Do you have a tagline or positioning statement?",
+          "What email should customers contact?"
+        ],
+        "required": ["name", "tagline", "email"],
+        "properties": {
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "tagline": { "type": "string" },
+          "email": { "type": "string" },
+          "phone": { "type": "string" },
+          "office_address": { "type": "string" },
+          "objection_handle": { "type": "string" }
+        }
+      },
+      "hero": {
+        "type": "object",
+        "ai:priority": "critical",
+        "ai:purpose": "Immediately communicate the core value proposition.",
+        "ui:component": "Hero.astro",
+        "ai:inference_rules": {
+          "image_query_format": "Use 4–8 words: {subject} {action} {context}. Avoid locations and overly specific adjectives.",
+          "image_query_subject": "Derive from intelligence.industry (ex: 'car detailing', 'mobile car wash').",
+          "image_query_action": "Prefer visual actions: 'washing', 'polishing', 'interior cleaning', 'vacuuming'.",
+          "image_query_context": "Use broad contexts: 'driveway', 'garage', 'luxury car', 'SUV'.",
+          "image_query_fallbacks": [
+            "car detailing",
+            "car interior cleaning",
+            "car wash foam",
+            "polishing car paint"
+          ]
+        },
+        "required": ["headline", "subtext", "image"],
+        "properties": {
+          "headline": { "type": "string" },
+          "subtext": { "type": "string" },
+          "image": {
+            "type": "object",
+            "required": ["alt", "image_search_query"],
+            "properties": {
+              "alt": { "type": "string" },
+              "image_search_query": { "type": "string" }
+            }
+          }
+        }
+      },
+      "about": {
+        "type": "object",
+        "ai:priority": "recommended",
+        "ai:purpose": "Build emotional connection and credibility through story.",
+        "ui:component": "About.astro",
+        "ai:questions": [
+          "How did the business start?",
+          "What makes you different?",
+          "How long have you been doing this?"
+        ],
+        "required": ["story_text", "founder_note", "years_experience"],
+        "properties": {
+          "story_text": { "type": "string" },
+          "founder_note": { "type": "string" },
+          "years_experience": { "type": "string" }
+        }
+      },
+      "trustbar": {
+        "type": "object",
+        "ai:priority": "optional",
+        "ai:purpose": "Add quick trust signals near the hero (badges, stats, guarantees) to improve conversion.",
+        "ui:component": "Trustbar.astro",
+        "required": ["enabled", "items"],
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "headline": { "type": "string" },
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "required": ["label", "icon"],
+              "properties": {
+                "icon": { "$ref": "#/definitions/iconToken" },
+                "label": { "type": "string" },
+                "sublabel": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      
+      "events": {
+        "type": "array",
+        "ai:priority": "optional",
+        "ai:purpose": "Display a schedule of classes, sessions, workshops, tours, or upcoming events.",
+        "ai:inference_rules": {
+          "when_to_use": "Use when strategy.show_events is true and time-based offerings exist.",
+          "count_rule": "Provide 3–10 items. If the client is unsure of exact times, assume a simple weekly starter schedule.",
+          "copy_rules": "Keep each field short and scannable. Use link '#contact' unless a real booking URL exists."
+        },
+        "items": {
+          "type": "object",
+          "required": ["date", "venue", "location", "link"],
+          "properties": {
+            "date": { "type": "string", "description": "Short time label (e.g., 'Mon 7:00a', 'Sat 10:00a')." },
+            "venue": { "type": "string", "description": "Event/class/session name." },
+            "location": { "type": "string", "description": "Short descriptor (duration/level/address/notes)." },
+            "link": { "type": "string", "description": "Usually '#contact' or an external booking link." }
+          }
+        }
+      },
+  
+      "service_area": {
+        "type": "object",
+        "ai:priority": "optional",
+        "ai:purpose": "Local SEO and trust section. Shows the primary city served plus nearby locations to increase relevance and conversions for local search visitors.",
+        "ui:component": "ServiceArea.astro",
+        "ai:questions": [
+          "What is your primary city/town and state you serve?",
+          "List 3–8 nearby towns/neighborhoods you also serve (optional).",
+          "Do you offer travel outside these areas? If yes, how should we phrase it?"
+        ],
+        "ai:fallbacks": {
+          "main_city": "Use the client’s city/state from intake; if unknown, use 'Our Region'.",
+          "surrounding_cities": "If unknown, provide 4–6 nearby areas based on the main city.",
+          "travel_note": "Outside these areas? We offer custom quotes for extended travel."
+        },
+        "ai:inference_rules": {
+          "enabled_when": "strategy.show_service_area is true OR the business is location-based (mobile services, contractors, clinics, local pros)",
+          "use_when_missing": "If the client is unsure of exact towns, infer nearby communities rather than leaving it empty"
+        },
+        "required": ["main_city", "surrounding_cities"],
+        "properties": {
+          "main_city": {
+            "type": "string",
+            "description": "Primary city/town + state (recommended) shown in the headline."
+          },
+          "surrounding_cities": {
+            "type": "array",
+            "description": "Nearby cities/towns/neighborhoods displayed as coverage locations.",
+            "items": { "type": "string" },
+            "minItems": 0,
+            "maxItems": 12
+          },
+          "travel_note": {
+            "type": "string",
+            "description": "Short line about service outside the listed areas (used in the logistics card)."
+          },
+          "cta_text": {
+            "type": "string",
+            "description": "Optional override for the service area CTA button text."
+          },
+          "cta_link": {
+            "type": "string",
+            "description": "Optional override for the service area CTA link (usually '#contact')."
+          },
+          "map_search_query": {
+            "type": "string",
+            "description": "Optional query for map/embed integrations (e.g., 'Mobile detailing near Cherry Hill NJ')."
+          }
+        }
+      },
+      "features": {
+        "type": "array",
+        "ai:priority": "critical",
+        "ai:purpose": "Explain what the business offers and why it matters.",
+        "ui:component": "FeaturesGrid.astro",
+        "ai:questions": [
+          "What services or features do you want to highlight?",
+          "What problems do they solve?"
+        ],
+        "items": {
+          "type": "object",
+          "required": ["title", "description", "icon_slug"],
+          "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "icon_slug": { "type": "string" }
+          }
+        }
+      },
+      "processSteps": {
+        "type": "array",
+        "ai:priority": "optional",
+        "ai:purpose": "Explain the workflow in clear steps to reduce friction and increase conversions.",
+        "ui:component": "Process.astro",
+        "ai:questions": [
+          "Do you have a typical workflow? List 3–5 steps from inquiry to completion."
+        ],
+        "items": {
+          "type": "object",
+          "required": ["title", "description"],
+          "properties": {
+            "title": { "type": "string" },
+            "description": { "type": "string" }
+          }
+        }
+      },
+      "testimonials": {
+        "type": "array",
+        "ai:priority": "recommended",
+        "ai:purpose": "Reduce risk and increase trust with social proof.",
+        "ui:component": "Testimonials.astro",
+        "ai:questions": ["Do you have customer reviews or testimonials?"],
+        "items": {
+          "type": "object",
+          "required": ["quote", "author", "role"],
+          "properties": {
+            "quote": { "type": "string" },
+            "author": { "type": "string" },
+            "role": { "type": "string" }
+          }
+        }
+      },
+      "comparison": {
+        "type": "object",
+        "ai:priority": "optional",
+        "ai:purpose": "Help buyers decide by comparing your offer to common alternatives.",
+        "ui:component": "Comparison.astro",
+        "required": ["title", "items"],
+        "properties": {
+          "title": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["label", "us", "them"],
+              "properties": {
+                "label": { "type": "string" },
+                "us": { "type": "string" },
+                "them": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "investment": {
+        "type": "array",
+        "ai:priority": "optional",
+        "ai:purpose": "Clarify pricing expectations and qualify leads.",
+        "ui:component": "PricingTiers.astro",
+        "ai:questions": ["Do you offer standardized pricing or packages?"],
+        "items": {
+          "type": "object",
+          "required": ["tier_name", "price", "features"],
+          "properties": {
+            "tier_name": { "type": "string" },
+            "price": { "type": "string" },
+            "popular": { "type": "boolean" },
+            "features": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      },
+      "faqs": {
+        "type": "array",
+        "ai:priority": "optional",
+        "ai:purpose": "Answer common objections and increase conversion confidence.",
+        "ui:component": "FAQ.astro",
+        "ai:questions": [
+          "What are the top 3–6 questions customers ask before booking?"
+        ],
+        "items": {
+          "type": "object",
+          "required": ["question", "answer"],
+          "properties": {
+            "question": { "type": "string" },
+            "answer": { "type": "string" }
+          }
+        }
+      },
+      "gallery": {
+        "type": "object",
+        "ai:priority": "recommended",
+        "ai:purpose": "Render and size a visual gallery using AI inference based on industry, vibe, strategy, and branding goals.",
+        "ui:component": "Gallery.astro",
+        "required": ["enabled", "items"],
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "title": { "type": "string" },
+          "layout": {
+            "type": ["string", "null"],
+            "enum": ["grid", "masonry", "bento", null],
+            "description": "Optional manual override. If null, AI will choose the best layout using inference rules."
+          },
+          "show_titles": { "type": "boolean" },
+          "strategy": {
+            "type": "object",
+            "properties": {
+              "primary_goal": { "type": "string" },
+              "show_gallery": { "type": "boolean" }
+            }
+          },
+          "image_source": {
+            "type": "object",
+            "required": ["image_search_query"],
+            "properties": {
+              "provider": { "type": "string" },
+              "image_search_query": { "type": "string" },
+              "filename_pattern": { "type": "string" },
+              "target_folder": { "type": "string" }
+            }
+          },
+          "ai:inference": {
+            "type": "object",
+            "properties": {
+              "archetype_map": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              },
+              "archetype_rules": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "min": { "type": "integer" },
+                    "max": { "type": "integer" }
+                  },
+                  "required": ["min", "max"]
+                }
+              },
+              "boost_rules": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "add": { "type": "integer" },
+                    "prefer_max": { "type": "boolean" }
+                  }
+                }
+              },
+              "prefer_min_when": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "fallback": {
+                "type": "object",
+                "properties": {
+                  "min": { "type": "integer" },
+                  "max": { "type": "integer" }
+                },
+                "required": ["min", "max"]
+              },
+              "layout_rules": {
+                "type": "object",
+                "properties": {
+                  "prefer_masonry_when": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "prefer_bento_when": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "prefer_grid_when": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "fallback": {
+                    "type": "string",
+                    "enum": ["grid", "masonry", "bento"]
+                  }
+                },
+                "required": ["fallback"]
+              }
+            }
+          },
+          "computed_count": {
+            "type": ["integer", "null"],
+            "description": "Final gallery image count chosen by AI after applying inference rules."
+          },
+          "computed_layout": {
+            "type": ["string", "null"],
+            "enum": ["grid", "masonry", "bento"],
+            "description": "Final gallery layout chosen by AI after evaluating layout inference rules."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["title", "image_search_query"],
+              "properties": {
+                "title": { "type": "string" },
+                "caption": { "type": "string" },
+                "tag": { "type": "string" },
+                "image_search_query": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "contact": {
+        "type": "object",
+        "required": ["headline", "subheadline", "email_recipient", "button_text"],
+        "description": "Contact section and form configuration.",
+        "properties": {
+          "headline": { "type": "string" },
+          "subheadline": { "type": "string" },
+          "email": {
+            "type": "string",
+            "description": "Public email shown on the page (optional override of brand.email)."
+          },
+          "phone": {
+            "type": "string",
+            "description": "Public phone number shown on the page (optional override of brand.phone)."
+          },
+          "email_recipient": {
+            "type": "string",
+            "description": "Where form submissions are sent."
+          },
+          "button_text": { "type": "string" },
+          "office_address": { "type": "string" }
+        }
+      }
+    }
+  }
