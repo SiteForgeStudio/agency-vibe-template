@@ -1,0 +1,148 @@
+{
+  "brand": {
+    "name": "Test Brand",
+    "industry": "Service/Trades",
+    "story": "Premium detailing",
+    "slug": "test-brand"
+  },
+  "intelligence": {
+    "target_audience": "Car owners and enthusiasts looking for high-end vehicle detailing services",
+    "market_position": "Premium, detail-oriented, trustworthy service provider"
+  },
+  "strategy": {
+    "vibe": "Luxury Noir",
+    "color_palette": [
+      "#000000",
+      "#D4AF37",
+      "#C0C0C0",
+      "#FFFFFF"
+    ],
+    "font_family": "Serif, Elegant",
+    "icon": "sparkles",
+    "menu_links": [
+      {
+        "name": "About",
+        "href": "#about"
+      },
+      {
+        "name": "Gallery",
+        "href": "#gallery"
+      },
+      {
+        "name": "Contact",
+        "href": "#contact"
+      }
+    ],
+    "cta": {
+      "text": "Book Your Premium Detailing",
+      "href": "#contact",
+      "icon": "sparkles"
+    }
+  },
+  "settings": {
+    "single_page": true,
+    "gallery": {
+      "computed_layout": "grid",
+      "computed_count": 6
+    },
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Get Started",
+    "cta_link": "#contact"
+  },
+  "hero": {
+    "headline": "Experience Premium Vehicle Detailing",
+    "subheadline": "Transform your car with Test Brand's expert care and luxury finish",
+    "background_image_search_query": "luxury car premium detailing shine black",
+    "cta_text": "Schedule Your Detailing Now",
+    "cta_link": "#contact",
+    "cta_icon": "sparkles"
+  },
+  "about": {
+    "headline": "About Test Brand",
+    "content": "At Test Brand, we specialize in premium vehicle detailing services designed to bring out the best in your car. Our expert technicians use advanced techniques and high-quality products to ensure every detail shines with perfection.",
+    "image_search_query": "professional car detailing service technician"
+  },
+  "trustbar": {
+    "headline": "Why Choose Us",
+    "points": [
+      {
+        "icon": "sparkles",
+        "text": "Top-tier detailing products and techniques"
+      },
+      {
+        "icon": "award",
+        "text": "Highly trained and experienced technicians"
+      },
+      {
+        "icon": "shield",
+        "text": "Trusted and reliable premium service"
+      }
+    ]
+  },
+  "gallery": {
+    "images": [
+      {
+        "url": "#",
+        "alt": "car gloss finish close-up",
+        "image_search_query": "close-up luxury car gloss finish detailing"
+      },
+      {
+        "url": "#",
+        "alt": "car interior premium cleaning",
+        "image_search_query": "premium luxury car interior cleaning detailing"
+      },
+      {
+        "url": "#",
+        "alt": "car exterior polishing shiny",
+        "image_search_query": "car exterior polishing premium shiny finish"
+      },
+      {
+        "url": "#",
+        "alt": "detailing tools and products",
+        "image_search_query": "professional car detailing tools products"
+      },
+      {
+        "url": "#",
+        "alt": "luxury car shine reflection",
+        "image_search_query": "luxury car shine reflection premium finish"
+      },
+      {
+        "url": "#",
+        "alt": "detailing technician at work",
+        "image_search_query": "car detailing technician working premium service"
+      }
+    ],
+    "layout": "grid"
+  },
+  "contact": {
+    "headline": "Get in Touch",
+    "content": "Ready to give your car the premium treatment it deserves? Contact Test Brand to schedule your detailing appointment today.",
+    "phone": "+1-800-555-DETAIL",
+    "email": "contact@testbrand.com",
+    "form_fields": [
+      "Name",
+      "Email",
+      "Phone",
+      "Message"
+    ],
+    "submit_text": "Send Inquiry",
+    "icon": "phone"
+  }
+}
