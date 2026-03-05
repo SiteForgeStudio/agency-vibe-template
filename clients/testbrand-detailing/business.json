@@ -1,0 +1,31 @@
+{
+  "brand": {
+    "slug": "testbrand-detailing"
+  },
+  "settings": {
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ]
+  },
+  "strategy": {},
+  "gallery": {
+    "computed_layout": "grid"
+  },
+  "about": {},
+  "hero": {}
+}
