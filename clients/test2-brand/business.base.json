@@ -1,0 +1,168 @@
+{
+  "intelligence": {
+    "industry": "Automotive Detailing",
+    "target_persona": "Affluent car owners who value premium, meticulous car care services",
+    "tone_of_voice": "Professional, trustworthy, and polished"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": false,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": false,
+    "show_service_area": false
+  },
+  "settings": {
+    "vibe": "Luxury Noir",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Book Your Premium Detail Today",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "",
+    "secondary_cta_link": ""
+  },
+  "brand": {
+    "name": "Test2 Brand",
+    "slug": "test2-brand",
+    "tagline": "Experience the Ultimate in Premium Detailing",
+    "email": "test@example.com",
+    "phone": "",
+    "office_address": "",
+    "objection_handle": ""
+  },
+  "hero": {
+    "headline": "Unparalleled Luxury Car Detailing",
+    "subtext": "Transform your vehicle with our expert, premium detailing services tailored to perfection.",
+    "image": {
+      "alt": "Luxury car receiving premium detailing treatment",
+      "image_search_query": "luxury car detailing service closeup"
+    }
+  },
+  "about": {
+    "story_text": "At Test2 Brand, we specialize in delivering premium detailing services that restore and enhance the beauty of your vehicle. Our expert technicians use only the finest products and techniques to provide spotless finishes and lasting protection.",
+    "founder_note": "As the founder, I am committed to ensuring each car leaves our care looking showroom-ready, embodying our dedication to quality and customer satisfaction.",
+    "years_experience": "10"
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Why Choose Test2 Brand?",
+    "items": [
+      {
+        "icon": "award",
+        "label": "Award-Winning Service",
+        "sublabel": ""
+      },
+      {
+        "icon": "shield",
+        "label": "Trusted Protection",
+        "sublabel": "Advanced coatings for ultimate durability"
+      },
+      {
+        "icon": "users",
+        "label": "Expert Technicians",
+        "sublabel": "Highly trained and passionate team"
+      },
+      {
+        "icon": "check",
+        "label": "Satisfaction Guaranteed",
+        "sublabel": ""
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Handcrafted Detailing",
+      "description": "Each vehicle is meticulously detailed by our skilled technicians, ensuring attention to every curve and surface.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Premium Products",
+      "description": "We use only top-tier, eco-friendly products that protect your vehicle?s finish and extend its lifespan.",
+      "icon_slug": "leaf"
+    },
+    {
+      "title": "Protective Coatings",
+      "description": "Advanced ceramic and paint protection coatings provide a durable shield against environmental damage.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Interior Perfection",
+      "description": "Deep cleaning and conditioning treatments that leave your car?s interior fresh, clean, and luxurious.",
+      "icon_slug": "heart"
+    },
+    {
+      "title": "Convenient Scheduling",
+      "description": "Easy-to-book appointments tailored to your schedule and service needs.",
+      "icon_slug": "clock"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Gallery of Premium Detailing Excellence",
+    "layout": "grid",
+    "show_titles": true,
+    "computed_count": 6,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Glossy Exterior Finish",
+        "image_search_query": "luxury car glossy exterior finish detailing"
+      },
+      {
+        "title": "Interior Leather Cleaning",
+        "image_search_query": "detailing technician cleaning leather seats car interior"
+      },
+      {
+        "title": "Ceramic Coating Application",
+        "image_search_query": "applying ceramic coating on luxury car hood"
+      },
+      {
+        "title": "Engine Bay Detailing",
+        "image_search_query": "car engine bay deep cleaning detailing service"
+      },
+      {
+        "title": "Wheel and Tire Shine",
+        "image_search_query": "detailing shiny wheels and tires closeup"
+      },
+      {
+        "title": "Hand Wash Detailing",
+        "image_search_query": "hand washing luxury car professional detailer"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Get in Touch for Premium Detailing",
+    "subheadline": "Contact us to schedule your vehicle?s transformation or ask any questions about our services.",
+    "email": "test@example.com",
+    "phone": "",
+    "email_recipient": "test@example.com",
+    "button_text": "Contact Test2 Brand",
+    "office_address": ""
+  }
+}
