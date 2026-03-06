@@ -47,7 +47,23 @@ const {
   contact = {}
 } = data;
 
-const navMenu = settings.menu || [];
+---
+const renderedAnchors = new Set(["#home", "#contact"]);
+
+if (strategy.show_about !== false && (brand.name || about.story_text)) renderedAnchors.add("#about");
+if (strategy.show_features && features.length > 0) renderedAnchors.add("#features");
+if (strategy.show_events && events.length > 0) renderedAnchors.add("#events");
+if (strategy.show_process && processSteps.length > 0) renderedAnchors.add("#process");
+if (strategy.show_testimonials && testimonials.length > 0) renderedAnchors.add("#testimonials");
+if (strategy.show_comparison && comparison) renderedAnchors.add("#comparison");
+if (strategy.show_gallery && gallery?.enabled !== false && (gallery?.items?.length > 0 || gallery?.computed_count > 0)) renderedAnchors.add("#gallery");
+if (strategy.show_investment && investment.length > 0) renderedAnchors.add("#investment");
+if (strategy.show_faqs && faqs.length > 0) renderedAnchors.add("#faqs");
+if (strategy.show_service_area && service_area.length > 0) renderedAnchors.add("#service-area");
+
+const navMenu = (settings.menu || []).filter((item) => renderedAnchors.has(item.path));
+---
+
 const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
 
