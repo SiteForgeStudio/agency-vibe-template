@@ -62,7 +62,6 @@ if (strategy.show_faqs && faqs.length > 0) renderedAnchors.add("#faqs");
 if (strategy.show_service_area && service_area.length > 0) renderedAnchors.add("#service-area");
 
 const navMenu = (settings.menu || []).filter((item) => renderedAnchors.has(item.path));
----
 
 const siteTitle = brand.name ? `${brand.name} | ${brand.tagline || 'Professional Services'}` : "Vibe-Engine Production";
 ---
