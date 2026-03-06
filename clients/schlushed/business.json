@@ -1,15 +1,15 @@
 {
   "intelligence": {
     "industry": "Auto and Truck Detailing",
-    "target_persona": "Vehicle owners seeking premium detailing with trusted, space-age products",
-    "tone_of_voice": "Professional and trustworthy with a premium touch"
+    "target_persona": "Vehicle owners seeking premium, reliable, and advanced detailing services to maintain and enhance their car or truck aesthetics.",
+    "tone_of_voice": "Professional, trustworthy, clear, premium-focused"
   },
   "strategy": {
     "show_trustbar": true,
     "show_about": true,
     "show_features": true,
     "show_events": false,
-    "show_process": true,
+    "show_process": false,
     "show_testimonials": false,
     "show_comparison": false,
     "show_gallery": true,
@@ -18,7 +18,7 @@
     "show_service_area": true
   },
   "settings": {
-    "vibe": "Legacy Professional",
+    "vibe": "Rugged Industrial",
     "menu": [
       {
         "label": "Home",
@@ -31,10 +31,6 @@
       {
         "label": "Features",
         "path": "#features"
-      },
-      {
-        "label": "Process",
-        "path": "#process"
       },
       {
         "label": "Gallery",
@@ -53,7 +49,7 @@
         "path": "#contact"
       }
     ],
-    "cta_text": "Book Your Premium Detailing Now",
+    "cta_text": "Get Your Premium Detail Today",
     "cta_link": "#contact",
     "cta_type": "anchor",
     "secondary_cta_text": "",
@@ -65,20 +61,20 @@
     "tagline": "Premium Auto & Truck Detailing Since 1999",
     "email": "test@example.com",
     "phone": "",
-    "office_address": "Rt 313 and Main St, Doylestown, PA",
+    "office_address": "",
     "objection_handle": ""
   },
   "hero": {
-    "headline": "Experience Elite Auto & Truck Detailing",
-    "subtext": "Serving Dolylestown with the finest space-age products since 1999",
+    "headline": "Revitalize Your Ride with Premium Detailing",
+    "subtext": "Expert auto and truck detailing using the latest space-age products for flawless results.",
     "image": {
-      "alt": "Vehicle receiving premium detailing in service bay",
-      "image_search_query": "auto detailing professional cleaning truck"
+      "alt": "Professional auto detailing with advanced tools",
+      "image_search_query": "premium auto detailing advanced tools closeup"
     }
   },
   "about": {
-    "story_text": "Since 1999, Schlushed has delivered premium auto and truck detailing services in the Dolylestown area. Our expert team employs only the best space-age products to restore and protect your vehicle?s shine and finish.",
-    "founder_note": "At Schlushed, we believe every vehicle deserves expert care using the latest technology and quality products. Trust us to keep your ride looking impeccable.",
+    "story_text": "Schlushed has been the trusted name in auto and truck detailing since 1999. Located at Rt 313 and Main St in Doylestown, PA, we pride ourselves on using only the highest quality space-age products to deliver impeccable results for your vehicle.",
+    "founder_note": "Our passion is to help you maintain and enhance your vehicle?s appearance with premium care and expert attention.",
     "years_experience": 25
   },
   "trustbar": {
@@ -86,85 +82,91 @@
     "headline": "Why Choose Schlushed?",
     "items": [
       {
-        "icon": "shield",
-        "label": "Trusted Quality",
-        "sublabel": "Since 1999, delivering consistent excellence"
+        "icon": "award",
+        "label": "Over 25 Years Experience",
+        "sublabel": ""
       },
       {
-        "icon": "star",
-        "label": "Premium Products",
-        "sublabel": "Only the best space-age detailing solutions"
+        "icon": "sparkles",
+        "label": "Top Quality Space-Age Products",
+        "sublabel": ""
       },
       {
-        "icon": "clock",
-        "label": "Fast & Reliable",
-        "sublabel": "Efficient service without compromising quality"
+        "icon": "truck",
+        "label": "Specialized Auto and Truck Care",
+        "sublabel": ""
       }
     ]
   },
   "features": [
     {
-      "title": "Space-Age Products",
-      "description": "We use cutting-edge, high-performance products for unmatched detailing quality and durability.",
+      "title": "Advanced Space-Age Products",
+      "description": "We use cutting-edge, high-performance products that protect and enhance your vehicle?s finish.",
       "icon_slug": "sparkles"
     },
     {
-      "title": "Expert Technicians",
-      "description": "Our skilled team ensures meticulous care and attention in every detail.",
-      "icon_slug": "users"
-    },
-    {
-      "title": "Comprehensive Services",
-      "description": "From basic washes to super detailing packages tailored for autos and trucks.",
+      "title": "Detailing for Autos & Trucks",
+      "description": "Specialized services designed to meet the unique needs of both cars and trucks.",
       "icon_slug": "truck"
     },
     {
-      "title": "Locally Trusted Since 1999",
-      "description": "More than two decades of dedicated service in the Doylestown community.",
+      "title": "Experienced Since 1999",
+      "description": "Over two decades of delivering consistent and reliable premium detailing services.",
       "icon_slug": "award"
+    },
+    {
+      "title": "Convenient Doylestown Location",
+      "description": "Easy access at Rt 313 and Main St ensures a hassle-free experience for local customers.",
+      "icon_slug": "map"
     }
   ],
   "gallery": {
     "enabled": true,
-    "title": "Our Detailing in Action",
+    "title": "Gallery of Premium Detailing Work",
     "layout": "grid",
-    "show_titles": false,
+    "show_titles": true,
     "computed_count": 6,
     "computed_layout": "grid",
     "items": [
       {
-        "title": "Truck interior deep cleaning",
-        "image_search_query": "truck interior deep cleaning professional"
+        "title": "Car Polishing Shine",
+        "image_search_query": "car polishing glossy paint finish",
+        "caption": "High gloss polish on sedan"
       },
       {
-        "title": "Car exterior waxing polish",
-        "image_search_query": "car exterior waxing polishing shiny"
+        "title": "Truck Exterior Cleaning",
+        "image_search_query": "truck exterior washing detailing process",
+        "caption": "Thorough cleaning of large truck"
       },
       {
-        "title": "Detailer cleaning vehicle wheels",
-        "image_search_query": "detailer cleaning vehicle wheels closeup"
+        "title": "Detailer Applying Wax",
+        "image_search_query": "detailer applying protective wax on vehicle",
+        "caption": "Precise wax application for protection"
       },
       {
-        "title": "Vacuuming car interior seats",
-        "image_search_query": "vacuuming car interior leather seats"
+        "title": "Interior Leather Cleaning",
+        "image_search_query": "interior cleaning leather car seats",
+        "caption": "Premium leather seat care"
       },
       {
-        "title": "Polished truck body detailing shine",
-        "image_search_query": "polished truck body detailing shine"
+        "title": "Engine Bay Cleaning",
+        "image_search_query": "engine bay detailing meticulous cleaning",
+        "caption": "Meticulous engine detail for performance"
       },
       {
-        "title": "Applying protective coating vehicle",
-        "image_search_query": "applying protective coating vehicle surface"
+        "title": "Final Inspection",
+        "image_search_query": "vehicle detailing final inspection shine",
+        "caption": "Quality check for flawless finish"
       }
     ]
   },
   "contact": {
-    "headline": "Get In Touch with Schlushed Today",
-    "subheadline": "Schedule your premium auto or truck detailing service",
+    "headline": "Contact Schlushed Today",
+    "subheadline": "Schedule your premium auto or truck detailing with our expert team.",
     "email": "test@example.com",
     "phone": "",
     "email_recipient": "test@example.com",
     "button_text": "Book Now",
-    "office_address": "Rt 313 and Main St, Doylestown, PA"
+    "office_address": ""
   }
 }
