@@ -1,8 +1,8 @@
 {
   "intelligence": {
-    "industry": "Luxury Transportation",
-    "target_persona": "Affluent travelers seeking reliable airport shuttle services",
-    "tone_of_voice": "Professional, Trustworthy, Elegant"
+    "industry": "Boat Charters and Tours",
+    "target_persona": "Affluent vacationers and shell enthusiasts seeking exclusive private boating experiences around remote islands and pristine beaches.",
+    "tone_of_voice": "Inviting, luxurious, knowledgeable, and trustworthy"
   },
   "strategy": {
     "show_trustbar": true,
@@ -11,9 +11,9 @@
     "show_events": false,
     "show_process": false,
     "show_testimonials": false,
-    "show_comparison": false,
-    "show_gallery": false,
-    "show_investment": false,
+    "show_comparison": true,
+    "show_gallery": true,
+    "show_investment": true,
     "show_faqs": false,
     "show_service_area": true
   },
@@ -33,6 +33,18 @@
         "path": "#features"
       },
       {
+        "label": "Comparison",
+        "path": "#comparison"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Investment",
+        "path": "#investment"
+      },
+      {
         "label": "Service Area",
         "path": "#service-area"
       },
@@ -41,7 +53,7 @@
         "path": "#contact"
       }
     ],
-    "cta_text": "Book Your Airport Ride Now",
+    "cta_text": "Book Your Exclusive Charter Today",
     "cta_link": "#contact",
     "cta_type": "anchor",
     "secondary_cta_text": "",
@@ -50,75 +62,115 @@
   "brand": {
     "name": "Test6 Brand",
     "slug": "test6-brand",
-    "tagline": "Premium Airport Shuttle Service in Doylestown",
+    "tagline": "Exclusive Boat Charters to Pristine Remote Islands",
     "email": "test@example.com",
     "phone": "",
     "office_address": "",
-    "objection_handle": ""
+    "objection_handle": "Unlike competitors, we offer seamless shore access plus clean showers and changing areas for your comfort."
   },
   "hero": {
-    "headline": "Reliable, Luxurious Airport Transportation",
-    "subtext": "Experience comfort and punctuality with our professional driving service, covering Doylestown and major airports.",
+    "headline": "Discover Remote Islands with Ease and Elegance",
+    "subtext": "Experience exclusive boat charters to the best sand beaches and shelling spots only accessible by water.",
     "image": {
-      "alt": "Luxury car driving on highway",
-      "image_search_query": "luxury car driving on highway at sunset"
+      "alt": "Luxury boat cruising near pristine remote islands with clear water",
+      "image_search_query": "luxury boat cruising near pristine remote islands"
     }
   },
   "about": {
-    "story_text": "We provide premium driving services for the Doylestown area with fixed pricing for up to four passengers. We specialize in reliable transportation to major airports including Philadelphia, Newark, Allentown, and Trenton.",
-    "founder_note": "Our goal is to deliver exceptional transportation experiences with comfort, safety, and timeliness for every client.",
-    "years_experience": 5
+    "story_text": "Test6 Brand provides specialty boat charters around Marco Island with a focus on trips to remote islands for the best shelling experiences. Our tours take you to pristine sand beaches only reachable by boat. We pride ourselves on exclusive access and seamless comfort with clean showers and easy shore access.",
+    "founder_note": "Our mission is to deliver a unique, luxurious experience exploring untouched shores, making each trip memorable with unmatched comfort and service.",
+    "years_experience": 10
   },
   "trustbar": {
     "enabled": true,
     "headline": "Why Choose Test6 Brand?",
     "items": [
       {
-        "icon": "shield",
-        "label": "Safe & Reliable",
-        "sublabel": "Experienced drivers ensuring your safety"
-      },
-      {
-        "icon": "clock",
-        "label": "Punctual Service",
-        "sublabel": "Always on time for pickups and drop-offs"
-      },
-      {
         "icon": "star",
-        "label": "Customer Satisfaction",
-        "sublabel": "Highly rated luxury transportation"
+        "label": "Exclusive Remote Destinations",
+        "sublabel": ""
+      },
+      {
+        "icon": "check",
+        "label": "Easy Shore Access Guaranteed",
+        "sublabel": ""
+      },
+      {
+        "icon": "sprout",
+        "label": "Clean Showers & Changing Rooms",
+        "sublabel": ""
+      },
+      {
+        "icon": "users",
+        "label": "Experienced Professional Crew",
+        "sublabel": ""
       }
     ]
   },
   "features": [
     {
-      "title": "Fixed Transparent Pricing",
-      "description": "A straightforward flat rate of $300 for up to four passengers ensures no surprises or hidden fees.",
-      "icon_slug": "coins"
-    },
-    {
-      "title": "Airport Expertise",
-      "description": "We expertly navigate Philadelphia, Newark, Allentown, and Trenton airports to deliver timely pickups and drop-offs.",
-      "icon_slug": "map"
-    },
-    {
-      "title": "Comfortable Luxury Vehicles",
-      "description": "Travel in style and comfort with our well-maintained luxury cars tailored for a premium experience.",
+      "title": "Exclusive Access to Remote Islands",
+      "description": "Visit stunning shores and sand beaches unreachable by other charters for unbeatable shelling and beachcombing adventures.",
       "icon_slug": "sparkles"
+    },
+    {
+      "title": "Easy On and Off Boat Shore Access",
+      "description": "Unlike others, we make it effortless for you to step directly from boat to shore safely and comfortably.",
+      "icon_slug": "check"
+    },
+    {
+      "title": "Clean Showers and Changing Facilities",
+      "description": "Freshen up after your day on the water with our well-maintained showers and private changing areas onboard.",
+      "icon_slug": "sprout"
+    },
+    {
+      "title": "Flexible Charter Options",
+      "description": "Choose from half-day, full-day, or deluxe sunset toast trips tailored to your preferences.",
+      "icon_slug": "clock"
+    },
+    {
+      "title": "Professional and Knowledgeable Crew",
+      "description": "Our expert guides ensure a safe, enjoyable trip enriched with insights on local islands and marine life.",
+      "icon_slug": "users"
     }
   ],
   "gallery": {
-    "enabled": false,
-    "title": "Gallery",
-    "layout": null,
+    "enabled": true,
+    "title": "Explore Our Charters and Destinations",
+    "layout": "grid",
     "show_titles": true,
-    "computed_count": null,
+    "computed_count": 6,
     "computed_layout": "grid",
-    "items": []
+    "items": [
+      {
+        "title": "Luxury Boat Approaching Remote Island",
+        "image_search_query": "luxury boat approaching remote island beach"
+      },
+      {
+        "title": "Guests Shelling on Pristine Beach",
+        "image_search_query": "guests shelling on pristine white sand beach"
+      },
+      {
+        "title": "Sunset Toast on Boat Deck",
+        "image_search_query": "people enjoying sunset toast on boat deck"
+      },
+      {
+        "title": "Boat Docked Near Crystal Clear Water",
+        "image_search_query": "boat docked near crystal clear turquoise water"
+      },
+      {
+        "title": "Changing Area Onboard Boat",
+        "image_search_query": "clean changing area onboard luxury boat"
+      },
+      {
+        "title": "View of Remote Island Shoreline",
+        "image_search_query": "remote island shoreline with white sandy beach"
+      }
+    ]
   },
   "contact": {
-    "headline": "Get Your Ride Scheduled Today",
-    "subheadline": "Reach out for reservations or more information about our luxury airport transportation services.",
+    "headline": "Reserve Your Private Boat Charter Today",
+    "subheadline": "Get in touch to plan your unforgettable island adventure.",
     "email": "test@example.com",
     "phone": "",
     "email_recipient": "test@example.com",
