@@ -33,12 +33,20 @@ export async function onRequestPost(context) {
     const readiness = evaluateReadiness(state);
 
     if (!force && !readiness.can_generate_now) {
-      return json({
-        ok: false,
-        error: "Intake not ready for generation",
-        readiness,
-        missing_domains: readiness.missing_domains
-      }, 400);
+      const hasSomeStrategy =
+        cleanString(state.answers?.why_now) ||
+        cleanString(state.answers?.desired_outcome) ||
+        cleanString(state.answers?.target_audience) ||
+        (Array.isArray(state.answers?.offerings) && state.answers.offerings.length);
+
+      if (!hasSomeStrategy) {
+        return json({
+          ok: false,
+          error: "Intake not ready for generation",
+          readiness,
+          missing_domains: readiness.missing_domains
+        }, 400);
+      }
     }
 
     const strategyBrief = synthesizeStrategyBrief(state);
@@ -71,7 +79,12 @@ export async function onRequestPost(context) {
       strategy_brief: strategyBrief,
       generated: generateResponse,
       submitted: submitResponse,
-      slug: generateResponse.client_slug || generateResponse.slug || generateResponse.business_json?.brand?.slug || ""
+      slug:
+        generateResponse.client_slug ||
+        generateResponse.slug ||
+        generateResponse.business_json?.brand?.slug ||
+        submitResponse.slug ||
+        ""
     });
 
   } catch (err) {
@@ -175,6 +188,12 @@ function synthesizeStrategyBrief(state) {
   const tone = cleanString(state.answers?.tone_preferences || state.inference?.tone_direction);
   const visualDirection = cleanString(state.answers?.visual_direction || state.inference?.visual_direction);
   const components = cleanList(state.inference?.suggested_components);
+  const serviceArea = cleanString(state.answers?.service_area);
+
+  const ghostTagline = cleanString(state.ghostwritten?.tagline);
+  const ghostHeroHeadline = cleanString(state.ghostwritten?.hero_headline);
+  const ghostHeroSubheadline = cleanString(state.ghostwritten?.hero_subheadline);
+  const ghostAboutSummary = cleanString(state.ghostwritten?.about_summary);
 
   const parts = [];
 
@@ -225,8 +244,22 @@ function synthesizeStrategyBrief(state) {
     parts.push("The visual direction should reflect " + stripTrailingPeriod(visualDirection) + ".");
   }
 
+  if (serviceArea) {
+    parts.push("The business serves " + stripTrailingPeriod(serviceArea) + ".");
+  }
+
   if (components.length) {
     parts.push("Recommended sections include " + joinSentence(components) + ".");
+  }
+
+  const approvedMessaging = [];
+  if (ghostTagline) approvedMessaging.push('tagline "' + ghostTagline + '"');
+  if (ghostHeroHeadline) approvedMessaging.push('hero headline "' + ghostHeroHeadline + '"');
+  if (ghostHeroSubheadline) approvedMessaging.push('hero subheadline "' + ghostHeroSubheadline + '"');
+  if (ghostAboutSummary) approvedMessaging.push('about summary "' + ghostAboutSummary + '"');
+
+  if (approvedMessaging.length) {
+    parts.push("Suggested messaging includes " + joinSentence(approvedMessaging) + ".");
   }
 
   parts.push("Use this strategy brief to generate a polished 2026 website that feels premium and conversion-ready.");
@@ -242,34 +275,34 @@ function synthesizeStrategyBrief(state) {
 function evaluateReadiness(state) {
   const missing = [];
 
-  if (!cleanString(state.answers?.why_now)) missing.push("business_purpose");
-  if (!cleanString(state.answers?.desired_outcome)) missing.push("desired_outcome");
-  if (!cleanString(state.answers?.target_audience)) missing.push("target_audience");
-
-  if (!Array.isArray(state.answers?.offerings) || !state.answers.offerings.length) {
-    missing.push("primary_offer");
-  }
-
-  if (!cleanString(state.answers?.primary_conversion_goal)) {
-    missing.push("cta_direction");
-  }
-
+  const whyNow = cleanString(state.answers?.why_now);
+  const desiredOutcome = cleanString(state.answers?.desired_outcome);
+  const audience = cleanString(state.answers?.target_audience);
+  const hasOffer = Array.isArray(state.answers?.offerings) && state.answers.offerings.length > 0;
+  const hasCta = cleanString(state.answers?.primary_conversion_goal);
   const diff = Array.isArray(state.answers?.differentiators) ? state.answers.differentiators.length : 0;
   const trust = Array.isArray(state.answers?.trust_signals) ? state.answers.trust_signals.length : 0;
   const cred = Array.isArray(state.answers?.credibility_factors) ? state.answers.credibility_factors.length : 0;
+  const hasTrustOrDiff = diff + trust + cred > 0;
 
-  if (diff + trust + cred === 0) {
-    missing.push("trust_or_differentiation");
-  }
+  if (!whyNow && !desiredOutcome) missing.push("business_purpose_or_desired_outcome");
+  if (!audience) missing.push("target_audience");
 
-  const total = 6;
-  const complete = total - missing.length;
+  const scoreParts = [
+    Boolean(whyNow || desiredOutcome),
+    Boolean(audience),
+    Boolean(hasOffer),
+    Boolean(hasCta),
+    Boolean(hasTrustOrDiff)
+  ];
+
+  const score = scoreParts.filter(Boolean).length / scoreParts.length;
 
   return {
-    score: complete / total,
+    score,
     required_domains_complete: missing.length === 0,
     missing_domains: missing,
-    can_generate_now: missing.length === 0
+    can_generate_now: Boolean(whyNow || desiredOutcome)
   };
 }
 
@@ -301,12 +334,14 @@ function cleanString(v) {
 }
 
 function isObject(v) {
-  return v && typeof v === "object" && !Array.isArray(v);
+  return !!v && typeof v === "object" && !Array.isArray(v);
 }
 
 function cleanList(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr.map(v => cleanString(v)).filter(Boolean);
+  return arr.map(function(v) {
+    return cleanString(v);
+  }).filter(Boolean);
 }
 
 function stripTrailingPeriod(text) {
