@@ -150,12 +150,6 @@ button:disabled{
   font-weight:600;
 }
 
-.btn-warning{
-  background:var(--warning);
-  color:white;
-  font-weight:600;
-}
-
 .row{
   display:flex;
   gap:10px;
@@ -347,7 +341,6 @@ textarea{
 
 </div>
 
-
 <script>
 const state = {
   sessionId: "",
@@ -356,7 +349,8 @@ const state = {
   pending: false,
   slug: "",
   pollTimer: null,
-  previewUrl: ""
+  previewUrl: "",
+  buildStarted: false
 };
 
 const els = {
@@ -383,9 +377,9 @@ const els = {
 function setPending(value){
   state.pending = value;
   els.startBtn.disabled = value;
-  els.sendBtn.disabled = value || !state.sessionId;
-  els.messageInput.disabled = value || !state.sessionId;
-  els.buildBtn.disabled = value;
+  els.sendBtn.disabled = value || !state.sessionId || state.buildStarted;
+  els.messageInput.disabled = value || !state.sessionId || state.buildStarted;
+  els.buildBtn.disabled = value || state.buildStarted;
 }
 
 function setStatus(text){
@@ -397,7 +391,7 @@ function setPhase(phase){
   els.phaseLabel.textContent = phase ? "Phase: " + phase : "Waiting to begin";
 }
 
-function addMessage(role, content, type){
+function addMessage(role, content){
   const div = document.createElement("div");
   div.className = "msg " + role;
   div.textContent = content || "";
@@ -409,12 +403,15 @@ function renderMessages(messages){
   els.messages.innerHTML = "";
   if (!Array.isArray(messages)) return;
   messages.forEach(function(msg){
-    addMessage(msg.role || "assistant", msg.content || "", msg.type || "");
+    addMessage(msg.role || "assistant", msg.content || "");
   });
 }
 
 function renderQuickActions(message){
   els.quickActions.innerHTML = "";
+
+  if (state.buildStarted) return;
+
   const options = Array.isArray(message && message.options) ? message.options : [];
   options.forEach(function(option){
     const btn = document.createElement("button");
@@ -441,7 +438,7 @@ function updateSummary(summary){
 }
 
 function updateBuildButton(readiness){
-  const canBuild = Boolean(readiness && readiness.can_generate_now);
+  const canBuild = Boolean(readiness && readiness.can_generate_now) && !state.buildStarted;
   els.buildBtn.classList.toggle("hidden", !canBuild);
 }
 
@@ -456,6 +453,22 @@ function hidePreviewLink(){
   state.previewUrl = "";
   els.previewLink.classList.add("hidden");
   els.previewLink.href = "#";
+}
+
+function stopStatusPolling(){
+  if (state.pollTimer) {
+    clearInterval(state.pollTimer);
+    state.pollTimer = null;
+  }
+}
+
+function resetBuildState(){
+  state.slug = "";
+  state.previewUrl = "";
+  state.buildStarted = false;
+  stopStatusPolling();
+  hidePreviewLink();
+  els.buildBtn.classList.add("hidden");
 }
 
 async function api(url, payload){
@@ -474,7 +487,7 @@ async function api(url, payload){
     throw new Error("Non-JSON response from " + url + ": " + text);
   }
 
-  if(!res.ok || data.ok === false){
+  if (!res.ok || data.ok === false) {
     throw new Error(data.error || "Request failed");
   }
 
@@ -492,7 +505,7 @@ async function apiGet(url){
     throw new Error("Non-JSON response from " + url + ": " + text);
   }
 
-  if(!res.ok || data.ok === false){
+  if (!res.ok || data.ok === false) {
     throw new Error(data.error || "Request failed");
   }
 
@@ -502,8 +515,8 @@ async function apiGet(url){
 async function startIntake(){
   try{
     setPending(true);
+    resetBuildState();
     setStatus("Starting intake...");
-    hidePreviewLink();
 
     const businessName = els.businessNameInput.value.trim();
     const clientEmail = els.clientEmailInput.value.trim();
@@ -513,7 +526,6 @@ async function startIntake(){
     state.sessionId = data.session_id;
     state.intakeState = data.state;
     state.phase = data.phase;
-    state.slug = "";
 
     setPhase(data.phase);
     renderMessages(data.messages || []);
@@ -534,7 +546,7 @@ async function startIntake(){
 }
 
 async function sendAnswer(answerText, uiAction){
-  if (!state.sessionId || state.pending) return;
+  if (!state.sessionId || state.pending || state.buildStarted) return;
 
   const answer = (answerText || "").trim();
   const action = (uiAction || "").trim();
@@ -565,21 +577,41 @@ async function sendAnswer(answerText, uiAction){
     state.phase = data.phase;
 
     setPhase(data.phase);
-    addMessage("assistant", data.message && data.message.content ? data.message.content : "");
-    renderQuickActions(data.message || null);
+
+    if (data.message && data.message.content) {
+      addMessage("assistant", data.message.content);
+    }
+
     updateSummary(data.summary_panel || {});
     updateBuildButton(data.readiness);
 
-    if (data.readiness && data.readiness.can_generate_now) {
-      setStatus("We have enough direction to build a strong preview.");
-    } else {
-      setStatus("Intake in progress.");
+    if (data.action === "complete") {
+      state.intakeState = data.state;
+      setStatus("Strategy complete. Starting build...");
+      addMessage("assistant", "Excellent — we have enough direction. I’m starting your build now.");
+      renderQuickActions(null);
+      setPending(false);
+      await buildPreview();
+      return;
     }
+
+    if (data.readiness && data.readiness.can_generate_now) {
+      setStatus("We have enough direction to build a strong preview. Starting build...");
+      renderQuickActions(null);
+      setPending(false);
+      await buildPreview();
+      return;
+    }
+
+    renderQuickActions(data.message || null);
+    setStatus("Intake in progress.");
   }catch(err){
     addMessage("system", String(err.message || err));
     setStatus("There was a problem processing that step.");
   }finally{
-    setPending(false);
+    if (!state.buildStarted) {
+      setPending(false);
+    }
   }
 }
 
@@ -598,10 +630,16 @@ async function handleQuickAction(action, label){
 }
 
 async function buildPreview(){
-  if (!state.sessionId || !state.intakeState || state.pending) return;
+  if (!state.sessionId || !state.intakeState || state.buildStarted) return;
 
   try{
+    state.buildStarted = true;
     setPending(true);
+    els.quickActions.innerHTML = "";
+    els.buildBtn.classList.add("hidden");
+    els.messageInput.disabled = true;
+    els.sendBtn.disabled = true;
+
     setStatus("Generating strategy and dispatching factory build...");
     hidePreviewLink();
 
@@ -620,7 +658,7 @@ async function buildPreview(){
 
     state.slug = slug;
 
-    addMessage("assistant", "Excellent — your site has been generated and the factory build has been dispatched.");
+    addMessage("assistant", "Your site has been generated and the factory build has been dispatched.");
 
     els.resultBox.textContent = JSON.stringify(data, null, 2);
 
@@ -631,8 +669,12 @@ async function buildPreview(){
       setStatus("Generation completed, but no slug was returned for status tracking.");
     }
   }catch(err){
+    state.buildStarted = false;
     addMessage("system", String(err.message || err));
     setStatus("Build kickoff failed.");
+    els.messageInput.disabled = false;
+    els.sendBtn.disabled = false;
+    updateBuildButton({ can_generate_now: true });
   }finally{
     setPending(false);
   }
@@ -640,7 +682,6 @@ async function buildPreview(){
 
 function startStatusPolling(slug){
   stopStatusPolling();
-
   if (!slug) return;
 
   pollStatus(slug);
@@ -648,13 +689,6 @@ function startStatusPolling(slug){
   state.pollTimer = setInterval(function(){
     pollStatus(slug);
   }, 5000);
-}
-
-function stopStatusPolling(){
-  if (state.pollTimer) {
-    clearInterval(state.pollTimer);
-    state.pollTimer = null;
-  }
 }
 
 async function pollStatus(slug){
@@ -682,6 +716,7 @@ async function pollStatus(slug){
       setStatus("Build failed: " + (lastError || "Unknown error"));
       addMessage("system", "Factory build failed: " + (lastError || "Unknown error"));
       stopStatusPolling();
+      state.buildStarted = false;
     } else {
       setStatus("Current status: " + status);
     }
@@ -691,9 +726,11 @@ async function pollStatus(slug){
 }
 
 els.startBtn.onclick = startIntake;
+
 els.sendBtn.onclick = function(){
   sendAnswer(els.messageInput.value, "");
 };
+
 els.buildBtn.onclick = buildPreview;
 
 els.messageInput.addEventListener("keydown", function(event){
