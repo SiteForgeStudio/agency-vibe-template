@@ -1,174 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>SiteForge Factory Intake</title>
 
 <style>
-
 :root{
---bg:#0b1020;
---panel:#121933;
---panel2:#182142;
---text:#eef2ff;
---muted:#aab4d6;
---line:rgba(255,255,255,0.08);
---accent:#7c9cff;
---accent2:#9b7cff;
---user:#24325f;
---assistant:#171f3d;
---success:#1c8f5f;
---shadow:0 12px 40px rgba(0,0,0,0.3);
---radius:18px;
+  --bg:#0b1020;
+  --panel:#121933;
+  --panel2:#182142;
+  --text:#eef2ff;
+  --muted:#aab4d6;
+  --line:rgba(255,255,255,0.08);
+  --accent:#7c9cff;
+  --accent2:#9b7cff;
+  --user:#24325f;
+  --assistant:#171f3d;
+  --success:#1c8f5f;
+  --warning:#b0852c;
+  --danger:#b74b4b;
+  --shadow:0 12px 40px rgba(0,0,0,0.3);
+  --radius:18px;
 }
 
 *{box-sizing:border-box}
 
 body{
-margin:0;
-font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;
-background:
-radial-gradient(circle at top left,rgba(124,156,255,0.18),transparent 30%),
-radial-gradient(circle at top right,rgba(155,124,255,0.14),transparent 25%),
-var(--bg);
-color:var(--text);
-min-height:100vh;
+  margin:0;
+  font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+  background:
+    radial-gradient(circle at top left,rgba(124,156,255,0.18),transparent 30%),
+    radial-gradient(circle at top right,rgba(155,124,255,0.14),transparent 25%),
+    var(--bg);
+  color:var(--text);
+  min-height:100vh;
 }
 
 .app{
-display:grid;
-grid-template-columns:1.25fr .75fr;
-gap:20px;
-max-width:1400px;
-margin:0 auto;
-padding:24px;
+  display:grid;
+  grid-template-columns:1.25fr .75fr;
+  gap:20px;
+  max-width:1400px;
+  margin:0 auto;
+  padding:24px;
 }
 
 .card{
-background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.02));
-border:1px solid var(--line);
-border-radius:var(--radius);
-box-shadow:var(--shadow);
+  background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.02));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
 }
 
-.header{padding:22px 24px;margin-bottom:18px}
+.header{
+  padding:22px 24px;
+  margin-bottom:18px;
+}
 
-h1{margin:0 0 6px;font-size:28px}
+h1{
+  margin:0 0 6px;
+  font-size:28px;
+}
 
-.sub{color:var(--muted);font-size:15px}
+.sub{
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.5;
+}
 
-.chat{display:flex;flex-direction:column;min-height:68vh}
+.chat{
+  display:flex;
+  flex-direction:column;
+  min-height:68vh;
+}
 
 .messages{
-flex:1;
-overflow:auto;
-padding:20px;
-display:flex;
-flex-direction:column;
-gap:14px;
+  flex:1;
+  overflow:auto;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
 }
 
 .msg{
-max-width:82%;
-padding:14px 16px;
-border-radius:16px;
-font-size:15px;
-line-height:1.5;
-border:1px solid var(--line);
-white-space:pre-wrap;
+  max-width:82%;
+  padding:14px 16px;
+  border-radius:16px;
+  font-size:15px;
+  line-height:1.5;
+  border:1px solid var(--line);
+  white-space:pre-wrap;
+  word-wrap:break-word;
 }
 
 .msg.assistant{align-self:flex-start;background:var(--assistant)}
 .msg.user{align-self:flex-end;background:var(--user)}
 .msg.system{
-align-self:center;
-max-width:100%;
-color:var(--muted);
-background:rgba(255,255,255,.03);
-font-size:13px;
+  align-self:center;
+  max-width:100%;
+  color:var(--muted);
+  background:rgba(255,255,255,.03);
+  font-size:13px;
+  text-align:center;
 }
 
 .composer{
-border-top:1px solid var(--line);
-padding:16px;
-display:grid;
-gap:12px;
+  border-top:1px solid var(--line);
+  padding:16px;
+  display:grid;
+  gap:12px;
 }
 
-.quick-actions{display:flex;flex-wrap:wrap;gap:8px}
+.quick-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
 
 button{
-border:0;
-border-radius:12px;
-padding:11px 14px;
-font-size:14px;
-cursor:pointer;
+  border:0;
+  border-radius:12px;
+  padding:11px 14px;
+  font-size:14px;
+  cursor:pointer;
+}
+
+button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
 }
 
 .btn-primary{
-background:linear-gradient(135deg,var(--accent),var(--accent2));
-color:white;
-font-weight:600;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:white;
+  font-weight:600;
 }
 
 .btn-secondary{
-background:rgba(255,255,255,.08);
-color:white;
-border:1px solid var(--line);
+  background:rgba(255,255,255,.08);
+  color:white;
+  border:1px solid var(--line);
 }
 
 .btn-success{
-background:var(--success);
-color:white;
-font-weight:600;
+  background:var(--success);
+  color:white;
+  font-weight:600;
+}
+
+.btn-warning{
+  background:var(--warning);
+  color:white;
+  font-weight:600;
+}
+
+.row{
+  display:flex;
+  gap:10px;
+}
+
+.row > *{
+  min-width:0;
 }
 
 input,textarea{
-width:100%;
-background:var(--panel2);
-color:var(--text);
-border:1px solid var(--line);
-border-radius:14px;
-padding:14px;
-font:inherit;
+  width:100%;
+  background:var(--panel2);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:14px;
+  font:inherit;
 }
 
-textarea{min-height:96px}
+textarea{
+  min-height:96px;
+  resize:vertical;
+}
 
-.side{display:flex;flex-direction:column;gap:18px}
+.side{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
 
-.panel{padding:18px}
+.panel{
+  padding:18px;
+}
 
 .summary-item{
-padding:12px;
-border-radius:14px;
-background:rgba(255,255,255,.04);
-border:1px solid var(--line);
-margin-bottom:10px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  margin-bottom:10px;
 }
 
 .summary-label{
-font-size:11px;
-color:var(--muted);
-text-transform:uppercase;
+  font-size:11px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:6px;
 }
 
-.summary-value{font-size:14px}
+.summary-value{
+  font-size:14px;
+  line-height:1.45;
+}
 
 .result{
-background:rgba(255,255,255,.04);
-border:1px solid var(--line);
-border-radius:14px;
-padding:12px;
-font-size:13px;
-max-height:320px;
-overflow:auto;
-white-space:pre-wrap;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  font-size:13px;
+  max-height:320px;
+  overflow:auto;
+  white-space:pre-wrap;
+  word-break:break-word;
 }
 
-.hidden{display:none}
+.preview-link{
+  display:inline-block;
+  margin-top:10px;
+  color:#bcd0ff;
+  text-decoration:none;
+  font-weight:600;
+}
 
+.preview-link:hover{
+  text-decoration:underline;
+}
+
+.hidden{
+  display:none !important;
+}
+
+@media (max-width:980px){
+  .app{
+    grid-template-columns:1fr;
+  }
+
+  .msg{
+    max-width:92%;
+  }
+
+  .row{
+    flex-direction:column;
+  }
+}
 </style>
 </head>
 
@@ -176,213 +259,448 @@ white-space:pre-wrap;
 
 <div class="app">
 
-<div>
+  <div>
 
-<div class="card header">
-<h1>SiteForge Factory</h1>
-<p class="sub">Conversational website intake</p>
+    <div class="card header">
+      <h1>SiteForge Factory</h1>
+      <p class="sub">Conversational website intake</p>
 
-<input id="businessNameInput" placeholder="Business name">
-<input id="clientEmailInput" placeholder="Email (optional)">
+      <div class="row" style="margin-top:14px;">
+        <input id="businessNameInput" placeholder="Business name" />
+        <input id="clientEmailInput" placeholder="Email (optional)" />
+      </div>
 
-<button id="startBtn" class="btn-primary">Start Intake</button>
+      <div class="row" style="margin-top:10px;">
+        <button id="startBtn" class="btn-primary">Start Intake</button>
+      </div>
 
-<p id="phaseLabel">Waiting to begin</p>
+      <p id="phaseLabel" style="color:var(--muted);margin-top:14px;">Waiting to begin</p>
+    </div>
 
-</div>
+    <div class="card chat">
+      <div id="messages" class="messages">
+        <div class="msg system">Enter your business name and start when ready.</div>
+      </div>
 
-<div class="card chat">
+      <div class="composer">
+        <div id="quickActions" class="quick-actions"></div>
 
-<div id="messages" class="messages">
-<div class="msg system">Enter your business name and start when ready.</div>
-</div>
+        <textarea id="messageInput" placeholder="Type your answer..." disabled></textarea>
 
-<div class="composer">
+        <div class="row">
+          <button id="sendBtn" class="btn-primary" disabled>Send</button>
+          <button id="buildBtn" class="btn-success hidden">Build Preview</button>
+        </div>
+      </div>
+    </div>
 
-<div id="quickActions" class="quick-actions"></div>
+  </div>
 
-<textarea id="messageInput" placeholder="Type your answer..." disabled></textarea>
+  <div class="side">
 
-<button id="sendBtn" class="btn-primary" disabled>Send</button>
-<button id="buildBtn" class="btn-success hidden">Build Preview</button>
+    <div class="card panel">
+      <h3 style="margin-top:0;">Strategy Summary</h3>
 
-</div>
+      <div class="summary-item">
+        <div class="summary-label">Goal</div>
+        <div id="summaryGoal" class="summary-value">—</div>
+      </div>
 
-</div>
+      <div class="summary-item">
+        <div class="summary-label">Audience</div>
+        <div id="summaryAudience" class="summary-value">—</div>
+      </div>
 
-</div>
+      <div class="summary-item">
+        <div class="summary-label">Offer</div>
+        <div id="summaryOffer" class="summary-value">—</div>
+      </div>
 
-<div class="side">
+      <div class="summary-item">
+        <div class="summary-label">Vibe</div>
+        <div id="summaryVibe" class="summary-value">—</div>
+      </div>
 
-<div class="card panel">
-<h3>Strategy Summary</h3>
+      <div class="summary-item">
+        <div class="summary-label">CTA</div>
+        <div id="summaryCta" class="summary-value">—</div>
+      </div>
 
-<div class="summary-item">
-<div class="summary-label">Goal</div>
-<div id="summaryGoal" class="summary-value">—</div>
-</div>
+      <div class="summary-item">
+        <div class="summary-label">Components</div>
+        <div id="summaryComponents" class="summary-value">—</div>
+      </div>
+    </div>
 
-<div class="summary-item">
-<div class="summary-label">Audience</div>
-<div id="summaryAudience" class="summary-value">—</div>
-</div>
+    <div class="card panel">
+      <h3 style="margin-top:0;">Build Status</h3>
+      <div id="statusBox">No intake session yet.</div>
+      <a id="previewLink" class="preview-link hidden" href="#" target="_blank" rel="noopener">Open Preview</a>
+    </div>
 
-<div class="summary-item">
-<div class="summary-label">Offer</div>
-<div id="summaryOffer" class="summary-value">—</div>
-</div>
+    <div class="card panel">
+      <h3 style="margin-top:0;">Result</h3>
+      <div id="resultBox" class="result">Nothing generated yet.</div>
+    </div>
 
-<div class="summary-item">
-<div class="summary-label">Vibe</div>
-<div id="summaryVibe" class="summary-value">—</div>
-</div>
-
-<div class="summary-item">
-<div class="summary-label">CTA</div>
-<div id="summaryCta" class="summary-value">—</div>
-</div>
-
-</div>
-
-<div class="card panel">
-<h3>Status</h3>
-<div id="statusBox">No intake session yet.</div>
-</div>
-
-<div class="card panel">
-<h3>Result</h3>
-<div id="resultBox" class="result">Nothing generated yet.</div>
-</div>
-
-</div>
+  </div>
 
 </div>
 
 
 <script>
+const state = {
+  sessionId: "",
+  intakeState: null,
+  phase: "",
+  pending: false,
+  slug: "",
+  pollTimer: null,
+  previewUrl: ""
+};
 
-const state={
-sessionId:"",
-intakeState:null,
-phase:"",
-pending:false
+const els = {
+  businessNameInput: document.getElementById("businessNameInput"),
+  clientEmailInput: document.getElementById("clientEmailInput"),
+  startBtn: document.getElementById("startBtn"),
+  phaseLabel: document.getElementById("phaseLabel"),
+  messages: document.getElementById("messages"),
+  quickActions: document.getElementById("quickActions"),
+  messageInput: document.getElementById("messageInput"),
+  sendBtn: document.getElementById("sendBtn"),
+  buildBtn: document.getElementById("buildBtn"),
+  statusBox: document.getElementById("statusBox"),
+  resultBox: document.getElementById("resultBox"),
+  previewLink: document.getElementById("previewLink"),
+  summaryGoal: document.getElementById("summaryGoal"),
+  summaryAudience: document.getElementById("summaryAudience"),
+  summaryOffer: document.getElementById("summaryOffer"),
+  summaryVibe: document.getElementById("summaryVibe"),
+  summaryCta: document.getElementById("summaryCta"),
+  summaryComponents: document.getElementById("summaryComponents")
+};
+
+function setPending(value){
+  state.pending = value;
+  els.startBtn.disabled = value;
+  els.sendBtn.disabled = value || !state.sessionId;
+  els.messageInput.disabled = value || !state.sessionId;
+  els.buildBtn.disabled = value;
 }
 
-const els={
-businessNameInput:document.getElementById("businessNameInput"),
-clientEmailInput:document.getElementById("clientEmailInput"),
-startBtn:document.getElementById("startBtn"),
-phaseLabel:document.getElementById("phaseLabel"),
-messages:document.getElementById("messages"),
-quickActions:document.getElementById("quickActions"),
-messageInput:document.getElementById("messageInput"),
-sendBtn:document.getElementById("sendBtn"),
-buildBtn:document.getElementById("buildBtn"),
-statusBox:document.getElementById("statusBox"),
-resultBox:document.getElementById("resultBox")
+function setStatus(text){
+  els.statusBox.textContent = text || "";
 }
 
-
-function addMessage(role,content){
-
-const div=document.createElement("div")
-div.className="msg "+role
-div.textContent=content
-
-els.messages.appendChild(div)
-els.messages.scrollTop=els.messages.scrollHeight
-
+function setPhase(phase){
+  state.phase = phase || "";
+  els.phaseLabel.textContent = phase ? "Phase: " + phase : "Waiting to begin";
 }
 
-
-async function api(url,payload){
-
-const res=await fetch(url,{
-method:"POST",
-headers:{"content-type":"application/json"},
-body:JSON.stringify(payload)
-})
-
-const data=await res.json()
-
-if(!res.ok || data.ok===false){
-throw new Error(data.error || "Request failed")
+function addMessage(role, content, type){
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.textContent = content || "";
+  els.messages.appendChild(div);
+  els.messages.scrollTop = els.messages.scrollHeight;
 }
 
-return data
-
+function renderMessages(messages){
+  els.messages.innerHTML = "";
+  if (!Array.isArray(messages)) return;
+  messages.forEach(function(msg){
+    addMessage(msg.role || "assistant", msg.content || "", msg.type || "");
+  });
 }
 
+function renderQuickActions(message){
+  els.quickActions.innerHTML = "";
+  const options = Array.isArray(message && message.options) ? message.options : [];
+  options.forEach(function(option){
+    const btn = document.createElement("button");
+    btn.className = "btn-secondary";
+    btn.textContent = option.label || "Continue";
+    btn.onclick = function(){
+      handleQuickAction(option.action || "continue", option.label || "");
+    };
+    els.quickActions.appendChild(btn);
+  });
+}
+
+function updateSummary(summary){
+  summary = summary || {};
+  els.summaryGoal.textContent = summary.website_goal || "—";
+  els.summaryAudience.textContent = summary.audience || "—";
+  els.summaryOffer.textContent = summary.offer || "—";
+  els.summaryVibe.textContent = summary.vibe || "—";
+  els.summaryCta.textContent = summary.cta || "—";
+  els.summaryComponents.textContent =
+    Array.isArray(summary.components) && summary.components.length
+      ? summary.components.join(", ")
+      : "—";
+}
+
+function updateBuildButton(readiness){
+  const canBuild = Boolean(readiness && readiness.can_generate_now);
+  els.buildBtn.classList.toggle("hidden", !canBuild);
+}
+
+function showPreviewLink(url){
+  if (!url) return;
+  state.previewUrl = url;
+  els.previewLink.href = url;
+  els.previewLink.classList.remove("hidden");
+}
+
+function hidePreviewLink(){
+  state.previewUrl = "";
+  els.previewLink.classList.add("hidden");
+  els.previewLink.href = "#";
+}
+
+async function api(url, payload){
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await res.text();
+
+  let data;
+  try{
+    data = JSON.parse(text);
+  }catch{
+    throw new Error("Non-JSON response from " + url + ": " + text);
+  }
+
+  if(!res.ok || data.ok === false){
+    throw new Error(data.error || "Request failed");
+  }
+
+  return data;
+}
+
+async function apiGet(url){
+  const res = await fetch(url);
+  const text = await res.text();
+
+  let data;
+  try{
+    data = JSON.parse(text);
+  }catch{
+    throw new Error("Non-JSON response from " + url + ": " + text);
+  }
+
+  if(!res.ok || data.ok === false){
+    throw new Error(data.error || "Request failed");
+  }
+
+  return data;
+}
 
 async function startIntake(){
+  try{
+    setPending(true);
+    setStatus("Starting intake...");
+    hidePreviewLink();
 
-const businessName=els.businessNameInput.value.trim()
-const clientEmail=els.clientEmailInput.value.trim()
+    const businessName = els.businessNameInput.value.trim();
+    const clientEmail = els.clientEmailInput.value.trim();
 
-const data=await api("/api/intake-start",{businessName,clientEmail})
+    const data = await api("/api/intake-start", { businessName, clientEmail });
 
-state.sessionId=data.session_id
-state.intakeState=data.state
-state.phase=data.phase
+    state.sessionId = data.session_id;
+    state.intakeState = data.state;
+    state.phase = data.phase;
+    state.slug = "";
 
-els.phaseLabel.textContent="Phase: "+data.phase
+    setPhase(data.phase);
+    renderMessages(data.messages || []);
+    renderQuickActions((data.messages || []).slice(-1)[0] || null);
+    updateSummary(data.state && data.state.summary_panel ? data.state.summary_panel : {});
+    updateBuildButton(data.state && data.state.readiness ? data.state.readiness : null);
 
-els.messages.innerHTML=""
+    els.messageInput.disabled = false;
+    els.sendBtn.disabled = false;
 
-data.messages.forEach(m=>{
-addMessage(m.role,m.content)
-})
-
-els.messageInput.disabled=false
-els.sendBtn.disabled=false
-
+    setStatus("Intake started. Answer the current question to continue.");
+  }catch(err){
+    addMessage("system", String(err.message || err));
+    setStatus("Failed to start intake.");
+  }finally{
+    setPending(false);
+  }
 }
 
+async function sendAnswer(answerText, uiAction){
+  if (!state.sessionId || state.pending) return;
 
-async function sendAnswer(){
+  const answer = (answerText || "").trim();
+  const action = (uiAction || "").trim();
 
-const answer=els.messageInput.value.trim()
+  if (!answer && !action) return;
 
-if(!answer) return
+  if (answer) {
+    addMessage("user", answer);
+  } else if (action) {
+    addMessage("user", "[Action: " + action + "]");
+  }
 
-addMessage("user",answer)
+  els.messageInput.value = "";
+  els.quickActions.innerHTML = "";
 
-els.messageInput.value=""
+  try{
+    setPending(true);
+    setStatus("Thinking through the next step...");
 
-const data=await api("/api/intake-next",{
-session_id:state.sessionId,
-answer,
-state:state.intakeState
-})
+    const data = await api("/api/intake-next", {
+      session_id: state.sessionId,
+      answer: answer,
+      ui_action: action,
+      state: state.intakeState
+    });
 
-state.intakeState=data.state
-state.phase=data.phase
+    state.intakeState = data.state;
+    state.phase = data.phase;
 
-addMessage("assistant",data.message.content)
+    setPhase(data.phase);
+    addMessage("assistant", data.message && data.message.content ? data.message.content : "");
+    renderQuickActions(data.message || null);
+    updateSummary(data.summary_panel || {});
+    updateBuildButton(data.readiness);
 
-if(data.readiness?.can_generate_now){
-els.buildBtn.classList.remove("hidden")
+    if (data.readiness && data.readiness.can_generate_now) {
+      setStatus("We have enough direction to build a strong preview.");
+    } else {
+      setStatus("Intake in progress.");
+    }
+  }catch(err){
+    addMessage("system", String(err.message || err));
+    setStatus("There was a problem processing that step.");
+  }finally{
+    setPending(false);
+  }
 }
 
-}
+async function handleQuickAction(action, label){
+  if (action === "build") {
+    await buildPreview();
+    return;
+  }
 
+  if (action === "continue" && !els.messageInput.value.trim()) {
+    els.messageInput.focus();
+    return;
+  }
+
+  await sendAnswer("", action || label || "");
+}
 
 async function buildPreview(){
+  if (!state.sessionId || !state.intakeState || state.pending) return;
 
-const data=await api("/api/intake-complete",{
-session_id:state.sessionId,
-state:state.intakeState
-})
+  try{
+    setPending(true);
+    setStatus("Generating strategy and dispatching factory build...");
+    hidePreviewLink();
 
-els.resultBox.textContent=JSON.stringify(data,null,2)
+    const data = await api("/api/intake-complete", {
+      session_id: state.sessionId,
+      state: state.intakeState
+    });
 
+    const slug =
+      data.slug ||
+      (data.submitted && data.submitted.slug) ||
+      (data.generated && data.generated.client_slug) ||
+      (data.generated && data.generated.slug) ||
+      (data.generated && data.generated.business_json && data.generated.business_json.brand && data.generated.business_json.brand.slug) ||
+      "";
+
+    state.slug = slug;
+
+    addMessage("assistant", "Excellent — your site has been generated and the factory build has been dispatched.");
+
+    els.resultBox.textContent = JSON.stringify(data, null, 2);
+
+    if (slug) {
+      setStatus("Build dispatched for " + slug + ". Polling status...");
+      startStatusPolling(slug);
+    } else {
+      setStatus("Generation completed, but no slug was returned for status tracking.");
+    }
+  }catch(err){
+    addMessage("system", String(err.message || err));
+    setStatus("Build kickoff failed.");
+  }finally{
+    setPending(false);
+  }
 }
 
+function startStatusPolling(slug){
+  stopStatusPolling();
 
-els.startBtn.onclick=startIntake
-els.sendBtn.onclick=sendAnswer
-els.buildBtn.onclick=buildPreview
+  if (!slug) return;
 
+  pollStatus(slug);
+
+  state.pollTimer = setInterval(function(){
+    pollStatus(slug);
+  }, 5000);
+}
+
+function stopStatusPolling(){
+  if (state.pollTimer) {
+    clearInterval(state.pollTimer);
+    state.pollTimer = null;
+  }
+}
+
+async function pollStatus(slug){
+  try{
+    const data = await apiGet("/api/status?slug=" + encodeURIComponent(slug));
+
+    const status = data.status || "UNKNOWN";
+    const previewUrl = data.preview_url || "";
+    const lastError = data.last_error || "";
+
+    if (status === "PENDING") {
+      setStatus("Submission saved. Waiting to dispatch build...");
+    } else if (status === "BUILD_DISPATCHED") {
+      setStatus("GitHub build dispatched...");
+    } else if (status === "BUILD_SUCCEEDED") {
+      setStatus("Build succeeded. Deploying preview...");
+    } else if (status === "PREVIEW_DEPLOYED") {
+      setStatus("Preview deployed.");
+      if (previewUrl) {
+        showPreviewLink(previewUrl);
+        addMessage("assistant", "Your preview is ready: " + previewUrl);
+      }
+      stopStatusPolling();
+    } else if (status === "FAILED") {
+      setStatus("Build failed: " + (lastError || "Unknown error"));
+      addMessage("system", "Factory build failed: " + (lastError || "Unknown error"));
+      stopStatusPolling();
+    } else {
+      setStatus("Current status: " + status);
+    }
+  }catch(err){
+    setStatus("Polling status...");
+  }
+}
+
+els.startBtn.onclick = startIntake;
+els.sendBtn.onclick = function(){
+  sendAnswer(els.messageInput.value, "");
+};
+els.buildBtn.onclick = buildPreview;
+
+els.messageInput.addEventListener("keydown", function(event){
+  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    sendAnswer(els.messageInput.value, "");
+  }
+});
 </script>
 
 </body>
