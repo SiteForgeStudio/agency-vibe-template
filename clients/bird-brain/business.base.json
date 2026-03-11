@@ -1,0 +1,169 @@
+{
+  "intelligence": {
+    "industry": "Premium Bird Seed and Bird Houses",
+    "target_persona": "Eco-conscious homeowners and bird enthusiasts seeking high-quality bird seed and beautifully crafted bird houses",
+    "tone_of_voice": "Elegant, warm, and informative with an inviting premium touch"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": false,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": false,
+    "show_service_area": false
+  },
+  "settings": {
+    "vibe": "Vintage Boutique",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Shop Premium Bird Supplies Now",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "",
+    "secondary_cta_link": ""
+  },
+  "brand": {
+    "name": "bird Brain",
+    "slug": "bird-brain",
+    "tagline": "Elevate Your Garden with Premium Bird Seed and Houses",
+    "email": "zzz@example.com",
+    "phone": "",
+    "office_address": "",
+    "objection_handle": "Our products are crafted with the highest quality materials ensuring safety and satisfaction for your feathered friends."
+  },
+  "hero": {
+    "headline": "Welcome to bird Brain ? Where Nature Meets Elegance",
+    "subtext": "Discover our artisan-crafted bird houses and premium bird seed blends designed to attract and nurture your backyard birds in style.",
+    "image": {
+      "alt": "Beautiful bird houses and bird seed on rustic wooden table",
+      "image_search_query": "artisan bird houses premium bird seed rustic garden"
+    }
+  },
+  "about": {
+    "story_text": "At bird Brain, we are passionate about connecting people with nature through high-quality bird seed and exquisitely handcrafted bird houses. Founded with a vision to enrich backyard bird watching experiences, our products blend functionality with aesthetic charm. Every seed mix and bird house is carefully curated to provide nourishment and shelter, inviting a vibrant bird community to your garden.",
+    "founder_note": "As the founder, I believe that nurturing wildlife enhances our well-being and connection to nature. That?s why bird Brain offers only the best for your feathered friends ? from seed blends rich in nutrition to bird houses crafted to last and impress.",
+    "years_experience": 15
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Why Choose bird Brain?",
+    "items": [
+      {
+        "icon": "award",
+        "label": "Award-Winning Quality",
+        "sublabel": ""
+      },
+      {
+        "icon": "leaf",
+        "label": "Sustainably Sourced Materials",
+        "sublabel": ""
+      },
+      {
+        "icon": "heart",
+        "label": "Loved by Bird Enthusiasts Nationwide",
+        "sublabel": ""
+      },
+      {
+        "icon": "shield",
+        "label": "Satisfaction & Safety Guaranteed",
+        "sublabel": ""
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Premium Seed Blends",
+      "description": "Our bird seed mixes are scientifically formulated to attract a diverse variety of birds while ensuring superior nutrition and freshness.",
+      "icon_slug": "leaf"
+    },
+    {
+      "title": "Handcrafted Bird Houses",
+      "description": "Each bird house is carefully designed and crafted by skilled artisans using sustainable and durable materials for safety and longevity.",
+      "icon_slug": "layers"
+    },
+    {
+      "title": "Eco-Friendly Packaging",
+      "description": "Committed to sustainability, all our products come in environmentally responsible packaging that protects nature as much as our birds.",
+      "icon_slug": "sprout"
+    },
+    {
+      "title": "Customer Support & Guarantee",
+      "description": "We provide personalized support and a satisfaction guarantee to help you select the perfect bird supplies for your garden.",
+      "icon_slug": "users"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Our Elegant Bird Houses and Premium Seeds",
+    "layout": "grid",
+    "show_titles": true,
+    "computed_count": 6,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Rustic Wooden Bird House",
+        "image_search_query": "rustic wooden bird house garden nature",
+        "caption": "Handcrafted rustic design perfect for backyard birds"
+      },
+      {
+        "title": "Colorful Painted Bird House",
+        "image_search_query": "colorful painted bird house decorating garden",
+        "caption": "Bright, eye-catching art that attracts birds"
+      },
+      {
+        "title": "Sunlit Bird Feeding Station",
+        "image_search_query": "bird feeding station bird seed outdoors sunlit",
+        "caption": "A perfect spot to feed and observe your birds"
+      },
+      {
+        "title": "Premium Wild Bird Seed Mix",
+        "image_search_query": "premium wild bird seed mix attracting birds",
+        "caption": "High-quality seeds tailored for local bird species"
+      },
+      {
+        "title": "Elegant Modern Bird House",
+        "image_search_query": "elegant modern bird house sleek design",
+        "caption": "Contemporary bird house blending with your garden"
+      },
+      {
+        "title": "Bird House Close-Up Detailing",
+        "image_search_query": "close up handcrafted bird house details wood",
+        "caption": "Showcasing fine craftsmanship and premium materials"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Get in Touch with bird Brain",
+    "subheadline": "Ready to enhance your garden?s bird sanctuary? Contact us today to learn more or place your order.",
+    "email": "zzz@example.com",
+    "phone": "",
+    "email_recipient": "zzz@example.com",
+    "button_text": "Contact Us",
+    "office_address": ""
+  }
+}
