@@ -1,0 +1,190 @@
+{
+  "intelligence": {
+    "industry": "Power Washing and Exterior Cleaning",
+    "target_persona": "Local homeowners in Ocean City NJ and surrounding areas seeking trusted, reliable, and high-quality power washing services",
+    "tone_of_voice": "Friendly, professional, and trustworthy with clear and approachable language"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Legacy Professional",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Process",
+        "path": "#process"
+      },
+      {
+        "label": "Testimonials",
+        "path": "#testimonials"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Request Your Free Quote",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Call Now: 555-555-5555",
+    "secondary_cta_link": "tel:555-555-5555"
+  },
+  "brand": {
+    "name": "Power Suds",
+    "slug": "power-suds",
+    "tagline": "Trusted Power Washing for Local Homes",
+    "email": "ps@example.com",
+    "phone": "555-555-5555",
+    "office_address": "",
+    "objection_handle": ""
+  },
+  "hero": {
+    "headline": "Revitalize Your Home?s Exterior with Trusted Power Washing",
+    "subtext": "Experienced local experts with 6 years of service, top-rated by Angie?s List and awarded by Better Homes & Gardens. Get your free quote today!",
+    "image": {
+      "alt": "Power washing house siding with clean water spray",
+      "image_search_query": "power washing house exterior cleaning splash"
+    }
+  },
+  "about": {
+    "story_text": "Power Suds has proudly served Ocean City NJ and nearby communities for over 6 years, delivering professional and reliable power washing services. Awarded by Better Homes & Gardens and top-rated on Angie?s List, we are fully insured and committed to making your home look fresh and clean.",
+    "founder_note": "Our mission is to bring the highest quality power washing services to local homeowners with trust, care, and proven results. We treat your home like our own.",
+    "years_experience": 6
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Why Homeowners Trust Power Suds",
+    "items": [
+      {
+        "icon": "award",
+        "label": "Awarded by Better Homes & Gardens",
+        "sublabel": ""
+      },
+      {
+        "icon": "star",
+        "label": "Top Rated on Angie?s List",
+        "sublabel": ""
+      },
+      {
+        "icon": "shield",
+        "label": "Fully Insured for Your Protection",
+        "sublabel": ""
+      },
+      {
+        "icon": "clock",
+        "label": "6 Years Serving Local Community",
+        "sublabel": ""
+      },
+      {
+        "icon": "heart",
+        "label": "Dozens of Happy Local Clients",
+        "sublabel": ""
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Comprehensive Exterior Cleaning",
+      "description": "From siding and decks to driveways and sidewalks, we handle every power washing need with precision and care.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Trusted and Insured Professionals",
+      "description": "Our team is fully insured and recognized by Better Homes & Gardens and Angie?s List, ensuring peace of mind and quality results.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Eco-Friendly Cleaning Solutions",
+      "description": "We use safe, environmentally responsible products to protect your home and surrounding landscape while delivering a deep clean.",
+      "icon_slug": "leaf"
+    },
+    {
+      "title": "Local Expertise and Commitment",
+      "description": "Serving Ocean City NJ and nearby communities for over 6 years, we understand local needs and conditions for the best outcome.",
+      "icon_slug": "map"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Before and After Power Washing Transformations",
+    "layout": "grid",
+    "show_titles": true,
+    "computed_count": 6,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "House siding before power wash",
+        "image_search_query": "dirty house siding before power washing",
+        "caption": "Before cleaning: dirt and grime buildup"
+      },
+      {
+        "title": "House siding after power wash",
+        "image_search_query": "clean house siding after power washing",
+        "caption": "After cleaning: fresh and bright siding"
+      },
+      {
+        "title": "Driveway before power washing",
+        "image_search_query": "dirty concrete driveway before power washing",
+        "caption": "Stains and debris before cleaning"
+      },
+      {
+        "title": "Driveway after power washing",
+        "image_search_query": "clean concrete driveway after power washing",
+        "caption": "Clear, spotless driveway after service"
+      },
+      {
+        "title": "Wood deck before cleaning",
+        "image_search_query": "weathered wood deck before power washing",
+        "caption": "Deck with weathering and dirt before wash"
+      },
+      {
+        "title": "Wood deck after cleaning",
+        "image_search_query": "restored wood deck after power washing",
+        "caption": "Refreshed wood deck looking like new"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Ready to Refresh Your Home?s Exterior?",
+    "subheadline": "Contact Power Suds for your free, no-obligation quote. Call us or send an inquiry with the form below.",
+    "email": "ps@example.com",
+    "phone": "555-555-5555",
+    "email_recipient": "ps@example.com",
+    "button_text": "Request a Quote",
+    "office_address": "Ocean City, NJ"
+  }
+}
