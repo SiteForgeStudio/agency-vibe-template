@@ -1,0 +1,156 @@
+{
+  "intelligence": {
+    "industry": "Cannabis Dispensary",
+    "target_persona": "Local medical and recreational cannabis users seeking knowledgeable, trustworthy, and friendly service in Doylestown, PA",
+    "tone_of_voice": "Welcoming, knowledgeable, trustworthy"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": false,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Legacy Professional",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Testimonials",
+        "path": "#testimonials"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Contact Us for Premium Cannabis Products",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "",
+    "secondary_cta_link": ""
+  },
+  "brand": {
+    "name": "Bongo Dispensary",
+    "slug": "bongo-dispensary",
+    "tagline": "Trusted Cannabis Care in Doylestown, PA",
+    "email": "bg@example.com",
+    "phone": "",
+    "office_address": "",
+    "objection_handle": "We are fully licensed and comply with all state and local cannabis regulations to ensure safe, secure, and responsible service."
+  },
+  "hero": {
+    "headline": "Your Trusted Cannabis Dispensary in Doylestown",
+    "subtext": "Premium medical and recreational cannabis products with knowledgeable, friendly service.",
+    "image": {
+      "alt": "Cannabis dispensary interior welcoming customers",
+      "image_search_query": "cannabis dispensary welcoming customers interior"
+    }
+  },
+  "about": {
+    "story_text": "Bongo Dispensary is dedicated to providing the highest quality medical and recreational cannabis products to the Doylestown community. Locally owned and operated, we focus on friendly service and expert guidance to help our customers find the right products for their needs. Our commitment to compliance and education ensures every visit is safe and informative.",
+    "founder_note": "As passionate advocates for cannabis wellness, we strive to create a welcoming environment where every customer feels respected and supported. Your health and satisfaction are our top priorities.",
+    "years_experience": 7
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Why Choose Bongo Dispensary?",
+    "items": [
+      {
+        "icon": "shield",
+        "label": "State Licensed",
+        "sublabel": "Fully compliant with local and state regulations."
+      },
+      {
+        "icon": "users",
+        "label": "Expert Staff",
+        "sublabel": "Knowledgeable team to guide your cannabis journey."
+      },
+      {
+        "icon": "heart",
+        "label": "Community Trusted",
+        "sublabel": "Locally owned with positive customer reviews."
+      },
+      {
+        "icon": "lock",
+        "label": "Secure Transactions",
+        "sublabel": "Safe and private purchasing experience."
+      },
+      {
+        "icon": "star",
+        "label": "Top Quality Products",
+        "sublabel": "Hand-selected premium cannabis offerings."
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Licensed Medical & Recreational Sales",
+      "description": "Fully compliant with all state and local cannabis regulations to ensure safe and legal transactions.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Knowledgeable & Friendly Staff",
+      "description": "Our team provides expert advice tailored to your individual needs and preferences.",
+      "icon_slug": "users"
+    },
+    {
+      "title": "Premium Quality Products",
+      "description": "We offer a curated selection of top-tier cannabis flower, edibles, concentrates, and accessories.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Secure & Private Transactions",
+      "description": "Your confidentiality is paramount; we ensure safe, discreet service every time.",
+      "icon_slug": "lock"
+    },
+    {
+      "title": "Community-Focused Service",
+      "description": "Supporting local initiatives and customers with loyalty programs and regular promotions.",
+      "icon_slug": "heart"
+    }
+  ],
+  "gallery": {
+    "enabled": false,
+    "title": "Gallery",
+    "layout": null,
+    "show_titles": true,
+    "computed_count": null,
+    "computed_layout": null,
+    "items": []
+  },
+  "contact": {
+    "headline": "Get in Touch with Bongo Dispensary",
+    "subheadline": "Have questions or ready to order? Contact us today for expert cannabis guidance.",
+    "email": "bg@example.com",
+    "phone": "",
+    "email_recipient": "bg@example.com",
+    "button_text": "Send Inquiry",
+    "office_address": ""
+  }
+}
