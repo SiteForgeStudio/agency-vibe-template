@@ -20,8 +20,8 @@ export async function onRequestPost(context) {
     const body = await readJson(context.request);
 
     const sessionId = cleanString(body.session_id);
-    const state = normalizeState(isObject(body.state) ? body.state : {});
     const force = Boolean(body.force);
+    const state = normalizeState(isObject(body.state) ? body.state : {});
 
     if (!sessionId) {
       return json({ ok: false, error: "Missing session_id" }, 400);
@@ -68,7 +68,10 @@ export async function onRequestPost(context) {
 
     const submitPayload = {
       business_json: generateResponse.business_json,
-      client_email: clientEmail || generateResponse.business_json?.brand?.email || ""
+      client_email:
+        clientEmail ||
+        generateResponse.business_json?.brand?.email ||
+        ""
     };
 
     const submitResponse = await callSubmitEndpoint({
@@ -192,8 +195,12 @@ function synthesizeStrategyBrief(state) {
   const cta = cleanString(state.answers?.primary_conversion_goal);
   const vibe = cleanString(state.inference?.suggested_vibe);
   const firstImpression = cleanString(state.answers?.first_impression_goal);
-  const tone = cleanString(state.answers?.tone_preferences || state.inference?.tone_direction);
-  const visualDirection = cleanString(state.answers?.visual_direction || state.inference?.visual_direction);
+  const tone = cleanString(
+    state.answers?.tone_preferences || state.inference?.tone_direction
+  );
+  const visualDirection = cleanString(
+    state.answers?.visual_direction || state.inference?.visual_direction
+  );
   const components = cleanList(state.inference?.suggested_components);
   const serviceArea = cleanString(state.answers?.service_area);
   const officeAddress = cleanString(state.answers?.office_address);
@@ -201,6 +208,8 @@ function synthesizeStrategyBrief(state) {
   const phone = cleanString(state.answers?.phone);
   const bookingUrl = cleanString(state.answers?.booking_url);
   const publicEmail = cleanString(state.clientEmail);
+  const faqTopics = cleanList(state.answers?.faq_topics);
+  const pricingContext = cleanString(state.answers?.pricing_context);
 
   const ghostTagline = cleanString(state.ghostwritten?.tagline);
   const ghostHeroHeadline = cleanString(state.ghostwritten?.hero_headline);
@@ -284,6 +293,14 @@ function synthesizeStrategyBrief(state) {
     parts.push("Recommended sections include " + joinSentence(components) + ".");
   }
 
+  if (faqTopics.length) {
+    parts.push("Frequently asked question themes include " + joinSentence(faqTopics) + ".");
+  }
+
+  if (pricingContext) {
+    parts.push("Pricing context to account for: " + stripTrailingPeriod(pricingContext) + ".");
+  }
+
   const approvedMessaging = [];
   if (ghostTagline) approvedMessaging.push('tagline "' + ghostTagline + '"');
   if (ghostHeroHeadline) approvedMessaging.push('hero headline "' + ghostHeroHeadline + '"');
@@ -295,7 +312,7 @@ function synthesizeStrategyBrief(state) {
   }
 
   parts.push(
-    "Use this strategy brief to generate a polished 2026 website that feels premium, locally credible when relevant, and conversion-ready."
+    "Use this strategy brief to generate a polished 2026 website that feels premium, conversion-ready, and locally credible when relevant."
   );
 
   return parts.join(" ");
@@ -312,21 +329,32 @@ function evaluateReadiness(state) {
   const whyNow = cleanString(state.answers?.why_now);
   const desiredOutcome = cleanString(state.answers?.desired_outcome);
   const audience = cleanString(state.answers?.target_audience);
-  const hasOffer = Array.isArray(state.answers?.offerings) && state.answers.offerings.length > 0;
+  const hasOffer =
+    Array.isArray(state.answers?.offerings) &&
+    state.answers.offerings.length > 0;
   const hasCta = cleanString(state.answers?.primary_conversion_goal);
   const hasContactPath = Boolean(
     cleanString(state.clientEmail) ||
     cleanString(state.answers?.phone) ||
     cleanString(state.answers?.booking_url)
   );
+
   const hasLocationSignal = Boolean(
     cleanString(state.answers?.service_area) ||
     cleanString(state.answers?.office_address) ||
     cleanString(state.answers?.location_context)
   );
-  const diff = Array.isArray(state.answers?.differentiators) ? state.answers.differentiators.length : 0;
-  const trust = Array.isArray(state.answers?.trust_signals) ? state.answers.trust_signals.length : 0;
-  const cred = Array.isArray(state.answers?.credibility_factors) ? state.answers.credibility_factors.length : 0;
+
+  const diff = Array.isArray(state.answers?.differentiators)
+    ? state.answers.differentiators.length
+    : 0;
+  const trust = Array.isArray(state.answers?.trust_signals)
+    ? state.answers.trust_signals.length
+    : 0;
+  const cred = Array.isArray(state.answers?.credibility_factors)
+    ? state.answers.credibility_factors.length
+    : 0;
+
   const hasTrustOrDiff = diff + trust + cred > 0;
 
   if (!whyNow && !desiredOutcome) missing.push("business_purpose_or_desired_outcome");
@@ -351,6 +379,10 @@ function evaluateReadiness(state) {
     score,
     required_domains_complete: missing.length === 0,
     missing_domains: missing,
+    recommended_domains_missing: [
+      !hasLocationSignal ? "service_area_or_location" : "",
+      !hasTrustOrDiff ? "trust_or_differentiation" : ""
+    ].filter(Boolean),
     can_generate_now:
       Boolean(whyNow || desiredOutcome) &&
       Boolean(audience) &&
@@ -392,13 +424,37 @@ function normalizeState(state) {
     ...(isObject(next.answers) ? next.answers : {})
   };
 
+  next.inference = {
+    suggested_vibe: "",
+    suggested_components: [],
+    tone_direction: "",
+    visual_direction: "",
+    missing_information: [],
+    confidence_score: 0,
+    ...(isObject(next.inference) ? next.inference : {})
+  };
+
+  next.ghostwritten = {
+    tagline: "",
+    hero_headline: "",
+    hero_subheadline: "",
+    about_summary: "",
+    features_copy: [],
+    faqs: [],
+    ...(isObject(next.ghostwritten) ? next.ghostwritten : {})
+  };
+
   next.answers.offerings = cleanList(next.answers.offerings);
   next.answers.differentiators = cleanList(next.answers.differentiators);
   next.answers.trust_signals = cleanList(next.answers.trust_signals);
   next.answers.credibility_factors = cleanList(next.answers.credibility_factors);
+  next.answers.process_notes = cleanList(next.answers.process_notes);
+  next.answers.faq_topics = cleanList(next.answers.faq_topics);
+
   next.answers.why_now = cleanString(next.answers.why_now);
   next.answers.desired_outcome = cleanString(next.answers.desired_outcome);
   next.answers.primary_conversion_goal = cleanString(next.answers.primary_conversion_goal);
+  next.answers.first_impression_goal = cleanString(next.answers.first_impression_goal);
   next.answers.target_audience = cleanString(next.answers.target_audience);
   next.answers.booking_method = cleanString(next.answers.booking_method);
   next.answers.phone = cleanString(next.answers.phone);
@@ -406,6 +462,10 @@ function normalizeState(state) {
   next.answers.office_address = cleanString(next.answers.office_address);
   next.answers.location_context = cleanString(next.answers.location_context);
   next.answers.service_area = cleanString(next.answers.service_area);
+  next.answers.tone_preferences = cleanString(next.answers.tone_preferences);
+  next.answers.visual_direction = cleanString(next.answers.visual_direction);
+  next.answers.pricing_context = cleanString(next.answers.pricing_context);
+
   next.clientEmail = cleanString(next.clientEmail);
   next.businessName = cleanString(next.businessName);
 

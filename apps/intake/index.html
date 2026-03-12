@@ -3,367 +3,1131 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-<title>SiteForge Factory</title>
+<title>SiteForge Factory Intake</title>
 
 <style>
-body{
-  font-family:system-ui,-apple-system,Segoe UI,Roboto;
+:root{
+  --bg:#0a1020;
+  --bg-soft:#0f1730;
+  --panel:#121b36;
+  --panel-2:#172347;
+  --panel-3:#1d2b57;
+  --text:#eef4ff;
+  --muted:#9fb0d7;
+  --line:rgba(255,255,255,0.08);
+  --line-strong:rgba(255,255,255,0.14);
+  --accent:#79a7ff;
+  --accent-2:#9d7cff;
+  --success:#22a06b;
+  --warning:#b88a2b;
+  --danger:#d05e5e;
+  --shadow:0 18px 60px rgba(0,0,0,0.32);
+  --radius:20px;
+  --radius-sm:14px;
+}
+
+*{box-sizing:border-box}
+
+html,body{
   margin:0;
-  background:#0f1324;
-  color:white;
+  min-height:100%;
+}
+
+body{
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(121,167,255,0.18), transparent 26%),
+    radial-gradient(circle at top right, rgba(157,124,255,0.14), transparent 24%),
+    linear-gradient(180deg, #0a1020 0%, #0b1224 100%);
+  color:var(--text);
 }
 
 .app{
-  max-width:1100px;
-  margin:auto;
+  max-width:1440px;
+  margin:0 auto;
   padding:24px;
 }
 
-.chat{
-  background:#161c33;
-  border-radius:12px;
-  padding:20px;
-  height:70vh;
+.layout{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(360px,0.9fr);
+  gap:20px;
+  align-items:start;
+}
+
+.card{
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+
+.hero{
+  padding:22px 24px 20px;
+  margin-bottom:18px;
+}
+
+.eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-size:12px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.hero h1{
+  margin:14px 0 8px;
+  font-size:34px;
+  line-height:1.05;
+}
+
+.hero p{
+  margin:0;
+  color:var(--muted);
+  line-height:1.55;
+  max-width:780px;
+}
+
+.topbar{
+  display:grid;
+  grid-template-columns:1fr 1fr auto;
+  gap:12px;
+  margin-top:18px;
+}
+
+.chat-shell{
+  min-height:76vh;
   display:flex;
   flex-direction:column;
 }
 
 .messages{
   flex:1;
+  padding:20px;
   overflow:auto;
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:14px;
+  min-height:460px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0));
 }
 
 .msg{
-  max-width:70%;
-  padding:12px 14px;
-  border-radius:10px;
-  line-height:1.5;
+  max-width:82%;
+  padding:14px 16px;
+  border-radius:18px;
+  border:1px solid var(--line);
+  line-height:1.55;
+  font-size:15px;
+  white-space:pre-wrap;
+  word-break:break-word;
 }
 
 .msg.assistant{
-  background:#1f2750;
   align-self:flex-start;
+  background:linear-gradient(180deg, rgba(121,167,255,0.12), rgba(121,167,255,0.05));
 }
 
 .msg.user{
-  background:#31409a;
   align-self:flex-end;
+  background:linear-gradient(180deg, rgba(157,124,255,0.16), rgba(157,124,255,0.08));
 }
 
 .msg.system{
-  background:#222;
-  color:#aaa;
   align-self:center;
+  max-width:100%;
+  background:rgba(255,255,255,0.04);
+  color:var(--muted);
+  text-align:center;
+  font-size:13px;
 }
 
 .composer{
-  border-top:1px solid #2c3567;
-  padding-top:10px;
-  margin-top:10px;
-}
-
-textarea{
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:1px solid #2c3567;
-  background:#0f1324;
-  color:white;
-}
-
-button{
-  margin-top:8px;
-  padding:10px 14px;
-  border-radius:8px;
-  border:none;
-  background:#6b8cff;
-  color:white;
-  cursor:pointer;
-}
-
-button.secondary{
-  background:#2c3567;
+  border-top:1px solid var(--line);
+  padding:16px;
+  background:rgba(255,255,255,0.02);
 }
 
 .quick-actions{
   display:flex;
   flex-wrap:wrap;
-  gap:6px;
-  margin-bottom:10px;
+  gap:8px;
+  margin-bottom:12px;
 }
 
-.summary{
-  margin-top:20px;
-  background:#161c33;
-  padding:14px;
-  border-radius:10px;
+.quick-chip{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.05);
+  color:var(--text);
+  border-radius:999px;
+  padding:10px 14px;
+  font-size:13px;
 }
 
-.preview{
+.quick-chip:hover{
+  background:rgba(255,255,255,0.08);
+}
+
+.composer-actions{
+  display:flex;
+  gap:10px;
   margin-top:10px;
+}
+
+.sidebar{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.panel{
+  padding:18px;
+}
+
+.panel h3{
+  margin:0 0 14px;
+  font-size:16px;
+}
+
+.kicker{
+  font-size:11px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:8px;
+}
+
+.phase-strip{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:8px;
+}
+
+.phase-pill{
+  padding:10px 10px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.03);
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.phase-pill.active{
+  color:var(--text);
+  background:linear-gradient(180deg, rgba(121,167,255,0.16), rgba(121,167,255,0.08));
+  border-color:rgba(121,167,255,0.35);
+}
+
+.phase-pill.done{
+  color:var(--text);
+  background:rgba(34,160,107,0.14);
+  border-color:rgba(34,160,107,0.32);
+}
+
+.readiness-wrap{
+  display:grid;
+  gap:12px;
+}
+
+.progress-track{
+  width:100%;
+  height:10px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.06);
+  overflow:hidden;
+  border:1px solid var(--line);
+}
+
+.progress-bar{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg, var(--accent), var(--accent-2));
+  transition:width .25s ease;
+}
+
+.checklist{
+  display:grid;
+  gap:8px;
+}
+
+.check{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.03);
+  padding:12px 12px;
+  border-radius:14px;
+  font-size:13px;
+}
+
+.check .label{
+  color:var(--text);
+}
+
+.badge{
+  font-size:11px;
+  padding:5px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  color:var(--muted);
+}
+
+.badge.done{
+  color:white;
+  background:rgba(34,160,107,0.18);
+  border-color:rgba(34,160,107,0.28);
+}
+
+.badge.missing{
+  color:#ffdca1;
+  background:rgba(184,138,43,0.16);
+  border-color:rgba(184,138,43,0.24);
+}
+
+.summary-grid{
+  display:grid;
+  gap:10px;
+}
+
+.summary-item{
+  background:rgba(255,255,255,0.04);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:13px;
+}
+
+.summary-label{
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  margin-bottom:6px;
+}
+
+.summary-value{
+  font-size:14px;
+  line-height:1.45;
+}
+
+.timeline{
+  display:grid;
+  gap:10px;
+}
+
+.timeline-item{
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.03);
+  border-radius:16px;
+  padding:12px;
+}
+
+.timeline-title{
+  font-size:13px;
+  margin-bottom:6px;
+}
+
+.timeline-meta{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.preview-card{
+  display:grid;
+  gap:10px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,0.03);
+  border-radius:16px;
+  padding:14px;
+}
+
+.preview-link{
+  color:#bfd5ff;
+  font-weight:600;
+  text-decoration:none;
+}
+
+.preview-link:hover{
+  text-decoration:underline;
+}
+
+.result-box{
+  max-height:280px;
+  overflow:auto;
+  font-size:12px;
+  line-height:1.5;
+  color:#dbe7ff;
+  white-space:pre-wrap;
+  word-break:break-word;
+  border:1px solid var(--line);
+  background:#0d1428;
+  border-radius:16px;
+  padding:12px;
+}
+
+input,textarea{
+  width:100%;
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--text);
+  border-radius:16px;
+  padding:14px 14px;
+  font:inherit;
+  outline:none;
+}
+
+input:focus,textarea:focus{
+  border-color:rgba(121,167,255,0.45);
+  box-shadow:0 0 0 3px rgba(121,167,255,0.12);
+}
+
+textarea{
+  min-height:100px;
+  resize:vertical;
+}
+
+button{
+  border:0;
+  cursor:pointer;
+  font:inherit;
+  border-radius:14px;
+  padding:12px 16px;
+}
+
+button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}
+
+.btn-primary{
+  color:white;
+  background:linear-gradient(135deg, var(--accent), var(--accent-2));
+  font-weight:700;
+}
+
+.btn-secondary{
+  color:white;
+  background:rgba(255,255,255,0.08);
+  border:1px solid var(--line);
+}
+
+.btn-build{
+  color:white;
+  background:linear-gradient(135deg, #1fa56e, #2a7fd6);
+  font-weight:700;
+}
+
+.hidden{
+  display:none !important;
+}
+
+.muted{
+  color:var(--muted);
+}
+
+@media (max-width:1120px){
+  .layout{
+    grid-template-columns:1fr;
+  }
+
+  .chat-shell{
+    min-height:auto;
+  }
+
+  .topbar{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width:720px){
+  .app{
+    padding:14px;
+  }
+
+  .hero h1{
+    font-size:28px;
+  }
+
+  .phase-strip{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .msg{
+    max-width:92%;
+  }
+
+  .composer-actions{
+    flex-direction:column;
+  }
 }
 </style>
 </head>
-
 <body>
 
 <div class="app">
+  <div class="card hero">
+    <div class="eyebrow">SiteForge Factory · Strategist Intake</div>
+    <h1>Turn intake into a real website brief</h1>
+    <p>
+      Guide the business owner step by step. Capture audience, offer, conversion path,
+      contact details, location, and trust. When the brief is strong enough, the factory
+      builds the preview.
+    </p>
 
-<h2>SiteForge Factory</h2>
+    <div class="topbar">
+      <input id="businessNameInput" placeholder="Business name" />
+      <input id="clientEmailInput" placeholder="Email (optional, also works as contact path)" />
+      <button id="startBtn" class="btn-primary">Start Intake</button>
+    </div>
+  </div>
 
-<div class="chat">
+  <div class="layout">
+    <div class="card chat-shell">
+      <div id="messages" class="messages">
+        <div class="msg system">Enter the business name and start when ready.</div>
+      </div>
 
-<div id="messages" class="messages">
-<div class="msg system">Enter your business name to begin.</div>
-</div>
+      <div class="composer">
+        <div id="quickActions" class="quick-actions"></div>
 
-<div class="composer">
+        <textarea id="messageInput" placeholder="Type your answer..." disabled></textarea>
 
-<div id="quickActions" class="quick-actions"></div>
+        <div class="composer-actions">
+          <button id="sendBtn" class="btn-primary" disabled>Send</button>
+          <button id="buildBtn" class="btn-build hidden">Build Preview</button>
+        </div>
+      </div>
+    </div>
 
-<textarea id="messageInput" placeholder="Type your answer..."></textarea>
+    <div class="sidebar">
+      <div class="card panel">
+        <div class="kicker">Current phase</div>
+        <div id="phaseStrip" class="phase-strip">
+          <div class="phase-pill" data-phase-group="identity">Identity</div>
+          <div class="phase-pill" data-phase-group="intent">Intent</div>
+          <div class="phase-pill" data-phase-group="business_understanding">Audience + Offer</div>
+          <div class="phase-pill" data-phase-group="guided_enrichment">Contact + Location</div>
+          <div class="phase-pill" data-phase-group="final_review">Review + Build</div>
+        </div>
+        <div id="phaseText" class="muted" style="margin-top:12px;">Waiting to begin</div>
+      </div>
 
-<button id="sendBtn">Send</button>
+      <div class="card panel">
+        <h3>Readiness</h3>
+        <div class="readiness-wrap">
+          <div class="progress-track">
+            <div id="readinessBar" class="progress-bar"></div>
+          </div>
+          <div id="readinessText" class="muted">No intake session yet.</div>
+          <div id="checklist" class="checklist"></div>
+        </div>
+      </div>
 
-<button id="buildBtn" class="secondary" style="display:none;">
-Build Preview
-</button>
+      <div class="card panel">
+        <h3>What we know so far</h3>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Goal</div>
+            <div id="summaryGoal" class="summary-value">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Audience</div>
+            <div id="summaryAudience" class="summary-value">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Offer</div>
+            <div id="summaryOffer" class="summary-value">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">CTA</div>
+            <div id="summaryCta" class="summary-value">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Service area</div>
+            <div id="summaryServiceArea" class="summary-value">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Contact path</div>
+            <div id="summaryContactPath" class="summary-value">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Suggested vibe</div>
+            <div id="summaryVibe" class="summary-value">—</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Suggested components</div>
+            <div id="summaryComponents" class="summary-value">—</div>
+          </div>
+        </div>
+      </div>
 
-</div>
+      <div class="card panel">
+        <h3>Build timeline</h3>
+        <div id="timeline" class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-title">Intake not started</div>
+            <div class="timeline-meta">No active session yet.</div>
+          </div>
+        </div>
+      </div>
 
-</div>
+      <div class="card panel">
+        <h3>Preview</h3>
+        <div class="preview-card">
+          <div id="statusBox" class="muted">No intake session yet.</div>
+          <a id="previewLink" class="preview-link hidden" href="#" target="_blank" rel="noopener">Open preview</a>
+        </div>
+      </div>
 
-<div class="summary">
-<strong>Strategy Summary</strong>
-<pre id="summary"></pre>
-</div>
-
-<div class="preview">
-<strong>Status:</strong>
-<span id="status">Waiting to begin</span>
-<br>
-<a id="previewLink" target="_blank"></a>
-</div>
-
+      <div class="card panel">
+        <h3>Latest payload</h3>
+        <div id="resultBox" class="result-box">Nothing generated yet.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
+const state = {
+  sessionId: "",
+  intakeState: null,
+  phase: "",
+  pending: false,
+  slug: "",
+  pollTimer: null,
+  previewUrl: "",
+  buildStarted: false,
+  buildStatus: "",
+  timelineEntries: []
+};
 
-const state={
-sessionId:null,
-intakeState:null,
-buildStarted:false
+const els = {
+  businessNameInput: document.getElementById("businessNameInput"),
+  clientEmailInput: document.getElementById("clientEmailInput"),
+  startBtn: document.getElementById("startBtn"),
+  messages: document.getElementById("messages"),
+  quickActions: document.getElementById("quickActions"),
+  messageInput: document.getElementById("messageInput"),
+  sendBtn: document.getElementById("sendBtn"),
+  buildBtn: document.getElementById("buildBtn"),
+  phaseText: document.getElementById("phaseText"),
+  phaseStrip: document.getElementById("phaseStrip"),
+  readinessBar: document.getElementById("readinessBar"),
+  readinessText: document.getElementById("readinessText"),
+  checklist: document.getElementById("checklist"),
+  summaryGoal: document.getElementById("summaryGoal"),
+  summaryAudience: document.getElementById("summaryAudience"),
+  summaryOffer: document.getElementById("summaryOffer"),
+  summaryCta: document.getElementById("summaryCta"),
+  summaryServiceArea: document.getElementById("summaryServiceArea"),
+  summaryContactPath: document.getElementById("summaryContactPath"),
+  summaryVibe: document.getElementById("summaryVibe"),
+  summaryComponents: document.getElementById("summaryComponents"),
+  timeline: document.getElementById("timeline"),
+  statusBox: document.getElementById("statusBox"),
+  previewLink: document.getElementById("previewLink"),
+  resultBox: document.getElementById("resultBox")
+};
+
+const PHASE_GROUPS = ["identity", "intent", "business_understanding", "guided_enrichment", "final_review"];
+const REQUIRED_DOMAIN_LABELS = {
+  business_purpose_or_desired_outcome: "Purpose or desired outcome",
+  target_audience: "Target audience",
+  primary_offer: "Primary offer",
+  cta_direction: "Primary CTA",
+  contact_path: "Contact path"
+};
+
+function setPending(value){
+  state.pending = Boolean(value);
+  els.startBtn.disabled = state.pending || state.buildStarted;
+  els.sendBtn.disabled = state.pending || !state.sessionId || state.buildStarted;
+  els.messageInput.disabled = state.pending || !state.sessionId || state.buildStarted;
+  els.buildBtn.disabled = state.pending || state.buildStarted;
 }
 
-const messagesEl=document.getElementById("messages")
-const messageInput=document.getElementById("messageInput")
-const sendBtn=document.getElementById("sendBtn")
-const quickActions=document.getElementById("quickActions")
-const summary=document.getElementById("summary")
-const status=document.getElementById("status")
-const previewLink=document.getElementById("previewLink")
-const buildBtn=document.getElementById("buildBtn")
-
-function addMessage(role,text){
-
-const el=document.createElement("div")
-el.className="msg "+role
-el.textContent=text
-
-messagesEl.appendChild(el)
-
-messagesEl.scrollTop=messagesEl.scrollHeight
+function setStatus(text){
+  state.buildStatus = text || "";
+  els.statusBox.textContent = state.buildStatus || "";
 }
 
-function renderMessages(list){
+function addTimeline(title, meta){
+  state.timelineEntries.push({
+    title: title || "",
+    meta: meta || ""
+  });
+  renderTimeline();
+}
 
-messagesEl.innerHTML=""
+function renderTimeline(){
+  if (!state.timelineEntries.length) {
+    els.timeline.innerHTML = `
+      <div class="timeline-item">
+        <div class="timeline-title">Intake not started</div>
+        <div class="timeline-meta">No active session yet.</div>
+      </div>
+    `;
+    return;
+  }
 
-list.forEach(m=>{
-addMessage(m.role,m.content)
-})
+  els.timeline.innerHTML = state.timelineEntries.map(function(item){
+    return `
+      <div class="timeline-item">
+        <div class="timeline-title">${escapeHtml(item.title)}</div>
+        <div class="timeline-meta">${escapeHtml(item.meta)}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+function addMessage(role, content){
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.textContent = content || "";
+  els.messages.appendChild(div);
+  els.messages.scrollTop = els.messages.scrollHeight;
+}
+
+function renderMessages(messages){
+  els.messages.innerHTML = "";
+  if (!Array.isArray(messages)) return;
+  messages.forEach(function(msg){
+    addMessage(msg.role || "assistant", msg.content || "");
+  });
 }
 
 function renderQuickActions(message){
+  els.quickActions.innerHTML = "";
 
-quickActions.innerHTML=""
+  if (state.buildStarted) return;
 
-if(!message || !message.options) return
-
-message.options.forEach(opt=>{
-
-const btn=document.createElement("button")
-
-btn.className="secondary"
-
-btn.textContent=opt.label
-
-btn.onclick=()=>{
-handleQuickReply(opt)
+  const options = Array.isArray(message && message.options) ? message.options : [];
+  options.forEach(function(option){
+    const btn = document.createElement("button");
+    btn.className = "quick-chip";
+    btn.textContent = option.label || "Continue";
+    btn.onclick = function(){
+      handleQuickReply(option);
+    };
+    els.quickActions.appendChild(btn);
+  });
 }
 
-quickActions.appendChild(btn)
-
-})
-
+function updateSummary(summary){
+  summary = summary || {};
+  els.summaryGoal.textContent = summary.website_goal || "—";
+  els.summaryAudience.textContent = summary.audience || "—";
+  els.summaryOffer.textContent = summary.offer || "—";
+  els.summaryCta.textContent = summary.cta || "—";
+  els.summaryServiceArea.textContent = summary.service_area || "—";
+  els.summaryContactPath.textContent = summary.contact_path || "—";
+  els.summaryVibe.textContent = summary.vibe || "—";
+  els.summaryComponents.textContent =
+    Array.isArray(summary.components) && summary.components.length
+      ? summary.components.join(", ")
+      : "—";
 }
 
-function updateSummary(panel){
+function updatePhase(phase){
+  state.phase = phase || "";
+  els.phaseText.textContent = phase ? "Phase: " + phase : "Waiting to begin";
 
-summary.textContent=JSON.stringify(panel,null,2)
+  const currentGroup = mapPhaseToGroup(phase);
 
+  const pills = els.phaseStrip.querySelectorAll(".phase-pill");
+  pills.forEach(function(pill){
+    const group = pill.getAttribute("data-phase-group");
+    pill.classList.remove("active", "done");
+
+    if (!currentGroup) return;
+
+    const pillIndex = PHASE_GROUPS.indexOf(group);
+    const activeIndex = PHASE_GROUPS.indexOf(currentGroup);
+
+    if (pillIndex < activeIndex) {
+      pill.classList.add("done");
+    } else if (pillIndex === activeIndex) {
+      pill.classList.add("active");
+    }
+  });
 }
 
-async function api(url,data){
+function mapPhaseToGroup(phase){
+  const normalized = (phase || "").trim();
 
-const res=await fetch(url,{
-method:"POST",
-headers:{'content-type':'application/json'},
-body:JSON.stringify(data)
-})
+  if (!normalized) return "";
+  if (normalized === "welcome" || normalized === "identity") return "identity";
+  if (normalized === "intent") return "intent";
+  if (normalized === "business_understanding") return "business_understanding";
+  if (normalized === "guided_enrichment" || normalized === "strategy_inference" || normalized === "ghostwriting") return "guided_enrichment";
+  if (normalized === "final_review" || normalized === "build") return "final_review";
 
-const json=await res.json()
+  return "";
+}
 
-if(!json.ok) throw new Error(json.error)
+function updateReadiness(readiness){
+  const score = Math.max(0, Math.min(1, Number(readiness && readiness.score) || 0));
+  els.readinessBar.style.width = (score * 100).toFixed(0) + "%";
 
-return json
+  if (!readiness) {
+    els.readinessText.textContent = "No intake session yet.";
+    els.checklist.innerHTML = "";
+    return;
+  }
 
+  const missing = Array.isArray(readiness.missing_domains) ? readiness.missing_domains : [];
+  const canGenerate = Boolean(readiness.can_generate_now);
+
+  if (canGenerate) {
+    els.readinessText.textContent = "Core strategist requirements are complete. You can build now.";
+  } else if (missing.length) {
+    els.readinessText.textContent = "Still collecting a few core details before build.";
+  } else {
+    els.readinessText.textContent = "Readiness improving.";
+  }
+
+  const rows = Object.keys(REQUIRED_DOMAIN_LABELS).map(function(key){
+    const done = !missing.includes(key);
+    return `
+      <div class="check">
+        <div class="label">${escapeHtml(REQUIRED_DOMAIN_LABELS[key])}</div>
+        <div class="badge ${done ? "done" : "missing"}">${done ? "Captured" : "Missing"}</div>
+      </div>
+    `;
+  });
+
+  els.checklist.innerHTML = rows.join("");
+}
+
+function updateBuildButton(readiness){
+  const canBuild = Boolean(readiness && readiness.can_generate_now) && !state.buildStarted;
+  els.buildBtn.classList.toggle("hidden", !canBuild);
+}
+
+function statusFromReadiness(readiness, action){
+  if (!readiness) return "Intake in progress.";
+
+  const missing = Array.isArray(readiness.missing_domains) ? readiness.missing_domains : [];
+
+  if (action === "complete") {
+    return "Strategy complete. Starting build...";
+  }
+
+  if (readiness.can_generate_now) {
+    return "We have enough to build. You can keep enriching or start the preview.";
+  }
+
+  if (missing.length) {
+    return "Still gathering essentials: " + missing.join(", ") + ".";
+  }
+
+  return "Intake in progress.";
+}
+
+function showPreviewLink(url){
+  if (!url) return;
+  state.previewUrl = url;
+  els.previewLink.href = url;
+  els.previewLink.classList.remove("hidden");
+}
+
+function hidePreviewLink(){
+  state.previewUrl = "";
+  els.previewLink.href = "#";
+  els.previewLink.classList.add("hidden");
+}
+
+function stopStatusPolling(){
+  if (state.pollTimer) {
+    clearInterval(state.pollTimer);
+    state.pollTimer = null;
+  }
+}
+
+function resetBuildState(){
+  state.slug = "";
+  state.previewUrl = "";
+  state.buildStarted = false;
+  stopStatusPolling();
+  hidePreviewLink();
+  els.buildBtn.classList.add("hidden");
+  state.timelineEntries = [];
+  renderTimeline();
+}
+
+async function api(url, payload){
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await res.text();
+
+  let data;
+  try{
+    data = JSON.parse(text);
+  }catch{
+    throw new Error("Non-JSON response from " + url + ": " + text);
+  }
+
+  if (!res.ok || data.ok === false) {
+    throw new Error(data.error || "Request failed");
+  }
+
+  return data;
+}
+
+async function apiGet(url){
+  const res = await fetch(url);
+  const text = await res.text();
+
+  let data;
+  try{
+    data = JSON.parse(text);
+  }catch{
+    throw new Error("Non-JSON response from " + url + ": " + text);
+  }
+
+  if (!res.ok || data.ok === false) {
+    throw new Error(data.error || "Request failed");
+  }
+
+  return data;
 }
 
 async function startIntake(){
+  try{
+    setPending(true);
+    resetBuildState();
 
-const name=messageInput.value.trim()
+    const businessName = els.businessNameInput.value.trim();
+    const clientEmail = els.clientEmailInput.value.trim();
 
-if(!name) return
+    if (!businessName) {
+      throw new Error("Please enter a business name first.");
+    }
 
-const data=await api("/api/intake-start",{
-businessName:name
-})
+    setStatus("Starting intake...");
 
-state.sessionId=data.session_id
-state.intakeState=data.state
+    const data = await api("/api/intake-start", {
+      businessName,
+      clientEmail
+    });
 
-renderMessages(data.messages)
+    state.sessionId = data.session_id;
+    state.intakeState = data.state;
 
-renderQuickActions(data.messages.at(-1))
+    renderMessages(data.messages || []);
+    renderQuickActions((data.messages || []).slice(-1)[0] || null);
 
-updateSummary(data.summary_panel)
+    updatePhase(data.phase);
+    updateSummary(data.summary_panel || {});
+    updateReadiness(data.state && data.state.readiness ? data.state.readiness : null);
+    updateBuildButton(data.state && data.state.readiness ? data.state.readiness : null);
 
-status.textContent="Intake started"
-
-messageInput.value=""
+    setStatus("Intake started. Answer the current question to continue.");
+    addTimeline("Intake started", "Business: " + businessName);
+  }catch(err){
+    addMessage("system", String(err.message || err));
+    setStatus("Failed to start intake.");
+  }finally{
+    setPending(false);
+  }
 }
 
-async function sendAnswer(answer){
+async function sendAnswer(answerText){
+  if (!state.sessionId || state.pending || state.buildStarted) return;
 
-if(!state.sessionId) return
+  const answer = (answerText || "").trim();
+  if (!answer) return;
 
-addMessage("user",answer)
+  addMessage("user", answer);
+  els.messageInput.value = "";
+  els.quickActions.innerHTML = "";
 
-messageInput.value=""
+  try{
+    setPending(true);
+    setStatus("Thinking through the next step...");
 
-quickActions.innerHTML=""
+    const data = await api("/api/intake-next", {
+      session_id: state.sessionId,
+      answer: answer,
+      state: state.intakeState
+    });
 
-const data=await api("/api/intake-next",{
-session_id:state.sessionId,
-answer,
-state:state.intakeState
-})
+    state.intakeState = data.state;
 
-state.intakeState=data.state
+    if (data.message && data.message.content) {
+      addMessage("assistant", data.message.content);
+    }
 
-if(data.message){
-addMessage("assistant",data.message.content)
-}
+    updatePhase(data.phase);
+    updateSummary(data.summary_panel || {});
+    updateReadiness(data.readiness || null);
+    updateBuildButton(data.readiness || null);
+    renderQuickActions(data.message || null);
 
-renderQuickActions(data.message)
+    if (data.action === "complete") {
+      addTimeline("Strategy complete", "Core strategist fields are ready.");
+      setStatus("Strategy complete. Starting build...");
+      setPending(false);
+      await buildPreview();
+      return;
+    }
 
-updateSummary(data.summary_panel)
-
-status.textContent="Intake progressing..."
-
-if(data.action==="complete"){
-buildPreview()
-}
-
+    setStatus(statusFromReadiness(data.readiness, data.action));
+  }catch(err){
+    addMessage("system", String(err.message || err));
+    setStatus("There was a problem processing that step.");
+  }finally{
+    if (!state.buildStarted) {
+      setPending(false);
+    }
+  }
 }
 
 async function handleQuickReply(option){
+  const label = (option && option.label) ? option.label : "";
+  if (!label) return;
 
-const label=option.label || ""
-const action=option.action || ""
-
-/*
-IMPORTANT FIX
-
-Quick replies now send the label as the answer
-instead of only the action token
-*/
-
-await sendAnswer(label)
-
+  await sendAnswer(label);
 }
 
 async function buildPreview(){
+  if (!state.sessionId || !state.intakeState || state.buildStarted) return;
 
-if(state.buildStarted) return
+  try{
+    state.buildStarted = true;
+    setPending(true);
+    els.quickActions.innerHTML = "";
+    els.buildBtn.classList.add("hidden");
 
-state.buildStarted=true
+    setStatus("Generating strategy and dispatching factory build...");
+    addTimeline("Generation started", "Creating strategy brief and dispatching build.");
+    hidePreviewLink();
 
-status.textContent="Generating site..."
+    const data = await api("/api/intake-complete", {
+      session_id: state.sessionId,
+      state: state.intakeState
+    });
 
-const data=await api("/api/intake-complete",{
-session_id:state.sessionId,
-state:state.intakeState
-})
+    const slug =
+      data.slug ||
+      (data.submitted && data.submitted.slug) ||
+      (data.generated && data.generated.client_slug) ||
+      (data.generated && data.generated.slug) ||
+      (data.generated && data.generated.business_json && data.generated.business_json.brand && data.generated.business_json.brand.slug) ||
+      "";
 
-status.textContent="Build dispatched"
+    state.slug = slug;
+    els.resultBox.textContent = JSON.stringify(data, null, 2);
 
-if(data.slug){
+    addMessage("assistant", "Your site has been generated and the factory build has been dispatched.");
+    addTimeline("Build dispatched", slug ? "Slug: " + slug : "Awaiting status tracking.");
 
-pollStatus(data.slug)
-
+    if (slug) {
+      setStatus("Build dispatched for " + slug + ". Polling status...");
+      startStatusPolling(slug);
+    } else {
+      setStatus("Generation completed, but no slug was returned for status tracking.");
+    }
+  }catch(err){
+    state.buildStarted = false;
+    addMessage("system", String(err.message || err));
+    setStatus("Build kickoff failed.");
+    updateBuildButton(state.intakeState && state.intakeState.readiness ? state.intakeState.readiness : { can_generate_now: true });
+  }finally{
+    setPending(false);
+  }
 }
 
+function startStatusPolling(slug){
+  stopStatusPolling();
+  if (!slug) return;
+
+  pollStatus(slug);
+  state.pollTimer = setInterval(function(){
+    pollStatus(slug);
+  }, 5000);
 }
 
 async function pollStatus(slug){
+  try{
+    const data = await apiGet("/api/status?slug=" + encodeURIComponent(slug));
+    const status = data.status || "UNKNOWN";
+    const previewUrl = data.preview_url || "";
+    const lastError = data.last_error || "";
 
-const res=await fetch("/api/status?slug="+slug)
-
-const data=await res.json()
-
-if(data.preview_url){
-
-previewLink.href=data.preview_url
-previewLink.textContent="Open preview"
-status.textContent="Preview deployed"
-
-return
+    if (status === "PENDING") {
+      setStatus("Submission saved. Waiting to dispatch build...");
+    } else if (status === "BUILD_DISPATCHED") {
+      setStatus("GitHub build dispatched...");
+    } else if (status === "BUILD_SUCCEEDED") {
+      setStatus("Build succeeded. Deploying preview...");
+      if (!timelineHas("Build succeeded")) {
+        addTimeline("Build succeeded", "Preparing preview deployment.");
+      }
+    } else if (status === "PREVIEW_DEPLOYED") {
+      setStatus("Preview deployed.");
+      if (previewUrl) {
+        showPreviewLink(previewUrl);
+      }
+      if (!timelineHas("Preview deployed")) {
+        addTimeline("Preview deployed", previewUrl || "Preview is ready.");
+      }
+      stopStatusPolling();
+    } else if (status === "FAILED") {
+      setStatus("Build failed: " + (lastError || "Unknown error"));
+      addMessage("system", "Factory build failed: " + (lastError || "Unknown error"));
+      if (!timelineHas("Build failed")) {
+        addTimeline("Build failed", lastError || "Unknown error");
+      }
+      stopStatusPolling();
+      state.buildStarted = false;
+    } else {
+      setStatus("Current status: " + status);
+    }
+  }catch(err){
+    setStatus("Polling status...");
+  }
 }
 
-setTimeout(()=>pollStatus(slug),5000)
-
+function timelineHas(title){
+  return state.timelineEntries.some(function(entry){
+    return entry.title === title;
+  });
 }
 
-sendBtn.onclick=()=>{
-
-const text=messageInput.value.trim()
-
-if(!text) return
-
-if(!state.sessionId){
-startIntake()
-}else{
-sendAnswer(text)
+function escapeHtml(value){
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-}
+els.startBtn.onclick = startIntake;
+els.sendBtn.onclick = function(){
+  sendAnswer(els.messageInput.value);
+};
+els.buildBtn.onclick = buildPreview;
 
+els.messageInput.addEventListener("keydown", function(event){
+  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+    sendAnswer(els.messageInput.value);
+  }
+});
 </script>
 
 </body>
