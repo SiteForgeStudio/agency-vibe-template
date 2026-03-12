@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -442,6 +443,29 @@ function updateBuildButton(readiness){
   els.buildBtn.classList.toggle("hidden", !canBuild);
 }
 
+function statusFromReadiness(readiness, action){
+  if (!readiness) return "Intake in progress.";
+
+  const missing = Array.isArray(readiness.missing_domains) ? readiness.missing_domains : [];
+
+  if (action === "complete") {
+    return "Strategy complete. Starting build...";
+  }
+
+  if (readiness.can_generate_now) {
+    if (missing.length) {
+      return "We can build now, but a few more details will make the preview stronger.";
+    }
+    return "We’re almost ready. A few more details will make the site stronger before build.";
+  }
+
+  if (missing.length) {
+    return "Still gathering essentials: " + missing.join(", ") + ".";
+  }
+
+  return "Intake in progress.";
+}
+
 function showPreviewLink(url){
   if (!url) return;
   state.previewUrl = url;
@@ -595,16 +619,8 @@ async function sendAnswer(answerText, uiAction){
       return;
     }
 
-    if (data.readiness && data.readiness.can_generate_now) {
-      setStatus("We have enough direction to build a strong preview. Starting build...");
-      renderQuickActions(null);
-      setPending(false);
-      await buildPreview();
-      return;
-    }
-
     renderQuickActions(data.message || null);
-    setStatus("Intake in progress.");
+    setStatus(statusFromReadiness(data.readiness, data.action));
   }catch(err){
     addMessage("system", String(err.message || err));
     setStatus("There was a problem processing that step.");
@@ -674,7 +690,7 @@ async function buildPreview(){
     setStatus("Build kickoff failed.");
     els.messageInput.disabled = false;
     els.sendBtn.disabled = false;
-    updateBuildButton({ can_generate_now: true });
+    updateBuildButton(state.intakeState && state.intakeState.readiness ? state.intakeState.readiness : { can_generate_now: true });
   }finally{
     setPending(false);
   }

@@ -1,3 +1,4 @@
+// functions/api/intake-complete.js
 import { runStrategyInferencePass } from "./intake-strategy.js";
 
 /**
@@ -19,7 +20,7 @@ export async function onRequestPost(context) {
     const body = await readJson(context.request);
 
     const sessionId = cleanString(body.session_id);
-    const state = isObject(body.state) ? body.state : {};
+    const state = normalizeState(isObject(body.state) ? body.state : {});
     const force = Boolean(body.force);
 
     if (!sessionId) {
@@ -33,25 +34,23 @@ export async function onRequestPost(context) {
       return json({ ok: false, error: "Missing businessName in state" }, 400);
     }
 
-    const strengthenedState = await runStrategyInferencePass(context.env, state);
+    const strengthenedState = normalizeState(
+      await runStrategyInferencePass(context.env, state)
+    );
 
     const readiness = evaluateReadiness(strengthenedState);
+    strengthenedState.readiness = readiness;
 
     if (!force && !readiness.can_generate_now) {
-      const hasSomeStrategy =
-        cleanString(strengthenedState.answers?.why_now) ||
-        cleanString(strengthenedState.answers?.desired_outcome) ||
-        cleanString(strengthenedState.answers?.target_audience) ||
-        (Array.isArray(strengthenedState.answers?.offerings) && strengthenedState.answers.offerings.length);
-
-      if (!hasSomeStrategy) {
-        return json({
+      return json(
+        {
           ok: false,
           error: "Intake not ready for generation",
           readiness,
           missing_domains: readiness.missing_domains
-        }, 400);
-      }
+        },
+        400
+      );
     }
 
     const strategyBrief = synthesizeStrategyBrief(strengthenedState);
@@ -92,12 +91,14 @@ export async function onRequestPost(context) {
         submitResponse.slug ||
         ""
     });
-
   } catch (err) {
-    return json({
-      ok: false,
-      error: String(err?.message || err)
-    }, 500);
+    return json(
+      {
+        ok: false,
+        error: String(err?.message || err)
+      },
+      500
+    );
   }
 }
 
@@ -195,6 +196,11 @@ function synthesizeStrategyBrief(state) {
   const visualDirection = cleanString(state.answers?.visual_direction || state.inference?.visual_direction);
   const components = cleanList(state.inference?.suggested_components);
   const serviceArea = cleanString(state.answers?.service_area);
+  const officeAddress = cleanString(state.answers?.office_address);
+  const bookingMethod = cleanString(state.answers?.booking_method);
+  const phone = cleanString(state.answers?.phone);
+  const bookingUrl = cleanString(state.answers?.booking_url);
+  const publicEmail = cleanString(state.clientEmail);
 
   const ghostTagline = cleanString(state.ghostwritten?.tagline);
   const ghostHeroHeadline = cleanString(state.ghostwritten?.hero_headline);
@@ -221,6 +227,34 @@ function synthesizeStrategyBrief(state) {
     parts.push("The business focuses on " + joinSentence(offer) + ".");
   }
 
+  if (cta) {
+    parts.push("The primary call to action should encourage visitors to " + stripTrailingPeriod(cta) + ".");
+  }
+
+  if (bookingMethod) {
+    parts.push("The preferred booking or contact flow is " + stripTrailingPeriod(bookingMethod.replace(/_/g, " ")) + ".");
+  }
+
+  if (phone) {
+    parts.push("The site should prominently surface the phone number " + phone + ".");
+  }
+
+  if (bookingUrl) {
+    parts.push("The site should support online booking with this URL: " + bookingUrl + ".");
+  }
+
+  if (publicEmail) {
+    parts.push("Inquiry emails can go to " + publicEmail + ".");
+  }
+
+  if (serviceArea) {
+    parts.push("The business serves " + stripTrailingPeriod(serviceArea) + ".");
+  }
+
+  if (officeAddress) {
+    parts.push("The business location or meeting point is " + stripTrailingPeriod(officeAddress) + ".");
+  }
+
   if (differentiators.length) {
     parts.push("The business stands out because of " + joinSentence(differentiators) + ".");
   }
@@ -228,10 +262,6 @@ function synthesizeStrategyBrief(state) {
   const trust = [...trustSignals, ...credibility];
   if (trust.length) {
     parts.push("Trust should be reinforced through " + joinSentence(trust) + ".");
-  }
-
-  if (cta) {
-    parts.push("The primary call to action should encourage visitors to " + stripTrailingPeriod(cta) + ".");
   }
 
   if (firstImpression) {
@@ -250,10 +280,6 @@ function synthesizeStrategyBrief(state) {
     parts.push("The visual direction should reflect " + stripTrailingPeriod(visualDirection) + ".");
   }
 
-  if (serviceArea) {
-    parts.push("The business serves " + stripTrailingPeriod(serviceArea) + ".");
-  }
-
   if (components.length) {
     parts.push("Recommended sections include " + joinSentence(components) + ".");
   }
@@ -268,7 +294,9 @@ function synthesizeStrategyBrief(state) {
     parts.push("Suggested messaging includes " + joinSentence(approvedMessaging) + ".");
   }
 
-  parts.push("Use this strategy brief to generate a polished 2026 website that feels premium and conversion-ready.");
+  parts.push(
+    "Use this strategy brief to generate a polished 2026 website that feels premium, locally credible when relevant, and conversion-ready."
+  );
 
   return parts.join(" ");
 }
@@ -286,6 +314,16 @@ function evaluateReadiness(state) {
   const audience = cleanString(state.answers?.target_audience);
   const hasOffer = Array.isArray(state.answers?.offerings) && state.answers.offerings.length > 0;
   const hasCta = cleanString(state.answers?.primary_conversion_goal);
+  const hasContactPath = Boolean(
+    cleanString(state.clientEmail) ||
+    cleanString(state.answers?.phone) ||
+    cleanString(state.answers?.booking_url)
+  );
+  const hasLocationSignal = Boolean(
+    cleanString(state.answers?.service_area) ||
+    cleanString(state.answers?.office_address) ||
+    cleanString(state.answers?.location_context)
+  );
   const diff = Array.isArray(state.answers?.differentiators) ? state.answers.differentiators.length : 0;
   const trust = Array.isArray(state.answers?.trust_signals) ? state.answers.trust_signals.length : 0;
   const cred = Array.isArray(state.answers?.credibility_factors) ? state.answers.credibility_factors.length : 0;
@@ -293,12 +331,17 @@ function evaluateReadiness(state) {
 
   if (!whyNow && !desiredOutcome) missing.push("business_purpose_or_desired_outcome");
   if (!audience) missing.push("target_audience");
+  if (!hasOffer) missing.push("primary_offer");
+  if (!hasCta) missing.push("cta_direction");
+  if (!hasContactPath) missing.push("contact_path");
 
   const scoreParts = [
     Boolean(whyNow || desiredOutcome),
     Boolean(audience),
     Boolean(hasOffer),
     Boolean(hasCta),
+    Boolean(hasContactPath),
+    Boolean(hasLocationSignal),
     Boolean(hasTrustOrDiff)
   ];
 
@@ -308,7 +351,12 @@ function evaluateReadiness(state) {
     score,
     required_domains_complete: missing.length === 0,
     missing_domains: missing,
-    can_generate_now: Boolean(whyNow || desiredOutcome)
+    can_generate_now:
+      Boolean(whyNow || desiredOutcome) &&
+      Boolean(audience) &&
+      Boolean(hasOffer) &&
+      Boolean(hasCta) &&
+      Boolean(hasContactPath)
   };
 }
 
@@ -316,6 +364,53 @@ function evaluateReadiness(state) {
 /* --------------------------------
    UTILITIES
 -------------------------------- */
+
+function normalizeState(state) {
+  const next = structuredClone(isObject(state) ? state : {});
+
+  next.answers = {
+    why_now: "",
+    desired_outcome: "",
+    primary_conversion_goal: "",
+    first_impression_goal: "",
+    target_audience: "",
+    offerings: [],
+    booking_method: "",
+    phone: "",
+    booking_url: "",
+    office_address: "",
+    differentiators: [],
+    trust_signals: [],
+    credibility_factors: [],
+    location_context: "",
+    service_area: "",
+    tone_preferences: "",
+    visual_direction: "",
+    process_notes: [],
+    faq_topics: [],
+    pricing_context: "",
+    ...(isObject(next.answers) ? next.answers : {})
+  };
+
+  next.answers.offerings = cleanList(next.answers.offerings);
+  next.answers.differentiators = cleanList(next.answers.differentiators);
+  next.answers.trust_signals = cleanList(next.answers.trust_signals);
+  next.answers.credibility_factors = cleanList(next.answers.credibility_factors);
+  next.answers.why_now = cleanString(next.answers.why_now);
+  next.answers.desired_outcome = cleanString(next.answers.desired_outcome);
+  next.answers.primary_conversion_goal = cleanString(next.answers.primary_conversion_goal);
+  next.answers.target_audience = cleanString(next.answers.target_audience);
+  next.answers.booking_method = cleanString(next.answers.booking_method);
+  next.answers.phone = cleanString(next.answers.phone);
+  next.answers.booking_url = cleanString(next.answers.booking_url);
+  next.answers.office_address = cleanString(next.answers.office_address);
+  next.answers.location_context = cleanString(next.answers.location_context);
+  next.answers.service_area = cleanString(next.answers.service_area);
+  next.clientEmail = cleanString(next.clientEmail);
+  next.businessName = cleanString(next.businessName);
+
+  return next;
+}
 
 async function readJson(req) {
   try {
