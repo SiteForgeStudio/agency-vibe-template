@@ -1,0 +1,187 @@
+{
+  "intelligence": {
+    "industry": "Photography and Videography",
+    "target_persona": "Individuals and businesses in Philadelphia and Bucks County seeking professional, modern photography and video services with cutting-edge technology.",
+    "tone_of_voice": "Friendly, professional, modern"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": false,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Modern Minimal",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Request a Quote Now",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "",
+    "secondary_cta_link": ""
+  },
+  "brand": {
+    "name": "PhotoBomb",
+    "slug": "photobomb",
+    "tagline": "Capturing Moments with Cutting-Edge Technology",
+    "email": "pb@example.com",
+    "phone": "555-555-5555",
+    "office_address": "",
+    "objection_handle": "Our advanced imaging technology and local expertise ensure stunning results tailored to your needs."
+  },
+  "hero": {
+    "headline": "Professional Photography & Video with the Latest Technology",
+    "subtext": "Serving Philadelphia and Bucks County with modern, high-quality visual storytelling.",
+    "image": {
+      "alt": "Professional photographer capturing candid moments outdoors",
+      "image_search_query": "professional photographer capturing candid moments outdoors"
+    }
+  },
+  "about": {
+    "story_text": "At PhotoBomb, we combine state-of-the-art imaging technology with local insight to deliver stunning photographs and videos. Our modern approach ensures every moment is captured with clarity and creativity, tailored to clients in Philadelphia and Bucks County.",
+    "founder_note": "We are passionate about leveraging the latest technology to create timeless visual stories that resonate deeply with our community.",
+    "years_experience": 8
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Why Choose PhotoBomb?",
+    "items": [
+      {
+        "icon": "zap",
+        "label": "Latest Imaging Technologies",
+        "sublabel": ""
+      },
+      {
+        "icon": "sparkles",
+        "label": "Photography & Video Services",
+        "sublabel": ""
+      },
+      {
+        "icon": "map",
+        "label": "Local Philadelphia & Bucks County Experts",
+        "sublabel": ""
+      },
+      {
+        "icon": "phone",
+        "label": "Responsive by Phone & Email",
+        "sublabel": ""
+      },
+      {
+        "icon": "users",
+        "label": "Trusted by Local Community",
+        "sublabel": ""
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Latest Imaging Technology",
+      "description": "We use cutting-edge cameras and editing software to ensure superior image and video quality.",
+      "icon_slug": "zap"
+    },
+    {
+      "title": "Photography and Video Services",
+      "description": "Comprehensive visual solutions including portraits, events, commercial shoots, and high-definition video production.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Local Expertise",
+      "description": "Deep knowledge of Philadelphia and Bucks County ensures we capture your moments in the perfect setting.",
+      "icon_slug": "map"
+    },
+    {
+      "title": "Flexible Booking Options",
+      "description": "Easy and responsive booking through phone or online form tailored to your schedule.",
+      "icon_slug": "phone"
+    },
+    {
+      "title": "Community Trusted",
+      "description": "Known for professionalism and responsiveness with personalized client care.",
+      "icon_slug": "users"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Our Work Portfolio",
+    "layout": "grid",
+    "show_titles": true,
+    "computed_count": 6,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Outdoor Wedding Photography",
+        "image_search_query": "bride and groom outdoor wedding photography",
+        "caption": "Capturing timeless wedding moments with natural light"
+      },
+      {
+        "title": "Corporate Headshot Session",
+        "image_search_query": "professional corporate headshot photo studio session",
+        "caption": "Clean and sharp portraits for business professionals"
+      },
+      {
+        "title": "Urban Lifestyle Shoot",
+        "image_search_query": "urban lifestyle photo shoot modern city background",
+        "caption": "Dynamic images that showcase urban personality"
+      },
+      {
+        "title": "Event Videography",
+        "image_search_query": "videographer filming corporate event indoors",
+        "caption": "High-quality video to preserve your special moments"
+      },
+      {
+        "title": "Family Portrait Session",
+        "image_search_query": "happy family outdoor photo portrait session",
+        "caption": "Warm and vibrant family memories captured beautifully"
+      },
+      {
+        "title": "Product Photography",
+        "image_search_query": "product photography studio clean background",
+        "caption": "Showcasing products with crisp, elegant images"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Get in Touch to Book Your Session",
+    "subheadline": "Call us at 555-555-5555 or send your request via email to receive a personalized quote.",
+    "email": "pb@example.com",
+    "phone": "555-555-5555",
+    "email_recipient": "pb@example.com",
+    "button_text": "Request a Quote",
+    "office_address": ""
+  }
+}
