@@ -1,0 +1,175 @@
+{
+  "intelligence": {
+    "industry": "Lawn Care and Landscaping",
+    "target_persona": "Homeowners in Doylestown seeking reliable and professional lawn cutting and edging services",
+    "tone_of_voice": "Friendly, trustworthy, and straightforward with emphasis on reliability and local expertise"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Zenith Earth",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "Testimonials",
+        "path": "#testimonials"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Call Now for a Free Estimate",
+    "cta_link": "tel:555-555-5555",
+    "cta_type": "external",
+    "secondary_cta_text": "Request a Callback",
+    "secondary_cta_link": "#contact"
+  },
+  "brand": {
+    "name": "Larry Lawn Service",
+    "slug": "larry-lawn-service",
+    "tagline": "Your Trusted Lawn Care Experts in Doylestown",
+    "email": "contact@larrylawnservice.com",
+    "phone": "555-555-5555",
+    "office_address": "Doylestown, PA",
+    "objection_handle": "We offer free estimates and fully insured professional service to ensure peace of mind."
+  },
+  "hero": {
+    "headline": "Professional Lawn Cutting & Edging in Doylestown",
+    "subtext": "Reliable, friendly service with premium equipment for a perfectly manicured lawn every time.",
+    "image": {
+      "alt": "Well-maintained green lawn with fresh edging",
+      "image_search_query": "well maintained green lawn fresh lawn edging"
+    }
+  },
+  "about": {
+    "story_text": "Larry Lawn Service is a locally owned business specializing in high-quality lawn cutting and edging services. With 4 years of experience and professional X-Mark equipment, we bring precision and care to every lawn in Doylestown and the surrounding areas.",
+    "founder_note": "Hi, I?m Larry. I started this service to help my neighbors keep their lawns looking their best with reliable, friendly service you can trust.",
+    "years_experience": 4
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Why Homeowners in Doylestown Trust Larry Lawn Service",
+    "items": [
+      {
+        "icon": "shield",
+        "label": "Fully Insured",
+        "sublabel": "Professional coverage for your peace of mind"
+      },
+      {
+        "icon": "check",
+        "label": "Consistent Friendly Service",
+        "sublabel": "Reliable and courteous team every visit"
+      },
+      {
+        "icon": "award",
+        "label": "Locally Trusted",
+        "sublabel": "Serving Doylestown homeowners with pride"
+      },
+      {
+        "icon": "check",
+        "label": "Free Estimates",
+        "sublabel": "Transparent pricing before you commit"
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Precision Lawn Cutting",
+      "description": "Expert lawn cutting using professional X-Mark equipment ensures a clean, precise finish every time.",
+      "icon_slug": "scissors"
+    },
+    {
+      "title": "Expert Edging",
+      "description": "Sharp, crisp edging around walkways and flowerbeds for a polished and attractive lawn appearance.",
+      "icon_slug": "layers"
+    },
+    {
+      "title": "Locally Trusted Service",
+      "description": "Proudly serving Doylestown with consistent, friendly, and fully insured lawn care solutions.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Free Estimates",
+      "description": "No-obligation free estimates to help you plan your lawn care needs with transparency and ease.",
+      "icon_slug": "check"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Our Work Speaks for Itself",
+    "layout": "grid",
+    "show_titles": false,
+    "computed_count": 6,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Freshly Cut Lawn with Edging",
+        "image_search_query": "freshly cut green lawn edging detail"
+      },
+      {
+        "title": "Lawn Care Equipment in Use",
+        "image_search_query": "professional lawn care equipment outdoor use"
+      },
+      {
+        "title": "Man Trimming Lawn Edges",
+        "image_search_query": "man trimming lawn edges with tools"
+      },
+      {
+        "title": "Neighborhood Lawn Maintained",
+        "image_search_query": "well maintained neighborhood green lawn"
+      },
+      {
+        "title": "Close Up Lawn Edging Detail",
+        "image_search_query": "close up lawn edging clean cut"
+      },
+      {
+        "title": "Smiling Lawn Care Technician",
+        "image_search_query": "friendly lawn care technician outdoors"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Get Your Lawn Looking Its Best Today",
+    "subheadline": "Call Larry Lawn Service now at 555-555-5555 for your free estimate and expert lawn care.",
+    "email": "contact@larrylawnservice.com",
+    "phone": "555-555-5555",
+    "email_recipient": "contact@larrylawnservice.com",
+    "button_text": "Call Now",
+    "office_address": "Doylestown, PA"
+  }
+}
