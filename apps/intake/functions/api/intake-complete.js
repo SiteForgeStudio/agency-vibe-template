@@ -1,3 +1,5 @@
+import { runStrategyInferencePass } from "./intake-strategy.js";
+
 /**
  * intake-complete.js
  *
@@ -5,6 +7,7 @@
  *
  * Purpose:
  * - validate intake state
+ * - run final strategy inference
  * - synthesize strategy brief
  * - call existing /api/generate
  * - call existing /api/submit
@@ -30,14 +33,16 @@ export async function onRequestPost(context) {
       return json({ ok: false, error: "Missing businessName in state" }, 400);
     }
 
-    const readiness = evaluateReadiness(state);
+    const strengthenedState = await runStrategyInferencePass(context.env, state);
+
+    const readiness = evaluateReadiness(strengthenedState);
 
     if (!force && !readiness.can_generate_now) {
       const hasSomeStrategy =
-        cleanString(state.answers?.why_now) ||
-        cleanString(state.answers?.desired_outcome) ||
-        cleanString(state.answers?.target_audience) ||
-        (Array.isArray(state.answers?.offerings) && state.answers.offerings.length);
+        cleanString(strengthenedState.answers?.why_now) ||
+        cleanString(strengthenedState.answers?.desired_outcome) ||
+        cleanString(strengthenedState.answers?.target_audience) ||
+        (Array.isArray(strengthenedState.answers?.offerings) && strengthenedState.answers.offerings.length);
 
       if (!hasSomeStrategy) {
         return json({
@@ -49,7 +54,7 @@ export async function onRequestPost(context) {
       }
     }
 
-    const strategyBrief = synthesizeStrategyBrief(state);
+    const strategyBrief = synthesizeStrategyBrief(strengthenedState);
 
     const generatePayload = {
       businessName,
@@ -76,6 +81,7 @@ export async function onRequestPost(context) {
       ok: true,
       session_id: sessionId,
       readiness,
+      strengthened_state: strengthenedState,
       strategy_brief: strategyBrief,
       generated: generateResponse,
       submitted: submitResponse,
