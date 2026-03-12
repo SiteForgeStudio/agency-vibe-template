@@ -1,0 +1,187 @@
+{
+  "intelligence": {
+    "industry": "Window Washing and Exterior Cleaning Services",
+    "target_persona": "Homeowners and local property managers in Ocean City, NJ and surrounding beach towns seeking professional, reliable, and insured window washing services.",
+    "tone_of_voice": "Friendly, professional, and trustworthy"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Legacy Professional",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Testimonials",
+        "path": "#testimonials"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Request Your Free Quote",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "",
+    "secondary_cta_link": ""
+  },
+  "brand": {
+    "name": "Window Washing Wizard",
+    "slug": "window-washing-wizard",
+    "tagline": "Crystal Clear Windows, Local Expertise.",
+    "email": "www@example.com",
+    "phone": "555-555-5555",
+    "office_address": "Ocean City, NJ",
+    "objection_handle": "We guarantee timely, professional service with OSHA-approved equipment, fully insured and licensed for complete peace of mind."
+  },
+  "hero": {
+    "headline": "Professional Window Washing in Ocean City, NJ",
+    "subtext": "Fast, reliable, and insured window cleaning for homes and properties?starting at $350 for 2 story homes.",
+    "image": {
+      "alt": "Professional window washer cleaning sparkling home windows by the beach",
+      "image_search_query": "window washer cleaning sparkling windows beach home"
+    }
+  },
+  "about": {
+    "story_text": "Window Washing Wizard is a locally owned and operated business serving Ocean City, NJ and surrounding beach towns. We pride ourselves on fast, professional service using OSHA-approved equipment. Fully insured and licensed, we guarantee timely work and transparent pricing.",
+    "founder_note": "As the founder, I am committed to delivering crystal clear windows with dependable service you can trust. Your satisfaction is our priority.",
+    "years_experience": 10
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Why Choose Window Washing Wizard?",
+    "items": [
+      {
+        "icon": "shield",
+        "label": "Fully Licensed & Insured",
+        "sublabel": ""
+      },
+      {
+        "icon": "hammer",
+        "label": "OSHA-Approved Equipment",
+        "sublabel": ""
+      },
+      {
+        "icon": "clock",
+        "label": "Timely & Dependable",
+        "sublabel": ""
+      },
+      {
+        "icon": "coins",
+        "label": "Transparent Pricing",
+        "sublabel": ""
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Fast & Reliable Service",
+      "description": "We respect your time with prompt arrivals and efficient window cleaning.",
+      "icon_slug": "clock"
+    },
+    {
+      "title": "Fully Licensed & Insured",
+      "description": "Our team uses OSHA-approved equipment and holds full licensing and insurance for your peace of mind.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Transparent Pricing",
+      "description": "Clear, upfront pricing starting at $350 for 2-story homes with no hidden fees.",
+      "icon_slug": "coins"
+    },
+    {
+      "title": "Local Expertise",
+      "description": "Proudly serving Ocean City and nearby beach communities with trusted local knowledge.",
+      "icon_slug": "map"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Our Work in Action",
+    "layout": "grid",
+    "show_titles": true,
+    "computed_count": 6,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Sparkling Residential Windows",
+        "image_search_query": "sparkling clean residential windows exterior beach home",
+        "caption": "Bright and spotless windows on a local beach property",
+        "tag": "residential"
+      },
+      {
+        "title": "Clear Commercial Windows",
+        "image_search_query": "commercial building window cleaning professional cleaner outside",
+        "caption": "Professional window cleaning on a commercial property",
+        "tag": "commercial"
+      },
+      {
+        "title": "High Reach Window Washing",
+        "image_search_query": "worker washing high reach windows safety equipment",
+        "caption": "Using OSHA-approved equipment to safely clean high windows",
+        "tag": "safety"
+      },
+      {
+        "title": "Before and After Window Cleaning",
+        "image_search_query": "before and after window cleaning transformation home windows",
+        "caption": "Dramatic difference from our expert window washing",
+        "tag": "transformation"
+      },
+      {
+        "title": "Team at Work",
+        "image_search_query": "professional window cleaning team working on site",
+        "caption": "Our skilled team delivering fast and friendly service",
+        "tag": "team"
+      },
+      {
+        "title": "Local Beach Town Scenery",
+        "image_search_query": "ocean city nj beach town window cleaning service",
+        "caption": "Beautiful local scenery where we proudly serve",
+        "tag": "local"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Get Your Windows Crystal Clear Today",
+    "subheadline": "Contact us by phone or email to request your free, no-obligation quote.",
+    "email": "www@example.com",
+    "phone": "555-555-5555",
+    "email_recipient": "www@example.com",
+    "button_text": "Request a Quote",
+    "office_address": "Ocean City, NJ"
+  }
+}
