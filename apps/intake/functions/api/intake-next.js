@@ -6,9 +6,10 @@
  *
  * Goals:
  * - keep the factory schema stable
- * - make the interviewer feel like a domain expert
+ * - make the interviewer feel more domain-expert
  * - merge both state_updates and inference_updates
- * - use a dynamic specialist profile to ask better next questions
+ * - use a live specialist profile to drive question phrasing
+ * - keep readiness strict and deterministic
  */
 
 import {
@@ -56,6 +57,7 @@ export async function onRequestPost(context) {
     let mergedState = mergeControllerResponse(baseState, controllerResponse);
     mergedState = normalizeState(mergedState);
 
+    mergedState.provenance = isObject(mergedState.provenance) ? mergedState.provenance : {};
     mergedState.provenance.specialist_profile = specialistProfile;
 
     mergedState = applyHeuristicAnswerUpdates(
@@ -69,7 +71,11 @@ export async function onRequestPost(context) {
     const readiness = evaluateReadiness(mergedState);
     mergedState.readiness = readiness;
 
-    const guidedStep = getGuidedNextStep(mergedState, readiness, specialistProfile);
+    const guidedStep = getGuidedNextStep(
+      mergedState,
+      readiness,
+      specialistProfile
+    );
 
     const phase =
       guidedStep.phase ||
@@ -81,7 +87,7 @@ export async function onRequestPost(context) {
 
     const message =
       guidedStep.message ||
-      normalizeControllerMessage(controllerResponse.message, phase);
+      normalizeControllerMessage(controllerResponse.message);
 
     const action =
       guidedStep.action ||
@@ -174,7 +180,6 @@ async function ensureSpecialistProfile(env, state, latestUserMessage) {
   }
 
   const generated = await generateSpecialistProfile(env, state, latestUserMessage);
-
   return normalizeSpecialistProfile(generated);
 }
 
@@ -186,20 +191,20 @@ function isUsableSpecialistProfile(profile, state, latestUserMessage) {
 
   if (!hasProfile) return false;
 
-  const currentBusiness = [
+  const currentBasis = [
     cleanString(state?.businessName),
     cleanString(state?.answers?.target_audience),
     cleanString(state?.answers?.desired_outcome),
     cleanList(state?.answers?.offerings).join(", "),
     cleanString(latestUserMessage)
-  ].join(" | ");
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   const priorBasis = cleanString(profile.profile_basis);
-
   if (!priorBasis) return true;
 
-  const overlap = fuzzyOverlap(priorBasis, currentBusiness);
-  return overlap >= 0.35;
+  return fuzzyOverlap(priorBasis, currentBasis) >= 0.35;
 }
 
 async function generateSpecialistProfile(env, state, latestUserMessage) {
@@ -307,7 +312,7 @@ Additional instructions:
 - Keep mapping answers into the universal schema.
 - Prefer domain-relevant wording instead of generic wording.
 - Do not turn the interview into a rigid template.
-- If the business appears visually driven, portfolio-driven, location-driven, or consultation-driven, reflect that in how you ask.
+- If the business is visual, regulated, local, consultation-led, booking-led, or product-led, reflect that in how you ask.
 `.trim();
 }
 
@@ -376,6 +381,31 @@ function heuristicSpecialistProfile(state, latestUserMessage) {
       "portfolio category to feature first",
       "inquiry versus booking flow",
       "shooting locations or travel area"
+    ];
+  } else if (containsAny(corpus, ["dispensary", "cannabis", "marijuana"])) {
+    category = "cannabis dispensary";
+    archetype = "regulated local retail";
+    siteMotion = "education plus local conversion";
+    conversionModel = "contact, visit, or ordering guidance";
+    proofModel = "trust, compliance, education, and local credibility";
+    expertiseLens = "digital strategy for regulated retail cannabis businesses";
+    componentCandidates = [
+      "Hero with local positioning and trust",
+      "Medical and recreational pathways",
+      "Product category overview",
+      "Education or resource section",
+      "FAQ with policy and eligibility answers",
+      "Location and hours",
+      "Trust and compliance section",
+      "Promotions or loyalty highlights",
+      "Contact section"
+    ];
+    unknowns = [
+      "medical versus recreational emphasis",
+      "first-time versus repeat customer fit",
+      "product category emphasis",
+      "policy and eligibility questions customers ask",
+      "local proof and compliance trust signals"
     ];
   } else if (containsAny(corpus, ["tour", "charter", "boat", "guide", "excursion", "activity"])) {
     category = "tour or activity";
@@ -545,6 +575,8 @@ function seedInferenceFromSpecialistProfile(state, specialistProfile) {
 
     if (lens.includes("photography")) {
       next.inference.suggested_vibe = "Visual, polished, and trust-building";
+    } else if (lens.includes("cannabis")) {
+      next.inference.suggested_vibe = "Trustworthy, welcoming, and education-forward";
     } else if (lens.includes("tour")) {
       next.inference.suggested_vibe = "Energetic, experience-led, and confidence-building";
     } else if (lens.includes("local service")) {
@@ -576,7 +608,7 @@ function mergeControllerResponse(existing, controllerResponse) {
   const next = structuredClone(existing);
 
   if (isObject(controllerResponse?.state_updates)) {
-    nextStateMerge(next, controllerResponse.state_updates);
+    mergeTopLevel(next, controllerResponse.state_updates);
   }
 
   if (isObject(controllerResponse?.inference_updates)) {
@@ -589,7 +621,7 @@ function mergeControllerResponse(existing, controllerResponse) {
   return next;
 }
 
-function nextStateMerge(target, updates) {
+function mergeTopLevel(target, updates) {
   Object.keys(updates).forEach(function(key) {
     const val = updates[key];
 
@@ -849,11 +881,7 @@ function getGuidedNextStep(state, readiness, specialistProfile) {
       message: createQuestionMessage(
         buildDomainAwareQuestion("business_purpose_or_desired_outcome", specialistProfile, state),
         "capture_business_purpose",
-        [
-          { label: "Get more leads", action: "quick_reply" },
-          { label: "Make booking easier", action: "quick_reply" },
-          { label: "Look more professional", action: "quick_reply" }
-        ]
+        buildIntentQuickReplies(specialistProfile)
       )
     };
   }
@@ -864,7 +892,8 @@ function getGuidedNextStep(state, readiness, specialistProfile) {
       phase: "business_understanding",
       message: createQuestionMessage(
         buildDomainAwareQuestion("target_audience", specialistProfile, state),
-        "capture_target_audience"
+        "capture_target_audience",
+        buildAudienceQuickReplies(specialistProfile)
       )
     };
   }
@@ -875,7 +904,8 @@ function getGuidedNextStep(state, readiness, specialistProfile) {
       phase: "business_understanding",
       message: createQuestionMessage(
         buildDomainAwareQuestion("primary_offer", specialistProfile, state),
-        "capture_primary_offer"
+        "capture_primary_offer",
+        buildOfferQuickReplies(specialistProfile)
       )
     };
   }
@@ -898,12 +928,13 @@ function getGuidedNextStep(state, readiness, specialistProfile) {
       phase: "guided_enrichment",
       message: createQuestionMessage(
         buildDomainAwareQuestion("booking_method", specialistProfile, state),
-        "capture_booking_method"
+        "capture_booking_method",
+        buildBookingMethodQuickReplies(specialistProfile)
       )
     };
   }
 
-  if (!hasContactPath(state) && !contactPreference) {
+  if (!hasContactPath(state) && !contactPreference && bookingMethod !== "contact_form") {
     return {
       action: "probe",
       phase: "guided_enrichment",
@@ -958,9 +989,15 @@ function getGuidedNextStep(state, readiness, specialistProfile) {
       phase: "final_review",
       message: createQuestionMessage(
         buildDomainAwareQuestion("trust_or_differentiation", specialistProfile, state),
-        "capture_trust_or_differentiation"
+        "capture_trust_or_differentiation",
+        buildTrustQuickReplies(specialistProfile)
       )
     };
+  }
+
+  const enrichment = getSpecialistEnrichmentQuestion(state, specialistProfile);
+  if (enrichment) {
+    return enrichment;
   }
 
   if (readiness.can_generate_now) {
@@ -987,6 +1024,73 @@ function getGuidedNextStep(state, readiness, specialistProfile) {
   };
 }
 
+function getSpecialistEnrichmentQuestion(state, specialistProfile) {
+  const category = cleanString(specialistProfile?.category_guess).toLowerCase();
+  const answers = state.answers || {};
+  const faqTopics = cleanList(answers.faq_topics);
+
+  if (
+    category.includes("photography") &&
+    !cleanString(answers.visual_direction)
+  ) {
+    return {
+      action: "probe",
+      phase: "final_review",
+      message: createQuestionMessage(
+        "What should the site feel like visually — editorial, artistic, luxurious, warm, documentary, modern, or something else?",
+        "capture_visual_direction",
+        [
+          { label: "Editorial", action: "quick_reply" },
+          { label: "Artistic", action: "quick_reply" },
+          { label: "Luxurious", action: "quick_reply" },
+          { label: "Warm", action: "quick_reply" }
+        ]
+      )
+    };
+  }
+
+  if (
+    category.includes("cannabis") &&
+    faqTopics.length === 0
+  ) {
+    return {
+      action: "probe",
+      phase: "final_review",
+      message: createQuestionMessage(
+        "What do customers most often need explained before they visit or contact you — medical vs recreational, ID rules, store policies, product guidance, or something else?",
+        "capture_faq_topics",
+        [
+          { label: "Medical vs recreational", action: "quick_reply" },
+          { label: "ID or age requirements", action: "quick_reply" },
+          { label: "Store policies", action: "quick_reply" },
+          { label: "Product guidance", action: "quick_reply" }
+        ]
+      )
+    };
+  }
+
+  if (
+    category.includes("local service") &&
+    !cleanString(answers.first_impression_goal)
+  ) {
+    return {
+      action: "probe",
+      phase: "final_review",
+      message: createQuestionMessage(
+        "What should the first impression be — fast and reliable, premium and polished, friendly and local, or something else?",
+        "capture_first_impression_goal",
+        [
+          { label: "Fast and reliable", action: "quick_reply" },
+          { label: "Premium and polished", action: "quick_reply" },
+          { label: "Friendly and local", action: "quick_reply" }
+        ]
+      )
+    };
+  }
+
+  return null;
+}
+
 function buildDomainAwareQuestion(field, specialistProfile, state) {
   const category = cleanString(specialistProfile?.category_guess).toLowerCase();
   const businessName = cleanString(state?.businessName);
@@ -994,6 +1098,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
   if (field === "business_purpose_or_desired_outcome") {
     if (category.includes("photography")) {
       return `For ${businessName || "your photography business"}, what do you want the site to do first — attract better-fit inquiries, look more premium, showcase your style, or something else?`;
+    }
+    if (category.includes("cannabis")) {
+      return `For ${businessName || "your dispensary"}, what should the site help with first — attract more local customers, educate first-time visitors, build trust and compliance confidence, or something else?`;
     }
     if (category.includes("tour")) {
       return `For ${businessName || "your tour business"}, what should the site help most with first — more bookings, clearer trip options, stronger trust, or something else?`;
@@ -1007,6 +1114,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
   if (field === "target_audience") {
     if (category.includes("photography")) {
       return "What kind of photography client do you most want more of — weddings, families, seniors, personal brands, events, or something else?";
+    }
+    if (category.includes("cannabis")) {
+      return "Who do you most want the site to resonate with first — medical patients, recreational shoppers, first-time visitors, repeat local customers, or someone else?";
     }
     if (category.includes("tour")) {
       return "Who is this most for — families, tourists, couples, groups, locals, or another kind of guest?";
@@ -1024,6 +1134,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
     if (category.includes("photography")) {
       return "What should the site feature first — weddings, portraits, family sessions, brand photography, events, or another signature offering?";
     }
+    if (category.includes("cannabis")) {
+      return "What should the site make clearest first — medical products, recreational options, education for new customers, promotions, or something else?";
+    }
     if (category.includes("tour")) {
       return "What are the main tours, trip types, or experiences you want featured first?";
     }
@@ -1036,6 +1149,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
   if (field === "cta_direction") {
     if (category.includes("photography")) {
       return "What should the main next step be — inquire about availability, request pricing, schedule a consultation, or book directly?";
+    }
+    if (category.includes("cannabis")) {
+      return "What should the main next step be — contact the store, get guidance, learn more about products, or something else?";
     }
     if (category.includes("consult")) {
       return "What should visitors do first — book a consultation, request a proposal, or get in touch?";
@@ -1050,6 +1166,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
     if (category.includes("photography")) {
       return "How do people usually move forward with you now — inquiry form, email, call, calendar booking, or something else?";
     }
+    if (category.includes("cannabis")) {
+      return "How do people usually reach out right now — through a form, by phone, by visiting the store, or another way?";
+    }
     if (category.includes("tour")) {
       return "How do guests usually book right now — by phone, through a booking platform, or through your site?";
     }
@@ -1059,6 +1178,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
   if (field === "contact_path") {
     if (category.includes("photography")) {
       return "What contact path should the site push most — inquiry form, email, phone, booking link, or a mix?";
+    }
+    if (category.includes("cannabis")) {
+      return "What contact path should the site make most obvious — contact form, phone, location details, or a mix?";
     }
     return "What contact path should we use on the site — your phone number, a booking link, or both?";
   }
@@ -1078,6 +1200,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
     if (category.includes("photography")) {
       return "What locations do you shoot in, or what area do you want the site to mention most clearly?";
     }
+    if (category.includes("cannabis")) {
+      return "What location should the site make obvious — city, neighborhood, nearby service area, or store region?";
+    }
     if (category.includes("tour")) {
       return "Where do tours start, or what location / service area should the site make obvious?";
     }
@@ -1087,6 +1212,9 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
   if (field === "trust_or_differentiation") {
     if (category.includes("photography")) {
       return "What usually makes clients choose you — your style, experience, personality, turnaround, publications, reviews, or something else?";
+    }
+    if (category.includes("cannabis")) {
+      return "What helps people trust you quickly — product quality, staff guidance, compliance, reviews, local reputation, or something else?";
     }
     if (category.includes("tour")) {
       return "What helps guests trust you quickly — experience, safety, reviews, local expertise, or something else?";
@@ -1100,6 +1228,80 @@ function buildDomainAwareQuestion(field, specialistProfile, state) {
   return "Tell me a little more so I can shape the next step well.";
 }
 
+function buildIntentQuickReplies(specialistProfile) {
+  const category = cleanString(specialistProfile?.category_guess).toLowerCase();
+
+  if (category.includes("photography")) {
+    return [
+      { label: "Attract better-fit inquiries", action: "quick_reply" },
+      { label: "Look more premium", action: "quick_reply" },
+      { label: "Showcase my style", action: "quick_reply" }
+    ];
+  }
+
+  if (category.includes("cannabis")) {
+    return [
+      { label: "Attract more local customers", action: "quick_reply" },
+      { label: "Educate first-time visitors", action: "quick_reply" },
+      { label: "Build trust and compliance confidence", action: "quick_reply" }
+    ];
+  }
+
+  return [
+    { label: "Get more leads", action: "quick_reply" },
+    { label: "Make booking easier", action: "quick_reply" },
+    { label: "Look more professional", action: "quick_reply" }
+  ];
+}
+
+function buildAudienceQuickReplies(specialistProfile) {
+  const category = cleanString(specialistProfile?.category_guess).toLowerCase();
+
+  if (category.includes("photography")) {
+    return [
+      { label: "Couples", action: "quick_reply" },
+      { label: "Families", action: "quick_reply" },
+      { label: "Seniors", action: "quick_reply" },
+      { label: "Brand clients", action: "quick_reply" }
+    ];
+  }
+
+  if (category.includes("cannabis")) {
+    return [
+      { label: "Medical patients", action: "quick_reply" },
+      { label: "Recreational shoppers", action: "quick_reply" },
+      { label: "First-time visitors", action: "quick_reply" },
+      { label: "Local repeat customers", action: "quick_reply" }
+    ];
+  }
+
+  return [];
+}
+
+function buildOfferQuickReplies(specialistProfile) {
+  const category = cleanString(specialistProfile?.category_guess).toLowerCase();
+
+  if (category.includes("photography")) {
+    return [
+      { label: "Weddings", action: "quick_reply" },
+      { label: "Portraits", action: "quick_reply" },
+      { label: "Family sessions", action: "quick_reply" },
+      { label: "Brand photography", action: "quick_reply" }
+    ];
+  }
+
+  if (category.includes("cannabis")) {
+    return [
+      { label: "Medical products", action: "quick_reply" },
+      { label: "Recreational products", action: "quick_reply" },
+      { label: "Education for new customers", action: "quick_reply" },
+      { label: "Promotions and loyalty", action: "quick_reply" }
+    ];
+  }
+
+  return [];
+}
+
 function buildCtaQuickReplies(specialistProfile) {
   const category = cleanString(specialistProfile?.category_guess).toLowerCase();
 
@@ -1108,6 +1310,14 @@ function buildCtaQuickReplies(specialistProfile) {
       { label: "Inquire about availability", action: "quick_reply" },
       { label: "Request pricing", action: "quick_reply" },
       { label: "Book a consultation", action: "quick_reply" }
+    ];
+  }
+
+  if (category.includes("cannabis")) {
+    return [
+      { label: "Contact us", action: "quick_reply" },
+      { label: "Get product guidance", action: "quick_reply" },
+      { label: "Learn more before visiting", action: "quick_reply" }
     ];
   }
 
@@ -1124,6 +1334,57 @@ function buildCtaQuickReplies(specialistProfile) {
     { label: "Request a quote", action: "quick_reply" },
     { label: "Book online", action: "quick_reply" }
   ];
+}
+
+function buildBookingMethodQuickReplies(specialistProfile) {
+  const category = cleanString(specialistProfile?.category_guess).toLowerCase();
+
+  if (category.includes("photography")) {
+    return [
+      { label: "Inquiry form", action: "quick_reply" },
+      { label: "Email", action: "quick_reply" },
+      { label: "Phone", action: "quick_reply" },
+      { label: "Calendar booking", action: "quick_reply" }
+    ];
+  }
+
+  if (category.includes("cannabis")) {
+    return [
+      { label: "Form", action: "quick_reply" },
+      { label: "Phone", action: "quick_reply" },
+      { label: "Store visit", action: "quick_reply" }
+    ];
+  }
+
+  return [
+    { label: "Phone", action: "quick_reply" },
+    { label: "Form", action: "quick_reply" },
+    { label: "Booking link", action: "quick_reply" }
+  ];
+}
+
+function buildTrustQuickReplies(specialistProfile) {
+  const category = cleanString(specialistProfile?.category_guess).toLowerCase();
+
+  if (category.includes("photography")) {
+    return [
+      { label: "My style", action: "quick_reply" },
+      { label: "Experience", action: "quick_reply" },
+      { label: "Reviews", action: "quick_reply" },
+      { label: "Turnaround", action: "quick_reply" }
+    ];
+  }
+
+  if (category.includes("cannabis")) {
+    return [
+      { label: "Product quality", action: "quick_reply" },
+      { label: "Knowledgeable staff", action: "quick_reply" },
+      { label: "Compliance", action: "quick_reply" },
+      { label: "Local reputation", action: "quick_reply" }
+    ];
+  }
+
+  return [];
 }
 
 function normalizeControllerMessage(message) {
@@ -1286,26 +1547,50 @@ function inferExpectedFieldFromConversation(state) {
   });
 
   const last = cleanString(lastAssistant?.content).toLowerCase();
-
   if (!last) return "";
 
-  if (last.includes("what made you decide you want a website right now") || last.includes("what should it help your business accomplish") || last.includes("what do you want the site to do first")) {
+  if (
+    last.includes("what made you decide you want a website right now") ||
+    last.includes("what should it help your business accomplish") ||
+    last.includes("what do you want the site to do first") ||
+    last.includes("what should the site help with first")
+  ) {
     return "business_purpose_or_desired_outcome";
   }
 
-  if (last.includes("who are you mainly hoping this site attracts") || last.includes("what kind of photography client") || last.includes("who is this most for")) {
+  if (
+    last.includes("who are you mainly hoping this site attracts") ||
+    last.includes("what kind of photography client") ||
+    last.includes("who is this most for") ||
+    last.includes("who do you most want the site to resonate with")
+  ) {
     return "target_audience";
   }
 
-  if (last.includes("what are the main services") || last.includes("what are the main tours") || last.includes("what should the site feature first") || last.includes("what are the main product use cases")) {
+  if (
+    last.includes("what are the main services") ||
+    last.includes("what are the main tours") ||
+    last.includes("what should the site feature first") ||
+    last.includes("what are the main product use cases") ||
+    last.includes("what should the site make clearest first")
+  ) {
     return "primary_offer";
   }
 
-  if (last.includes("what should visitors do first") || last.includes("what should the main next step be") || last.includes("what should the primary cta be")) {
+  if (
+    last.includes("what should visitors do first") ||
+    last.includes("what should the main next step be") ||
+    last.includes("what should the primary cta be")
+  ) {
     return "cta_direction";
   }
 
-  if (last.includes("how do people usually contact or book") || last.includes("how do people usually move forward with you") || last.includes("how do guests usually book")) {
+  if (
+    last.includes("how do people usually contact or book") ||
+    last.includes("how do people usually move forward with you") ||
+    last.includes("how do guests usually book") ||
+    last.includes("how do people usually reach out right now")
+  ) {
     return "booking_method";
   }
 
@@ -1321,11 +1606,21 @@ function inferExpectedFieldFromConversation(state) {
     return "booking_url";
   }
 
-  if (last.includes("what area do you serve") || last.includes("where are you based") || last.includes("what locations do you shoot in") || last.includes("where do tours start")) {
+  if (
+    last.includes("what area do you serve") ||
+    last.includes("where are you based") ||
+    last.includes("what locations do you shoot in") ||
+    last.includes("where do tours start") ||
+    last.includes("what location should the site make obvious")
+  ) {
     return "service_area";
   }
 
-  if (last.includes("what helps people trust you quickly") || last.includes("what usually makes clients choose you") || last.includes("what makes guests trust you quickly")) {
+  if (
+    last.includes("what helps people trust you quickly") ||
+    last.includes("what usually makes clients choose you") ||
+    last.includes("what makes guests trust you quickly")
+  ) {
     return "trust_or_differentiation";
   }
 
@@ -1353,6 +1648,8 @@ function normalizeBookingMethod(text) {
   if (lower.includes("phone") || lower.includes("call") || lower.includes("text")) return "phone";
   if (lower.includes("booking") || lower.includes("book") || lower.includes("link") || lower.includes("calendar")) return "online_booking";
   if (lower.includes("form")) return "contact_form";
+  if (lower.includes("email")) return "contact_form";
+  if (lower.includes("visit")) return "contact_form";
 
   return cleanString(text);
 }
@@ -1368,6 +1665,7 @@ function normalizeCta(text) {
   if (lower.includes("inquir")) return "inquire";
   if (lower.includes("demo")) return "book a demo";
   if (lower.includes("pricing")) return "request pricing";
+  if (lower.includes("learn")) return "learn more";
 
   return cleanString(text);
 }
@@ -1406,7 +1704,10 @@ function looksLikeOfferAnswer(text) {
     lower.includes("cleaning") ||
     lower.includes("washing") ||
     lower.includes("consult") ||
-    lower.includes("audit")
+    lower.includes("audit") ||
+    lower.includes("product") ||
+    lower.includes("medical") ||
+    lower.includes("recreational")
   );
 }
 
@@ -1420,7 +1721,8 @@ function looksLikeCtaAnswer(text) {
     lower.includes("contact") ||
     lower.includes("request") ||
     lower.includes("inquire") ||
-    lower.includes("demo")
+    lower.includes("demo") ||
+    lower.includes("learn")
   );
 }
 
@@ -1455,7 +1757,10 @@ function looksLikeTrustAnswer(text) {
     lower.includes("award") ||
     lower.includes("published") ||
     lower.includes("family owned") ||
-    lower.includes("locally owned")
+    lower.includes("locally owned") ||
+    lower.includes("quality") ||
+    lower.includes("friendly") ||
+    lower.includes("compliance")
   );
 }
 
