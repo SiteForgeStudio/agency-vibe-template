@@ -48,7 +48,7 @@ export async function onRequestPost(context) {
     mergedState = applyHeuristicAnswerUpdates(
       mergedState,
       latestUserMessage,
-      baseState.phase || mergedState.phase || "unknown"
+      baseState
     );
 
     const readiness = evaluateReadiness(mergedState);
@@ -239,14 +239,14 @@ function normalizeState(state) {
   return next;
 }
 
-function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
+function applyHeuristicAnswerUpdates(state, latestUserMessage, priorState) {
   const next = structuredClone(state);
   const text = cleanString(latestUserMessage);
   const lower = text.toLowerCase();
+  const priorPhase = cleanString(priorState?.phase || next.phase);
+  const expectedField = inferExpectedFieldFromConversation(priorState);
 
   if (!text) return next;
-
-  const phase = cleanString(priorPhase || next.phase);
 
   const phoneMatch = text.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/);
   if (phoneMatch && !next.answers.phone) {
@@ -269,8 +269,8 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
     } else if (
       lower.includes("call") ||
       lower.includes("phone") ||
-      lower.includes("text us") ||
-      lower.includes("text me")
+      lower.includes("text") ||
+      lower.includes("call us")
     ) {
       next.answers.booking_method = "phone";
     } else if (
@@ -287,7 +287,77 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
   }
 
   if (
-    (phase === "intent" || phase === "identity") &&
+    expectedField === "business_purpose_or_desired_outcome" &&
+    !next.answers.why_now &&
+    !next.answers.desired_outcome
+  ) {
+    next.answers.desired_outcome = text;
+    return next;
+  }
+
+  if (
+    expectedField === "target_audience" &&
+    !next.answers.target_audience
+  ) {
+    next.answers.target_audience = text;
+    return next;
+  }
+
+  if (
+    expectedField === "primary_offer" &&
+    (!Array.isArray(next.answers.offerings) || next.answers.offerings.length === 0)
+  ) {
+    next.answers.offerings = splitListAnswer(text);
+    return next;
+  }
+
+  if (
+    expectedField === "cta_direction" &&
+    !next.answers.primary_conversion_goal
+  ) {
+    next.answers.primary_conversion_goal = normalizeCta(text);
+    return next;
+  }
+
+  if (
+    expectedField === "booking_method" &&
+    !next.answers.booking_method
+  ) {
+    next.answers.booking_method = normalizeBookingMethod(text);
+    return next;
+  }
+
+  if (
+    expectedField === "contact_path"
+  ) {
+    if (!next.answers.phone && phoneMatch) {
+      next.answers.phone = phoneMatch[0].trim();
+    }
+    if (!next.answers.booking_url && urlMatch) {
+      next.answers.booking_url = normalizeUrl(urlMatch[0]);
+    }
+    return next;
+  }
+
+  if (
+    expectedField === "service_area" &&
+    !next.answers.service_area &&
+    !next.answers.office_address
+  ) {
+    next.answers.service_area = text;
+    return next;
+  }
+
+  if (
+    expectedField === "trust_or_differentiation" &&
+    !hasTrustSignal(next)
+  ) {
+    next.answers.differentiators = splitListAnswer(text);
+    return next;
+  }
+
+  if (
+    (priorPhase === "intent" || priorPhase === "identity") &&
     !next.answers.why_now &&
     !next.answers.desired_outcome
   ) {
@@ -295,7 +365,7 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
   }
 
   if (
-    phase === "business_understanding" &&
+    priorPhase === "business_understanding" &&
     !next.answers.target_audience &&
     looksLikeAudienceAnswer(text)
   ) {
@@ -303,7 +373,7 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
   }
 
   if (
-    (phase === "business_understanding" || phase === "guided_enrichment") &&
+    (priorPhase === "business_understanding" || priorPhase === "guided_enrichment") &&
     (!Array.isArray(next.answers.offerings) || next.answers.offerings.length === 0) &&
     looksLikeOfferAnswer(text)
   ) {
@@ -311,7 +381,7 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
   }
 
   if (
-    phase === "guided_enrichment" &&
+    priorPhase === "guided_enrichment" &&
     !next.answers.primary_conversion_goal &&
     looksLikeCtaAnswer(text)
   ) {
@@ -319,7 +389,7 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
   }
 
   if (
-    (phase === "guided_enrichment" || phase === "final_review") &&
+    (priorPhase === "guided_enrichment" || priorPhase === "final_review") &&
     !next.answers.service_area &&
     !next.answers.office_address &&
     looksLikeLocationAnswer(text)
@@ -328,7 +398,7 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
   }
 
   if (
-    phase === "final_review" &&
+    priorPhase === "final_review" &&
     !hasTrustSignal(next) &&
     looksLikeTrustAnswer(text)
   ) {
@@ -631,6 +701,51 @@ function buildSummaryPanel(state) {
    Utilities
 ========================= */
 
+function inferExpectedFieldFromConversation(state) {
+  const conversation = Array.isArray(state?.conversation) ? state.conversation : [];
+  const lastAssistant = [...conversation].reverse().find(function(item) {
+    return item && item.role === "assistant" && cleanString(item.content);
+  });
+
+  const last = cleanString(lastAssistant?.content).toLowerCase();
+
+  if (!last) return "";
+
+  if (last.includes("what made you decide you want a website right now") || last.includes("what should it help your business accomplish")) {
+    return "business_purpose_or_desired_outcome";
+  }
+
+  if (last.includes("who are you mainly hoping this site attracts")) {
+    return "target_audience";
+  }
+
+  if (last.includes("what are the main services") || last.includes("what are the main tours") || last.includes("what are the main offers")) {
+    return "primary_offer";
+  }
+
+  if (last.includes("what should visitors do first")) {
+    return "cta_direction";
+  }
+
+  if (last.includes("how do people usually contact or book")) {
+    return "booking_method";
+  }
+
+  if (last.includes("what contact path should we use")) {
+    return "contact_path";
+  }
+
+  if (last.includes("what area do you serve") || last.includes("where are you based")) {
+    return "service_area";
+  }
+
+  if (last.includes("what helps people trust you quickly") || last.includes("choose you over competitors")) {
+    return "trust_or_differentiation";
+  }
+
+  return "";
+}
+
 function hasContactPath(state) {
   return Boolean(getContactPath(state));
 }
@@ -669,31 +784,45 @@ function looksLikeAudienceAnswer(text) {
   const lower = cleanString(text).toLowerCase();
   return Boolean(
     lower.includes("homeowner") ||
+    lower.includes("homeowners") ||
+    lower.includes("home owner") ||
+    lower.includes("home owners") ||
     lower.includes("property manager") ||
+    lower.includes("property managers") ||
     lower.includes("family") ||
+    lower.includes("families") ||
     lower.includes("tourist") ||
+    lower.includes("tourists") ||
     lower.includes("local") ||
+    lower.includes("locals") ||
     lower.includes("business owner") ||
+    lower.includes("business owners") ||
     lower.includes("commercial") ||
     lower.includes("residential") ||
     lower.includes("customer") ||
-    lower.includes("client")
+    lower.includes("customers") ||
+    lower.includes("client") ||
+    lower.includes("clients")
   );
 }
 
 function looksLikeOfferAnswer(text) {
   const lower = cleanString(text).toLowerCase();
   if (!lower) return false;
+
   return (
     lower.includes(",") ||
     lower.includes(" and ") ||
+    lower.includes("service") ||
+    lower.includes("services") ||
     lower.includes("junk") ||
     lower.includes("removal") ||
     lower.includes("cleanout") ||
     lower.includes("hauling") ||
-    lower.includes("service") ||
     lower.includes("tour") ||
-    lower.includes("offer")
+    lower.includes("tours") ||
+    lower.includes("offer") ||
+    lower.includes("offers")
   );
 }
 
@@ -735,6 +864,7 @@ function looksLikeTrustAnswer(text) {
     lower.includes("licensed") ||
     lower.includes("insured") ||
     lower.includes("review") ||
+    lower.includes("reviews") ||
     lower.includes("trusted") ||
     lower.includes("family owned") ||
     lower.includes("locally owned")
@@ -753,13 +883,48 @@ function normalizeCta(text) {
   return cleanString(text);
 }
 
+function normalizeBookingMethod(text) {
+  const lower = cleanString(text).toLowerCase();
+
+  if (
+    lower.includes("book online") ||
+    lower.includes("booking link") ||
+    lower.includes("reserve online") ||
+    lower.includes("online booking")
+  ) {
+    return "online_booking";
+  }
+
+  if (
+    lower.includes("call") ||
+    lower.includes("phone") ||
+    lower.includes("text")
+  ) {
+    return "phone";
+  }
+
+  if (
+    lower.includes("form") ||
+    lower.includes("contact form")
+  ) {
+    return "contact_form";
+  }
+
+  return cleanString(text);
+}
+
 function splitListAnswer(text) {
-  return cleanString(text)
+  const cleaned = cleanString(text);
+  if (!cleaned) return [];
+
+  const parts = cleaned
     .split(/,|\band\b/gi)
     .map(function(part) {
       return cleanString(part);
     })
     .filter(Boolean);
+
+  return parts.length ? parts : [cleaned];
 }
 
 async function readJson(req) {
