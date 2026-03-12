@@ -44,7 +44,12 @@ export async function onRequestPost(context) {
 
     let mergedState = mergeState(baseState, controllerResponse.state_updates);
     mergedState = normalizeState(mergedState);
-    mergedState = applyHeuristicAnswerUpdates(mergedState, latestUserMessage);
+
+    mergedState = applyHeuristicAnswerUpdates(
+      mergedState,
+      latestUserMessage,
+      baseState.phase || mergedState.phase || "unknown"
+    );
 
     const readiness = evaluateReadiness(mergedState);
     mergedState.readiness = readiness;
@@ -234,11 +239,14 @@ function normalizeState(state) {
   return next;
 }
 
-function applyHeuristicAnswerUpdates(state, latestUserMessage) {
+function applyHeuristicAnswerUpdates(state, latestUserMessage, priorPhase) {
   const next = structuredClone(state);
   const text = cleanString(latestUserMessage);
+  const lower = text.toLowerCase();
 
   if (!text) return next;
+
+  const phase = cleanString(priorPhase || next.phase);
 
   const phoneMatch = text.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/);
   if (phoneMatch && !next.answers.phone) {
@@ -251,19 +259,80 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage) {
   }
 
   if (!next.answers.booking_method) {
-    const lower = text.toLowerCase();
-
-    if (lower.includes("book online") || lower.includes("booking link") || lower.includes("reserve online")) {
+    if (
+      lower.includes("book online") ||
+      lower.includes("booking link") ||
+      lower.includes("reserve online") ||
+      lower.includes("online booking")
+    ) {
       next.answers.booking_method = "online_booking";
-    } else if (lower.includes("call") || lower.includes("phone") || lower.includes("text")) {
+    } else if (
+      lower.includes("call") ||
+      lower.includes("phone") ||
+      lower.includes("text us") ||
+      lower.includes("text me")
+    ) {
       next.answers.booking_method = "phone";
-    } else if (lower.includes("form") || lower.includes("contact form")) {
+    } else if (
+      lower.includes("form") ||
+      lower.includes("contact form") ||
+      lower.includes("submit a form")
+    ) {
       next.answers.booking_method = "contact_form";
     } else if (next.answers.booking_url) {
       next.answers.booking_method = "online_booking";
     } else if (next.answers.phone) {
       next.answers.booking_method = "phone";
     }
+  }
+
+  if (
+    (phase === "intent" || phase === "identity") &&
+    !next.answers.why_now &&
+    !next.answers.desired_outcome
+  ) {
+    next.answers.desired_outcome = text;
+  }
+
+  if (
+    phase === "business_understanding" &&
+    !next.answers.target_audience &&
+    looksLikeAudienceAnswer(text)
+  ) {
+    next.answers.target_audience = text;
+  }
+
+  if (
+    (phase === "business_understanding" || phase === "guided_enrichment") &&
+    (!Array.isArray(next.answers.offerings) || next.answers.offerings.length === 0) &&
+    looksLikeOfferAnswer(text)
+  ) {
+    next.answers.offerings = splitListAnswer(text);
+  }
+
+  if (
+    phase === "guided_enrichment" &&
+    !next.answers.primary_conversion_goal &&
+    looksLikeCtaAnswer(text)
+  ) {
+    next.answers.primary_conversion_goal = normalizeCta(text);
+  }
+
+  if (
+    (phase === "guided_enrichment" || phase === "final_review") &&
+    !next.answers.service_area &&
+    !next.answers.office_address &&
+    looksLikeLocationAnswer(text)
+  ) {
+    next.answers.service_area = text;
+  }
+
+  if (
+    phase === "final_review" &&
+    !hasTrustSignal(next) &&
+    looksLikeTrustAnswer(text)
+  ) {
+    next.answers.differentiators = splitListAnswer(text);
   }
 
   return next;
@@ -296,9 +365,9 @@ function getGuidedNextStep(state, readiness) {
         "What made you decide you want a website right now, or what should it help your business accomplish first?",
         "capture_business_purpose",
         [
-          { label: "Get more leads", action: "continue" },
-          { label: "Make booking easier", action: "continue" },
-          { label: "Look more professional", action: "continue" }
+          { label: "Get more leads", action: "quick_reply" },
+          { label: "Make booking easier", action: "quick_reply" },
+          { label: "Look more professional", action: "quick_reply" }
         ]
       )
     };
@@ -309,7 +378,7 @@ function getGuidedNextStep(state, readiness) {
       action: "probe",
       phase: "business_understanding",
       message: createQuestionMessage(
-        "Who are you mainly hoping this site attracts — families, tourists, homeowners, local clients, or someone else?",
+        "Who are you mainly hoping this site attracts — homeowners, property managers, local clients, or someone else?",
         "capture_target_audience"
       )
     };
@@ -320,7 +389,7 @@ function getGuidedNextStep(state, readiness) {
       action: "probe",
       phase: "business_understanding",
       message: createQuestionMessage(
-        "What are the main services, tours, or offers you want featured first on the site?",
+        "What are the main services you want featured first on the site?",
         "capture_primary_offer"
       )
     };
@@ -334,9 +403,9 @@ function getGuidedNextStep(state, readiness) {
         "What should visitors do first when they land on the site — call you, request a quote, or book online?",
         "capture_primary_conversion_goal",
         [
-          { label: "Call us", action: "continue" },
-          { label: "Request a quote", action: "continue" },
-          { label: "Book online", action: "continue" }
+          { label: "Call us", action: "quick_reply" },
+          { label: "Request a quote", action: "quick_reply" },
+          { label: "Book online", action: "quick_reply" }
         ]
       )
     };
@@ -369,7 +438,7 @@ function getGuidedNextStep(state, readiness) {
       action: "probe",
       phase: "guided_enrichment",
       message: createQuestionMessage(
-        "What area do you serve, or where are you based? A city, region, marina, office, or meeting location is perfect.",
+        "What area do you serve, or where are you based? A city, region, office, or neighborhood is perfect.",
         "capture_service_area"
       )
     };
@@ -380,7 +449,7 @@ function getGuidedNextStep(state, readiness) {
       action: "probe",
       phase: "final_review",
       message: createQuestionMessage(
-        "What helps people trust you quickly or choose you over other options — experience, reviews, credentials, specialty, or something else?",
+        "What helps people trust you quickly or choose you over competitors — experience, fast service, reviews, pricing, or something else?",
         "capture_trust_or_differentiation"
       )
     };
@@ -594,6 +663,103 @@ function hasTrustSignal(state) {
     : 0;
 
   return diff + trust + cred > 0;
+}
+
+function looksLikeAudienceAnswer(text) {
+  const lower = cleanString(text).toLowerCase();
+  return Boolean(
+    lower.includes("homeowner") ||
+    lower.includes("property manager") ||
+    lower.includes("family") ||
+    lower.includes("tourist") ||
+    lower.includes("local") ||
+    lower.includes("business owner") ||
+    lower.includes("commercial") ||
+    lower.includes("residential") ||
+    lower.includes("customer") ||
+    lower.includes("client")
+  );
+}
+
+function looksLikeOfferAnswer(text) {
+  const lower = cleanString(text).toLowerCase();
+  if (!lower) return false;
+  return (
+    lower.includes(",") ||
+    lower.includes(" and ") ||
+    lower.includes("junk") ||
+    lower.includes("removal") ||
+    lower.includes("cleanout") ||
+    lower.includes("hauling") ||
+    lower.includes("service") ||
+    lower.includes("tour") ||
+    lower.includes("offer")
+  );
+}
+
+function looksLikeCtaAnswer(text) {
+  const lower = cleanString(text).toLowerCase();
+  return Boolean(
+    lower.includes("call") ||
+    lower.includes("quote") ||
+    lower.includes("book") ||
+    lower.includes("schedule") ||
+    lower.includes("contact") ||
+    lower.includes("request")
+  );
+}
+
+function looksLikeLocationAnswer(text) {
+  const lower = cleanString(text).toLowerCase();
+  return Boolean(
+    lower.includes("serve") ||
+    lower.includes("based in") ||
+    lower.includes("located in") ||
+    lower.includes("county") ||
+    lower.includes("city") ||
+    lower.includes("area") ||
+    lower.includes("region") ||
+    lower.includes("town") ||
+    lower.includes("neighborhood") ||
+    /\b[A-Z][a-z]+,\s?[A-Z]{2}\b/.test(text)
+  );
+}
+
+function looksLikeTrustAnswer(text) {
+  const lower = cleanString(text).toLowerCase();
+  return Boolean(
+    lower.includes("years") ||
+    lower.includes("experience") ||
+    lower.includes("fast") ||
+    lower.includes("same day") ||
+    lower.includes("licensed") ||
+    lower.includes("insured") ||
+    lower.includes("review") ||
+    lower.includes("trusted") ||
+    lower.includes("family owned") ||
+    lower.includes("locally owned")
+  );
+}
+
+function normalizeCta(text) {
+  const lower = cleanString(text).toLowerCase();
+
+  if (lower.includes("book")) return "book online";
+  if (lower.includes("quote")) return "request a quote";
+  if (lower.includes("call")) return "call";
+  if (lower.includes("schedule")) return "schedule service";
+  if (lower.includes("contact")) return "contact us";
+
+  return cleanString(text);
+}
+
+function splitListAnswer(text) {
+  return cleanString(text)
+    .split(/,|\band\b/gi)
+    .map(function(part) {
+      return cleanString(part);
+    })
+    .filter(Boolean);
 }
 
 async function readJson(req) {
