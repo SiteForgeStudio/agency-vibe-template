@@ -1,0 +1,184 @@
+{
+  "intelligence": {
+    "industry": "Boat Tours and Sightseeing Excursions",
+    "target_persona": "Families, nature lovers, and private groups seeking personalized and safe boat tours around Marco Island with an experienced local captain.",
+    "tone_of_voice": "Welcoming, knowledgeable, and approachable"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Zenith Earth",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Features",
+        "path": "#features"
+      },
+      {
+        "label": "Process",
+        "path": "#process"
+      },
+      {
+        "label": "Testimonials",
+        "path": "#testimonials"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "FAQs",
+        "path": "#faqs"
+      },
+      {
+        "label": "Service Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Book Your Tour Now",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "",
+    "secondary_cta_link": ""
+  },
+  "brand": {
+    "name": "Captain Bob Tours",
+    "slug": "captain-bob-tours",
+    "tagline": "Memorable Guided Boat Tours Around Marco Island",
+    "email": "CB@example.com",
+    "phone": "",
+    "office_address": "",
+    "objection_handle": ""
+  },
+  "hero": {
+    "headline": "Explore Marco Island's Hidden Waters with Captain Bob",
+    "subtext": "Private, family-friendly boat tours with an experienced local captain focused on safety and memorable adventures.",
+    "image": {
+      "alt": "Family enjoying a boat tour on clear coastal waters",
+      "image_search_query": "family boat tour clear coastal waters sunny day"
+    }
+  },
+  "about": {
+    "story_text": "Captain Bob Tours offers personalized and small-group guided boat tours around Marco Island. With years of experience navigating local waters, Captain Bob provides unique access to hidden natural spots, ensuring a safe and comfortable journey for families and wildlife enthusiasts alike.",
+    "founder_note": "As a lifelong resident and licensed captain, I take pride in sharing the beauty and wildlife of Marco Island with every guest, delivering unforgettable experiences tailored to your group?s needs.",
+    "years_experience": 15
+  },
+  "trustbar": {
+    "enabled": true,
+    "headline": "Trusted by Local and Visiting Guests",
+    "items": [
+      {
+        "icon": "shield",
+        "label": "Licensed & Insured Captain",
+        "sublabel": ""
+      },
+      {
+        "icon": "star",
+        "label": "Highly Rated by Guests",
+        "sublabel": ""
+      },
+      {
+        "icon": "clock",
+        "label": "15+ Years Local Experience",
+        "sublabel": ""
+      },
+      {
+        "icon": "users",
+        "label": "Locally Owned and Operated",
+        "sublabel": ""
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Experienced Local Captain",
+      "description": "Navigate with confidence under the guidance of a licensed and knowledgeable local expert.",
+      "icon_slug": "shield"
+    },
+    {
+      "title": "Personalized Small-Group Tours",
+      "description": "Enjoy an intimate, customized tour designed to match your interests and pace.",
+      "icon_slug": "users"
+    },
+    {
+      "title": "Wildlife & Nature Sightseeing",
+      "description": "Discover unique access to hidden spots teeming with diverse wildlife and stunning views.",
+      "icon_slug": "leaf"
+    },
+    {
+      "title": "Family-Friendly Adventures",
+      "description": "Safe and comfortable trips that create lasting memories for visitors of all ages.",
+      "icon_slug": "heart"
+    },
+    {
+      "title": "Focus on Safety and Comfort",
+      "description": "We prioritize your safety with licensed operation and well-maintained boats for a worry-free tour.",
+      "icon_slug": "check"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Discover the Sights on Our Tours",
+    "layout": "grid",
+    "show_titles": true,
+    "computed_count": 6,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Dolphins Swimming Near Boat",
+        "image_search_query": "dolphins swimming near boat clear water"
+      },
+      {
+        "title": "Sunset Boat Tour Over Water",
+        "image_search_query": "sunset boat tour calm sea golden sky"
+      },
+      {
+        "title": "Family Spotting Birds on Tour",
+        "image_search_query": "family watching birds on boat tour"
+      },
+      {
+        "title": "Captain Steering Boat for Guests",
+        "image_search_query": "captain steering boat with guests smiling"
+      },
+      {
+        "title": "Mangrove Wildlife Exploration Tour",
+        "image_search_query": "boat tour exploring mangrove wildlife area"
+      },
+      {
+        "title": "Group Enjoying Private Boat Excursion",
+        "image_search_query": "group enjoying private boat excursion sunny day"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Ready to Book Your Marco Island Adventure?",
+    "subheadline": "Contact Captain Bob Tours today and secure your spot for a memorable boat tour.",
+    "email": "CB@example.com",
+    "phone": "",
+    "email_recipient": "CB@example.com",
+    "button_text": "Book Online",
+    "office_address": ""
+  }
+}
