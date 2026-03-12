@@ -56,13 +56,26 @@ export async function onRequestPost(context) {
 
     const guidedStep = getGuidedNextStep(mergedState, readiness);
 
-    const phase = guidedStep.phase || controllerResponse.phase || mergedState.phase || "guided_enrichment";
+    const phase =
+      guidedStep.phase ||
+      controllerResponse.phase ||
+      mergedState.phase ||
+      "guided_enrichment";
+
     mergedState.phase = phase;
 
-    const message = guidedStep.message || normalizeControllerMessage(controllerResponse.message, phase);
-    const action = guidedStep.action || normalizeAction(controllerResponse.action, readiness);
+    const message =
+      guidedStep.message ||
+      normalizeControllerMessage(controllerResponse.message, phase);
 
-    mergedState.conversation = Array.isArray(mergedState.conversation) ? mergedState.conversation : [];
+    const action =
+      guidedStep.action ||
+      normalizeAction(controllerResponse.action, readiness);
+
+    mergedState.conversation = Array.isArray(mergedState.conversation)
+      ? mergedState.conversation
+      : [];
+
     mergedState.conversation.push({
       role: "user",
       content: latestUserMessage
@@ -94,7 +107,6 @@ export async function onRequestPost(context) {
     );
   }
 }
-
 
 /* =========================
    OpenAI Controller Call
@@ -138,7 +150,6 @@ async function callController(env, userPrompt) {
     throw new Error("Controller returned invalid JSON");
   }
 }
-
 
 /* =========================
    State Handling
@@ -209,6 +220,8 @@ function normalizeState(state) {
     ...(isObject(next.ghostwritten) ? next.ghostwritten : {})
   };
 
+  next.provenance = isObject(next.provenance) ? next.provenance : {};
+
   next.answers.offerings = cleanList(next.answers.offerings);
   next.answers.differentiators = cleanList(next.answers.differentiators);
   next.answers.trust_signals = cleanList(next.answers.trust_signals);
@@ -249,165 +262,127 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorState) {
   if (!text) return next;
 
   const phoneMatch = text.match(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/);
+  const urlMatch = text.match(/https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9.-]+\.(?:com|net|org|co|io|ai|app|travel|tours|guide|info|biz)(?:\/[^\s]*)?/i);
+
   if (phoneMatch && !next.answers.phone) {
     next.answers.phone = phoneMatch[0].trim();
   }
 
-  const urlMatch = text.match(/https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9.-]+\.(?:com|net|org|co|io|ai|app|travel|tours|guide|info|biz)(?:\/[^\s]*)?/i);
   if (urlMatch && !next.answers.booking_url) {
     next.answers.booking_url = normalizeUrl(urlMatch[0]);
   }
 
-  if (!next.answers.booking_method) {
-    if (
-      lower.includes("book online") ||
-      lower.includes("booking link") ||
-      lower.includes("reserve online") ||
-      lower.includes("online booking")
-    ) {
-      next.answers.booking_method = "online_booking";
-    } else if (
-      lower.includes("call") ||
-      lower.includes("phone") ||
-      lower.includes("text") ||
-      lower.includes("call us")
-    ) {
-      next.answers.booking_method = "phone";
-    } else if (
-      lower.includes("form") ||
-      lower.includes("contact form") ||
-      lower.includes("submit a form")
-    ) {
-      next.answers.booking_method = "contact_form";
-    } else if (next.answers.booking_url) {
-      next.answers.booking_method = "online_booking";
-    } else if (next.answers.phone) {
-      next.answers.booking_method = "phone";
+  if (expectedField === "business_purpose_or_desired_outcome") {
+    if (!next.answers.why_now && !next.answers.desired_outcome) {
+      next.answers.desired_outcome = text;
     }
-  }
-
-  if (
-    expectedField === "business_purpose_or_desired_outcome" &&
-    !next.answers.why_now &&
-    !next.answers.desired_outcome
-  ) {
-    next.answers.desired_outcome = text;
     return next;
   }
 
-  if (
-    expectedField === "target_audience" &&
-    !next.answers.target_audience
-  ) {
-    next.answers.target_audience = text;
+  if (expectedField === "target_audience") {
+    if (!next.answers.target_audience) {
+      next.answers.target_audience = text;
+    }
     return next;
   }
 
-  if (
-    expectedField === "primary_offer" &&
-    (!Array.isArray(next.answers.offerings) || next.answers.offerings.length === 0)
-  ) {
-    next.answers.offerings = splitListAnswer(text);
+  if (expectedField === "primary_offer") {
+    if (!next.answers.offerings.length) {
+      next.answers.offerings = splitListAnswer(text);
+    }
     return next;
   }
 
-  if (
-    expectedField === "cta_direction" &&
-    !next.answers.primary_conversion_goal
-  ) {
-    next.answers.primary_conversion_goal = normalizeCta(text);
+  if (expectedField === "cta_direction") {
+    if (!next.answers.primary_conversion_goal) {
+      next.answers.primary_conversion_goal = normalizeCta(text);
+    }
     return next;
   }
 
-  if (
-    expectedField === "booking_method" &&
-    !next.answers.booking_method
-  ) {
-    next.answers.booking_method = normalizeBookingMethod(text);
+  if (expectedField === "booking_method") {
+    if (!next.answers.booking_method) {
+      next.answers.booking_method = normalizeBookingMethod(text);
+    }
     return next;
   }
 
-  if (
-    expectedField === "contact_path"
-  ) {
-    if (!next.answers.phone && phoneMatch) {
+  if (expectedField === "contact_path") {
+    const preference = normalizeContactPreference(text);
+
+    if (preference) {
+      next.provenance.contact_path_preference = preference;
+
+      if (preference === "phone") {
+        next.answers.booking_method = "phone";
+      } else if (preference === "booking_url") {
+        next.answers.booking_method = "online_booking";
+      } else if (preference === "both") {
+        next.answers.booking_method = "phone_and_online_booking";
+      }
+    }
+
+    if (phoneMatch) {
       next.answers.phone = phoneMatch[0].trim();
     }
-    if (!next.answers.booking_url && urlMatch) {
+
+    if (urlMatch) {
       next.answers.booking_url = normalizeUrl(urlMatch[0]);
+    }
+
+    return next;
+  }
+
+  if (expectedField === "phone_number") {
+    if (phoneMatch) {
+      next.answers.phone = phoneMatch[0].trim();
+    } else if (!next.answers.phone) {
+      next.provenance.awaiting_phone_number = true;
     }
     return next;
   }
 
-  if (
-    expectedField === "service_area" &&
-    !next.answers.service_area &&
-    !next.answers.office_address
-  ) {
-    next.answers.service_area = text;
+  if (expectedField === "booking_url") {
+    if (urlMatch) {
+      next.answers.booking_url = normalizeUrl(urlMatch[0]);
+    } else if (!next.answers.booking_url) {
+      next.provenance.awaiting_booking_url = true;
+    }
     return next;
   }
 
-  if (
-    expectedField === "trust_or_differentiation" &&
-    !hasTrustSignal(next)
-  ) {
-    next.answers.differentiators = splitListAnswer(text);
+  if (expectedField === "service_area") {
+    if (!next.answers.service_area && !next.answers.office_address) {
+      next.answers.service_area = text;
+    }
     return next;
   }
 
-  if (
-    (priorPhase === "intent" || priorPhase === "identity") &&
-    !next.answers.why_now &&
-    !next.answers.desired_outcome
-  ) {
+  if (expectedField === "trust_or_differentiation") {
+    if (!hasTrustSignal(next)) {
+      next.answers.differentiators = splitListAnswer(text);
+    }
+    return next;
+  }
+
+  if ((priorPhase === "intent" || priorPhase === "identity") && !next.answers.why_now && !next.answers.desired_outcome) {
     next.answers.desired_outcome = text;
   }
 
-  if (
-    priorPhase === "business_understanding" &&
-    !next.answers.target_audience &&
-    looksLikeAudienceAnswer(text)
-  ) {
+  if (priorPhase === "business_understanding" && !next.answers.target_audience) {
     next.answers.target_audience = text;
   }
 
-  if (
-    (priorPhase === "business_understanding" || priorPhase === "guided_enrichment") &&
-    (!Array.isArray(next.answers.offerings) || next.answers.offerings.length === 0) &&
-    looksLikeOfferAnswer(text)
-  ) {
+  if ((priorPhase === "business_understanding" || priorPhase === "guided_enrichment") && !next.answers.offerings.length && looksLikeOfferAnswer(text)) {
     next.answers.offerings = splitListAnswer(text);
   }
 
-  if (
-    priorPhase === "guided_enrichment" &&
-    !next.answers.primary_conversion_goal &&
-    looksLikeCtaAnswer(text)
-  ) {
+  if (priorPhase === "guided_enrichment" && !next.answers.primary_conversion_goal && looksLikeCtaAnswer(text)) {
     next.answers.primary_conversion_goal = normalizeCta(text);
-  }
-
-  if (
-    (priorPhase === "guided_enrichment" || priorPhase === "final_review") &&
-    !next.answers.service_area &&
-    !next.answers.office_address &&
-    looksLikeLocationAnswer(text)
-  ) {
-    next.answers.service_area = text;
-  }
-
-  if (
-    priorPhase === "final_review" &&
-    !hasTrustSignal(next) &&
-    looksLikeTrustAnswer(text)
-  ) {
-    next.answers.differentiators = splitListAnswer(text);
   }
 
   return next;
 }
-
 
 /* =========================
    Guided Question Flow
@@ -415,6 +390,8 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, priorState) {
 
 function getGuidedNextStep(state, readiness) {
   const answers = state.answers || {};
+  const contactPreference = cleanString(state.provenance?.contact_path_preference);
+  const bookingMethod = cleanString(answers.booking_method);
 
   if (!cleanString(state.businessName)) {
     return {
@@ -481,7 +458,7 @@ function getGuidedNextStep(state, readiness) {
     };
   }
 
-  if (!cleanString(answers.booking_method)) {
+  if (!bookingMethod) {
     return {
       action: "probe",
       phase: "guided_enrichment",
@@ -492,13 +469,40 @@ function getGuidedNextStep(state, readiness) {
     };
   }
 
-  if (!hasContactPath(state)) {
+  if (!hasContactPath(state) && !contactPreference) {
     return {
       action: "probe",
       phase: "guided_enrichment",
       message: createQuestionMessage(
         "What contact path should we use on the site — your phone number, a booking link, or both?",
-        "capture_contact_path"
+        "capture_contact_path",
+        [
+          { label: "Phone number", action: "quick_reply" },
+          { label: "Booking link", action: "quick_reply" },
+          { label: "Both", action: "quick_reply" }
+        ]
+      )
+    };
+  }
+
+  if (needsPhoneNumber(state)) {
+    return {
+      action: "probe",
+      phase: "guided_enrichment",
+      message: createQuestionMessage(
+        "What phone number should we use on the site?",
+        "capture_phone_number"
+      )
+    };
+  }
+
+  if (needsBookingUrl(state)) {
+    return {
+      action: "probe",
+      phase: "guided_enrichment",
+      message: createQuestionMessage(
+        "What booking link should we use on the site?",
+        "capture_booking_url"
       )
     };
   }
@@ -549,7 +553,7 @@ function getGuidedNextStep(state, readiness) {
   };
 }
 
-function normalizeControllerMessage(message, phase) {
+function normalizeControllerMessage(message) {
   if (isObject(message) && cleanString(message.content)) {
     return {
       id: cleanString(message.id) || makeId(),
@@ -607,7 +611,6 @@ function createTransitionMessage(content, intent, options = []) {
   };
 }
 
-
 /* =========================
    Readiness
 ========================= */
@@ -618,9 +621,7 @@ function evaluateReadiness(state) {
   const whyNow = cleanString(state.answers?.why_now);
   const desiredOutcome = cleanString(state.answers?.desired_outcome);
   const audience = cleanString(state.answers?.target_audience);
-  const hasOffer =
-    Array.isArray(state.answers?.offerings) &&
-    state.answers.offerings.length > 0;
+  const hasOffer = Array.isArray(state.answers?.offerings) && state.answers.offerings.length > 0;
   const hasCta = cleanString(state.answers?.primary_conversion_goal);
   const contactPath = getContactPath(state);
   const locationSignal = hasLocationSignal(state);
@@ -656,7 +657,6 @@ function evaluateReadiness(state) {
       Boolean(contactPath)
   };
 }
-
 
 /* =========================
    Summary Panel
@@ -696,7 +696,6 @@ function buildSummaryPanel(state) {
   };
 }
 
-
 /* =========================
    Utilities
 ========================= */
@@ -719,7 +718,7 @@ function inferExpectedFieldFromConversation(state) {
     return "target_audience";
   }
 
-  if (last.includes("what are the main services") || last.includes("what are the main tours") || last.includes("what are the main offers")) {
+  if (last.includes("what are the main services you want featured")) {
     return "primary_offer";
   }
 
@@ -735,6 +734,14 @@ function inferExpectedFieldFromConversation(state) {
     return "contact_path";
   }
 
+  if (last.includes("what phone number should we use")) {
+    return "phone_number";
+  }
+
+  if (last.includes("what booking link should we use")) {
+    return "booking_url";
+  }
+
   if (last.includes("what area do you serve") || last.includes("where are you based")) {
     return "service_area";
   }
@@ -746,129 +753,33 @@ function inferExpectedFieldFromConversation(state) {
   return "";
 }
 
-function hasContactPath(state) {
-  return Boolean(getContactPath(state));
-}
-
-function getContactPath(state) {
-  return (
-    cleanString(state.clientEmail) ||
-    cleanString(state.answers?.phone) ||
-    cleanString(state.answers?.booking_url)
-  );
-}
-
-function hasLocationSignal(state) {
-  return Boolean(
-    cleanString(state.answers?.service_area) ||
-    cleanString(state.answers?.office_address) ||
-    cleanString(state.answers?.location_context)
-  );
-}
-
-function hasTrustSignal(state) {
-  const diff = Array.isArray(state.answers?.differentiators)
-    ? state.answers.differentiators.length
-    : 0;
-  const trust = Array.isArray(state.answers?.trust_signals)
-    ? state.answers.trust_signals.length
-    : 0;
-  const cred = Array.isArray(state.answers?.credibility_factors)
-    ? state.answers.credibility_factors.length
-    : 0;
-
-  return diff + trust + cred > 0;
-}
-
-function looksLikeAudienceAnswer(text) {
+function normalizeContactPreference(text) {
   const lower = cleanString(text).toLowerCase();
-  return Boolean(
-    lower.includes("homeowner") ||
-    lower.includes("homeowners") ||
-    lower.includes("home owner") ||
-    lower.includes("home owners") ||
-    lower.includes("property manager") ||
-    lower.includes("property managers") ||
-    lower.includes("family") ||
-    lower.includes("families") ||
-    lower.includes("tourist") ||
-    lower.includes("tourists") ||
-    lower.includes("local") ||
-    lower.includes("locals") ||
-    lower.includes("business owner") ||
-    lower.includes("business owners") ||
-    lower.includes("commercial") ||
-    lower.includes("residential") ||
-    lower.includes("customer") ||
-    lower.includes("customers") ||
-    lower.includes("client") ||
-    lower.includes("clients")
-  );
+
+  if (lower === "both" || lower.includes("both")) return "both";
+  if (lower.includes("phone")) return "phone";
+  if (lower.includes("booking")) return "booking_url";
+  if (lower.includes("link")) return "booking_url";
+  if (lower.includes("url")) return "booking_url";
+
+  return "";
 }
 
-function looksLikeOfferAnswer(text) {
+function normalizeBookingMethod(text) {
   const lower = cleanString(text).toLowerCase();
-  if (!lower) return false;
 
-  return (
-    lower.includes(",") ||
-    lower.includes(" and ") ||
-    lower.includes("service") ||
-    lower.includes("services") ||
-    lower.includes("junk") ||
-    lower.includes("removal") ||
-    lower.includes("cleanout") ||
-    lower.includes("hauling") ||
-    lower.includes("tour") ||
-    lower.includes("tours") ||
-    lower.includes("offer") ||
-    lower.includes("offers")
-  );
-}
+  if (lower.includes("both")) return "phone_and_online_booking";
+  if (lower.includes("book online") || lower.includes("booking link") || lower.includes("reserve online") || lower.includes("online booking")) {
+    return "online_booking";
+  }
+  if (lower.includes("call") || lower.includes("phone") || lower.includes("text")) {
+    return "phone";
+  }
+  if (lower.includes("form") || lower.includes("contact form")) {
+    return "contact_form";
+  }
 
-function looksLikeCtaAnswer(text) {
-  const lower = cleanString(text).toLowerCase();
-  return Boolean(
-    lower.includes("call") ||
-    lower.includes("quote") ||
-    lower.includes("book") ||
-    lower.includes("schedule") ||
-    lower.includes("contact") ||
-    lower.includes("request")
-  );
-}
-
-function looksLikeLocationAnswer(text) {
-  const lower = cleanString(text).toLowerCase();
-  return Boolean(
-    lower.includes("serve") ||
-    lower.includes("based in") ||
-    lower.includes("located in") ||
-    lower.includes("county") ||
-    lower.includes("city") ||
-    lower.includes("area") ||
-    lower.includes("region") ||
-    lower.includes("town") ||
-    lower.includes("neighborhood") ||
-    /\b[A-Z][a-z]+,\s?[A-Z]{2}\b/.test(text)
-  );
-}
-
-function looksLikeTrustAnswer(text) {
-  const lower = cleanString(text).toLowerCase();
-  return Boolean(
-    lower.includes("years") ||
-    lower.includes("experience") ||
-    lower.includes("fast") ||
-    lower.includes("same day") ||
-    lower.includes("licensed") ||
-    lower.includes("insured") ||
-    lower.includes("review") ||
-    lower.includes("reviews") ||
-    lower.includes("trusted") ||
-    lower.includes("family owned") ||
-    lower.includes("locally owned")
-  );
+  return cleanString(text);
 }
 
 function normalizeCta(text) {
@@ -879,36 +790,6 @@ function normalizeCta(text) {
   if (lower.includes("call")) return "call";
   if (lower.includes("schedule")) return "schedule service";
   if (lower.includes("contact")) return "contact us";
-
-  return cleanString(text);
-}
-
-function normalizeBookingMethod(text) {
-  const lower = cleanString(text).toLowerCase();
-
-  if (
-    lower.includes("book online") ||
-    lower.includes("booking link") ||
-    lower.includes("reserve online") ||
-    lower.includes("online booking")
-  ) {
-    return "online_booking";
-  }
-
-  if (
-    lower.includes("call") ||
-    lower.includes("phone") ||
-    lower.includes("text")
-  ) {
-    return "phone";
-  }
-
-  if (
-    lower.includes("form") ||
-    lower.includes("contact form")
-  ) {
-    return "contact_form";
-  }
 
   return cleanString(text);
 }
@@ -925,6 +806,93 @@ function splitListAnswer(text) {
     .filter(Boolean);
 
   return parts.length ? parts : [cleaned];
+}
+
+function looksLikeOfferAnswer(text) {
+  const lower = cleanString(text).toLowerCase();
+  return Boolean(
+    lower.includes(",") ||
+    lower.includes(" and ") ||
+    lower.includes("service") ||
+    lower.includes("services") ||
+    lower.includes("junk") ||
+    lower.includes("removal") ||
+    lower.includes("cleanout") ||
+    lower.includes("hauling") ||
+    lower.includes("lawn") ||
+    lower.includes("trim") ||
+    lower.includes("mowing")
+  );
+}
+
+function looksLikeCtaAnswer(text) {
+  const lower = cleanString(text).toLowerCase();
+  return Boolean(
+    lower.includes("call") ||
+    lower.includes("quote") ||
+    lower.includes("book") ||
+    lower.includes("schedule") ||
+    lower.includes("contact") ||
+    lower.includes("request")
+  );
+}
+
+function getContactPath(state) {
+  return (
+    cleanString(state.clientEmail) ||
+    cleanString(state.answers?.phone) ||
+    cleanString(state.answers?.booking_url)
+  );
+}
+
+function hasContactPath(state) {
+  return Boolean(getContactPath(state));
+}
+
+function needsPhoneNumber(state) {
+  const bookingMethod = cleanString(state.answers?.booking_method);
+  const pref = cleanString(state.provenance?.contact_path_preference);
+  const phone = cleanString(state.answers?.phone);
+
+  if (phone) return false;
+
+  return (
+    bookingMethod === "phone" ||
+    bookingMethod === "phone_and_online_booking" ||
+    pref === "phone" ||
+    pref === "both"
+  );
+}
+
+function needsBookingUrl(state) {
+  const bookingMethod = cleanString(state.answers?.booking_method);
+  const pref = cleanString(state.provenance?.contact_path_preference);
+  const bookingUrl = cleanString(state.answers?.booking_url);
+
+  if (bookingUrl) return false;
+
+  return (
+    bookingMethod === "online_booking" ||
+    bookingMethod === "phone_and_online_booking" ||
+    pref === "booking_url" ||
+    pref === "both"
+  );
+}
+
+function hasLocationSignal(state) {
+  return Boolean(
+    cleanString(state.answers?.service_area) ||
+    cleanString(state.answers?.office_address) ||
+    cleanString(state.answers?.location_context)
+  );
+}
+
+function hasTrustSignal(state) {
+  const diff = Array.isArray(state.answers?.differentiators) ? state.answers.differentiators.length : 0;
+  const trust = Array.isArray(state.answers?.trust_signals) ? state.answers.trust_signals.length : 0;
+  const cred = Array.isArray(state.answers?.credibility_factors) ? state.answers.credibility_factors.length : 0;
+
+  return diff + trust + cred > 0;
 }
 
 async function readJson(req) {
