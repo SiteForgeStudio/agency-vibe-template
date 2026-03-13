@@ -345,23 +345,25 @@ function evaluateReadiness(state) {
     cleanString(state.answers?.location_context)
   );
 
-  const diff = Array.isArray(state.answers?.differentiators)
-    ? state.answers.differentiators.length
-    : 0;
-  const trust = Array.isArray(state.answers?.trust_signals)
-    ? state.answers.trust_signals.length
-    : 0;
-  const cred = Array.isArray(state.answers?.credibility_factors)
-    ? state.answers.credibility_factors.length
-    : 0;
+  // --- NEW: Buyer Intelligence Check ---
+  const hasBuyerIntel = 
+    (state.answers?.buyer_decision_factors?.length > 0) || 
+    (state.answers?.common_objections?.length > 0);
+
+  const diff = Array.isArray(state.answers?.differentiators) ? state.answers.differentiators.length : 0;
+  const trust = Array.isArray(state.answers?.trust_signals) ? state.answers.trust_signals.length : 0;
+  const cred = Array.isArray(state.answers?.credibility_factors) ? state.answers.credibility_factors.length : 0;
 
   const hasTrustOrDiff = diff + trust + cred > 0;
 
-  if (!whyNow && !desiredOutcome) missing.push("business_purpose_or_desired_outcome");
+  // --- THE CHECKLIST ---
+  if (!whyNow && !desiredOutcome) missing.push("business_purpose");
   if (!audience) missing.push("target_audience");
   if (!hasOffer) missing.push("primary_offer");
   if (!hasCta) missing.push("cta_direction");
   if (!hasContactPath) missing.push("contact_path");
+  if (!hasBuyerIntel) missing.push("buyer_intelligence");
+  if (!hasTrustOrDiff) missing.push("trust_signals");
 
   const scoreParts = [
     Boolean(whyNow || desiredOutcome),
@@ -370,7 +372,8 @@ function evaluateReadiness(state) {
     Boolean(hasCta),
     Boolean(hasContactPath),
     Boolean(hasLocationSignal),
-    Boolean(hasTrustOrDiff)
+    Boolean(hasTrustOrDiff),
+    Boolean(hasBuyerIntel)
   ];
 
   const score = scoreParts.filter(Boolean).length / scoreParts.length;
@@ -380,15 +383,16 @@ function evaluateReadiness(state) {
     required_domains_complete: missing.length === 0,
     missing_domains: missing,
     recommended_domains_missing: [
-      !hasLocationSignal ? "service_area_or_location" : "",
-      !hasTrustOrDiff ? "trust_or_differentiation" : ""
+      !hasLocationSignal ? "service_area_or_location" : ""
     ].filter(Boolean),
     can_generate_now:
       Boolean(whyNow || desiredOutcome) &&
       Boolean(audience) &&
       Boolean(hasOffer) &&
       Boolean(hasCta) &&
-      Boolean(hasContactPath)
+      Boolean(hasContactPath) &&
+      hasBuyerIntel &&
+      hasTrustOrDiff 
   };
 }
 

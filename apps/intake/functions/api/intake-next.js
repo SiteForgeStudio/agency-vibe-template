@@ -634,7 +634,11 @@ function mergeTopLevel(target, updates) {
 }
 
 function normalizeState(state) {
-  const next = structuredClone(isObject(state) ? state : EMPTY_INTAKE_STATE);
+  const next = isObject(state) ? structuredClone(state) : structuredClone(EMPTY_INTAKE_STATE);
+
+  if (!isObject(next.answers)) {
+    next.answers = {};
+  }
 
   next.answers = {
     why_now: "",
@@ -657,63 +661,43 @@ function normalizeState(state) {
     process_notes: [],
     faq_topics: [],
     pricing_context: "",
-    ...(isObject(next.answers) ? next.answers : {})
+    buyer_decision_factors: [],
+    common_objections: [],
+    red_flags_to_avoid: [],
+    ...next.answers
   };
+
+  if (!isObject(next.inference)) {
+    next.inference = {};
+  }
 
   next.inference = {
     suggested_vibe: "",
+    specialist_profile: null,
     suggested_components: [],
     tone_direction: "",
     visual_direction: "",
     missing_information: [],
     confidence_score: 0,
-    ...(isObject(next.inference) ? next.inference : {})
+    ...next.inference
   };
 
-  next.ghostwritten = {
-    tagline: "",
-    hero_headline: "",
-    hero_subheadline: "",
-    about_summary: "",
-    features_copy: [],
-    faqs: [],
-    ...(isObject(next.ghostwritten) ? next.ghostwritten : {})
-  };
+  if (!isObject(next.ghostwritten)) {
+    next.ghostwritten = {};
+  }
 
-  next.provenance = isObject(next.provenance) ? next.provenance : {};
+  if (!isObject(next.readiness)) {
+    next.readiness = {
+      score: 0,
+      required_domains_complete: false,
+      missing_domains: [],
+      can_generate_now: false
+    };
+  }
 
-  next.answers.offerings = cleanList(next.answers.offerings);
-  next.answers.differentiators = cleanList(next.answers.differentiators);
-  next.answers.trust_signals = cleanList(next.answers.trust_signals);
-  next.answers.credibility_factors = cleanList(next.answers.credibility_factors);
-  next.answers.process_notes = cleanList(next.answers.process_notes);
-  next.answers.faq_topics = cleanList(next.answers.faq_topics);
-
-  next.answers.why_now = cleanString(next.answers.why_now);
-  next.answers.desired_outcome = cleanString(next.answers.desired_outcome);
-  next.answers.primary_conversion_goal = cleanString(next.answers.primary_conversion_goal);
-  next.answers.first_impression_goal = cleanString(next.answers.first_impression_goal);
-  next.answers.target_audience = cleanString(next.answers.target_audience);
-  next.answers.booking_method = cleanString(next.answers.booking_method);
-  next.answers.phone = cleanString(next.answers.phone);
-  next.answers.booking_url = cleanString(next.answers.booking_url);
-  next.answers.office_address = cleanString(next.answers.office_address);
-  next.answers.location_context = cleanString(next.answers.location_context);
-  next.answers.service_area = cleanString(next.answers.service_area);
-  next.answers.tone_preferences = cleanString(next.answers.tone_preferences);
-  next.answers.visual_direction = cleanString(next.answers.visual_direction);
-  next.answers.pricing_context = cleanString(next.answers.pricing_context);
-
-  next.businessName = cleanString(next.businessName);
-  next.clientEmail = cleanString(next.clientEmail);
-  next.phase = cleanString(next.phase) || "guided_enrichment";
-  next.conversation = Array.isArray(next.conversation) ? next.conversation : [];
-
-  next.inference.suggested_vibe = cleanString(next.inference.suggested_vibe);
-  next.inference.tone_direction = cleanString(next.inference.tone_direction);
-  next.inference.visual_direction = cleanString(next.inference.visual_direction);
-  next.inference.suggested_components = cleanList(next.inference.suggested_components);
-  next.inference.missing_information = cleanList(next.inference.missing_information);
+  if (!Array.isArray(next.conversation)) {
+    next.conversation = [];
+  }
 
   return next;
 }
@@ -1494,7 +1478,8 @@ function evaluateReadiness(state) {
       Boolean(audience) &&
       Boolean(hasOffer) &&
       Boolean(hasCta) &&
-      Boolean(contactPath)
+      Boolean(contactPath) &&
+      (state.answers?.buyer_decision_factors?.length > 0 || state.answers?.common_objections?.length > 0) 
   };
 }
 
@@ -1507,6 +1492,8 @@ function buildSummaryPanel(state) {
     website_goal:
       cleanString(state.answers?.desired_outcome) ||
       cleanString(state.answers?.why_now),
+
+    archetype: state.inference?.specialist_profile?.business_archetype || "General Business",
 
     audience:
       cleanString(state.answers?.target_audience),

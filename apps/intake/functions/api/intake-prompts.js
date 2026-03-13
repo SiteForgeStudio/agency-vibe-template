@@ -57,11 +57,12 @@ export const INTAKE_ALLOWED_OPTION_ACTIONS = [
 ];
 
 export const INTAKE_REQUIRED_DOMAINS = [
-  "business_purpose_or_desired_outcome",
-  "target_audience",
-  "primary_offer",
-  "cta_direction",
-  "contact_path"
+  "business_purpose",      // Was why_now/desired_outcome
+  "target_audience",       // Existing
+  "primary_offer",         // Was offerings
+  "buyer_intelligence",    // NEW: common_objections or buyer_decision_factors
+  "trust_signals",         // NEW: trust_signals or differentiators
+  "contact_path"           // Existing: email, phone, or booking_url
 ];
 
 export const INTAKE_OPTIONAL_DOMAINS = [
@@ -78,44 +79,42 @@ export const INTAKE_OPTIONAL_DOMAINS = [
 ];
 
 export const INTAKE_CONTROLLER_SYSTEM_PROMPT = `
-You are the SiteForge Factory Intake Controller.
+You are the SiteForge Factory Intake Controller, acting as a High-Level Digital Strategist.
 
-Your role is to guide a business owner through a conversational website intake that produces a strong strategic brief for generating a premium website.
+Your role is to guide a business owner through a conversational website intake that produces a strong strategic brief for generating a premium, AEO-ready (Answer Engine Optimization) website.
 
-You are not a general chatbot.
-
-You act like a professional web strategist helping a client plan their website.
+You are not a general chatbot. You are an expert consultant.
 
 The goal is to uncover:
-- why the website exists
-- what the business offers
-- who the audience is
-- what action visitors should take
-- how customers contact or book
-- where the business operates
-- what makes the business credible
+- why the website exists (Business Purpose)
+- what the business offers (Primary Offer)
+- who the audience is (Target Demographic)
+- what action visitors should take (Conversion Goal)
+- how customers contact or book (Contact Path)
+- where the business operates (Service Area)
+- what makes the business credible (Trust Signals)
 - what visual and emotional tone the site should have
+- NEW: Buyer Intelligence (Decision factors, common objections, and industry red flags)
 
 CORE RESPONSIBILITIES
 
 On every turn:
 1. Understand the user's latest message.
 2. Update the structured intake state with only fields that changed.
-3. Decide the best next action.
-4. Return exactly one assistant message.
-5. Move the conversation toward a strong website brief.
+3. INFER & PROPOSE: Do not just ask. For example: "For a business like yours, trust is usually built through [Inference]. Does that apply to you?"
+4. Decide the best next action.
+5. Move the conversation toward a "Magic Level" website brief.
 
 BEHAVIOR RULES
 
 - Be warm, professional, and concise.
 - Ask only one meaningful question at a time.
 - Avoid overwhelming the user.
-- If the user is unsure, help them with ghostwriting.
+- GHOSTWRITE WITH AUTHORITY: If the user is unsure, provide a strong professional version of their thought and ask for confirmation.
 - Prefer momentum over perfection.
 - Do not ask for information already known.
-- Do not invent business facts.
+- AEO FOCUS: Think like an AI search engine (SearchGPT/Perplexity). Extract specific facts that prove authority.
 - For service, tour, and local businesses, prioritize booking/contact/location clarity before completion.
-- Readiness means the build could happen soon; it does not automatically mean the intake is finished.
 
 IMPORTANT ANSWER FIELDS
 
@@ -141,32 +140,34 @@ answers.visual_direction
 answers.process_notes
 answers.faq_topics
 answers.pricing_context
+answers.buyer_decision_factors
+answers.common_objections
+answers.red_flags_to_avoid
 
 QUESTION ORDER TO PREFER
 
 After identity and purpose, prefer this sequence:
 1. target audience
 2. main offer or top services
-3. primary conversion goal
-4. booking method
+3. buyer intelligence (what makes your customers choose you?)
+4. primary conversion goal & booking method
 5. phone number or booking URL
 6. service area or office / marina / meeting location
 7. differentiator or trust proof
 
-READINESS
+READINESS (THE HIGH-THRESHOLD GATE)
 
 A preview can be generated only when these are known:
 - why_now OR desired_outcome
 - target_audience
 - offerings
 - primary_conversion_goal
-- at least one contact path:
-  - clientEmail
-  - answers.phone
-  - answers.booking_url
+- buyer_decision_factors OR common_objections
+- trust_signals OR differentiators
+- at least one contact path (Email, Phone, or Booking URL)
 
 Do not mark the intake complete until the brief is strong enough to feel premium.
-Service area and trust/differentiation are highly valuable and should usually be gathered before completion.
+Buyer intelligence and trust/differentiation are MANDATORY for a "Magic Level" build.
 
 OUTPUT RULES
 
@@ -296,29 +297,42 @@ export const EMPTY_INTAKE_STATE = {
   clientEmail: "",
 
   answers: {
+    // --- Existing Core Fields ---
     why_now: "",
     desired_outcome: "",
     primary_conversion_goal: "",
     first_impression_goal: "",
     target_audience: "",
     offerings: [],
+    
+    // --- Contact & Ops (Preserved & Enriched) ---
     booking_method: "",
     phone: "",
     booking_url: "",
     office_address: "",
+    location_context: "",
+    service_area: "",
+
+    // --- Trust & Authority (Preserved & Enriched) ---
     differentiators: [],
     trust_signals: [],
     credibility_factors: [],
-    location_context: "",
-    service_area: "",
+    
+    // --- NEW: Buyer Intelligence (The "Strategist" Additions) ---
+    buyer_decision_factors: [], // NEW: What actually triggers a "Yes"
+    common_objections: [],      // NEW: Why they usually hesitate
+    red_flags_to_avoid: [],     // NEW: Industry tropes customers hate
+    pricing_context: "",        // NEW: Premium vs. Budget vs. Bespoke
+    
+    // --- Content & Brand (Preserved) ---
     tone_preferences: "",
     visual_direction: "",
     process_notes: [],
-    faq_topics: [],
-    pricing_context: ""
+    faq_topics: []
   },
 
   inference: {
+    specialist_profile: null, // NEW: Archetype (e.g., "High-Ticket Consultant")
     suggested_vibe: "",
     suggested_components: [],
     tone_direction: "",
@@ -337,13 +351,13 @@ export const EMPTY_INTAKE_STATE = {
   },
 
   provenance: {},
-
   conversation: [],
 
   readiness: {
     score: 0,
     required_domains_complete: false,
-    missing_domains: [...INTAKE_REQUIRED_DOMAINS],
+    // Note: Ensure your INTAKE_REQUIRED_DOMAINS array includes the new fields
+    missing_domains: [...INTAKE_REQUIRED_DOMAINS], 
     can_generate_now: false
   }
 };
