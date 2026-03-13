@@ -57,12 +57,11 @@ export const INTAKE_ALLOWED_OPTION_ACTIONS = [
 ];
 
 export const INTAKE_REQUIRED_DOMAINS = [
-  "business_purpose",      // Was why_now/desired_outcome
-  "target_audience",       // Existing
-  "primary_offer",         // Was offerings
-  "buyer_intelligence",    // NEW: common_objections or buyer_decision_factors
-  "trust_signals",         // NEW: trust_signals or differentiators
-  "contact_path"           // Existing: email, phone, or booking_url
+  "business_purpose_or_desired_outcome",
+  "target_audience",
+  "primary_offer",
+  "cta_direction",
+  "contact_path"
 ];
 
 export const INTAKE_OPTIONAL_DOMAINS = [
@@ -178,57 +177,27 @@ Return exactly the schema requested.
 
 export const INTAKE_CONTROLLER_DEVELOPER_PROMPT = `
 Return a JSON object with these top-level keys:
+action, phase, message, state_updates, inference_updates, readiness, summary_panel
 
-action
-phase
-message
-state_updates
-inference_updates
-readiness
-summary_panel
+message must contain: id, role, type, content, options, meta.
+Allowed message types: welcome, question, probe, summary, inference, ghostwrite, confirmation, transition, build-status, error.
+Allowed actions: accept, probe, infer, ghostwrite, confirm, advance, complete.
 
-message must contain:
+CRITICAL DATA MAPPING RULES:
+1. BUYER INTEL (DECISION FACTORS): If the user explains why customers choose them (e.g., "we have a support vehicle," "maintained bikes"), you MUST update state_updates.answers.buyer_decision_factors.
+2. BUYER INTEL (OBJECTIONS): If the user mentions customer fears, hesitations, or industry "red flags" (e.g., "safety concerns," "stamina issues"), you MUST update state_updates.answers.common_objections.
+3. STRATEGIC PROFILE: If you infer a business model (e.g., "Local Tourism Specialist"), update state_updates.inference.specialist_profile.
+4. CONTACT INFO: Store phone numbers in answers.phone and external booking links in answers.booking_url.
+5. BOOKING METHOD: Store how they book (call, text, online) in answers.booking_method.
+6. LOCATION: Store addresses in answers.office_address and broader regions in answers.service_area.
+7. OFFERINGS: Store services/tours in answers.offerings as an array.
 
-id
-role
-type
-content
-options
-meta
-
-Allowed message types:
-
-welcome
-question
-probe
-summary
-inference
-ghostwrite
-confirmation
-transition
-build-status
-error
-
-Allowed actions:
-
-accept
-probe
-infer
-ghostwrite
-confirm
-advance
-complete
-
-The state_updates object must contain ONLY changed fields.
-Do not rewrite the entire state.
-Never invent facts about the business.
-Never include hidden reasoning or chain-of-thought.
-
-When a user shares a phone number, store it in answers.phone.
-When a user shares a booking link or external reservation URL, store it in answers.booking_url.
-When a user explains whether people call, form-fill, text, or book online, store it in answers.booking_method.
-When a user gives a location, office, marina, studio, or meeting address, store it in answers.office_address or answers.service_area as appropriate.
-When the user lists services or offers, store them in answers.offerings as an array.
+OPERATIONAL RULES:
+- When readiness.can_generate_now is true, you MUST set action to "complete".
+- The state_updates object must contain ONLY changed fields. Do not rewrite the entire state.
+- Never invent facts about the business.
+- Never include hidden reasoning or chain-of-thought.
+- Always prefer categorizing insights into buyer_decision_factors/common_objections rather than general differentiators.
 `.trim();
 
 export function buildIntakeControllerUserPrompt({
