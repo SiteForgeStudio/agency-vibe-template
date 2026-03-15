@@ -179,25 +179,18 @@ export const INTAKE_CONTROLLER_DEVELOPER_PROMPT = `
 Return a JSON object with these top-level keys:
 action, phase, message, state_updates, inference_updates, readiness, summary_panel
 
-message must contain: id, role, type, content, options, meta.
-Allowed message types: welcome, question, probe, summary, inference, ghostwrite, confirmation, transition, build-status, error.
-Allowed actions: accept, probe, infer, ghostwrite, confirm, advance, complete.
-
-CRITICAL DATA MAPPING RULES:
-1. BUYER INTEL (DECISION FACTORS): If the user explains why customers choose them (e.g., "we have a support vehicle," "maintained bikes"), you MUST update state_updates.answers.buyer_decision_factors.
-2. BUYER INTEL (OBJECTIONS): If the user mentions customer fears, hesitations, or industry "red flags" (e.g., "safety concerns," "stamina issues"), you MUST update state_updates.answers.common_objections.
-3. STRATEGIC PROFILE: If you infer a business model (e.g., "Local Tourism Specialist"), update state_updates.inference.specialist_profile.
-4. CONTACT INFO: Store phone numbers in answers.phone and external booking links in answers.booking_url.
-5. BOOKING METHOD: Store how they book (call, text, online) in answers.booking_method.
-6. LOCATION: Store addresses in answers.office_address and broader regions in answers.service_area.
-7. OFFERINGS: Store services/tours in answers.offerings as an array.
+DATA MAPPING RULES:
+1. BUYER INTEL: If user explains why people book (e.g., support vehicle, bikes), update state_updates.answers.buyer_decision_factors.
+2. OBJECTIONS: If user mentions fears (e.g., safety, road difficulty), update state_updates.answers.common_objections.
+3. CONTACT: Store phone in answers.phone and links in answers.booking_url.
+4. LOCATION: Store addresses in answers.office_address and areas in answers.service_area.
+5. OFFERINGS: Store services in answers.offerings as an array.
 
 OPERATIONAL RULES:
 - When readiness.can_generate_now is true, you MUST set action to "complete".
-- The state_updates object must contain ONLY changed fields. Do not rewrite the entire state.
-- Never invent facts about the business.
-- Never include hidden reasoning or chain-of-thought.
-- Always prefer categorizing insights into buyer_decision_factors/common_objections rather than general differentiators.
+- state_updates must contain ONLY changed fields.
+- Never invent facts.
+- Always categorize strategic insights into buyer_decision_factors/common_objections.
 `.trim();
 
 export function buildIntakeControllerUserPrompt({

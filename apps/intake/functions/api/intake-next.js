@@ -1439,19 +1439,27 @@ function evaluateReadiness(state) {
   const whyNow = cleanString(state.answers?.why_now);
   const desiredOutcome = cleanString(state.answers?.desired_outcome);
   const audience = cleanString(state.answers?.target_audience);
-  const hasOffer =
-    Array.isArray(state.answers?.offerings) &&
-    state.answers.offerings.length > 0;
+  const hasOffer = Array.isArray(state.answers?.offerings) && state.answers.offerings.length > 0;
   const hasCta = cleanString(state.answers?.primary_conversion_goal);
+  
   const contactPath = getContactPath(state);
   const locationSignal = hasLocationSignal(state);
-  const trustSignal = hasTrustSignal(state);
+  
+  const diff = Array.isArray(state.answers?.differentiators) ? state.answers.differentiators.length : 0;
+  const trust = Array.isArray(state.answers?.trust_signals) ? state.answers.trust_signals.length : 0;
+  const cred = Array.isArray(state.answers?.credibility_factors) ? state.answers.credibility_factors.length : 0;
+  const hasTrustOrDiff = (diff + trust + cred) > 0;
 
-  if (!whyNow && !desiredOutcome) missing.push("business_purpose_or_desired_outcome");
+  const hasBuyerIntel = (state.answers?.buyer_decision_factors?.length > 0) || (state.answers?.common_objections?.length > 0);
+
+  // CHECKLIST (Must match intake-complete.js exactly)
+  if (!whyNow && !desiredOutcome) missing.push("business_purpose");
   if (!audience) missing.push("target_audience");
   if (!hasOffer) missing.push("primary_offer");
   if (!hasCta) missing.push("cta_direction");
   if (!contactPath) missing.push("contact_path");
+  if (!hasBuyerIntel) missing.push("buyer_intelligence");
+  if (!hasTrustOrDiff) missing.push("trust_signals");
 
   const scoreParts = [
     Boolean(whyNow || desiredOutcome),
@@ -1460,7 +1468,8 @@ function evaluateReadiness(state) {
     Boolean(hasCta),
     Boolean(contactPath),
     Boolean(locationSignal),
-    Boolean(trustSignal)
+    hasTrustOrDiff,
+    hasBuyerIntel
   ];
 
   const score = scoreParts.filter(Boolean).length / scoreParts.length;
@@ -1470,16 +1479,9 @@ function evaluateReadiness(state) {
     required_domains_complete: missing.length === 0,
     missing_domains: missing,
     recommended_domains_missing: [
-      !locationSignal ? "service_area_or_location" : "",
-      !trustSignal ? "trust_or_differentiation" : ""
+      !locationSignal ? "service_area_or_location" : ""
     ].filter(Boolean),
-    can_generate_now:
-      Boolean(whyNow || desiredOutcome) &&
-      Boolean(audience) &&
-      Boolean(hasOffer) &&
-      Boolean(hasCta) &&
-      Boolean(contactPath) &&
-      (state.answers?.buyer_decision_factors?.length > 0 || state.answers?.common_objections?.length > 0) 
+    can_generate_now: missing.length === 0
   };
 }
 
