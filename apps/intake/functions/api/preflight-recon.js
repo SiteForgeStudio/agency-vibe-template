@@ -84,14 +84,14 @@ function json(data, status = 200) {
       // 2) Dedicated recon prompt with dedicated response shape
       const prompt = `
       You are the SiteForge Factory Pre-Flight Recon Engine.
-
+      
       Your job:
       Create a first-pass strategic assessment for a local business before the paid build intake begins.
-
+      
       This output has TWO purposes:
       1. internal strategic intelligence for SiteForge
       2. a selective client-facing preview that inspires the client to move forward
-
+      
       Important:
       - Do NOT give away the full strategy in the client-facing preview.
       - The client-facing preview should be persuasive, specific, and valuable, but incomplete.
@@ -99,18 +99,19 @@ function json(data, status = 200) {
       - Infer from the business name, location, and description only.
       - Do not mention Google Business Profile yet.
       - Focus on what makes this business a fit or non-fit for a high-performing single-page local business website.
-
+      - Prefer practical local-business strategy over generic branding language.
+      
       Business name:
       ${status.input_business_name}
-
+      
       Location / service area:
       ${status.city_or_service_area_input}
-
+      
       Business description:
       ${status.description_input}
-
+      
       Return ONLY valid JSON in this exact structure:
-
+      
       {
         "entity_profile": {
           "primary_category": "",
@@ -146,9 +147,9 @@ function json(data, status = 200) {
           "next_step_teaser": ""
         }
       }
-
+      
       Rules:
-
+      
       ENTITY_PROFILE
       - "business_model" must be one of:
         "service_area", "storefront", "hybrid", "destination", "online"
@@ -165,36 +166,67 @@ function json(data, status = 200) {
       - "one_page_fit" must be one of:
         "excellent_fit", "conditional_fit", "complex_fit"
       - "confidence" must be a number from 0 to 1
-
+      
+      BUSINESS MODEL GUIDANCE
+      - Use "service_area" when the business primarily travels to the customer
+      - Use "storefront" when customers primarily come to a fixed public location
+      - Use "hybrid" when both are meaningfully true
+      - Use "destination" when the experience happens at a known launch point, venue, marina, studio, dock, or attraction area
+      - For tours, charters, excursions, and destination-based activities, strongly prefer "destination" unless there is strong evidence otherwise
+      
       BUYER_INTELLIGENCE
       - Keep lists practical and specific
-      - Avoid generic filler like "quality service" unless it is clearly relevant
+      - Avoid generic filler like "quality service" unless clearly relevant
       - Think like a local buyer comparing options
-
+      - Trust markers must be category-relevant, not generic digital-presence items
+      - Avoid weak trust markers like "professional website" or "social media presence" unless truly central
+      
       INTERNAL_STRATEGY
       - This is for SiteForge only
       - Be specific and useful
-      - "primary_conversion" should be a realistic conversion action like:
+      - "primary_conversion" should be one of:
         "call_now", "request_quote", "book_now", "schedule_consultation", "submit_inquiry"
-      - "aeo_angles" should be search-intent-oriented, not generic marketing slogans
-      - "must_verify_now" should contain critical strategic facts to confirm early
+      - "secondary_conversion" should support the primary one
+      - "recommended_sections" should be conversion-oriented website sections, not generic corporate page names
+      - Prefer sections like:
+        "Hero", "Trust Bar", "Service Area", "Packages", "Tour Options", "Gallery", "Testimonials", "FAQ", "Booking CTA", "Contact"
+      - "aeo_angles" should be search-intent-oriented, not generic slogans
+      - "must_verify_now" should contain critical facts the paid intake must confirm early
       - "must_collect_paid_phase" should contain category-relevant assets or info for the build
-      - Do NOT include generic admin/platform items like hosting or domain unless absolutely necessary
-
+      - Do NOT include generic admin/platform items like hosting, domain registration, or broad market research unless absolutely necessary
+      - Do NOT include internal-agency tasks like competition analysis in "must_verify_now"
+      
+      PAID INTAKE GUIDANCE
+      - "must_verify_now" should usually include things like:
+        offer structure, pricing approach, service area, booking flow, location details, phone, CTA preference, audience focus
+      - "must_collect_paid_phase" should usually include real build assets like:
+        photos, testimonials, package details, service descriptions, founder/captain bio, FAQs, proof items
+      
       CLIENT_PREVIEW
       - This is what the buyer may see before paying
       - It should inspire confidence but NOT reveal the full implementation plan
       - "recommended_focus" should contain only 3 to 5 high-level focus areas
-      - "next_step_teaser" should hint at what SiteForge will refine in the paid phase
-      - Keep this polished, persuasive, and premium
-
-      AEO guidance:
+      - Keep it polished, persuasive, and premium
+      - "summary" should sound like a sharp positioning read, not a full strategy document
+      - "opportunity" should highlight upside, not implementation details
+      - "sales_preview" should describe the kind of result SiteForge could create, without revealing the full blueprint
+      - "next_step_teaser" should hint at refinement in the paid phase without listing all the work
+      
+      AEO GUIDANCE
       - AEO angles should sound like likely search or answer-engine topics
-      - Example good AEO angle:
+      - Good example:
         "private boat tours in Marco Island"
-      - Example bad AEO angle:
+      - Good example:
+        "dolphin watching tours near Marco Island"
+      - Bad example:
         "create unforgettable memories"
-
+      
+      CATEGORY CALIBRATION
+      - For experience businesses, prioritize trust, safety, ease of booking, uniqueness, and proof of the experience
+      - For home services, prioritize trust, professionalism, response speed, and service-area clarity
+      - For visual services, prioritize portfolio proof and style differentiation
+      - For appointment-based services, prioritize credentials, clarity, and ease of scheduling
+      
       Return JSON only. No markdown. No commentary.
       `;
         
