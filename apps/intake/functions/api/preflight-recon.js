@@ -83,66 +83,121 @@ function json(data, status = 200) {
   
       // 2) Dedicated recon prompt with dedicated response shape
       const prompt = `
-  You are an expert local business strategist for SiteForge Factory.
-  
-  Your job:
-  Infer a first-pass strategic recon profile for a business before the paid intake begins.
-  
-  Business name:
-  ${status.input_business_name}
-  
-  Location / service area:
-  ${status.city_or_service_area_input}
-  
-  Business description:
-  ${status.description_input}
-  
-  Return ONLY valid JSON using this exact shape:
-  
-  {
-    "entity_profile": {
-      "primary_category": "",
-      "secondary_categories": [],
-      "business_model": "",
-      "service_area": [],
-      "strategic_archetype": "",
-      "vertical_complexity": "",
-      "one_page_fit": "",
-      "confidence": 0
-    },
-    "buyer_intelligence": {
-      "decision_factors": [],
-      "common_objections": [],
-      "trust_markers": [],
-      "red_flags_customers_avoid": []
-    },
-    "preflight_strategy": {
-      "summary": "",
-      "primary_conversion": "",
-      "secondary_conversion": "",
-      "recommended_sections": [],
-      "faq_angles": [],
-      "aeo_angles": [],
-      "sales_preview": "",
-      "paid_phase_requirements": {
-        "must_verify_now": [],
-        "must_collect_paid_phase": [],
-        "nice_to_have_assets": []
+      You are the SiteForge Factory Pre-Flight Recon Engine.
+
+      Your job:
+      Create a first-pass strategic assessment for a local business before the paid build intake begins.
+
+      This output has TWO purposes:
+      1. internal strategic intelligence for SiteForge
+      2. a selective client-facing preview that inspires the client to move forward
+
+      Important:
+      - Do NOT give away the full strategy in the client-facing preview.
+      - The client-facing preview should be persuasive, specific, and valuable, but incomplete.
+      - Keep the strongest implementation details in internal_strategy.
+      - Infer from the business name, location, and description only.
+      - Do not mention Google Business Profile yet.
+      - Focus on what makes this business a fit or non-fit for a high-performing single-page local business website.
+
+      Business name:
+      ${status.input_business_name}
+
+      Location / service area:
+      ${status.city_or_service_area_input}
+
+      Business description:
+      ${status.description_input}
+
+      Return ONLY valid JSON in this exact structure:
+
+      {
+        "entity_profile": {
+          "primary_category": "",
+          "secondary_categories": [],
+          "business_model": "",
+          "service_area": [],
+          "strategic_archetype": "",
+          "vertical_complexity": "",
+          "one_page_fit": "",
+          "confidence": 0
+        },
+        "buyer_intelligence": {
+          "decision_factors": [],
+          "common_objections": [],
+          "trust_markers": [],
+          "red_flags_customers_avoid": []
+        },
+        "internal_strategy": {
+          "primary_conversion": "",
+          "secondary_conversion": "",
+          "recommended_sections": [],
+          "faq_angles": [],
+          "aeo_angles": [],
+          "must_verify_now": [],
+          "must_collect_paid_phase": [],
+          "nice_to_have_assets": []
+        },
+        "client_preview": {
+          "summary": "",
+          "opportunity": "",
+          "sales_preview": "",
+          "recommended_focus": [],
+          "next_step_teaser": ""
+        }
       }
-    }
-  }
-  
-  Rules:
-  - Do not mention Google Business Profile.
-  - Infer likely local-business strategy from the business name, location, and description only.
-  - Keep outputs practical for a single-page local business website.
-  - "business_model" should be one of: "service_area", "storefront", "hybrid", "destination", "online"
-  - "vertical_complexity" should be one of: "low", "medium", "high"
-  - "one_page_fit" should be one of: "excellent_fit", "conditional_fit", "complex_fit"
-  - "confidence" should be a number between 0 and 1.
-  - Return JSON only. No markdown.
-  `;
-  
+
+      Rules:
+
+      ENTITY_PROFILE
+      - "business_model" must be one of:
+        "service_area", "storefront", "hybrid", "destination", "online"
+      - "strategic_archetype" must be one of:
+        "trust_safety_local_service",
+        "experience_driven_local_business",
+        "high_consideration_home_service",
+        "visual_portfolio_service",
+        "appointment_based_professional_service",
+        "storefront_destination_business",
+        "complex_multi_offer_business"
+      - "vertical_complexity" must be one of:
+        "low", "medium", "high"
+      - "one_page_fit" must be one of:
+        "excellent_fit", "conditional_fit", "complex_fit"
+      - "confidence" must be a number from 0 to 1
+
+      BUYER_INTELLIGENCE
+      - Keep lists practical and specific
+      - Avoid generic filler like "quality service" unless it is clearly relevant
+      - Think like a local buyer comparing options
+
+      INTERNAL_STRATEGY
+      - This is for SiteForge only
+      - Be specific and useful
+      - "primary_conversion" should be a realistic conversion action like:
+        "call_now", "request_quote", "book_now", "schedule_consultation", "submit_inquiry"
+      - "aeo_angles" should be search-intent-oriented, not generic marketing slogans
+      - "must_verify_now" should contain critical strategic facts to confirm early
+      - "must_collect_paid_phase" should contain category-relevant assets or info for the build
+      - Do NOT include generic admin/platform items like hosting or domain unless absolutely necessary
+
+      CLIENT_PREVIEW
+      - This is what the buyer may see before paying
+      - It should inspire confidence but NOT reveal the full implementation plan
+      - "recommended_focus" should contain only 3 to 5 high-level focus areas
+      - "next_step_teaser" should hint at what SiteForge will refine in the paid phase
+      - Keep this polished, persuasive, and premium
+
+      AEO guidance:
+      - AEO angles should sound like likely search or answer-engine topics
+      - Example good AEO angle:
+        "private boat tours in Marco Island"
+      - Example bad AEO angle:
+        "create unforgettable memories"
+
+      Return JSON only. No markdown. No commentary.
+      `;
+        
       // 3) Call OpenAI directly for this dedicated recon shape
       const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -188,7 +243,8 @@ function json(data, status = 200) {
         slug,
         entity_profile: parsed.entity_profile || {},
         buyer_intelligence: parsed.buyer_intelligence || {},
-        preflight_strategy: parsed.preflight_strategy || {}
+        internal_strategy: parsed.internal_strategy || {},
+        client_preview: parsed.client_preview || {}
       };
   
       const persistRes = await fetch(env.APPS_SCRIPT_WEBAPP_URL, {
