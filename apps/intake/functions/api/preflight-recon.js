@@ -166,6 +166,22 @@ function json(data, status = 200) {
       - "one_page_fit" must be one of:
         "excellent_fit", "conditional_fit", "complex_fit"
       - "confidence" must be a number from 0 to 1
+
+      PRIMARY_CATEGORY GUIDANCE
+      - This must describe the industry category, not the business model.
+      - Good examples:
+        "Tour Operator"
+        "Boat Tour Operator"
+        "Sightseeing Tour Agency"
+        "Electrician"
+        "Roofing Contractor"
+        "Wedding Photographer"
+      - Do NOT use words like:
+        "destination"
+        "service_area"
+        "hybrid"
+        "online"
+      - Those belong in business_model only.
       
       BUSINESS MODEL GUIDANCE
       - Use "service_area" when the business primarily travels to the customer
