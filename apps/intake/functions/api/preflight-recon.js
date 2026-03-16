@@ -205,13 +205,46 @@ function json(data, status = 200) {
       CLIENT_PREVIEW
       - This is what the buyer may see before paying
       - It should inspire confidence but NOT reveal the full implementation plan
+      - Write like a premium strategist, not a generic agency salesperson
+      - Avoid cheesy or overblown marketing language like:
+        "Imagine a sleek website" or "unforgettable experience"
+      - Avoid vague claims like:
+        "enhance your online presence" unless made specific
+      - Be concrete, specific, and restrained
       - "recommended_focus" should contain only 3 to 5 high-level focus areas
-      - Keep it polished, persuasive, and premium
-      - "summary" should sound like a sharp positioning read, not a full strategy document
-      - "opportunity" should highlight upside, not implementation details
-      - "sales_preview" should describe the kind of result SiteForge could create, without revealing the full blueprint
-      - "next_step_teaser" should hint at refinement in the paid phase without listing all the work
-      
+      - The preview should feel like:
+        "we understand your business and see the opportunity"
+        not:
+        "here is the whole strategy"
+
+      CLIENT_PREVIEW WRITING RULES
+      - "summary" should be 1 to 2 sentences
+      - "summary" should sound like a sharp positioning read on the business
+      - "opportunity" should describe the business opportunity in practical terms
+      - "sales_preview" should describe the kind of site outcome SiteForge could create, but without exposing the full blueprint
+      - "recommended_focus" should be strategic themes, not implementation tasks
+      - "next_step_teaser" should hint at what will be refined in the paid phase without listing everything
+
+      CLIENT_PREVIEW TONE
+      - premium
+      - confident
+      - observant
+      - specific
+      - restrained
+      - no hype
+      - no fluff
+      - no generic agency clichés
+
+      GOOD CLIENT PREVIEW EXAMPLE STYLE
+      - "This business appears well positioned for a single-page site that makes the experience feel easy to trust and easy to book."
+      - "The strongest opportunity is to turn interest from tourists and families into direct bookings with clearer tour positioning and stronger proof of the experience."
+      - "The next phase would sharpen the offer, booking flow, and trust signals so the site feels more decision-ready."
+
+      BAD CLIENT PREVIEW STYLE
+      - "Imagine a sleek, user-friendly website..."
+      - "We will enhance your online presence..."
+      - "This unforgettable experience deserves..."
+
       AEO GUIDANCE
       - AEO angles should sound like likely search or answer-engine topics
       - Good example:
@@ -226,7 +259,8 @@ function json(data, status = 200) {
       - For home services, prioritize trust, professionalism, response speed, and service-area clarity
       - For visual services, prioritize portfolio proof and style differentiation
       - For appointment-based services, prioritize credentials, clarity, and ease of scheduling
-      
+      - For client_preview, reflect the buyer psychology of the category without revealing the full internal strategy
+
       Return JSON only. No markdown. No commentary.
       `;
         
