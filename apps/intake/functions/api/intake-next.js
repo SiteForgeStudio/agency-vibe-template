@@ -67,7 +67,10 @@ export async function onRequestPost(context) {
       baseState
     );
 
-    mergedState = seedInferenceFromSpecialistProfile(mergedState, specialistProfile);
+    mergedState = seedInferenceFromSpecialistProfile(
+      mergedState,
+      specialistProfile
+    );
 
     const readiness = evaluateReadiness(mergedState);
     mergedState.readiness = readiness;
@@ -92,6 +95,8 @@ export async function onRequestPost(context) {
       guidedStep?.action ||
       normalizeAction(controllerResponse?.action, readiness);
 
+    mergedState.last_intent = cleanString(message?.intent);
+
     mergedState.conversation = Array.isArray(mergedState.conversation)
       ? mergedState.conversation
       : [];
@@ -104,7 +109,11 @@ export async function onRequestPost(context) {
     if (message?.content) {
       mergedState.conversation.push({
         role: "assistant",
-        content: message.content
+        content: message.content,
+        message: {
+          intent: cleanString(message.intent),
+          type: cleanString(message.type)
+        }
       });
     }
 
@@ -211,7 +220,7 @@ function buildControllerPromptWithSpecialistProfile({
     "PAID INTAKE MODE:",
     "- This is a paid verification/refinement phase, not a blank-slate interview.",
     "- Ask only for missing or weak facts needed for strategy and build readiness.",
-    "- Prefer verifying offer structure, pricing posture, booking flow, contact path, trust proof, service area, owner background, and asset readiness.",
+    "- Prefer verifying offer structure, pricing posture, booking flow, contact path, trust proof, service area, owner background, asset readiness, and years of experience.",
     "- If the client is unsure, AI may draft copy, but must not invent hard factual claims.",
     "",
     "SEEDED STRATEGY CONTRACT:",
@@ -258,7 +267,7 @@ async function ensureSpecialistProfile(env, baseState, latestUserMessage) {
     cleanString(strategy?.business_context?.category) ||
     inferCategoryFromState(baseState, latestUserMessage);
 
-  const profile = {
+  return {
     category_guess: categoryGuess || "general service business",
     archetype:
       cleanString(strategy?.business_context?.strategic_archetype) ||
@@ -271,8 +280,6 @@ async function ensureSpecialistProfile(env, baseState, latestUserMessage) {
       "confident, clear, and trustworthy",
     question_bias: inferQuestionBiasFromStrategy(strategy)
   };
-
-  return profile;
 }
 
 function inferCategoryFromState(state, latestUserMessage) {
@@ -308,6 +315,7 @@ function inferQuestionBiasFromStrategy(strategy) {
   if (toggles.show_gallery) out.push("visual proof");
   if (toggles.show_faqs) out.push("objection handling");
   if (toggles.show_service_area) out.push("location clarity");
+  if (toggles.show_about) out.push("business identity");
 
   return out;
 }
@@ -381,11 +389,16 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, baseState) {
   }
 
   if (pendingIntent === "verify_booking_url" && looksLikeUrl(text)) {
-    next.answers.booking_url = text;
+    next.answers.booking_url = normalizeUrl(text);
   }
 
   if (pendingIntent === "verify_phone" && looksLikePhone(text)) {
     next.answers.phone = text;
+  }
+
+  if (pendingIntent === "verify_contact_path") {
+    if (looksLikePhone(text)) next.answers.phone = text;
+    if (looksLikeUrl(text)) next.answers.booking_url = normalizeUrl(text);
   }
 
   if (pendingIntent === "verify_service_area") {
@@ -397,24 +410,40 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, baseState) {
     next.ghostwritten.about_summary = text;
   }
 
+  if (pendingIntent === "verify_experience_years") {
+    next.answers.experience_years = text;
+  }
+
   if (pendingIntent === "verify_safety_reassurance") {
     next.answers.trust_signals = uniqueList([
       ...(next.answers.trust_signals || []),
-      text
+      ...extractTrustSignals(text)
+    ]);
+
+    next.answers.faq_topics = uniqueList([
+      ...(next.answers.faq_topics || []),
+      "What safety measures are in place?"
     ]);
   }
 
   if (pendingIntent === "verify_testimonials") {
     next.answers.credibility_factors = uniqueList([
       ...(next.answers.credibility_factors || []),
-      text
+      ...extractCredibilitySignals(text)
+    ]);
+  }
+
+  if (pendingIntent === "verify_photos") {
+    next.answers.trust_signals = uniqueList([
+      ...(next.answers.trust_signals || []),
+      ...extractPhotoSignals(text)
     ]);
   }
 
   if (pendingIntent === "verify_offerings" || pendingIntent === "verify_offer_details") {
     next.answers.offerings = uniqueList([
       ...(next.answers.offerings || []),
-      ...splitOfferings(text)
+      ...extractOfferCandidates(text)
     ]);
   }
 
@@ -424,6 +453,13 @@ function applyHeuristicAnswerUpdates(state, latestUserMessage, baseState) {
 
   if (pendingIntent === "verify_booking_method" && !next.answers.booking_method) {
     next.answers.booking_method = normalizeBookingMethod(text);
+  }
+
+  if (pendingIntent === "verify_faq_objections") {
+    next.answers.common_objections = uniqueList([
+      ...(next.answers.common_objections || []),
+      ...splitSentenceList(text)
+    ]);
   }
 
   return normalizeState(next);
@@ -611,7 +647,10 @@ function getPriorityVerificationQueue(state) {
   if (strategy?.schema_toggles?.show_features) queue.push("offer_structure");
   if (strategy?.schema_toggles?.show_testimonials) queue.push("trust_proof");
   if (strategy?.schema_toggles?.show_gallery) queue.push("photo_assets");
-  if (strategy?.schema_toggles?.show_about) queue.push("owner_background");
+  if (strategy?.schema_toggles?.show_about) {
+    queue.push("owner_background");
+    queue.push("experience_years");
+  }
   if (strategy?.schema_toggles?.show_service_area) queue.push("service_area");
   if (strategy?.schema_toggles?.show_faqs) queue.push("faq_objections");
 
@@ -649,6 +688,8 @@ function normalizeVerificationKey(value) {
   if (v.includes("safety")) return "safety_reassurance";
   if (v.includes("faq")) return "faq_objections";
   if (v.includes("objection")) return "faq_objections";
+  if (v.includes("years")) return "experience_years";
+  if (v.includes("experience")) return "experience_years";
 
   return "";
 }
@@ -671,7 +712,11 @@ function isVerificationFieldSatisfied(state, key) {
       return cleanString(answers.booking_url).length > 0;
 
     case "contact_path":
-      return Boolean(cleanString(answers.phone) || cleanString(answers.booking_url) || cleanString(state.clientEmail));
+      return Boolean(
+        cleanString(answers.phone) ||
+        cleanString(answers.booking_url) ||
+        cleanString(state.clientEmail)
+      );
 
     case "service_area":
       return cleanString(answers.service_area).length > 0;
@@ -698,6 +743,9 @@ function isVerificationFieldSatisfied(state, key) {
 
     case "owner_background":
       return cleanString(ghostwritten.about_summary).length > 0;
+
+    case "experience_years":
+      return cleanString(answers.experience_years).length > 0;
 
     case "faq_objections":
       return (
@@ -834,6 +882,16 @@ function buildVerificationPrompt(key, state, strategy, specialistProfile) {
         message: createQuestionMessage(
           "What should we say about you or the business behind this? Even a rough sentence is enough — I can turn it into strong copy.",
           "verify_owner_background"
+        )
+      };
+
+    case "experience_years":
+      return {
+        action: "probe",
+        phase: "guided_enrichment",
+        message: createQuestionMessage(
+          "About how many years have you been doing this work? A rough answer like 5+, 10+, or 20+ is fine.",
+          "verify_experience_years"
         )
       };
 
@@ -1004,7 +1062,8 @@ function buildSummaryPanel(state) {
     suggested_vibe: cleanString(state.inference?.suggested_vibe),
     suggested_components: cleanList(state.inference?.suggested_components),
     trust_signals: cleanList(state.answers?.trust_signals),
-    missing_information: cleanList(state.inference?.missing_information)
+    missing_information: cleanList(state.inference?.missing_information),
+    experience_years: cleanString(state.answers?.experience_years)
   };
 }
 
@@ -1026,22 +1085,25 @@ function normalizeState(state) {
     phone: "",
     booking_url: "",
     office_address: "",
+    location_context: "",
+    service_area: "",
     differentiators: [],
     trust_signals: [],
     credibility_factors: [],
-    location_context: "",
-    service_area: "",
+    buyer_decision_factors: [],
+    common_objections: [],
+    red_flags_to_avoid: [],
+    pricing_context: "",
     tone_preferences: "",
     visual_direction: "",
     process_notes: [],
     faq_topics: [],
-    pricing_context: "",
-    buyer_decision_factors: [],
-    common_objections: [],
+    experience_years: "",
     ...(isObject(next.answers) ? next.answers : {})
   };
 
   next.inference = {
+    specialist_profile: null,
     suggested_vibe: "",
     suggested_components: [],
     tone_direction: "",
@@ -1065,10 +1127,11 @@ function normalizeState(state) {
   next.answers.differentiators = cleanList(next.answers.differentiators);
   next.answers.trust_signals = cleanList(next.answers.trust_signals);
   next.answers.credibility_factors = cleanList(next.answers.credibility_factors);
-  next.answers.process_notes = cleanList(next.answers.process_notes);
-  next.answers.faq_topics = cleanList(next.answers.faq_topics);
   next.answers.buyer_decision_factors = cleanList(next.answers.buyer_decision_factors);
   next.answers.common_objections = cleanList(next.answers.common_objections);
+  next.answers.red_flags_to_avoid = cleanList(next.answers.red_flags_to_avoid);
+  next.answers.process_notes = cleanList(next.answers.process_notes);
+  next.answers.faq_topics = cleanList(next.answers.faq_topics);
 
   next.inference.suggested_components = cleanList(next.inference.suggested_components);
   next.inference.missing_information = cleanList(next.inference.missing_information);
@@ -1084,12 +1147,14 @@ function normalizeState(state) {
   next.answers.office_address = cleanString(next.answers.office_address);
   next.answers.location_context = cleanString(next.answers.location_context);
   next.answers.service_area = cleanString(next.answers.service_area);
+  next.answers.pricing_context = cleanString(next.answers.pricing_context);
   next.answers.tone_preferences = cleanString(next.answers.tone_preferences);
   next.answers.visual_direction = cleanString(next.answers.visual_direction);
-  next.answers.pricing_context = cleanString(next.answers.pricing_context);
+  next.answers.experience_years = cleanString(next.answers.experience_years);
 
   next.clientEmail = cleanString(next.clientEmail);
   next.businessName = cleanString(next.businessName);
+  next.slug = cleanString(next.slug);
   next.phase = cleanString(next.phase) || "guided_enrichment";
   next.last_intent = cleanString(next.last_intent);
 
@@ -1199,6 +1264,13 @@ function splitOfferings(text) {
     .filter(Boolean);
 }
 
+function splitSentenceList(text) {
+  return cleanString(text)
+    .split(/\n|,|;|\./g)
+    .map(function(v) { return cleanString(v); })
+    .filter(Boolean);
+}
+
 function normalizeBookingMethod(text) {
   const lower = cleanString(text).toLowerCase();
 
@@ -1208,6 +1280,13 @@ function normalizeBookingMethod(text) {
   if (/mix|both/.test(lower)) return "mixed";
 
   return rawSlug(lower) || "";
+}
+
+function normalizeUrl(value) {
+  const url = cleanString(value);
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  return "https://" + url;
 }
 
 function rawSlug(text) {
@@ -1269,4 +1348,60 @@ function schemaToggleKeysToComponents(schemaToggles) {
     .map(function(key) {
       return map[key];
     });
+}
+
+function extractOfferCandidates(text) {
+  return splitOfferings(text).filter(function(item) {
+    const lower = item.toLowerCase();
+
+    if (lower.length < 4) return false;
+    if (/life jacket|safe|safety|family friendly|personal experience|trust|review|testimonial|photo|image|gallery/.test(lower)) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function extractTrustSignals(text) {
+  const lower = cleanString(text).toLowerCase();
+  const out = [];
+
+  if (/life jacket|life jackets/.test(lower)) out.push("visible safety equipment");
+  if (/safe|safety/.test(lower)) out.push("safety reassurance");
+  if (/family friendly/.test(lower)) out.push("family-friendly experience");
+  if (/personal/.test(lower)) out.push("personalized experience");
+
+  return uniqueList(out);
+}
+
+function extractCredibilitySignals(text) {
+  const lower = cleanString(text).toLowerCase();
+  const out = [];
+
+  if (/customer|customers|review|reviews|testimonial/.test(lower)) {
+    out.push("customer review highlights");
+  }
+  if (/dolphin/.test(lower)) {
+    out.push("memorable wildlife experience");
+  }
+  if (/personal/.test(lower)) {
+    out.push("personal service reputation");
+  }
+
+  return uniqueList(out);
+}
+
+function extractPhotoSignals(text) {
+  const lower = cleanString(text).toLowerCase();
+  const out = [];
+
+  if (/preview imagery|stock|inspirational|ai images/.test(lower)) {
+    out.push("preview imagery approved for first build");
+  }
+  if (/have photos|i have photos|real photos/.test(lower)) {
+    out.push("client photos available");
+  }
+
+  return uniqueList(out);
 }
