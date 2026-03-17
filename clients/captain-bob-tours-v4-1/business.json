@@ -1,0 +1,331 @@
+{
+  "intelligence": {
+    "industry": "Local Business",
+    "target_persona": "people actively looking for a trustworthy provider",
+    "tone_of_voice": "confident, clear, and conversion-focused"
+  },
+  "strategy": {
+    "show_trustbar": false,
+    "show_about": true,
+    "show_features": false,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": false,
+    "show_comparison": false,
+    "show_gallery": false,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": false
+  },
+  "settings": {
+    "vibe": "Modern Minimal",
+    "menu": [
+      {
+        "label": "Home",
+        "href": "#top"
+      },
+      {
+        "label": "About",
+        "href": "#about"
+      },
+      {
+        "label": "FAQ",
+        "href": "#faqs"
+      },
+      {
+        "label": "Contact",
+        "href": "#contact"
+      }
+    ],
+    "cta_text": "Get Started",
+    "cta_link": "https://captainbob.example.com/book",
+    "cta_type": "external"
+  },
+  "brand": {
+    "name": "Captain Bob Tours V4.1",
+    "slug": "captain-bob-tours-v4-1",
+    "email": "",
+    "phone": "239-555-0188",
+    "address": "",
+    "service_area": "Marco Island, FL"
+  },
+  "hero": {
+    "enabled": true,
+    "eyebrow": "Trusted Local Business",
+    "headline": "Private boat tours and dolphin watching in Marco Island, FL",
+    "subheadline": "Built for people actively looking for a trustworthy provider with a clear path to get started",
+    "primary_cta_text": "Get Started",
+    "primary_cta_link": "https://captainbob.example.com/book",
+    "secondary_cta_text": "Learn More",
+    "secondary_cta_link": "#contact"
+  },
+  "about": {
+    "enabled": true,
+    "title": "About Captain Bob Tours V4.1",
+    "body": "Captain Bob Tours V4.1 is focused on private boat tours and dolphin watching in Marco Island, FL with a website designed to build trust and drive action."
+  },
+  "features": {
+    "enabled": false,
+    "title": "What We Offer",
+    "items": [
+      {
+        "title": "Private dolphin tours",
+        "description": "Private dolphin tours with an emphasis on personalized trip experience."
+      },
+      {
+        "title": "Sunset cruises",
+        "description": "Sunset cruises with an emphasis on frequent dolphin sightings."
+      },
+      {
+        "title": "Family sightseeing trips",
+        "description": "Family sightseeing trips presented with clear positioning and a strong next step."
+      }
+    ]
+  },
+  "testimonials": {
+    "enabled": false,
+    "title": "What Customers Notice",
+    "items": [
+      {
+        "quote": "preview imagery approved for first build",
+        "name": "Customer Trust Signal"
+      }
+    ]
+  },
+  "gallery": {
+    "enabled": false,
+    "title": "Gallery",
+    "layout": null,
+    "show_titles": false,
+    "strategy": {
+      "primary_goal": "visual trust and atmosphere",
+      "show_gallery": false
+    },
+    "image_source": {
+      "provider": "preview_search",
+      "image_search_query": "Marco Island, FL, Private boat tours and dolphin watching",
+      "filename_pattern": "gallery-{index}.jpg",
+      "target_folder": "clients/captain-bob-tours-v4-1/images/gallery"
+    },
+    "computed_count": null,
+    "computed_layout": "grid",
+    "items": []
+  },
+  "faqs": {
+    "enabled": true,
+    "title": "Frequently Asked Questions",
+    "items": [
+      {
+        "question": "Safety concerns addressed by providing life jackets",
+        "answer": "This answer can be refined during final review and approval."
+      },
+      {
+        "question": "Family friendliness of tours",
+        "answer": "This answer can be refined during final review and approval."
+      }
+    ]
+  },
+  "contact": {
+    "enabled": true,
+    "title": "Get in Touch",
+    "intro": "Ready to take the next step? Reach out using the contact path that works best for you.",
+    "phone": "239-555-0188",
+    "email": "",
+    "address": "",
+    "service_area": "Marco Island, FL",
+    "booking_method": "external_booking",
+    "booking_url": "https://captainbob.example.com/book"
+  },
+  "siteforge_meta": {
+    "strategy_brief": {
+      "business_name": "Captain Bob Tours V4.1",
+      "slug": "captain-bob-tours-v4-1",
+      "category": "",
+      "strategic_archetype": "",
+      "one_page_fit": "",
+      "primary_conversion": "submit_inquiry",
+      "secondary_conversion": "",
+      "conversion_mode": "contact_request",
+      "target_audience": "people actively looking for a trustworthy provider",
+      "primary_offer": [
+        "Private dolphin tours",
+        "Sunset cruises",
+        "Family sightseeing trips"
+      ],
+      "service_area": "Marco Island, FL",
+      "trust_signals": [
+        "preview imagery approved for first build"
+      ],
+      "differentiators": [],
+      "faq_topics": [],
+      "aeo_angles": [],
+      "recommended_vibe": "Modern Minimal",
+      "schema_toggles": {
+        "show_trustbar": false,
+        "show_about": true,
+        "show_features": false,
+        "show_events": false,
+        "show_process": false,
+        "show_testimonials": false,
+        "show_comparison": false,
+        "show_gallery": false,
+        "show_investment": false,
+        "show_faqs": true,
+        "show_service_area": false
+      },
+      "asset_policy": {
+        "preview_asset_mode": "inspirational_images",
+        "allow_ai_generated_images": true,
+        "allow_stock_images": true,
+        "client_assets_required_for_preview": false,
+        "replace_assets_before_publish": true,
+        "preferred_image_themes": [
+          "Private boat tours and dolphin watching"
+        ]
+      },
+      "copy_policy": {
+        "allow_ai_inferred_copy": true,
+        "allow_ai_assisted_copy": true,
+        "require_client_verification_for_facts": true,
+        "fields_ai_can_draft": [
+          "hero_headline",
+          "hero_subheadline",
+          "about_blurb",
+          "service_descriptions",
+          "faq_answers",
+          "cta_text"
+        ],
+        "fields_requiring_verification": [
+          "phone",
+          "address",
+          "booking_url",
+          "hours",
+          "pricing",
+          "certifications",
+          "review_quotes",
+          "departure_location"
+        ]
+      }
+    },
+    "strategy_contract": {
+      "business_context": {
+        "slug": "captain-bob-tours-v4-1",
+        "business_name": "Captain Bob Tours V4.1",
+        "category": "",
+        "secondary_categories": [],
+        "business_model": "",
+        "service_area": [
+          "Marco Island, FL"
+        ],
+        "strategic_archetype": "",
+        "vertical_complexity": "",
+        "one_page_fit": "",
+        "confidence": 0
+      },
+      "conversion_strategy": {
+        "primary_conversion": "submit_inquiry",
+        "secondary_conversion": "",
+        "conversion_mode": "contact_request",
+        "cta_text": "Get Started",
+        "cta_type": "anchor",
+        "cta_destination": "contact"
+      },
+      "audience_model": {
+        "primary_persona": "people actively looking for a trustworthy provider",
+        "secondary_persona": "",
+        "decision_factors": [],
+        "common_objections": [],
+        "red_flags_customers_avoid": []
+      },
+      "proof_model": {
+        "trust_signals": [],
+        "credibility_sources": []
+      },
+      "site_structure": {
+        "recommended_sections": [],
+        "faq_angles": [],
+        "aeo_angles": [],
+        "future_dynamic_vibe_hint": "marco island, fl local business"
+      },
+      "visual_strategy": {
+        "recommended_vibe": "Modern Minimal",
+        "vibe_source": "ai_inferred",
+        "vibe_confidence": 0.68,
+        "vibe_reasoning": [
+          "resolved to current schema-supported vibe: Modern Minimal"
+        ]
+      },
+      "asset_policy": {
+        "preview_asset_mode": "inspirational_images",
+        "allow_ai_generated_images": true,
+        "allow_stock_images": true,
+        "client_assets_required_for_preview": false,
+        "replace_assets_before_publish": true,
+        "preferred_image_themes": [
+          "Private boat tours and dolphin watching"
+        ]
+      },
+      "copy_policy": {
+        "allow_ai_inferred_copy": true,
+        "allow_ai_assisted_copy": true,
+        "require_client_verification_for_facts": true,
+        "fields_ai_can_draft": [
+          "hero_headline",
+          "hero_subheadline",
+          "about_blurb",
+          "service_descriptions",
+          "faq_answers",
+          "cta_text"
+        ],
+        "fields_requiring_verification": [
+          "phone",
+          "address",
+          "booking_url",
+          "hours",
+          "pricing",
+          "certifications",
+          "review_quotes",
+          "departure_location"
+        ]
+      },
+      "content_requirements": {
+        "must_verify_now": [],
+        "must_collect_paid_phase": [],
+        "nice_to_have_assets": [],
+        "preview_required_fields": [
+          "primary_offer",
+          "booking_method",
+          "service_area"
+        ],
+        "publish_required_fields": [
+          "phone",
+          "booking_url",
+          "hours"
+        ]
+      },
+      "schema_toggles": {
+        "show_trustbar": false,
+        "show_about": true,
+        "show_features": false,
+        "show_events": false,
+        "show_process": false,
+        "show_testimonials": false,
+        "show_comparison": false,
+        "show_gallery": false,
+        "show_investment": false,
+        "show_faqs": true,
+        "show_service_area": false
+      },
+      "source_snapshot": {
+        "client_preview": {},
+        "gbp_status": "",
+        "recommended_gbp_category": "",
+        "nap_recommendation": {},
+        "primary_offer_hint": "Private boat tours and dolphin watching"
+      }
+    },
+    "generated_from_paid_intake": true,
+    "preview_asset_mode": "inspirational_images",
+    "publish_requires_asset_swap": true
+  }
+}
