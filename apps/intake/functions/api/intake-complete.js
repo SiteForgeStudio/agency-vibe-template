@@ -23,6 +23,48 @@ const SCHEMA_VIBES = [
   "Solar Flare"
 ];
 
+const ALLOWED_MENU_PATHS = [
+  "#home",
+  "#about",
+  "#features",
+  "#events",
+  "#process",
+  "#testimonials",
+  "#comparison",
+  "#gallery",
+  "#investment",
+  "#faqs",
+  "#service-area",
+  "#contact"
+];
+
+const ALLOWED_ICON_TOKENS = [
+  "zap",
+  "cpu",
+  "layers",
+  "rocket",
+  "leaf",
+  "sprout",
+  "sun",
+  "scissors",
+  "truck",
+  "hammer",
+  "wrench",
+  "trash",
+  "sparkles",
+  "heart",
+  "award",
+  "users",
+  "map",
+  "shield",
+  "star",
+  "check",
+  "coins",
+  "briefcase",
+  "clock",
+  "phone"
+];
+
 export async function onRequestPost(context) {
   try {
     const body = await readJson(context.request);
@@ -55,6 +97,7 @@ export async function onRequestPost(context) {
 
     const strategyBrief = buildStrategyBrief(state, strategyContract);
     const businessJson = buildRawBusinessJson(state, strategyContract, strategyBrief);
+    const strategyMemory = buildStrategyMemory(state, strategyContract, strategyBrief, businessJson);
     const validation = validateRawBusinessJson(businessJson);
 
     if (!validation.ok) {
@@ -75,6 +118,7 @@ export async function onRequestPost(context) {
       slug: cleanString(state.slug),
       readiness,
       strategy_brief: strategyBrief,
+      strategy_memory: strategyMemory,
       business_json: businessJson,
       business_base_json: businessJson
     };
@@ -197,6 +241,15 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
   };
 
   const heroQuery = buildHeroImageQuery(state, strategyContract);
+
+  const trustbar = toggles.show_trustbar
+    ? buildTrustbar(state, strategyContract)
+    : undefined;
+
+  const features = toggles.show_features
+    ? buildFeatures(state, strategyContract)
+    : [];
+
   const gallery = toggles.show_gallery
     ? buildGallery(state, strategyContract)
     : undefined;
@@ -209,13 +262,27 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
     ? buildTestimonials(state, strategyContract)
     : undefined;
 
-  const trustbar = toggles.show_trustbar
-    ? buildTrustbar(state, strategyContract)
-    : undefined;
-
   const serviceAreaBlock = toggles.show_service_area
     ? buildServiceArea(state, strategyContract)
     : undefined;
+
+  const events = undefined;
+  const processSteps = undefined;
+  const comparison = undefined;
+  const investment = undefined;
+
+  const sections = {
+    about: true,
+    features,
+    events,
+    processSteps,
+    testimonials,
+    comparison,
+    gallery,
+    investment,
+    faqs,
+    service_area: serviceAreaBlock
+  };
 
   return {
     intelligence: {
@@ -228,7 +295,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
 
     settings: {
       vibe,
-      menu: buildMenu(toggles),
+      menu: buildMenu(toggles, sections),
       cta_text: ctaText,
       cta_link: ctaLink,
       cta_type: ctaType,
@@ -269,7 +336,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
 
     ...(trustbar ? { trustbar } : {}),
 
-    features: buildFeatures(state, strategyContract),
+    features,
 
     ...(gallery ? { gallery } : {}),
 
@@ -285,17 +352,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
 
     ...(serviceAreaBlock ? { service_area: serviceAreaBlock } : {}),
     ...(testimonials ? { testimonials } : {}),
-    ...(faqs ? { faqs } : {}),
-
-    siteforge_meta: {
-      strategy_brief: strategyBrief,
-      strategy_contract: strategyContract,
-      generated_from_paid_intake: true,
-      preview_asset_mode: cleanString(strategyContract.asset_policy?.preview_asset_mode),
-      publish_requires_asset_swap: Boolean(
-        strategyContract.asset_policy?.replace_assets_before_publish
-      )
-    }
+    ...(faqs ? { faqs } : {})
   };
 }
 
@@ -303,16 +360,71 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
    Builders
 ========================= */
 
-function buildMenu(toggles) {
-  const items = [{ label: "Home", href: "#top" }];
+function buildMenu(toggles, sections) {
+  const items = [{ label: "Home", path: "#home" }];
 
-  if (toggles.show_about) items.push({ label: "About", href: "#about" });
-  if (toggles.show_features) items.push({ label: "Services", href: "#features" });
-  if (toggles.show_testimonials) items.push({ label: "Reviews", href: "#testimonials" });
-  if (toggles.show_gallery) items.push({ label: "Gallery", href: "#gallery" });
-  if (toggles.show_faqs) items.push({ label: "FAQ", href: "#faqs" });
-  if (toggles.show_service_area) items.push({ label: "Area", href: "#service-area" });
-  items.push({ label: "Contact", href: "#contact" });
+  const renderable = {
+    about: Boolean(toggles?.show_about && sections?.about),
+    features: Boolean(
+      toggles?.show_features &&
+      Array.isArray(sections?.features) &&
+      sections.features.length
+    ),
+    events: Boolean(
+      toggles?.show_events &&
+      Array.isArray(sections?.events) &&
+      sections.events.length >= 3
+    ),
+    process: Boolean(
+      toggles?.show_process &&
+      Array.isArray(sections?.processSteps) &&
+      sections.processSteps.length >= 3
+    ),
+    testimonials: Boolean(
+      toggles?.show_testimonials &&
+      Array.isArray(sections?.testimonials) &&
+      sections.testimonials.length
+    ),
+    comparison: Boolean(
+      toggles?.show_comparison &&
+      sections?.comparison &&
+      Array.isArray(sections.comparison.items) &&
+      sections.comparison.items.length
+    ),
+    gallery: Boolean(
+      toggles?.show_gallery &&
+      sections?.gallery &&
+      Array.isArray(sections.gallery.items) &&
+      sections.gallery.items.length
+    ),
+    investment: Boolean(
+      toggles?.show_investment &&
+      Array.isArray(sections?.investment) &&
+      sections.investment.length
+    ),
+    faqs: Boolean(
+      toggles?.show_faqs &&
+      Array.isArray(sections?.faqs) &&
+      sections.faqs.length
+    ),
+    serviceArea: Boolean(
+      toggles?.show_service_area &&
+      sections?.service_area &&
+      cleanString(sections.service_area.main_city)
+    )
+  };
+
+  if (renderable.about) items.push({ label: "About", path: "#about" });
+  if (renderable.features) items.push({ label: "Services", path: "#features" });
+  if (renderable.events) items.push({ label: "Events", path: "#events" });
+  if (renderable.process) items.push({ label: "Process", path: "#process" });
+  if (renderable.testimonials) items.push({ label: "Reviews", path: "#testimonials" });
+  if (renderable.comparison) items.push({ label: "Why Us", path: "#comparison" });
+  if (renderable.gallery) items.push({ label: "Gallery", path: "#gallery" });
+  if (renderable.investment) items.push({ label: "Pricing", path: "#investment" });
+  if (renderable.faqs) items.push({ label: "FAQ", path: "#faqs" });
+  if (renderable.serviceArea) items.push({ label: "Area", path: "#service-area" });
+  items.push({ label: "Contact", path: "#contact" });
 
   return items;
 }
@@ -346,66 +458,138 @@ function buildTrustbar(state, strategyContract) {
 
 function buildFeatures(state, strategyContract) {
   const offerings = cleanList(state.answers?.offerings);
-  const differentiators = cleanList(state.answers?.differentiators);
-  const buyerFactors = cleanList(state.answers?.buyer_decision_factors);
+  const differentiators = uniqueList(state.answers?.differentiators);
+  const buyerFactors = uniqueList(state.answers?.buyer_decision_factors);
+  const trustSignals = uniqueList([
+    ...cleanList(state.answers?.trust_signals),
+    ...cleanList(state.answers?.credibility_factors)
+  ]);
+  const ghostFeatures = Array.isArray(state.ghostwritten?.features_copy)
+    ? state.ghostwritten.features_copy.filter(isObject)
+    : [];
 
-  const items = offerings.length
-    ? offerings.slice(0, 6).map(function(offer, idx) {
-        const proof = differentiators[idx] || buyerFactors[idx] || "customer experience";
+  if (ghostFeatures.length) {
+    const ghostItems = ghostFeatures
+      .map(function(item) {
+        const title = cleanString(item.title || item.headline || item.name);
+        const description = cleanString(item.description || item.body || item.copy);
+        if (!title || !description) return null;
         return {
-          title: offer,
-          description: `${offer} with an emphasis on ${String(proof).toLowerCase()}.`,
-          icon_slug: inferFeatureIcon(offer)
+          title,
+          description,
+          icon_slug: inferFeatureIcon(`${title} ${description}`)
         };
       })
-    : [
-        {
-          title: "Primary Service",
-          description: "Clear service positioning built around the main offer.",
-          icon_slug: "star"
-        },
-        {
-          title: "Customer Experience",
-          description: "Structured to build trust and simplify the next step.",
-          icon_slug: "sparkles"
-        },
-        {
-          title: "Easy Contact Path",
-          description: "Built to help visitors act quickly and confidently.",
-          icon_slug: "phone"
-        }
-      ];
+      .filter(Boolean)
+      .slice(0, 6);
 
-  return { items };
+    if (ghostItems.length >= 3) return ghostItems;
+  }
+
+  if (offerings.length >= 3) {
+    return offerings.slice(0, 6).map(function(offer, idx) {
+      const diff = differentiators[idx] || differentiators[0] || "";
+      const factor = buyerFactors[idx] || buyerFactors[0] || "";
+      const support = diff || factor;
+
+      return {
+        title: offer,
+        description: support
+          ? buildFeatureDescription(offer, support)
+          : `${offer} delivered with clarity, professionalism, and a smooth customer experience.`,
+        icon_slug: inferFeatureIcon(`${offer} ${support}`)
+      };
+    });
+  }
+
+  if (differentiators.length >= 3) {
+    return differentiators.slice(0, 6).map(function(item) {
+      return {
+        title: toFeatureTitle(item),
+        description: buildValuePropDescription(item, buyerFactors[0]),
+        icon_slug: inferFeatureIcon(item)
+      };
+    });
+  }
+
+  const fallback = uniqueList([
+    offerings[0] || "",
+    differentiators[0] || "",
+    trustSignals[0] || ""
+  ]).filter(Boolean);
+
+  if (fallback.length >= 3) {
+    return fallback.slice(0, 3).map(function(item) {
+      return {
+        title: toFeatureTitle(item),
+        description: buildValuePropDescription(item, buyerFactors[0]),
+        icon_slug: inferFeatureIcon(item)
+      };
+    });
+  }
+
+  return [
+    {
+      title: offerings[0] || "Core Service",
+      description: offerings[0]
+        ? `${offerings[0]} presented clearly so visitors immediately understand the main offer.`
+        : "A clear primary offer designed to help visitors quickly understand what the business provides.",
+      icon_slug: inferFeatureIcon(offerings[0] || "core service")
+    },
+    {
+      title: toFeatureTitle(differentiators[0] || trustSignals[0] || "Trusted Experience"),
+      description: differentiators[0] || trustSignals[0]
+        ? buildValuePropDescription(differentiators[0] || trustSignals[0], buyerFactors[0])
+        : "Positioned to reduce hesitation and help customers feel confident taking the next step.",
+      icon_slug: inferFeatureIcon(differentiators[0] || trustSignals[0] || "trusted experience")
+    },
+    {
+      title: bookingFeatureTitle(state),
+      description: bookingFeatureDescription(state),
+      icon_slug: inferFeatureIcon("booking contact easy next step")
+    }
+  ];
 }
 
 function buildGallery(state, strategyContract) {
-  const themes = uniqueList([
-    ...cleanList(strategyContract.asset_policy?.preferred_image_themes),
-    cleanString(strategyContract.business_context?.category),
-    cleanString(state.answers?.service_area)
-  ]);
+  const profile = inferGalleryProfile(state, strategyContract);
+  const baseQueries = buildGalleryQuerySeeds(state, strategyContract, profile);
+  const count = pickGalleryCount(profile);
+  const computedLayout = pickGalleryLayout(profile);
+  const title = pickGalleryTitle(profile);
+  const showTitles = pickGalleryShowTitles(profile);
 
-  const count = 6;
   const items = [];
-
   for (let i = 0; i < count; i++) {
-    const theme = themes[i % Math.max(themes.length, 1)] || "service business imagery";
+    const seed =
+      baseQueries[i % baseQueries.length] ||
+      buildHeroImageQuery(state, strategyContract) ||
+      "professional service business";
     items.push({
-      title: `Gallery Image ${i + 1}`,
-      image_search_query: clampWords(theme, 4, 8),
+      title: makeGalleryItemTitle(seed, i, profile),
+      image_search_query: clampWords(seed, 3, 8),
       caption: "",
-      tag: ""
+      tag: showTitles ? makeGalleryTag(profile, i) : ""
     });
   }
 
   return {
     enabled: true,
-    title: "Gallery",
-    layout: "masonry",
-    show_titles: false,
+    title,
+    layout: null,
+    show_titles: showTitles,
+    image_source: {
+      provider: cleanString(strategyContract.asset_policy?.preview_asset_mode) || "preview",
+      image_search_query: clampWords(
+        baseQueries[0] || buildHeroImageQuery(state, strategyContract),
+        3,
+        8
+      ),
+      filename_pattern: "",
+      target_folder: ""
+    },
     computed_count: count,
-    computed_layout: "masonry",
+    computed_layout: computedLayout,
     items
   };
 }
@@ -616,10 +800,22 @@ function inferObjectionHandle(state, strategyContract) {
 function inferFeatureIcon(offer) {
   const lower = cleanString(offer).toLowerCase();
 
-  if (/tour|experience|trip|travel/.test(lower)) return "map";
-  if (/sunset|photo|gallery/.test(lower)) return "image";
-  if (/family|group/.test(lower)) return "users";
-  if (/book|booking/.test(lower)) return "calendar";
+  if (/tour|experience|trip|travel|local|area|destination/.test(lower)) return "map";
+  if (/sunset|outdoor|nature|water|boat/.test(lower)) return "sun";
+  if (/photo|gallery|visual|detail|clean|polish|shine/.test(lower)) return "sparkles";
+  if (/family|group|team|crew/.test(lower)) return "users";
+  if (/book|booking|schedule|appointment|time/.test(lower)) return "clock";
+  if (/price|cost|quote|estimate|value/.test(lower)) return "coins";
+  if (/call|contact|phone/.test(lower)) return "phone";
+  if (/safe|safety|secure|insured|protection/.test(lower)) return "shield";
+  if (/repair|fix|service|maintenance/.test(lower)) return "wrench";
+  if (/build|construction|install/.test(lower)) return "hammer";
+  if (/haul|delivery|transport|move|pickup/.test(lower)) return "truck";
+  if (/garden|landscape|lawn|yard|green/.test(lower)) return "leaf";
+  if (/premium|quality|best|high-end|luxury/.test(lower)) return "award";
+  if (/simple|easy|included|done/.test(lower)) return "check";
+  if (/business|commercial|professional|office/.test(lower)) return "briefcase";
+  if (/fast|quick|rapid|same day/.test(lower)) return "zap";
 
   return "star";
 }
@@ -627,12 +823,15 @@ function inferFeatureIcon(offer) {
 function inferTrustbarIcon(item) {
   const lower = cleanString(item).toLowerCase();
 
-  if (/safety|certification|certified|secure/.test(lower)) return "shield";
-  if (/review|testimonial|customer/.test(lower)) return "message-circle";
-  if (/partnership|local/.test(lower)) return "map-pin";
-  if (/photo|gallery|visual/.test(lower)) return "image";
+  if (/safety|certification|certified|secure|insured|protected/.test(lower)) return "shield";
+  if (/review|testimonial|customer|people|family|group/.test(lower)) return "users";
+  if (/partnership|local|area|community|nearby/.test(lower)) return "map";
+  if (/photo|gallery|visual|detail|clean|shine/.test(lower)) return "sparkles";
+  if (/fast|quick|same day|responsive/.test(lower)) return "clock";
+  if (/quality|premium|trusted|proven/.test(lower)) return "award";
+  if (/phone|call|contact/.test(lower)) return "phone";
 
-  return "award";
+  return "check";
 }
 
 function inferFaqAnswer(question, state, strategyContract) {
@@ -672,6 +871,221 @@ function inferFaqAnswer(question, state, strategyContract) {
   return "This answer can be refined during final review and approval.";
 }
 
+function buildFeatureDescription(offer, support) {
+  const lower = cleanString(support).toLowerCase();
+
+  if (!lower) {
+    return `${offer} delivered with clarity, professionalism, and a smooth customer experience.`;
+  }
+
+  if (/fast|quick|same day|responsive/.test(lower)) {
+    return `${offer} designed for speed, responsiveness, and an easier path to getting started.`;
+  }
+  if (/safe|insured|certified|secure|protection/.test(lower)) {
+    return `${offer} supported by trust-building details that help customers feel confident moving forward.`;
+  }
+  if (/quality|premium|detail|craft|high-end/.test(lower)) {
+    return `${offer} positioned around craftsmanship, quality, and a stronger overall experience.`;
+  }
+  if (/local|community|nearby|area/.test(lower)) {
+    return `${offer} tailored for local customers who want a reliable provider in their area.`;
+  }
+
+  return `${offer} designed around ${lower}.`;
+}
+
+function buildValuePropDescription(item, buyerFactor) {
+  const factor = cleanString(buyerFactor);
+  const base = cleanString(item);
+
+  if (factor) {
+    return `${toFeatureTitle(base)} helps reinforce what matters most to buyers: ${factor.toLowerCase()}.`;
+  }
+
+  return `${toFeatureTitle(base)} is positioned as a meaningful reason to choose this business over generic alternatives.`;
+}
+
+function toFeatureTitle(text) {
+  const value = cleanString(text);
+  if (!value) return "Key Advantage";
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, function(ch) { return ch.toUpperCase(); });
+}
+
+function bookingFeatureTitle(state) {
+  if (cleanString(state.answers?.booking_url)) return "Easy Booking";
+  if (cleanString(state.answers?.phone)) return "Direct Contact";
+  return "Simple Next Step";
+}
+
+function bookingFeatureDescription(state) {
+  if (cleanString(state.answers?.booking_url)) {
+    return "Visitors get a clear, low-friction path to book without confusion.";
+  }
+  if (cleanString(state.answers?.phone)) {
+    return "Visitors get a clear contact path so taking the next step feels easy and direct.";
+  }
+  return "The site is structured to make contacting the business feel straightforward and low-friction.";
+}
+
+function inferGalleryProfile(state, strategyContract) {
+  const category = cleanString(strategyContract.business_context?.category).toLowerCase();
+  const vibe = cleanString(strategyContract.visual_strategy?.recommended_vibe).toLowerCase();
+  const offers = cleanList(state.answers?.offerings).join(" ").toLowerCase();
+  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes).join(" ").toLowerCase();
+
+  const text = [category, vibe, offers, themes].join(" ");
+
+  if (/tour|experience|charter|trip|event|class|workshop/.test(text)) {
+    return { archetype: "experiential", vibe, text };
+  }
+  if (/landscape|lawn|garden|detail|clean|cleaning|paint|roof|remodel|construction|floor|pressure wash|junk|haul/.test(text)) {
+    return { archetype: "visual_service", vibe, text };
+  }
+  if (/product|shop|retail|boutique|store|inventory/.test(text)) {
+    return { archetype: "product", vibe, text };
+  }
+  if (/law|legal|finance|consult|agency|advisor|accounting|healthcare|clinic|therapy/.test(text)) {
+    return { archetype: "professional", vibe, text };
+  }
+
+  return { archetype: "general", vibe, text };
+}
+
+function pickGalleryCount(profile) {
+  switch (profile.archetype) {
+    case "visual_service": return profile.vibe.includes("luxury") ? 10 : 8;
+    case "experiential": return 8;
+    case "product": return 7;
+    case "professional": return 5;
+    default: return 6;
+  }
+}
+
+function pickGalleryLayout(profile) {
+  if (profile.vibe.includes("luxury")) return "bento";
+
+  switch (profile.archetype) {
+    case "visual_service": return "masonry";
+    case "experiential": return "masonry";
+    case "professional": return "grid";
+    case "product": return "grid";
+    default: return "masonry";
+  }
+}
+
+function pickGalleryTitle(profile) {
+  switch (profile.archetype) {
+    case "visual_service": return "Our Work";
+    case "experiential": return "Experiences";
+    case "product": return "Products";
+    case "professional": return "In Action";
+    default: return "Gallery";
+  }
+}
+
+function pickGalleryShowTitles(profile) {
+  return profile.archetype === "experiential" || profile.archetype === "product";
+}
+
+function buildGalleryQuerySeeds(state, strategyContract, profile) {
+  const category = cleanString(strategyContract.business_context?.category);
+  const area = cleanString(state.answers?.service_area);
+  const offers = cleanList(state.answers?.offerings);
+  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
+  const out = [];
+
+  offers.forEach(function(offer) {
+    out.push(buildImageQueryFromParts([offer, category, area]));
+    out.push(buildImageQueryFromParts([offer, category]));
+  });
+
+  themes.forEach(function(theme) {
+    out.push(buildImageQueryFromParts([theme, category, area]));
+    out.push(buildImageQueryFromParts([theme, category]));
+  });
+
+  if (profile.archetype === "experiential") {
+    out.push(buildImageQueryFromParts([offers[0] || category, "group experience", area]));
+    out.push(buildImageQueryFromParts([offers[0] || category, "outdoor activity"]));
+    out.push(buildImageQueryFromParts([offers[0] || category, "sunset"]));
+  }
+
+  if (profile.archetype === "visual_service") {
+    out.push(buildImageQueryFromParts([offers[0] || category, "before after"]));
+    out.push(buildImageQueryFromParts([offers[0] || category, "finished result"]));
+    out.push(buildImageQueryFromParts([offers[0] || category, "close detail"]));
+  }
+
+  if (profile.archetype === "professional") {
+    out.push(buildImageQueryFromParts([category, "client meeting"]));
+    out.push(buildImageQueryFromParts([category, "professional office"]));
+  }
+
+  return uniqueList(out).filter(Boolean).slice(0, 12);
+}
+
+function buildImageQueryFromParts(parts) {
+  return clampWords(
+    parts
+      .map(cleanString)
+      .filter(Boolean)
+      .join(" "),
+    3,
+    8
+  );
+}
+
+function makeGalleryItemTitle(seed, idx, profile) {
+  if (profile.archetype === "experiential") return `Experience ${idx + 1}`;
+  if (profile.archetype === "product") return `Product ${idx + 1}`;
+  if (profile.archetype === "visual_service") return `Project ${idx + 1}`;
+  if (profile.archetype === "professional") return `Moment ${idx + 1}`;
+  return `Gallery Image ${idx + 1}`;
+}
+
+function makeGalleryTag(profile, idx) {
+  if (profile.archetype === "experiential") return idx % 2 === 0 ? "Experience" : "Atmosphere";
+  if (profile.archetype === "product") return "Featured";
+  return "";
+}
+
+function buildStrategyMemory(state, strategyContract, strategyBrief, businessJson) {
+  return {
+    strategy_brief: deepClone(strategyBrief),
+    strategy_contract: deepClone(strategyContract),
+    raw_answers: deepClone(isObject(state.answers) ? state.answers : {}),
+    ghostwritten: deepClone(isObject(state.ghostwritten) ? state.ghostwritten : {}),
+    future_aeo: {
+      aeo_angles: cleanList(strategyContract.site_structure?.aeo_angles),
+      faq_topics: uniqueList([
+        ...cleanList(state.answers?.faq_topics),
+        ...cleanList(state.answers?.common_objections),
+        ...cleanList(strategyContract.site_structure?.faq_angles)
+      ]),
+      buyer_decision_factors: cleanList(state.answers?.buyer_decision_factors),
+      differentiators: cleanList(state.answers?.differentiators),
+      trust_signals: uniqueList([
+        ...cleanList(state.answers?.trust_signals),
+        ...cleanList(state.answers?.credibility_factors)
+      ]),
+      offerings: cleanList(state.answers?.offerings),
+      service_area: cleanString(state.answers?.service_area),
+      booking_url: cleanString(state.answers?.booking_url),
+      phone: cleanString(state.answers?.phone),
+      office_address: cleanString(state.answers?.office_address),
+      target_audience: cleanString(state.answers?.target_audience),
+      tone_preferences: cleanString(state.answers?.tone_preferences),
+      preview_asset_mode: cleanString(strategyContract.asset_policy?.preview_asset_mode),
+      publish_requires_asset_swap: Boolean(strategyContract.asset_policy?.replace_assets_before_publish)
+    },
+    emitted_sections: Object.keys(businessJson || {})
+  };
+}
+
 /* =========================
    Validation
 ========================= */
@@ -682,6 +1096,32 @@ function validateRawBusinessJson(data) {
   if (!isObject(data)) {
     return { ok: false, issues: ["business_json must be an object"] };
   }
+
+  const allowedTopLevel = new Set([
+    "intelligence",
+    "strategy",
+    "settings",
+    "brand",
+    "hero",
+    "about",
+    "trustbar",
+    "events",
+    "service_area",
+    "features",
+    "processSteps",
+    "testimonials",
+    "comparison",
+    "investment",
+    "faqs",
+    "gallery",
+    "contact"
+  ]);
+
+  Object.keys(data).forEach(function(key) {
+    if (!allowedTopLevel.has(key)) {
+      issues.push(`unknown top-level key: ${key}`);
+    }
+  });
 
   if (!cleanString(data?.intelligence?.industry)) {
     issues.push("intelligence.industry is required");
@@ -703,8 +1143,22 @@ function validateRawBusinessJson(data) {
   if (!SCHEMA_VIBES.includes(cleanString(data?.settings?.vibe))) {
     issues.push("settings.vibe must be a valid schema vibe");
   }
-  if (!Array.isArray(data?.settings?.menu)) {
-    issues.push("settings.menu must be an array");
+  if (!Array.isArray(data?.settings?.menu) || data.settings.menu.length === 0) {
+    issues.push("settings.menu must be a non-empty array");
+  } else {
+    data.settings.menu.forEach(function(item, idx) {
+      if (!cleanString(item?.label)) {
+        issues.push(`settings.menu[${idx}].label is required`);
+      }
+      if (!cleanString(item?.path)) {
+        issues.push(`settings.menu[${idx}].path is required`);
+      } else if (!ALLOWED_MENU_PATHS.includes(cleanString(item.path))) {
+        issues.push(`settings.menu[${idx}].path must be a valid schema anchor`);
+      }
+      if (Object.prototype.hasOwnProperty.call(item || {}, "href")) {
+        issues.push(`settings.menu[${idx}] must use path, not href`);
+      }
+    });
   }
   if (!cleanString(data?.settings?.cta_text)) {
     issues.push("settings.cta_text is required");
@@ -712,8 +1166,8 @@ function validateRawBusinessJson(data) {
   if (!cleanString(data?.settings?.cta_link)) {
     issues.push("settings.cta_link is required");
   }
-  if (!cleanString(data?.settings?.cta_type)) {
-    issues.push("settings.cta_type is required");
+  if (!["anchor", "external"].includes(cleanString(data?.settings?.cta_type))) {
+    issues.push("settings.cta_type must be anchor or external");
   }
 
   if (!cleanString(data?.brand?.name)) {
@@ -752,8 +1206,22 @@ function validateRawBusinessJson(data) {
     issues.push("about.years_experience is required");
   }
 
-  if (!Array.isArray(data?.features?.items) || data.features.items.length < 3) {
-    issues.push("features.items must contain at least 3 items");
+  if (!Array.isArray(data?.features) || data.features.length < 3) {
+    issues.push("features must contain at least 3 items");
+  } else {
+    data.features.forEach(function(item, idx) {
+      if (!cleanString(item?.title)) {
+        issues.push(`features[${idx}].title is required`);
+      }
+      if (!cleanString(item?.description)) {
+        issues.push(`features[${idx}].description is required`);
+      }
+      if (!cleanString(item?.icon_slug)) {
+        issues.push(`features[${idx}].icon_slug is required`);
+      } else if (!ALLOWED_ICON_TOKENS.includes(cleanString(item.icon_slug))) {
+        issues.push(`features[${idx}].icon_slug must be a valid icon token`);
+      }
+    });
   }
 
   if (!cleanString(data?.contact?.headline)) {
@@ -767,6 +1235,26 @@ function validateRawBusinessJson(data) {
   }
   if (!cleanString(data?.contact?.button_text)) {
     issues.push("contact.button_text is required");
+  }
+
+  if (data?.trustbar) {
+    if (typeof data.trustbar.enabled !== "boolean") {
+      issues.push("trustbar.enabled must be boolean");
+    }
+    if (!Array.isArray(data.trustbar.items) || data.trustbar.items.length < 2) {
+      issues.push("trustbar.items must contain at least 2 items when trustbar is present");
+    } else {
+      data.trustbar.items.forEach(function(item, idx) {
+        if (!cleanString(item?.label)) {
+          issues.push(`trustbar.items[${idx}].label is required`);
+        }
+        if (!cleanString(item?.icon)) {
+          issues.push(`trustbar.items[${idx}].icon is required`);
+        } else if (!ALLOWED_ICON_TOKENS.includes(cleanString(item.icon))) {
+          issues.push(`trustbar.items[${idx}].icon must be a valid icon token`);
+        }
+      });
+    }
   }
 
   if (data?.strategy?.show_gallery) {
@@ -1021,6 +1509,10 @@ function uniqueList(arr) {
 
 function isObject(v) {
   return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+function deepClone(v) {
+  return JSON.parse(JSON.stringify(v));
 }
 
 function clampWords(text, minWords, maxWords) {

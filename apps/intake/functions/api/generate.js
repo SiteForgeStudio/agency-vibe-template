@@ -41,7 +41,6 @@ export async function onRequestPost({ request, env }) {
           ok: false,
           error: "Schema contract failed",
           errors,
-          // include a tiny hint to debug faster without dumping everything
           hint: "Fix prompt/normalizer so output matches master schema paths (hero.image.image_search_query, gallery.items[], settings.cta_type, features[], etc).",
         },
         422
@@ -96,7 +95,6 @@ async function callAI_({ businessName, story, clientEmail }, env) {
         { role: "system", content: system },
         { role: "user", content: user }
       ],
-      // New Responses API format parameter
       text: { format: { type: "json_object" } }
     }),
   });
@@ -208,7 +206,7 @@ function normalizeToMasterSchema_(raw, ctx) {
     subtext: r.hero?.subtext || r.hero?.subheadline || r.hero?.subtitle || "A premium experience built around your needs.",
     image: {
       alt: r.hero?.image?.alt || r.hero?.image_alt || `${out.intelligence.industry} hero image`,
-      image_search_query: heroQuery || "" // enforced later
+      image_search_query: heroQuery || ""
     }
   };
 
@@ -277,29 +275,47 @@ function ensureInspirationQueries_(data) {
     data.gallery = data.gallery || { enabled: true, items: [] };
     data.gallery.enabled = true;
 
-    const count = Number(data.gallery.computed_count || 6);
     if (!Array.isArray(data.gallery.items)) data.gallery.items = [];
 
-    // Ensure enough items
-    while (data.gallery.items.length < count) {
-      data.gallery.items.push({ title: `Project ${data.gallery.items.length + 1}`, image_search_query: "" });
-    }
+    const count = Number(
+      data.gallery.computed_count ||
+      data.gallery.items.length ||
+      6
+    );
 
     const baseSubject = String(data?.intelligence?.industry || "service");
     const vibe = String(data?.settings?.vibe || "");
-    const base = `${baseSubject} results showcase ${vibe}`.trim();
+    const fallbackBase = `${baseSubject} results showcase ${vibe}`.trim();
+
+    // Ensure enough items, but respect any intentional upstream item count first
+    while (data.gallery.items.length < count) {
+      data.gallery.items.push({
+        title: `Project ${data.gallery.items.length + 1}`,
+        image_search_query: ""
+      });
+    }
 
     data.gallery.items = data.gallery.items.map((it, i) => {
       const title = String(it?.title || `Project ${i + 1}`);
       const q = String(it?.image_search_query || "").trim();
+
       return {
         ...it,
         title,
-        image_search_query: q || clampWords_(`${base} ${i + 1}`, 4, 8)
+        image_search_query: q || clampWords_(`${fallbackBase} ${i + 1}`, 4, 8)
       };
     });
+
+    if (!data.gallery.image_source || typeof data.gallery.image_source !== "object") {
+      data.gallery.image_source = {};
+    }
+
+    if (!String(data.gallery.image_source.image_search_query || "").trim()) {
+      data.gallery.image_source.image_search_query =
+        data.gallery.items[0]?.image_search_query ||
+        clampWords_(fallbackBase, 4, 8);
+    }
   } else {
-    // If not showing gallery, keep it disabled if present
     if (data.gallery) data.gallery.enabled = Boolean(data.gallery.enabled);
   }
 
@@ -315,17 +331,19 @@ function validateMasterContract_(data) {
   for (const k of reqTop) if (!data?.[k]) errors.push(`Missing top-level "${k}"`);
 
   // intelligence
-  for (const k of ["industry","target_persona","tone_of_voice"])
+  for (const k of ["industry","target_persona","tone_of_voice"]) {
     if (!data?.intelligence?.[k]) errors.push(`Missing intelligence.${k}`);
+  }
 
   // settings
   const vibes = new Set([
     "Midnight Tech","Zenith Earth","Vintage Boutique","Rugged Industrial",
     "Modern Minimal","Luxury Noir","Legacy Professional","Solar Flare"
   ]);
-  if (!vibes.has(data?.settings?.vibe)) errors.push(`settings.vibe must be one of allowed enum values`);
-  for (const k of ["cta_text","cta_link","cta_type"])
+  if (!vibes.has(data?.settings?.vibe)) errors.push("settings.vibe must be one of allowed enum values");
+  for (const k of ["cta_text","cta_link","cta_type"]) {
     if (!data?.settings?.[k]) errors.push(`Missing settings.${k}`);
+  }
 
   if (!Array.isArray(data?.settings?.menu) || data.settings.menu.length === 0) {
     errors.push("settings.menu must be a non-empty array");
@@ -341,32 +359,37 @@ function validateMasterContract_(data) {
   }
 
   // brand
-  for (const k of ["name","tagline","email"])
+  for (const k of ["name","tagline","email"]) {
     if (!data?.brand?.[k]) errors.push(`Missing brand.${k}`);
+  }
 
   // hero
-  for (const k of ["headline","subtext"])
+  for (const k of ["headline","subtext"]) {
     if (!data?.hero?.[k]) errors.push(`Missing hero.${k}`);
+  }
   if (!data?.hero?.image?.alt) errors.push("Missing hero.image.alt");
   if (!data?.hero?.image?.image_search_query) errors.push("Missing hero.image.image_search_query");
 
   // about
-  for (const k of ["story_text","founder_note","years_experience"])
+  for (const k of ["story_text","founder_note","years_experience"]) {
     if (!data?.about?.[k]) errors.push(`Missing about.${k}`);
+  }
 
   // features
   if (!Array.isArray(data?.features) || data.features.length < 3) {
     errors.push("features must be an array with at least 3 items");
   } else {
     data.features.forEach((f, i) => {
-      for (const k of ["title","description","icon_slug"])
+      for (const k of ["title","description","icon_slug"]) {
         if (!f?.[k]) errors.push(`features[${i}].${k} missing`);
+      }
     });
   }
 
   // contact
-  for (const k of ["headline","subheadline","email_recipient","button_text"])
+  for (const k of ["headline","subheadline","email_recipient","button_text"]) {
     if (!data?.contact?.[k]) errors.push(`Missing contact.${k}`);
+  }
 
   // gallery contract only when enabled by strategy
   if (data?.strategy?.show_gallery) {
@@ -384,7 +407,9 @@ function validateMasterContract_(data) {
   // trustbar if present must match min shape (enabled + items)
   if (data?.trustbar) {
     if (typeof data.trustbar.enabled !== "boolean") errors.push("trustbar.enabled must be boolean");
-    if (!Array.isArray(data.trustbar.items) || data.trustbar.items.length < 2) errors.push("trustbar.items must have 2+ items when trustbar exists");
+    if (!Array.isArray(data.trustbar.items) || data.trustbar.items.length < 2) {
+      errors.push("trustbar.items must have 2+ items when trustbar exists");
+    }
   }
 
   return errors;
@@ -415,17 +440,21 @@ function normalizeGallery_(g, showGallery, industry, vibe) {
 
   const computed_layout =
     gg.computed_layout ||
-    (isLuxury ? "bento" : isCreative ? "masonry" : "grid");
+    (isLuxury ? "bento" : isCreative ? "masonry" : isTrades ? "grid" : "grid");
 
   const computed_count =
     gg.computed_count ||
-    (isLuxury ? 5 : isCreative ? 9 : 6);
+    items.length ||
+    (isLuxury ? 5 : isCreative ? 9 : isTrades ? 6 : 6);
 
   return {
     enabled,
     title: gg.title || "Gallery",
     layout: gg.layout ?? null,
     show_titles: gg.show_titles ?? true,
+    image_source: gg.image_source || {
+      image_search_query: ""
+    },
     computed_count: enabled ? computed_count : (gg.computed_count ?? null),
     computed_layout: enabled ? computed_layout : (gg.computed_layout ?? null),
     items
@@ -501,7 +530,6 @@ function clampWords_(text, min, max) {
   const words = String(text || "").trim().split(/\s+/).filter(Boolean);
   if (words.length <= max && words.length >= min) return words.join(" ");
   if (words.length > max) return words.slice(0, max).join(" ");
-  // if too short, pad with generic context words
   const pad = ["photography","professional","high","quality","detail"];
   while (words.length < min && pad.length) words.push(pad.shift());
   return words.slice(0, max).join(" ");
