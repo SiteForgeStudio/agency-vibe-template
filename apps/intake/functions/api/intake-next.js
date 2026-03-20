@@ -7,6 +7,7 @@
  * - Field writes are scoped to the active key
  * - Missing information + readiness are recomputed every turn
  * - ready_to_build requires queue completion
+ * - Navigation actions like "continue" do not count as semantic answers
  */
 
 const EMPTY_INTAKE_STATE = {
@@ -83,6 +84,8 @@ const EMPTY_INTAKE_STATE = {
   session_id: ""
 };
 
+const NAVIGATION_ACTIONS = ["continue", "accept", "start", "next"];
+
 export async function onRequestPost(context) {
   try {
     const body = await readJson(context.request);
@@ -90,13 +93,16 @@ export async function onRequestPost(context) {
     const sessionId = cleanString(body.session_id);
     const answer = cleanString(body.answer);
     const uiAction = cleanString(body.ui_action);
-    const latestUserMessage = answer || uiAction;
+    const normalizedUiAction = uiAction.toLowerCase();
+    const isNavigationOnlyAction = NAVIGATION_ACTIONS.indexOf(normalizedUiAction) !== -1;
+    const latestUserMessage = answer ? answer : (isNavigationOnlyAction ? "" : uiAction);
+    const hasSemanticAnswer = Boolean(latestUserMessage);
 
     if (!sessionId) {
       return json({ ok: false, error: "Missing session_id" }, 400);
     }
 
-    if (!latestUserMessage) {
+    if (!answer && !uiAction) {
       return json({ ok: false, error: "Missing answer or ui_action" }, 400);
     }
 
@@ -116,7 +122,7 @@ export async function onRequestPost(context) {
     const initialQueue = getPriorityVerificationQueue(state);
     const currentKey = getCurrentVerificationKey(state, initialQueue);
 
-    const interpreterResult = currentKey
+    const interpreterResult = currentKey && hasSemanticAnswer
       ? await interpretActiveAnswer(context.env, {
           state: state,
           currentKey: currentKey,
@@ -127,15 +133,17 @@ export async function onRequestPost(context) {
         })
       : emptyInterpreterResult();
 
-    state = appendRawAnswerLog(state, {
-      key: currentKey || "none",
-      answer: latestUserMessage,
-      ui_action: uiAction,
-      interpreted_at: new Date().toISOString(),
-      interpreter_confidence: Number(interpreterResult.confidence || 0)
-    });
+    if (hasSemanticAnswer) {
+      state = appendRawAnswerLog(state, {
+        key: currentKey || "none",
+        answer: latestUserMessage,
+        ui_action: uiAction,
+        interpreted_at: new Date().toISOString(),
+        interpreter_confidence: Number(interpreterResult.confidence || 0)
+      });
+    }
 
-    if (currentKey) {
+    if (currentKey && hasSemanticAnswer) {
       state = applyScopedFieldUpdates(state, currentKey, interpreterResult.field_updates, latestUserMessage);
       state = markVerificationEvidence(state, currentKey, latestUserMessage, interpreterResult);
     }
@@ -169,10 +177,11 @@ export async function onRequestPost(context) {
     state.conversation = Array.isArray(state.conversation) ? state.conversation : [];
     state.conversation.push({
       role: "user",
-      content: latestUserMessage,
+      content: hasSemanticAnswer ? latestUserMessage : uiAction,
       meta: {
         verification_key: currentKey || "",
-        ui_action: uiAction || ""
+        ui_action: uiAction || "",
+        semantic_answer: hasSemanticAnswer
       }
     });
 
