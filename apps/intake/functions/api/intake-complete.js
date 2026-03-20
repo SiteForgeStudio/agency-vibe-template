@@ -80,6 +80,20 @@ export async function onRequestPost(context) {
       return json({ ok: false, error: "Missing strategy_contract in state" }, 400);
     }
 
+    const verification = isObject(state.verification) ? state.verification : {};
+    if (verification.queue_complete !== true) {
+      return json(
+        {
+          ok: false,
+          error: "verification_incomplete",
+          message: "Please complete all required intake steps before generating the final payload.",
+          verification,
+          missing: cleanList(state.inference?.missing_information)
+        },
+        400
+      );
+    }
+
     const readiness = evaluateReadiness(state);
     state.readiness = readiness;
 
@@ -231,7 +245,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
     show_about: Boolean(strategyContract.schema_toggles?.show_about),
     show_features: Boolean(strategyContract.schema_toggles?.show_features),
     show_events: false,
-    show_process: false,
+    show_process: Boolean(strategyContract.schema_toggles?.show_process),
     show_testimonials: Boolean(strategyContract.schema_toggles?.show_testimonials),
     show_comparison: false,
     show_gallery: Boolean(strategyContract.schema_toggles?.show_gallery),
@@ -267,7 +281,8 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
     : undefined;
 
   const events = undefined;
-  const processSteps = undefined;
+  const processSteps = buildProcessSteps(state, strategyContract);
+  toggles.show_process = toggles.show_process || processSteps.length >= 3;
   const comparison = undefined;
   const investment = undefined;
 
@@ -338,6 +353,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
 
     features,
 
+    ...(processSteps.length ? { processSteps } : {}),
     ...(gallery ? { gallery } : {}),
 
     contact: {
@@ -432,239 +448,268 @@ function buildMenu(toggles, sections) {
 function buildTrustbar(state, strategyContract) {
   const trustSignals = uniqueList([
     ...cleanList(state.answers?.trust_signals),
-    ...cleanList(state.answers?.credibility_factors)
+    ...cleanList(state.answers?.credibility_factors),
+    ...cleanList(strategyContract.site_structure?.trust_signals)
   ]).slice(0, 4);
 
-  const items = trustSignals.length
-    ? trustSignals.map(function(item) {
-        return {
-          icon: inferTrustbarIcon(item),
-          label: item,
-          sublabel: ""
-        };
-      })
-    : [
-        { icon: "award", label: "Trusted quality" },
-        { icon: "shield", label: "Confidence and care" },
-        { icon: "clock", label: "Fast response" }
-      ];
+  const items = trustSignals.map(function(label, idx) {
+    return {
+      label,
+      icon: pickTrustbarIcon(label, idx)
+    };
+  });
+
+  if (items.length < 2) {
+    items.push(
+      { label: "Trusted Service", icon: "shield" },
+      { label: "Customer Focused", icon: "heart" }
+    );
+  }
 
   return {
     enabled: true,
-    headline: "Why People Choose Us",
-    items
+    items: items.slice(0, 4)
   };
+}
+
+function buildProcessSteps(state, strategyContract) {
+  const rawSteps = normalizeProcessStepSource(state.answers?.process_notes);
+  if (rawSteps.length < 3) return [];
+
+  return rawSteps.slice(0, 5).map(function(step, idx) {
+    return {
+      title: inferProcessStepTitle(step, idx),
+      description: inferProcessStepDescription(step)
+    };
+  }).filter(function(step) {
+    return cleanString(step.title) && cleanString(step.description);
+  });
+}
+
+function normalizeProcessStepSource(input) {
+  let steps = cleanList(input);
+
+  if (steps.length === 1) {
+    const expanded = splitProcessStepText(steps[0]);
+    if (expanded.length > 1) steps = expanded;
+  }
+
+  return uniqueList(steps)
+    .map(function(step) { return cleanString(step); })
+    .filter(function(step) { return step.split(/\s+/).filter(Boolean).length >= 2; });
+}
+
+function splitProcessStepText(text) {
+  return cleanString(text)
+    .split(/\n|->|→|;|\.|, then | then /gi)
+    .map(function(step) { return cleanString(step); })
+    .filter(Boolean);
+}
+
+function inferProcessStepTitle(step, idx) {
+  const text = cleanString(step);
+  if (!text) return `Step ${idx + 1}`;
+
+  const separatorMatch = text.match(/^([^:–—-]{3,48})\s*[:–—-]\s+(.+)$/);
+  if (separatorMatch) {
+    return toTitleCase(separatorMatch[1]);
+  }
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const titleWords = words.slice(0, Math.min(words.length, 4));
+  return toTitleCase(titleWords.join(" ")) || `Step ${idx + 1}`;
+}
+
+function inferProcessStepDescription(step) {
+  const text = cleanString(step);
+  if (!text) return "";
+
+  const separatorMatch = text.match(/^([^:–—-]{3,48})\s*[:–—-]\s+(.+)$/);
+  if (separatorMatch) {
+    return cleanSentence(separatorMatch[2]);
+  }
+
+  return cleanSentence(text);
+}
+
+function cleanSentence(text) {
+  const value = cleanString(text).replace(/^[-–—\d.\s]+/, "");
+  if (!value) return "";
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+}
+
+function toTitleCase(text) {
+  return cleanString(text)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(function(word) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
 }
 
 function buildFeatures(state, strategyContract) {
+  const ghost = Array.isArray(state.ghostwritten?.features_copy)
+    ? state.ghostwritten.features_copy
+    : [];
+
   const offerings = cleanList(state.answers?.offerings);
-  const differentiators = uniqueList(state.answers?.differentiators);
-  const buyerFactors = uniqueList(state.answers?.buyer_decision_factors);
-  const trustSignals = uniqueList([
+  const differentiators = cleanList(state.answers?.differentiators);
+  const trust = uniqueList([
     ...cleanList(state.answers?.trust_signals),
     ...cleanList(state.answers?.credibility_factors)
   ]);
-  const ghostFeatures = Array.isArray(state.ghostwritten?.features_copy)
-    ? state.ghostwritten.features_copy.filter(isObject)
-    : [];
+  const decisionFactors = cleanList(state.answers?.buyer_decision_factors);
 
-  if (ghostFeatures.length) {
-    const ghostItems = ghostFeatures
-      .map(function(item) {
-        const title = cleanString(item.title || item.headline || item.name);
-        const description = cleanString(item.description || item.body || item.copy);
-        if (!title || !description) return null;
-        return {
-          title,
-          description,
-          icon_slug: inferFeatureIcon(`${title} ${description}`)
-        };
-      })
-      .filter(Boolean)
-      .slice(0, 6);
+  const raw = [];
 
-    if (ghostItems.length >= 3) return ghostItems;
-  }
+  offerings.forEach(function(item, idx) {
+    raw.push({
+      title: item,
+      description:
+        cleanString(ghost[idx]) ||
+        `A focused offering tailored to ${cleanString(state.answers?.target_audience) || "your ideal customers"}.`,
+      icon_slug: pickFeatureIcon(item, idx)
+    });
+  });
 
-  if (offerings.length >= 3) {
-    return offerings.slice(0, 6).map(function(offer, idx) {
-      const diff = differentiators[idx] || differentiators[0] || "";
-      const factor = buyerFactors[idx] || buyerFactors[0] || "";
-      const support = diff || factor;
+  differentiators.forEach(function(item, idx) {
+    raw.push({
+      title: item,
+      description: `A meaningful reason customers choose ${cleanString(state.businessName) || "this business"}.`,
+      icon_slug: pickFeatureIcon(item, idx + raw.length)
+    });
+  });
 
-      return {
-        title: offer,
-        description: support
-          ? buildFeatureDescription(offer, support)
-          : `${offer} delivered with clarity, professionalism, and a smooth customer experience.`,
-        icon_slug: inferFeatureIcon(`${offer} ${support}`)
-      };
+  decisionFactors.slice(0, 2).forEach(function(item, idx) {
+    raw.push({
+      title: item,
+      description: `Built to address an important buyer priority in the decision-making process.`,
+      icon_slug: pickFeatureIcon(item, idx + raw.length)
+    });
+  });
+
+  trust.slice(0, 2).forEach(function(item, idx) {
+    raw.push({
+      title: item,
+      description: `A trust-building signal that reinforces quality and confidence.`,
+      icon_slug: pickFeatureIcon(item, idx + raw.length)
+    });
+  });
+
+  const deduped = uniqueObjectsByTitle(raw).slice(0, 6);
+
+  while (deduped.length < 3) {
+    deduped.push({
+      title: `Service Highlight ${deduped.length + 1}`,
+      description: `A customer-centered reason to choose ${cleanString(state.businessName) || "this business"}.`,
+      icon_slug: pickFeatureIcon("", deduped.length)
     });
   }
 
-  if (differentiators.length >= 3) {
-    return differentiators.slice(0, 6).map(function(item) {
-      return {
-        title: toFeatureTitle(item),
-        description: buildValuePropDescription(item, buyerFactors[0]),
-        icon_slug: inferFeatureIcon(item)
-      };
-    });
-  }
-
-  const fallback = uniqueList([
-    offerings[0] || "",
-    differentiators[0] || "",
-    trustSignals[0] || ""
-  ]).filter(Boolean);
-
-  if (fallback.length >= 3) {
-    return fallback.slice(0, 3).map(function(item) {
-      return {
-        title: toFeatureTitle(item),
-        description: buildValuePropDescription(item, buyerFactors[0]),
-        icon_slug: inferFeatureIcon(item)
-      };
-    });
-  }
-
-  return [
-    {
-      title: offerings[0] || "Core Service",
-      description: offerings[0]
-        ? `${offerings[0]} presented clearly so visitors immediately understand the main offer.`
-        : "A clear primary offer designed to help visitors quickly understand what the business provides.",
-      icon_slug: inferFeatureIcon(offerings[0] || "core service")
-    },
-    {
-      title: toFeatureTitle(differentiators[0] || trustSignals[0] || "Trusted Experience"),
-      description: differentiators[0] || trustSignals[0]
-        ? buildValuePropDescription(differentiators[0] || trustSignals[0], buyerFactors[0])
-        : "Positioned to reduce hesitation and help customers feel confident taking the next step.",
-      icon_slug: inferFeatureIcon(differentiators[0] || trustSignals[0] || "trusted experience")
-    },
-    {
-      title: bookingFeatureTitle(state),
-      description: bookingFeatureDescription(state),
-      icon_slug: inferFeatureIcon("booking contact easy next step")
-    }
-  ];
+  return deduped;
 }
 
 function buildGallery(state, strategyContract) {
-  const profile = inferGalleryProfile(state, strategyContract);
-  const baseQueries = buildGalleryQuerySeeds(state, strategyContract, profile);
-  const count = pickGalleryCount(profile);
-  const computedLayout = pickGalleryLayout(profile);
-  const title = pickGalleryTitle(profile);
-  const showTitles = pickGalleryShowTitles(profile);
+  const visualDirection = cleanString(state.answers?.visual_direction);
+  const audience = cleanString(state.answers?.target_audience);
+  const industry = cleanString(strategyContract.business_context?.category);
 
-  const items = [];
-  for (let i = 0; i < count; i++) {
-    const seed =
-      baseQueries[i % baseQueries.length] ||
-      buildHeroImageQuery(state, strategyContract) ||
-      "professional service business";
-    items.push({
-      title: makeGalleryItemTitle(seed, i, profile),
-      image_search_query: clampWords(seed, 3, 8),
-      caption: "",
-      tag: showTitles ? makeGalleryTag(profile, i) : ""
-    });
-  }
+  const sourceTerms = uniqueList([
+    visualDirection,
+    ...cleanList(state.answers?.offerings),
+    industry,
+    audience
+  ]).slice(0, 4);
+
+  const items = sourceTerms.map(function(item, idx) {
+    return {
+      title: item || `Gallery Image ${idx + 1}`,
+      image_search_query: clampWords(
+        `${item || industry || "professional service"} experience detail`,
+        4,
+        8
+      )
+    };
+  });
 
   return {
-    enabled: true,
-    title,
-    layout: null,
-    show_titles: showTitles,
-    image_source: {
-      provider: cleanString(strategyContract.asset_policy?.preview_asset_mode) || "preview",
-      image_search_query: clampWords(
-        baseQueries[0] || buildHeroImageQuery(state, strategyContract),
-        3,
-        8
-      ),
-      filename_pattern: "",
-      target_folder: ""
-    },
-    computed_count: count,
-    computed_layout: computedLayout,
-    items
+    enabled: items.length > 0,
+    layout: items.length >= 4 ? "grid" : "masonry",
+    computed_count: Math.max(3, Math.min(6, items.length || 3)),
+    image_source: "search",
+    items: items.length ? items : [
+      {
+        title: "Professional Experience",
+        image_search_query: "professional service detail experience"
+      },
+      {
+        title: "Trusted Service",
+        image_search_query: "trusted customer service detail"
+      },
+      {
+        title: "Modern Brand",
+        image_search_query: "modern premium business detail"
+      }
+    ]
   };
+}
+
+function buildFaqs(state, strategyContract) {
+  const items = uniqueList([
+    ...cleanList(state.answers?.faq_topics),
+    ...cleanList(state.answers?.common_objections),
+    ...cleanList(strategyContract.site_structure?.faq_angles)
+  ]).slice(0, 6);
+
+  return items.map(function(q) {
+    return {
+      question: ensureQuestion(q),
+      answer: inferFaqAnswer(q, state, strategyContract)
+    };
+  });
 }
 
 function buildTestimonials(state, strategyContract) {
   const trustSignals = uniqueList([
     ...cleanList(state.answers?.trust_signals),
-    ...cleanList(state.answers?.credibility_factors)
-  ]);
+    ...cleanList(state.answers?.credibility_factors),
+    ...cleanList(state.answers?.differentiators)
+  ]).slice(0, 3);
 
-  const items = trustSignals.length
-    ? trustSignals.slice(0, 4).map(function(item) {
-        return {
-          quote: item,
-          author: "Customer Trust Signal",
-          role: "Preview Proof"
-        };
-      })
-    : [
-        {
-          quote: "Trust-focused preview copy can be replaced with verified reviews later.",
-          author: "Preview Note",
-          role: "Factory Preview"
-        }
-      ];
-
-  return items;
-}
-
-function buildFaqs(state, strategyContract) {
-  const explicitFaqs = Array.isArray(state.ghostwritten?.faqs)
-    ? state.ghostwritten.faqs.filter(isObject)
-    : [];
-
-  if (explicitFaqs.length) {
-    return explicitFaqs
-      .filter(function(item) {
-        return cleanString(item.question);
-      })
-      .slice(0, 6)
-      .map(function(item) {
-        return {
-          question: cleanString(item.question),
-          answer:
-            cleanString(item.answer) ||
-            inferFaqAnswer(item.question, state, strategyContract)
-        };
-      });
-  }
-
-  const topics = uniqueList([
-    ...cleanList(state.answers?.faq_topics),
-    ...cleanList(state.answers?.common_objections),
-    ...cleanList(strategyContract.site_structure?.faq_angles)
-  ]);
-
-  return topics.slice(0, 6).map(function(topic) {
+  const base = trustSignals.map(function(signal, idx) {
     return {
-      question: topic,
-      answer: inferFaqAnswer(topic, state, strategyContract)
+      quote: `We appreciated the professionalism, communication, and quality behind ${signal.toLowerCase()}.`,
+      author: `Happy Client ${idx + 1}`
     };
   });
+
+  if (!base.length) {
+    return [
+      {
+        quote: "Professional, responsive, and easy to work with from start to finish.",
+        author: "Happy Client"
+      }
+    ];
+  }
+
+  return base;
 }
 
 function buildServiceArea(state, strategyContract) {
-  const mainCity = cleanString(state.answers?.service_area) ||
-    cleanString(strategyContract.business_context?.service_area?.[0]);
+  const mainCity =
+    cleanString(state.answers?.service_area) ||
+    cleanString(state.answers?.location_context) ||
+    cleanString(state.answers?.office_address);
 
   return {
     main_city: mainCity,
-    surrounding_cities: [],
-    travel_note: "",
-    cta_text: cleanString(strategyContract.conversion_strategy?.cta_text) || "Get Started",
-    cta_link: cleanString(state.answers?.booking_url) || "#contact",
-    map_search_query: mainCity
+    surrounding_areas: uniqueList([
+      cleanString(state.answers?.service_area),
+      cleanString(state.answers?.location_context)
+    ]).filter(function(value) {
+      return value && value !== mainCity;
+    })
   };
 }
 
@@ -672,412 +717,254 @@ function buildServiceArea(state, strategyContract) {
    Inference
 ========================= */
 
-function resolveSchemaVibe(vibe) {
-  return SCHEMA_VIBES.includes(vibe) ? vibe : "Modern Minimal";
-}
-
-function inferHeroHeadline(state, strategyContract) {
-  const offer = cleanList(state.answers?.offerings)[0];
-  const area = cleanString(state.answers?.service_area);
-
-  if (offer && area) return `${offer} in ${area}`;
-  if (offer) return offer;
-
-  return cleanString(state.businessName) || "Trusted Local Business";
-}
-
-function inferHeroSubtext(state, strategyContract) {
-  const audience =
-    cleanString(state.answers?.target_audience) ||
-    cleanString(strategyContract.audience_model?.primary_persona);
-
-  const primary =
-    cleanString(strategyContract.conversion_strategy?.primary_conversion);
-
-  if (audience && primary === "book_now") {
-    return `Built to help ${audience.toLowerCase()} feel confident booking the right experience.`;
-  }
-
-  if (audience) {
-    return `Built to help ${audience.toLowerCase()} take the next step with confidence.`;
-  }
-
-  return "A premium experience built around your needs.";
-}
-
-function buildHeroImageQuery(state, strategyContract) {
-  const parts = uniqueList([
-    cleanString(strategyContract.business_context?.category),
-    cleanString(state.answers?.service_area),
-    cleanList(state.answers?.offerings)[0],
-    cleanString(strategyContract.visual_strategy?.recommended_vibe)
-  ]).filter(Boolean);
-
-  return clampWords(parts.join(" "), 4, 8);
-}
-
-function inferHeroImageAlt(state, strategyContract) {
-  const category = cleanString(strategyContract.business_context?.category) || "service business";
-  return `${category} hero image`;
-}
-
-function inferAboutStory(state, strategyContract) {
-  const businessName = cleanString(state.businessName);
-  const offer = cleanList(state.answers?.offerings)[0];
-  const area = cleanString(state.answers?.service_area);
-  const trustSignals = uniqueList([
-    ...cleanList(state.answers?.trust_signals),
-    ...cleanList(state.answers?.credibility_factors)
-  ]);
-
-  const trustLine = trustSignals.length
-    ? `The site emphasizes ${trustSignals.slice(0, 2).join(" and ").toLowerCase()}.`
-    : "The site is designed to build trust quickly.";
-
-  return [
-    businessName ? `${businessName} is` : "This business is",
-    offer ? `focused on ${offer.toLowerCase()}` : "focused on delivering a strong customer experience",
-    area ? `in ${area}.` : ".",
-    trustLine
-  ].join(" ").replace(/\s+/g, " ").trim();
-}
-
-function inferFounderNote(state, strategyContract) {
-  const custom = cleanString(state.ghostwritten?.about_summary);
-  if (custom) {
-    return "This preview copy can be refined and approved before final publish.";
-  }
-  return "Crafted with care and clarity to help visitors trust what they see.";
-}
-
-function inferYearsExperience(state, strategyContract) {
-  return "10+";
-}
-
-function inferContactSubheadline(state, strategyContract) {
-  const bookingUrl = cleanString(state.answers?.booking_url);
-  if (bookingUrl) {
-    return "Use the booking link or reach out directly with any questions.";
-  }
-  return "Tell us what you need and we’ll respond quickly.";
-}
-
-function inferContactButtonText(strategyContract, bookingUrl) {
-  if (bookingUrl) return "Book Now";
-  return "Send Message";
-}
-
 function inferSecondaryCtaText(strategyContract) {
-  const secondary = cleanString(strategyContract.conversion_strategy?.secondary_conversion).toLowerCase();
-
-  if (secondary.includes("inquiry")) return "Send an Inquiry";
-  if (secondary.includes("call")) return "Call Today";
+  const secondary = cleanString(strategyContract.conversion_strategy?.secondary_conversion);
+  if (secondary === "call_now") return "Call Now";
+  if (secondary === "submit_inquiry") return "Send Inquiry";
+  if (secondary === "request_quote") return "Request Quote";
   return "Learn More";
 }
 
 function inferSecondaryCtaLink(phone, bookingUrl) {
-  if (bookingUrl) return "#contact";
   if (phone) return "#contact";
+  if (bookingUrl) return bookingUrl;
   return "#about";
 }
 
 function inferBrandTagline(state, strategyContract) {
-  const category = cleanString(strategyContract.business_context?.category);
-  const audience = cleanString(state.answers?.target_audience);
-
-  if (category && audience) {
-    return `${category} built for trust and clear action.`;
-  }
-
-  return "Built for quality and trust.";
+  return (
+    cleanString(state.ghostwritten?.tagline) ||
+    cleanString(strategyContract.positioning?.brand_promise) ||
+    cleanString(state.answers?.desired_outcome) ||
+    "Trusted work with a modern customer experience."
+  );
 }
 
 function inferObjectionHandle(state, strategyContract) {
-  const objections = cleanList(state.answers?.common_objections);
-  return objections[0] || "";
+  return (
+    cleanList(state.answers?.common_objections)[0] ||
+    cleanList(strategyContract.audience_model?.buyer_objections)[0] ||
+    "Clear communication, trustworthy process, and strong results."
+  );
 }
 
-function inferFeatureIcon(offer) {
-  const lower = cleanString(offer).toLowerCase();
-
-  if (/tour|experience|trip|travel|local|area|destination/.test(lower)) return "map";
-  if (/sunset|outdoor|nature|water|boat/.test(lower)) return "sun";
-  if (/photo|gallery|visual|detail|clean|polish|shine/.test(lower)) return "sparkles";
-  if (/family|group|team|crew/.test(lower)) return "users";
-  if (/book|booking|schedule|appointment|time/.test(lower)) return "clock";
-  if (/price|cost|quote|estimate|value/.test(lower)) return "coins";
-  if (/call|contact|phone/.test(lower)) return "phone";
-  if (/safe|safety|secure|insured|protection/.test(lower)) return "shield";
-  if (/repair|fix|service|maintenance/.test(lower)) return "wrench";
-  if (/build|construction|install/.test(lower)) return "hammer";
-  if (/haul|delivery|transport|move|pickup/.test(lower)) return "truck";
-  if (/garden|landscape|lawn|yard|green/.test(lower)) return "leaf";
-  if (/premium|quality|best|high-end|luxury/.test(lower)) return "award";
-  if (/simple|easy|included|done/.test(lower)) return "check";
-  if (/business|commercial|professional|office/.test(lower)) return "briefcase";
-  if (/fast|quick|rapid|same day/.test(lower)) return "zap";
-
-  return "star";
+function inferHeroHeadline(state, strategyContract) {
+  return (
+    cleanString(strategyContract.positioning?.hero_headline) ||
+    cleanString(state.answers?.desired_outcome) ||
+    `A better website experience for ${cleanString(state.businessName) || "your business"}`
+  );
 }
 
-function inferTrustbarIcon(item) {
-  const lower = cleanString(item).toLowerCase();
+function inferHeroSubtext(state, strategyContract) {
+  const audience = cleanString(state.answers?.target_audience);
+  const offer = cleanList(state.answers?.offerings)[0];
+  const whyNow = cleanString(state.answers?.why_now);
+  return (
+    cleanString(strategyContract.positioning?.hero_subheadline) ||
+    [offer, audience, whyNow].filter(Boolean).join(" — ") ||
+    "Built to create clarity, trust, and action."
+  );
+}
 
-  if (/safety|certification|certified|secure|insured|protected/.test(lower)) return "shield";
-  if (/review|testimonial|customer|people|family|group/.test(lower)) return "users";
-  if (/partnership|local|area|community|nearby/.test(lower)) return "map";
-  if (/photo|gallery|visual|detail|clean|shine/.test(lower)) return "sparkles";
-  if (/fast|quick|same day|responsive/.test(lower)) return "clock";
-  if (/quality|premium|trusted|proven/.test(lower)) return "award";
-  if (/phone|call|contact/.test(lower)) return "phone";
+function inferHeroImageAlt(state, strategyContract) {
+  return (
+    cleanString(state.answers?.visual_direction) ||
+    cleanString(strategyContract.visual_strategy?.hero_image_direction) ||
+    "Professional brand image"
+  );
+}
 
-  return "check";
+function inferAboutStory(state, strategyContract) {
+  return (
+    cleanString(state.answers?.why_now) ||
+    cleanString(strategyContract.positioning?.brand_story_angle) ||
+    "A thoughtful business built around service, trust, and customer outcomes."
+  );
+}
+
+function inferFounderNote(state, strategyContract) {
+  const ownerBackground = cleanString(state.answers?.owner_background);
+  const audience = cleanString(state.answers?.target_audience);
+  return (
+    ownerBackground ||
+    cleanString(strategyContract.positioning?.founder_note_angle) ||
+    `We built this experience for ${audience || "people who value quality and clarity"}.`
+  );
+}
+
+function inferYearsExperience(state, strategyContract) {
+  return (
+    cleanString(state.answers?.experience_years) ||
+    cleanString(strategyContract.business_context?.years_experience) ||
+    "Experienced professional service"
+  );
+}
+
+function inferContactSubheadline(state, strategyContract) {
+  const primary = cleanString(strategyContract.conversion_strategy?.primary_conversion);
+  if (primary === "book_now") return "Ready to book? Reach out and we’ll help you get started.";
+  if (primary === "call_now") return "Have questions? Call and talk with us directly.";
+  if (primary === "request_quote") return "Tell us what you need and we’ll put together the right next step.";
+  return "Reach out and we’ll help you take the next step.";
+}
+
+function inferContactButtonText(strategyContract, bookingUrl) {
+  const primary = cleanString(strategyContract.conversion_strategy?.primary_conversion);
+  if (bookingUrl || primary === "book_now") return "Book Now";
+  if (primary === "call_now") return "Call Now";
+  if (primary === "request_quote") return "Request Quote";
+  return "Send Message";
 }
 
 function inferFaqAnswer(question, state, strategyContract) {
-  const q = cleanString(question).toLowerCase();
-  const bookingUrl = cleanString(state.answers?.booking_url);
-  const pricing = cleanString(state.answers?.pricing_context);
+  const bookingMethod = cleanString(state.answers?.booking_method);
   const serviceArea = cleanString(state.answers?.service_area);
+  const pricing = cleanString(state.answers?.pricing_context);
 
-  if (q.includes("bring")) {
-    return "We can refine this answer later, but the preview should reassure visitors about what to expect before they book.";
+  const lower = cleanString(question).toLowerCase();
+
+  if (lower.includes("book") || lower.includes("schedule")) {
+    if (bookingMethod === "external_booking") {
+      return "You can use the booking link on the site to choose the best next step.";
+    }
+    if (bookingMethod === "phone") {
+      return "Call directly and we’ll help you schedule the right next step.";
+    }
+    return "Reach out through the contact path on the site and we’ll guide you from there.";
   }
 
-  if (q.includes("how long")) {
-    return "Tour duration can be clarified in final polish once exact package details are confirmed.";
-  }
-
-  if (q.includes("safety")) {
-    return "Safety reassurance should be clearly stated so visitors feel confident taking the next step.";
-  }
-
-  if (q.includes("price") || q.includes("pricing")) {
-    return pricing || "Pricing details can be shown as exact pricing, starting prices, or package tiers.";
-  }
-
-  if (q.includes("where") || q.includes("location")) {
+  if (lower.includes("area") || lower.includes("location")) {
     return serviceArea
-      ? `This business serves or operates in ${serviceArea}.`
-      : "Location details can be clarified during final review.";
+      ? `We primarily serve ${serviceArea}. Reach out if you want to confirm your location.`
+      : "Reach out to confirm service availability in your area.";
   }
 
-  if (q.includes("book") || q.includes("booking")) {
-    return bookingUrl
-      ? "Visitors can use the booking link shown on the site to take the next step."
-      : "Visitors can use the contact path on the site to take the next step.";
+  if (lower.includes("price") || lower.includes("cost")) {
+    return pricing
+      ? pricing
+      : "Pricing depends on the scope of work, and we’ll help guide you to the right fit.";
   }
 
-  return "This answer can be refined during final review and approval.";
+  return (
+    cleanString(strategyContract.copy_policy?.faq_answer_style) ||
+    "We aim to keep the process clear, helpful, and easy to understand."
+  );
 }
 
-function buildFeatureDescription(offer, support) {
-  const lower = cleanString(support).toLowerCase();
-
-  if (!lower) {
-    return `${offer} delivered with clarity, professionalism, and a smooth customer experience.`;
+function buildHeroImageQuery(state, strategyContract) {
+  const explicit = clampWords(cleanString(state.answers?.visual_direction), 4, 8);
+  if (explicit && explicit !== "service business professional work") {
+    return explicit;
   }
 
-  if (/fast|quick|same day|responsive/.test(lower)) {
-    return `${offer} designed for speed, responsiveness, and an easier path to getting started.`;
-  }
-  if (/safe|insured|certified|secure|protection/.test(lower)) {
-    return `${offer} supported by trust-building details that help customers feel confident moving forward.`;
-  }
-  if (/quality|premium|detail|craft|high-end/.test(lower)) {
-    return `${offer} positioned around craftsmanship, quality, and a stronger overall experience.`;
-  }
-  if (/local|community|nearby|area/.test(lower)) {
-    return `${offer} tailored for local customers who want a reliable provider in their area.`;
-  }
+  const offer = cleanList(state.answers?.offerings)[0];
+  const audience = cleanString(state.answers?.target_audience);
+  const industry = cleanString(strategyContract.business_context?.category);
 
-  return `${offer} designed around ${lower}.`;
-}
-
-function buildValuePropDescription(item, buyerFactor) {
-  const factor = cleanString(buyerFactor);
-  const base = cleanString(item);
-
-  if (factor) {
-    return `${toFeatureTitle(base)} helps reinforce what matters most to buyers: ${factor.toLowerCase()}.`;
-  }
-
-  return `${toFeatureTitle(base)} is positioned as a meaningful reason to choose this business over generic alternatives.`;
-}
-
-function toFeatureTitle(text) {
-  const value = cleanString(text);
-  if (!value) return "Key Advantage";
-  return value
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, function(ch) { return ch.toUpperCase(); });
-}
-
-function bookingFeatureTitle(state) {
-  if (cleanString(state.answers?.booking_url)) return "Easy Booking";
-  if (cleanString(state.answers?.phone)) return "Direct Contact";
-  return "Simple Next Step";
-}
-
-function bookingFeatureDescription(state) {
-  if (cleanString(state.answers?.booking_url)) {
-    return "Visitors get a clear, low-friction path to book without confusion.";
-  }
-  if (cleanString(state.answers?.phone)) {
-    return "Visitors get a clear contact path so taking the next step feels easy and direct.";
-  }
-  return "The site is structured to make contacting the business feel straightforward and low-friction.";
-}
-
-function inferGalleryProfile(state, strategyContract) {
-  const category = cleanString(strategyContract.business_context?.category).toLowerCase();
-  const vibe = cleanString(strategyContract.visual_strategy?.recommended_vibe).toLowerCase();
-  const offers = cleanList(state.answers?.offerings).join(" ").toLowerCase();
-  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes).join(" ").toLowerCase();
-
-  const text = [category, vibe, offers, themes].join(" ");
-
-  if (/tour|experience|charter|trip|event|class|workshop/.test(text)) {
-    return { archetype: "experiential", vibe, text };
-  }
-  if (/landscape|lawn|garden|detail|clean|cleaning|paint|roof|remodel|construction|floor|pressure wash|junk|haul/.test(text)) {
-    return { archetype: "visual_service", vibe, text };
-  }
-  if (/product|shop|retail|boutique|store|inventory/.test(text)) {
-    return { archetype: "product", vibe, text };
-  }
-  if (/law|legal|finance|consult|agency|advisor|accounting|healthcare|clinic|therapy/.test(text)) {
-    return { archetype: "professional", vibe, text };
-  }
-
-  return { archetype: "general", vibe, text };
-}
-
-function pickGalleryCount(profile) {
-  switch (profile.archetype) {
-    case "visual_service": return profile.vibe.includes("luxury") ? 10 : 8;
-    case "experiential": return 8;
-    case "product": return 7;
-    case "professional": return 5;
-    default: return 6;
-  }
-}
-
-function pickGalleryLayout(profile) {
-  if (profile.vibe.includes("luxury")) return "bento";
-
-  switch (profile.archetype) {
-    case "visual_service": return "masonry";
-    case "experiential": return "masonry";
-    case "professional": return "grid";
-    case "product": return "grid";
-    default: return "masonry";
-  }
-}
-
-function pickGalleryTitle(profile) {
-  switch (profile.archetype) {
-    case "visual_service": return "Our Work";
-    case "experiential": return "Experiences";
-    case "product": return "Products";
-    case "professional": return "In Action";
-    default: return "Gallery";
-  }
-}
-
-function pickGalleryShowTitles(profile) {
-  return profile.archetype === "experiential" || profile.archetype === "product";
-}
-
-function buildGalleryQuerySeeds(state, strategyContract, profile) {
-  const category = cleanString(strategyContract.business_context?.category);
-  const area = cleanString(state.answers?.service_area);
-  const offers = cleanList(state.answers?.offerings);
-  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
-  const out = [];
-
-  offers.forEach(function(offer) {
-    out.push(buildImageQueryFromParts([offer, category, area]));
-    out.push(buildImageQueryFromParts([offer, category]));
-  });
-
-  themes.forEach(function(theme) {
-    out.push(buildImageQueryFromParts([theme, category, area]));
-    out.push(buildImageQueryFromParts([theme, category]));
-  });
-
-  if (profile.archetype === "experiential") {
-    out.push(buildImageQueryFromParts([offers[0] || category, "group experience", area]));
-    out.push(buildImageQueryFromParts([offers[0] || category, "outdoor activity"]));
-    out.push(buildImageQueryFromParts([offers[0] || category, "sunset"]));
-  }
-
-  if (profile.archetype === "visual_service") {
-    out.push(buildImageQueryFromParts([offers[0] || category, "before after"]));
-    out.push(buildImageQueryFromParts([offers[0] || category, "finished result"]));
-    out.push(buildImageQueryFromParts([offers[0] || category, "close detail"]));
-  }
-
-  if (profile.archetype === "professional") {
-    out.push(buildImageQueryFromParts([category, "client meeting"]));
-    out.push(buildImageQueryFromParts([category, "professional office"]));
-  }
-
-  return uniqueList(out).filter(Boolean).slice(0, 12);
-}
-
-function buildImageQueryFromParts(parts) {
   return clampWords(
-    parts
-      .map(cleanString)
-      .filter(Boolean)
-      .join(" "),
-    3,
+    `${offer || industry || "professional service"} ${audience || "customer experience"} detail`,
+    4,
     8
   );
 }
 
-function makeGalleryItemTitle(seed, idx, profile) {
-  if (profile.archetype === "experiential") return `Experience ${idx + 1}`;
-  if (profile.archetype === "product") return `Product ${idx + 1}`;
-  if (profile.archetype === "visual_service") return `Project ${idx + 1}`;
-  if (profile.archetype === "professional") return `Moment ${idx + 1}`;
-  return `Gallery Image ${idx + 1}`;
+/* =========================
+   Icon Picking
+========================= */
+
+function pickFeatureIcon(text, idx) {
+  const value = cleanString(text).toLowerCase();
+  if (value.includes("fast") || value.includes("speed")) return "zap";
+  if (value.includes("tech") || value.includes("ai")) return "cpu";
+  if (value.includes("layer") || value.includes("system")) return "layers";
+  if (value.includes("launch") || value.includes("growth")) return "rocket";
+  if (value.includes("green") || value.includes("eco")) return "leaf";
+  if (value.includes("care") || value.includes("support")) return "heart";
+  if (value.includes("team") || value.includes("people")) return "users";
+  if (value.includes("map") || value.includes("local")) return "map";
+  if (value.includes("trust") || value.includes("safe")) return "shield";
+  if (value.includes("quality") || value.includes("award")) return "award";
+  if (value.includes("price") || value.includes("value")) return "coins";
+
+  const fallback = ["layers", "sparkles", "shield", "star", "check", "briefcase"];
+  return fallback[idx % fallback.length];
 }
 
-function makeGalleryTag(profile, idx) {
-  if (profile.archetype === "experiential") return idx % 2 === 0 ? "Experience" : "Atmosphere";
-  if (profile.archetype === "product") return "Featured";
-  return "";
+function pickTrustbarIcon(text, idx) {
+  const value = cleanString(text).toLowerCase();
+  if (value.includes("insured") || value.includes("licensed")) return "shield";
+  if (value.includes("years") || value.includes("experience")) return "clock";
+  if (value.includes("local") || value.includes("area")) return "map";
+  if (value.includes("5-star") || value.includes("review")) return "star";
+  if (value.includes("award")) return "award";
+  if (value.includes("family") || value.includes("team")) return "users";
+
+  const fallback = ["shield", "star", "award", "users"];
+  return fallback[idx % fallback.length];
 }
+
+/* =========================
+   Utility Builders
+========================= */
+
+function resolveSchemaVibe(input) {
+  const value = cleanString(input);
+  if (SCHEMA_VIBES.includes(value)) return value;
+
+  const lower = value.toLowerCase();
+  if (lower.includes("luxury") || lower.includes("dark")) return "Luxury Noir";
+  if (lower.includes("modern") || lower.includes("minimal")) return "Modern Minimal";
+  if (lower.includes("solar") || lower.includes("energy")) return "Solar Flare";
+  if (lower.includes("tech") || lower.includes("ai")) return "Midnight Tech";
+  if (lower.includes("earth") || lower.includes("organic")) return "Zenith Earth";
+  if (lower.includes("vintage") || lower.includes("boutique")) return "Vintage Boutique";
+  if (lower.includes("industrial") || lower.includes("rugged")) return "Rugged Industrial";
+  return "Modern Minimal";
+}
+
+function uniqueObjectsByTitle(items) {
+  const seen = new Set();
+  return items.filter(function(item) {
+    const key = cleanString(item?.title).toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function ensureQuestion(text) {
+  const q = cleanString(text);
+  if (!q) return "What should I know?";
+  return /[?]$/.test(q) ? q : `${q}?`;
+}
+
+/* =========================
+   Strategy Memory
+========================= */
 
 function buildStrategyMemory(state, strategyContract, strategyBrief, businessJson) {
   return {
-    strategy_brief: deepClone(strategyBrief),
-    strategy_contract: deepClone(strategyContract),
-    raw_answers: deepClone(isObject(state.answers) ? state.answers : {}),
-    ghostwritten: deepClone(isObject(state.ghostwritten) ? state.ghostwritten : {}),
-    future_aeo: {
-      aeo_angles: cleanList(strategyContract.site_structure?.aeo_angles),
-      faq_topics: uniqueList([
-        ...cleanList(state.answers?.faq_topics),
-        ...cleanList(state.answers?.common_objections),
-        ...cleanList(strategyContract.site_structure?.faq_angles)
-      ]),
-      buyer_decision_factors: cleanList(state.answers?.buyer_decision_factors),
+    intake_summary: {
+      business_name: cleanString(state.businessName),
+      slug: cleanString(state.slug),
+      target_audience: cleanString(state.answers?.target_audience),
+      primary_conversion_goal: cleanString(state.answers?.primary_conversion_goal),
+      booking_method: cleanString(state.answers?.booking_method),
+      booking_url: cleanString(state.answers?.booking_url),
+      phone: cleanString(state.answers?.phone),
+      service_area: cleanString(state.answers?.service_area),
+      offerings: cleanList(state.answers?.offerings),
       differentiators: cleanList(state.answers?.differentiators),
       trust_signals: uniqueList([
         ...cleanList(state.answers?.trust_signals),
         ...cleanList(state.answers?.credibility_factors)
       ]),
-      offerings: cleanList(state.answers?.offerings),
-      service_area: cleanString(state.answers?.service_area),
-      booking_url: cleanString(state.answers?.booking_url),
-      phone: cleanString(state.answers?.phone),
-      office_address: cleanString(state.answers?.office_address),
-      target_audience: cleanString(state.answers?.target_audience),
+      faq_topics: cleanList(state.answers?.faq_topics),
+      common_objections: cleanList(state.answers?.common_objections),
+      process_notes: cleanList(state.answers?.process_notes),
+      visual_direction: cleanString(state.answers?.visual_direction),
+      target_persona: cleanString(state.answers?.target_audience),
       tone_preferences: cleanString(state.answers?.tone_preferences),
       preview_asset_mode: cleanString(strategyContract.asset_policy?.preview_asset_mode),
       publish_requires_asset_swap: Boolean(strategyContract.asset_policy?.replace_assets_before_publish)
@@ -1257,6 +1144,21 @@ function validateRawBusinessJson(data) {
     }
   }
 
+  if (data?.strategy?.show_process) {
+    if (!Array.isArray(data?.processSteps) || data.processSteps.length < 3) {
+      issues.push("processSteps[] required with at least 3 items when strategy.show_process is true");
+    } else {
+      data.processSteps.forEach(function(item, idx) {
+        if (!cleanString(item?.title)) {
+          issues.push(`processSteps[${idx}].title is required`);
+        }
+        if (!cleanString(item?.description)) {
+          issues.push(`processSteps[${idx}].description is required`);
+        }
+      });
+    }
+  }
+
   if (data?.strategy?.show_gallery) {
     if (!isObject(data?.gallery)) {
       issues.push("gallery is required when strategy.show_gallery is true");
@@ -1362,6 +1264,8 @@ function evaluateReadiness(state) {
     (state.answers?.buyer_decision_factors?.length > 0) ||
     (state.answers?.common_objections?.length > 0);
 
+  const queueComplete = state.verification?.queue_complete === true;
+
   const diff = Array.isArray(state.answers?.differentiators)
     ? state.answers.differentiators.length
     : 0;
@@ -1381,6 +1285,7 @@ function evaluateReadiness(state) {
   if (!hasContactPath) missing.push("contact_path");
   if (!hasBuyerIntel) missing.push("buyer_intelligence");
   if (!hasTrustOrDiff) missing.push("trust_signals");
+  if (!queueComplete) missing.push("verification_queue");
 
   const scoreParts = [
     Boolean(whyNow || desiredOutcome),
@@ -1400,6 +1305,7 @@ function evaluateReadiness(state) {
     required_domains_complete: missing.length === 0,
     missing_domains: missing,
     can_generate_now:
+      queueComplete &&
       Boolean(whyNow || desiredOutcome) &&
       Boolean(audience) &&
       Boolean(hasOffer) &&
@@ -1466,6 +1372,8 @@ function normalizeState(state) {
   next.answers.faq_topics = cleanList(next.answers.faq_topics);
   next.answers.buyer_decision_factors = cleanList(next.answers.buyer_decision_factors);
   next.answers.common_objections = cleanList(next.answers.common_objections);
+  next.answers.process_notes = cleanList(next.answers.process_notes);
+  next.verification = isObject(next.verification) ? next.verification : {};
 
   next.slug = cleanString(next.slug);
   next.businessName = cleanString(next.businessName);
