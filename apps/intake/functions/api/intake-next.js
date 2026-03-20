@@ -1,1407 +1,1139 @@
-// functions/api/intake-next.js
 /**
- * SiteForge Factory — Conversational Paid Intake Step
+ * SiteForge Factory Orchestrator (Google Apps Script)
  *
- * Goals:
- * - preserve the current controller + state architecture
- * - prioritize paid-intake verification over blank-slate discovery
- * - remove vertical-specific logic
- * - drive next questions from strategy_contract + schema-oriented needs
- * - allow AI-assisted and AI-inferred copy when the client is unsure
- * - keep readiness strict and deterministic
+ * Responsibilities:
+ * - Receive factory submissions from Cloudflare (/api/submit) -> validate FACTORY_KEY
+ *   -> save sheet -> seed clients/{slug}/business.base.json in GitHub -> dispatch GitHub build
+ * - Receive GitHub webhook workflow_run.completed -> download artifact -> deploy preview -> email dist.zip (optional)
+ * - Receive preflight starts from Cloudflare -> save to Preflight sheet
+ *
+ * REQUIRED Script Properties:
+ * - FACTORY_KEY
+ * - GITHUB_TOKEN
+ * - GITHUB_OWNER
+ * - GITHUB_REPO
+ * - WORKFLOW_FILE              (e.g. "build-client.yml")
+ * - NETLIFY_TOKEN
+ *
+ * OPTIONAL Script Properties:
+ * - GITHUB_WEBHOOK_SECRET      (only if you proxy and add shared secret into payload; header verification is not reliable in GAS)
+ *
+ * REQUIRED Sheets:
+ * - "Clients"      (must include column "slug")
+ * - "Submissions"
+ * - "Preflight"    (must include column "slug")
  */
 
-import {
-  INTAKE_CONTROLLER_SYSTEM_PROMPT,
-  INTAKE_CONTROLLER_DEVELOPER_PROMPT,
-  buildIntakeControllerUserPrompt,
-  EMPTY_INTAKE_STATE
-} from "./intake-prompts.js";
+/* =========================
+   Config Helpers
+========================= */
 
-export async function onRequestPost(context) {
-  try {
-    const body = await readJson(context.request);
+function props_() { return PropertiesService.getScriptProperties(); }
 
-    const sessionId = cleanString(body.session_id);
-    const answer = cleanString(body.answer);
-    const uiAction = cleanString(body.ui_action);
-    const baseState = isObject(body.state)
-      ? normalizeState(body.state)
-      : structuredClone(EMPTY_INTAKE_STATE);
-
-    if (!sessionId) {
-      return json({ ok: false, error: "Missing session_id" }, 400);
-    }
-
-    if (!answer && !uiAction) {
-      return json({ ok: false, error: "Missing answer or ui_action" }, 400);
-    }
-
-    const latestUserMessage = answer || uiAction;
-
-    const specialistProfile = await ensureSpecialistProfile(
-      context.env,
-      baseState,
-      latestUserMessage
-    );
-
-    const userPrompt = buildControllerPromptWithSpecialistProfile({
-      baseState,
-      latestUserMessage,
-      specialistProfile
-    });
-
-    const controllerResponse = await callController(context.env, userPrompt);
-
-    let mergedState = mergeControllerResponse(baseState, controllerResponse);
-    mergedState = normalizeState(mergedState);
-
-    mergedState.provenance = isObject(mergedState.provenance)
-      ? mergedState.provenance
-      : {};
-    mergedState.provenance.specialist_profile = specialistProfile;
-
-    mergedState = applyHeuristicAnswerUpdates(
-      mergedState,
-      latestUserMessage,
-      baseState
-    );
-
-    mergedState = seedInferenceFromSpecialistProfile(
-      mergedState,
-      specialistProfile
-    );
-
-    const readiness = evaluateReadiness(mergedState);
-    mergedState.readiness = readiness;
-
-    const guidedStep =
-      getPaidIntakeGuidedStep(mergedState, readiness, specialistProfile) ||
-      getGuidedNextStep(mergedState, readiness, specialistProfile);
-
-    const phase =
-      guidedStep?.phase ||
-      controllerResponse?.phase ||
-      mergedState.phase ||
-      "guided_enrichment";
-
-    mergedState.phase = phase;
-
-    const message =
-      guidedStep?.message ||
-      normalizeControllerMessage(controllerResponse?.message);
-
-    const action =
-      guidedStep?.action ||
-      normalizeAction(controllerResponse?.action, readiness);
-
-    mergedState.last_intent = cleanString(message?.intent);
-
-    mergedState.conversation = Array.isArray(mergedState.conversation)
-      ? mergedState.conversation
-      : [];
-
-    mergedState.conversation.push({
-      role: "user",
-      content: latestUserMessage
-    });
-
-    if (message?.content) {
-      mergedState.conversation.push({
-        role: "assistant",
-        content: message.content,
-        message: {
-          intent: cleanString(message.intent),
-          type: cleanString(message.type)
-        }
-      });
-    }
-
-    return json({
-      ok: true,
-      phase,
-      message,
-      state: mergedState,
-      readiness,
-      action,
-      summary_panel: buildSummaryPanel(mergedState)
-    });
-  } catch (err) {
-    return json(
-      {
-        ok: false,
-        error: String(err?.message || err)
-      },
-      500
-    );
-  }
-}
-
-export async function onRequestGet() {
-  return json({
-    ok: true,
-    endpoint: "intake-next",
-    method: "POST"
-  });
+function cfg_(key) {
+  const v = props_().getProperty(key);
+  if (!v) throw new Error("Missing Script Property: " + key);
+  return v;
 }
 
 /* =========================
-   OpenAI Controller
+   JSON Response Helpers
 ========================= */
 
-async function callController(env, userPrompt) {
-  const apiKey = env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return {
-      ok: true,
-      phase: "guided_enrichment",
-      state_updates: {},
-      inference_updates: {},
-      message: null,
-      action: null
-    };
-  }
+function json_(obj, codeOpt) {
+  const payload = Object.assign({}, obj);
+  if (codeOpt) payload.code = codeOpt;
 
-  const model = env.OPENAI_MODEL || "gpt-4.1-mini";
-
-  const res = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        { role: "system", content: INTAKE_CONTROLLER_SYSTEM_PROMPT },
-        { role: "system", content: INTAKE_CONTROLLER_DEVELOPER_PROMPT },
-        { role: "user", content: userPrompt }
-      ],
-      text: { format: { type: "json_object" } }
-    })
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Controller error (${res.status}): ${text}`);
-  }
-
-  const payload = await res.json();
-  const outputText =
-    payload?.output?.[0]?.content?.find((c) => c.type === "output_text")?.text ||
-    payload?.output_text ||
-    "{}";
-
-  try {
-    return JSON.parse(outputText);
-  } catch {
-    return {
-      ok: true,
-      phase: "guided_enrichment",
-      state_updates: {},
-      inference_updates: {},
-      message: null,
-      action: null
-    };
-  }
-}
-
-function buildControllerPromptWithSpecialistProfile({
-  baseState,
-  latestUserMessage,
-  specialistProfile
-}) {
-  const strategyContract = getStrategyContract(baseState);
-  const verificationQueue = getPriorityVerificationQueue(baseState);
-  const previewMode = strategyContract?.asset_policy?.preview_asset_mode || "";
-  const copyPolicy = strategyContract?.copy_policy || {};
-
-  const extraContext = [
-    "PAID INTAKE MODE:",
-    "- This is a paid verification/refinement phase, not a blank-slate interview.",
-    "- Ask only for missing or weak facts needed for strategy and build readiness.",
-    "- Prefer verifying offer structure, pricing posture, booking flow, contact path, trust proof, service area, owner background, asset readiness, and years of experience.",
-    "- If the client is unsure, AI may draft copy, but must not invent hard factual claims.",
-    "",
-    "SEEDED STRATEGY CONTRACT:",
-    JSON.stringify(strategyContract || {}, null, 2),
-    "",
-    "PRIORITY VERIFICATION QUEUE:",
-    JSON.stringify(verificationQueue, null, 2),
-    "",
-    "COPY POLICY:",
-    JSON.stringify(copyPolicy, null, 2),
-    "",
-    "PREVIEW ASSET MODE:",
-    previewMode || "none",
-    "",
-    "LATEST USER MESSAGE:",
-    latestUserMessage,
-    "",
-    "SPECIALIST PROFILE:",
-    JSON.stringify(specialistProfile || {}, null, 2)
-  ].join("\n");
-
-  return buildIntakeControllerUserPrompt({
-    state: baseState,
-    latestUserMessage,
-    additionalContext: extraContext
-  });
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /* =========================
-   Specialist Profile
+   Sheets Helpers
 ========================= */
 
-async function ensureSpecialistProfile(env, baseState, latestUserMessage) {
-  const existing =
-    baseState?.provenance?.specialist_profile ||
-    baseState?.inference?.specialist_profile;
-
-  if (isObject(existing) && cleanString(existing.category_guess)) {
-    return existing;
-  }
-
-  const strategy = getStrategyContract(baseState);
-  const categoryGuess =
-    cleanString(strategy?.business_context?.category) ||
-    inferCategoryFromState(baseState, latestUserMessage);
-
-  return {
-    category_guess: categoryGuess || "general service business",
-    archetype:
-      cleanString(strategy?.business_context?.strategic_archetype) ||
-      "conversion_focused_local_business",
-    business_model:
-      cleanString(strategy?.business_context?.business_model) || "",
-    tone_bias:
-      cleanString(baseState?.answers?.tone_preferences) ||
-      cleanString(baseState?.inference?.tone_direction) ||
-      "confident, clear, and trustworthy",
-    question_bias: inferQuestionBiasFromStrategy(strategy)
-  };
+function clientsSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("Clients");
+  if (!sh) throw new Error('Missing sheet named "Clients"');
+  return sh;
 }
 
-function inferCategoryFromState(state, latestUserMessage) {
-  const offer = cleanList(state?.answers?.offerings).join(" ").toLowerCase();
-  const about = cleanString(state?.ghostwritten?.about_summary).toLowerCase();
-  const text = [offer, about, cleanString(latestUserMessage).toLowerCase()].join(" ");
-
-  if (/roof|contractor|plumb|hvac|electric|construction/.test(text)) {
-    return "trades business";
-  }
-  if (/law|legal|attorney/.test(text)) {
-    return "legal services";
-  }
-  if (/medical|dental|clinic|health/.test(text)) {
-    return "healthcare practice";
-  }
-  if (/tour|travel|boat|charter|experience/.test(text)) {
-    return "experience business";
-  }
-  if (/consult|advisor|agency|studio/.test(text)) {
-    return "professional services";
-  }
-
-  return "general service business";
+function submissionsSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("Submissions");
+  if (!sh) throw new Error('Missing sheet named "Submissions"');
+  return sh;
 }
 
-function inferQuestionBiasFromStrategy(strategy) {
-  const toggles = strategy?.schema_toggles || {};
-  const out = [];
-
-  if (toggles.show_features) out.push("offer clarity");
-  if (toggles.show_testimonials) out.push("trust proof");
-  if (toggles.show_gallery) out.push("visual proof");
-  if (toggles.show_faqs) out.push("objection handling");
-  if (toggles.show_service_area) out.push("location clarity");
-  if (toggles.show_about) out.push("business identity");
-
-  return out;
+function preflightSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName("Preflight");
+  if (!sh) throw new Error('Missing sheet named "Preflight"');
+  return sh;
 }
 
-/* =========================
-   Merge + Heuristics
-========================= */
-
-function mergeControllerResponse(baseState, controllerResponse) {
-  const merged = structuredClone(isObject(baseState) ? baseState : {});
-
-  const stateUpdates = isObject(controllerResponse?.state_updates)
-    ? controllerResponse.state_updates
-    : {};
-
-  const inferenceUpdates = isObject(controllerResponse?.inference_updates)
-    ? controllerResponse.inference_updates
-    : {};
-
-  deepMergeInto(merged, stateUpdates);
-
-  merged.inference = isObject(merged.inference) ? merged.inference : {};
-  deepMergeInto(merged.inference, inferenceUpdates);
-
-  return merged;
+function headers_(sheet) {
+  const sh = sheet;
+  return sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
 }
 
-function applyHeuristicAnswerUpdates(state, latestUserMessage, baseState) {
-  const next = normalizeState(state);
-  const text = cleanString(latestUserMessage);
-  const lower = text.toLowerCase();
-
-  const pendingIntent =
-    cleanString(getLastAssistantIntent(baseState)) ||
-    cleanString(next.last_intent);
-
-  if (/use preview imagery for now|inspirational imagery|stock images are fine|ai images are fine/.test(lower)) {
-    next.answers.trust_signals = uniqueList([
-      ...(next.answers.trust_signals || []),
-      "preview imagery approved for first build"
-    ]);
-    next.inference.missing_information = removeFromList(
-      next.inference.missing_information,
-      "photo_assets"
-    );
-  }
-
-  if (/i don't know|not sure|you decide|can you write it|can you draft it|help me write it/.test(lower)) {
-    next.inference.missing_information = uniqueList([
-      ...(next.inference.missing_information || []),
-      "client_requested_ai_copy_help"
-    ]);
-  }
-
-  if (/external booking|booking link|book online/.test(lower)) {
-    next.answers.booking_method = "external_booking";
-  } else if (/phone/.test(lower) && /book|booking|call/.test(lower)) {
-    next.answers.booking_method = "phone";
-  } else if (/inquiry form|contact form|form/.test(lower)) {
-    next.answers.booking_method = "contact_form";
-  }
-
-  if (/show exact prices/.test(lower)) {
-    next.answers.pricing_context = "Show exact prices";
-  } else if (/show starting prices/.test(lower)) {
-    next.answers.pricing_context = "Show starting prices";
-  } else if (/show package tiers/.test(lower)) {
-    next.answers.pricing_context = "Show package tiers";
-  } else if (/keep pricing private/.test(lower)) {
-    next.answers.pricing_context = "Keep pricing private and invite inquiries";
-  }
-
-  if (pendingIntent === "verify_booking_url" && looksLikeUrl(text)) {
-    next.answers.booking_url = normalizeUrl(text);
-  }
-
-  if (pendingIntent === "verify_phone" && looksLikePhone(text)) {
-    next.answers.phone = text;
-  }
-
-  if (pendingIntent === "verify_contact_path") {
-    if (looksLikePhone(text)) next.answers.phone = text;
-    if (looksLikeUrl(text)) next.answers.booking_url = normalizeUrl(text);
-  }
-
-  if (pendingIntent === "verify_service_area") {
-    next.answers.service_area = text;
-    next.answers.location_context = text;
-  }
-
-  if (pendingIntent === "verify_owner_background") {
-    next.ghostwritten.about_summary = text;
-  }
-
-  if (pendingIntent === "verify_experience_years") {
-    next.answers.experience_years = text;
-  }
-
-  if (pendingIntent === "verify_safety_reassurance") {
-    next.answers.trust_signals = uniqueList([
-      ...(next.answers.trust_signals || []),
-      ...extractTrustSignals(text)
-    ]);
-
-    next.answers.faq_topics = uniqueList([
-      ...(next.answers.faq_topics || []),
-      "What safety measures are in place?"
-    ]);
-  }
-
-  if (pendingIntent === "verify_testimonials") {
-    next.answers.credibility_factors = uniqueList([
-      ...(next.answers.credibility_factors || []),
-      ...extractCredibilitySignals(text)
-    ]);
-  }
-
-  if (pendingIntent === "verify_photos") {
-    next.answers.trust_signals = uniqueList([
-      ...(next.answers.trust_signals || []),
-      ...extractPhotoSignals(text)
-    ]);
-  }
-
-  if (pendingIntent === "verify_offerings" || pendingIntent === "verify_offer_details") {
-    next.answers.offerings = uniqueList([
-      ...(next.answers.offerings || []),
-      ...extractOfferCandidates(text)
-    ]);
-  }
-
-  if (pendingIntent === "verify_pricing_context" && !next.answers.pricing_context) {
-    next.answers.pricing_context = text;
-  }
-
-  if (pendingIntent === "verify_booking_method" && !next.answers.booking_method) {
-    next.answers.booking_method = normalizeBookingMethod(text);
-  }
-
-  if (pendingIntent === "verify_faq_objections") {
-    next.answers.common_objections = uniqueList([
-      ...(next.answers.common_objections || []),
-      ...splitSentenceList(text)
-    ]);
-  }
-
-  return normalizeState(next);
-}
-
-function seedInferenceFromSpecialistProfile(state, specialistProfile) {
-  const next = normalizeState(state);
-
-  next.inference.specialist_profile = specialistProfile;
-
-  if (!cleanString(next.inference.tone_direction) && cleanString(specialistProfile?.tone_bias)) {
-    next.inference.tone_direction = cleanString(specialistProfile.tone_bias);
-  }
-
-  if (
-    (!Array.isArray(next.inference.suggested_components) ||
-      next.inference.suggested_components.length === 0) &&
-    isObject(next?.provenance?.strategy_contract?.schema_toggles)
-  ) {
-    next.inference.suggested_components = schemaToggleKeysToComponents(
-      next.provenance.strategy_contract.schema_toggles
-    );
-  }
-
-  return next;
-}
-
-/* =========================
-   Guided Steps
-========================= */
-
-function getPaidIntakeGuidedStep(state, readiness, specialistProfile) {
-  const strategy = getStrategyContract(state);
-  if (!strategy) return null;
-
-  const queue = getPriorityVerificationQueue(state);
-  const nextKey = queue.find(function(key) {
-    return !isVerificationFieldSatisfied(state, key);
-  });
-
-  if (!nextKey) return null;
-
-  return buildVerificationPrompt(nextKey, state, strategy, specialistProfile);
-}
-
-function getGuidedNextStep(state, readiness, specialistProfile) {
-  const answers = state.answers || {};
-  const bookingMethod = cleanString(answers.booking_method);
-
-  if (!cleanString(answers.target_audience)) {
-    return {
-      action: "probe",
-      phase: "guided_enrichment",
-      message: createQuestionMessage(
-        "Who are the main people you want this site to attract first?",
-        "capture_target_audience"
-      )
-    };
-  }
-
-  if (!Array.isArray(answers.offerings) || answers.offerings.length === 0) {
-    return {
-      action: "probe",
-      phase: "guided_enrichment",
-      message: createQuestionMessage(
-        "What are the main services, packages, or offers you want the site to focus on?",
-        "capture_offerings"
-      )
-    };
-  }
-
-  if (!cleanString(answers.primary_conversion_goal)) {
-    return {
-      action: "probe",
-      phase: "guided_enrichment",
-      message: createQuestionMessage(
-        "What is the main action you want visitors to take — book, call, request a quote, or send an inquiry?",
-        "capture_primary_conversion_goal",
-        [
-          { label: "Book now", action: "quick_reply" },
-          { label: "Call now", action: "quick_reply" },
-          { label: "Request quote", action: "quick_reply" },
-          { label: "Send inquiry", action: "quick_reply" }
-        ]
-      )
-    };
-  }
-
-  if (!bookingMethod) {
-    return {
-      action: "probe",
-      phase: "guided_enrichment",
-      message: createQuestionMessage(
-        "How should visitors contact or book with you?",
-        "capture_booking_method",
-        [
-          { label: "External booking link", action: "quick_reply" },
-          { label: "Phone", action: "quick_reply" },
-          { label: "Inquiry form", action: "quick_reply" },
-          { label: "A mix", action: "quick_reply" }
-        ]
-      )
-    };
-  }
-
-  if (!hasContactPath(state) && bookingMethod !== "contact_form") {
-    return {
-      action: "probe",
-      phase: "guided_enrichment",
-      message: createQuestionMessage(
-        "What contact path should we use on the site — phone, booking link, or both?",
-        "capture_contact_path",
-        [
-          { label: "Phone number", action: "quick_reply" },
-          { label: "Booking link", action: "quick_reply" },
-          { label: "Both", action: "quick_reply" }
-        ]
-      )
-    };
-  }
-
-  if (!hasLocationSignal(state)) {
-    return {
-      action: "probe",
-      phase: "guided_enrichment",
-      message: createQuestionMessage(
-        "What service area, city, or location details should we make clear on the site?",
-        "capture_service_area"
-      )
-    };
-  }
-
-  if (!hasTrustSignal(state)) {
-    return {
-      action: "probe",
-      phase: "final_review",
-      message: createQuestionMessage(
-        "What is one thing that would make a new customer trust you faster — reviews, experience, process, guarantees, certifications, or something else?",
-        "capture_trust_or_differentiation"
-      )
-    };
-  }
-
-  if (readiness.can_generate_now) {
-    return {
-      action: "complete",
-      phase: "final_review",
-      message: createTransitionMessage(
-        "Excellent — we have enough direction to build a strong preview.",
-        "ready_to_build",
-        [{ label: "Build preview", action: "build" }]
-      )
-    };
-  }
-
-  return {
-    action: "probe",
-    phase: "guided_enrichment",
-    message: createQuestionMessage(
-      "We’re in strong shape. What’s one more detail that would make this site feel unmistakably right for your business?",
-      "continue_enrichment"
-    )
-  };
-}
-
-function getPriorityVerificationQueue(state) {
-  const strategy = getStrategyContract(state);
-  if (!strategy) return [];
-
-  const mustVerify = cleanList(strategy?.content_requirements?.must_verify_now);
-  const mustCollect = cleanList(strategy?.content_requirements?.must_collect_paid_phase);
-
-  const queue = [];
-
-  mustVerify.forEach(function(item) {
-    const key = normalizeVerificationKey(item);
-    if (key) queue.push(key);
-  });
-
-  mustCollect.forEach(function(item) {
-    const key = normalizeVerificationKey(item);
-    if (key) queue.push(key);
-  });
-
-  if (strategy?.schema_toggles?.show_features) queue.push("offer_structure");
-  if (strategy?.schema_toggles?.show_testimonials) queue.push("trust_proof");
-  if (strategy?.schema_toggles?.show_gallery) queue.push("photo_assets");
-  if (strategy?.schema_toggles?.show_about) {
-    queue.push("owner_background");
-    queue.push("experience_years");
-  }
-  if (strategy?.schema_toggles?.show_service_area) queue.push("service_area");
-  if (strategy?.schema_toggles?.show_faqs) queue.push("faq_objections");
-
-  if (strategy?.conversion_strategy?.cta_destination === "booking_url") {
-    queue.push("booking_url");
-  }
-
-  queue.push("booking_method");
-  queue.push("pricing_context");
-  queue.push("contact_path");
-
-  return Array.from(new Set(queue));
-}
-
-function normalizeVerificationKey(value) {
-  const v = cleanString(value).toLowerCase();
-
-  if (v.includes("pricing")) return "pricing_context";
-  if (v.includes("package")) return "offer_structure";
-  if (v.includes("tour")) return "offer_structure";
-  if (v.includes("service")) return "offer_structure";
-  if (v.includes("offer")) return "offer_structure";
-  if (v.includes("availability")) return "faq_objections";
-  if (v.includes("booking")) return "booking_method";
-  if (v.includes("phone")) return "contact_path";
-  if (v.includes("url")) return "booking_url";
-  if (v.includes("service area")) return "service_area";
-  if (v.includes("testimonial")) return "trust_proof";
-  if (v.includes("review")) return "trust_proof";
-  if (v.includes("photo")) return "photo_assets";
-  if (v.includes("image")) return "photo_assets";
-  if (v.includes("bio")) return "owner_background";
-  if (v.includes("owner")) return "owner_background";
-  if (v.includes("about")) return "owner_background";
-  if (v.includes("safety")) return "safety_reassurance";
-  if (v.includes("faq")) return "faq_objections";
-  if (v.includes("objection")) return "faq_objections";
-  if (v.includes("years")) return "experience_years";
-  if (v.includes("experience")) return "experience_years";
-
-  return "";
-}
-
-function isVerificationFieldSatisfied(state, key) {
-  const answers = state.answers || {};
-  const ghostwritten = state.ghostwritten || {};
-
-  switch (key) {
-    case "offer_structure":
-      return Array.isArray(answers.offerings) && answers.offerings.length > 0;
-
-    case "pricing_context":
-      return cleanString(answers.pricing_context).length > 0;
-
-    case "booking_method":
-      return cleanString(answers.booking_method).length > 0;
-
-    case "booking_url":
-      return cleanString(answers.booking_url).length > 0;
-
-    case "contact_path":
-      return Boolean(
-        cleanString(answers.phone) ||
-        cleanString(answers.booking_url) ||
-        cleanString(state.clientEmail)
-      );
-
-    case "service_area":
-      return cleanString(answers.service_area).length > 0;
-
-    case "safety_reassurance":
-      return (
-        Array.isArray(answers.trust_signals) &&
-        answers.trust_signals.some(v => /safety/i.test(v))
-      );
-
-    case "trust_proof":
-      return (
-        Array.isArray(answers.trust_signals) && answers.trust_signals.length > 0
-      ) || (
-        Array.isArray(answers.credibility_factors) &&
-        answers.credibility_factors.length > 0
-      );
-
-    case "photo_assets":
-      return (
-        Array.isArray(answers.trust_signals) &&
-        answers.trust_signals.some(v => /photo|gallery|image|preview imagery/i.test(v))
-      );
-
-    case "owner_background":
-      return cleanString(ghostwritten.about_summary).length > 0;
-
-    case "experience_years":
-      return cleanString(answers.experience_years).length > 0;
-
-    case "faq_objections":
-      return (
-        Array.isArray(answers.faq_topics) && answers.faq_topics.length > 0
-      ) || (
-        Array.isArray(answers.common_objections) && answers.common_objections.length > 0
-      );
-
-    default:
-      return false;
-  }
-}
-
-function buildVerificationPrompt(key, state, strategy, specialistProfile) {
-  const businessName = cleanString(state.businessName) || "your business";
-  const inferredOffer = cleanList(state.answers.offerings)[0] || "your main offer";
-  const usesPreviewImages = strategy?.asset_policy?.client_assets_required_for_preview === false;
-
-  switch (key) {
-    case "offer_structure":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          `We already have ${inferredOffer} as the starting point. What exact services, packages, or offers should we feature first?`,
-          "verify_offerings"
-        )
-      };
-
-    case "pricing_context":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          `How should we handle pricing for ${businessName} — show exact prices, starting prices, package tiers, or keep pricing private and invite inquiries?`,
-          "verify_pricing_context",
-          [
-            { label: "Show exact prices", action: "quick_reply" },
-            { label: "Show starting prices", action: "quick_reply" },
-            { label: "Show package tiers", action: "quick_reply" },
-            { label: "Keep pricing private", action: "quick_reply" }
-          ]
-        )
-      };
-
-    case "booking_method":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "What should visitors do to take the next step — use an external booking link, call, send an inquiry, or a mix of those?",
-          "verify_booking_method",
-          [
-            { label: "External booking link", action: "quick_reply" },
-            { label: "Phone calls", action: "quick_reply" },
-            { label: "Inquiry form", action: "quick_reply" },
-            { label: "A mix", action: "quick_reply" }
-          ]
-        )
-      };
-
-    case "booking_url":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "What booking link should we use for the main call to action? If you do not have one yet, say that and we’ll build the preview around inquiry-first flow.",
-          "verify_booking_url"
-        )
-      };
-
-    case "contact_path":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "What contact path should we include prominently — phone, booking link, email, or a mix?",
-          "verify_contact_path"
-        )
-      };
-
-    case "service_area":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "What exact service area, city coverage, or location details should we make clear on the site?",
-          "verify_service_area"
-        )
-      };
-
-    case "safety_reassurance":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "What reassurance should we mention that helps new customers feel safe or confident choosing you?",
-          "verify_safety_reassurance"
-        )
-      };
-
-    case "trust_proof":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "Do you already have any reviews, testimonials, experience highlights, guarantees, or trust signals we can use? If not, I can draft trust-focused copy for the preview.",
-          "verify_testimonials"
-        )
-      };
-
-    case "photo_assets":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          usesPreviewImages
-            ? "Do you have any photos ready now, or should we use inspirational preview imagery first and replace it later?"
-            : "Do you have any photos or visuals ready now?",
-          "verify_photos",
-          usesPreviewImages
-            ? [
-                { label: "Use preview imagery for now", action: "quick_reply" },
-                { label: "I have some photos", action: "quick_reply" }
-              ]
-            : undefined
-        )
-      };
-
-    case "owner_background":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "What should we say about you or the business behind this? Even a rough sentence is enough — I can turn it into strong copy.",
-          "verify_owner_background"
-        )
-      };
-
-    case "experience_years":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "About how many years have you been doing this work? A rough answer like 5+, 10+, or 20+ is fine.",
-          "verify_experience_years"
-        )
-      };
-
-    case "faq_objections":
-      return {
-        action: "probe",
-        phase: "guided_enrichment",
-        message: createQuestionMessage(
-          "What questions, concerns, or objections do customers commonly have before they buy or book?",
-          "verify_faq_objections"
-        )
-      };
-
-    default:
-      return null;
-  }
-}
-
-/* =========================
-   Message Builders
-========================= */
-
-function createQuestionMessage(content, intent, quickReplies) {
-  return {
-    type: "question",
-    content,
-    intent,
-    quick_replies: Array.isArray(quickReplies) ? quickReplies : []
-  };
-}
-
-function createTransitionMessage(content, intent, quickReplies) {
-  return {
-    type: "transition",
-    content,
-    intent,
-    quick_replies: Array.isArray(quickReplies) ? quickReplies : []
-  };
-}
-
-function normalizeControllerMessage(message) {
-  if (!message) return null;
-  if (typeof message === "string") {
-    return { type: "question", content: message, intent: "" };
-  }
-  if (isObject(message)) {
-    return {
-      type: cleanString(message.type) || "question",
-      content: cleanString(message.content),
-      intent: cleanString(message.intent),
-      quick_replies: Array.isArray(message.quick_replies) ? message.quick_replies : []
-    };
+function findRowIndexBySlug_(slug) {
+  const sh = clientsSheet_();
+  const headers = headers_(sh);
+  const slugCol = headers.indexOf("slug");
+  if (slugCol === -1) throw new Error('Clients sheet missing column "slug"');
+
+  const values = sh.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][slugCol]).trim() === String(slug).trim()) return i + 1;
   }
   return null;
 }
 
-function normalizeAction(action, readiness) {
-  if (isObject(action)) {
-    return action;
+function findRowIndexBySlugInSheet_(sheet, slug) {
+  const sh = sheet;
+  const headers = headers_(sh);
+  const slugCol = headers.indexOf("slug");
+  if (slugCol === -1) throw new Error('Sheet missing column "slug"');
+
+  const values = sh.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][slugCol]).trim() === String(slug).trim()) return i + 1;
+  }
+  return null;
+}
+
+function getRowObject_(sheet, rowIndex) {
+  const sh = sheet;
+  const headers = headers_(sh);
+  const row = sh.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
+  const obj = {};
+  headers.forEach((h, i) => (obj[h] = row[i]));
+  return obj;
+}
+
+function slugify_(value) {
+  const s = String(value || "")
+    .toLowerCase()
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+
+  if (s) return s;
+
+  const stamp = new Date().getTime().toString(36);
+  const rand = Math.random().toString(36).slice(2, 8);
+  return "siteforge-" + stamp + "-" + rand;
+}
+
+function upsertClient_(slug, patch) {
+  const sh = clientsSheet_();
+  const headers = headers_(sh);
+  const now = new Date().toISOString();
+  const data = { slug, ...patch, updated_at: now };
+  let rowIndex = findRowIndexBySlug_(slug);
+
+  if (!rowIndex) {
+    const row = headers.map(h => (data[h] !== undefined ? data[h] : ""));
+    sh.appendRow(row);
+    return;
   }
 
-  if (readiness?.can_generate_now) {
-    return { type: "complete", label: "Build preview" };
+  const existing = sh.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
+  const updated = headers.map((h, i) => (data[h] !== undefined ? data[h] : existing[i]));
+  sh.getRange(rowIndex, 1, 1, headers.length).setValues([updated]);
+}
+
+function upsertPreflight_(slug, patch) {
+  const sh = preflightSheet_();
+  const headers = headers_(sh);
+  const now = new Date().toISOString();
+
+  const data = Object.assign({}, patch, {
+    slug: slug,
+    updated_at: now
+  });
+
+  let rowIndex = findRowIndexBySlugInSheet_(sh, slug);
+
+  if (!rowIndex) {
+    if (!data.created_at) data.created_at = now;
+    const row = headers.map(h => (data[h] !== undefined ? data[h] : ""));
+    sh.appendRow(row);
+    return;
   }
 
-  return { type: "continue", label: "Continue" };
+  const existing = sh.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
+  const updated = headers.map((h, i) => (data[h] !== undefined ? data[h] : existing[i]));
+  sh.getRange(rowIndex, 1, 1, headers.length).setValues([updated]);
 }
 
-/* =========================
-   Strategy Contract Access
-========================= */
-
-function getStrategyContract(state) {
-  return state?.provenance?.strategy_contract ||
-    state?.inference?.strategy_contract ||
-    null;
+function getPreflightBySlug_(slug) {
+  const sh = preflightSheet_();
+  const rowIndex = findRowIndexBySlugInSheet_(sh, slug);
+  if (!rowIndex) return null;
+  return getRowObject_(sh, rowIndex);
 }
 
-/* =========================
-   Readiness + Summary
-========================= */
+function saveSubmissionToSheet_(slug, body) {
+  const sh = submissionsSheet_();
+  const headers = headers_(sh);
 
-function evaluateReadiness(state) {
-  const missing = [];
+  const now = new Date().toISOString();
+  const rowObj = {
+    created_at: now,
+    updated_at: now,
+    slug: slug,
+    client_email: body.client_email || "",
+    status: "PENDING",
+    github_run_id: "",
+    preview_url: "",
+    last_error: "",
+    payload_json: JSON.stringify(body)
+  };
 
-  const whyNow = cleanString(state.answers?.why_now);
-  const desiredOutcome = cleanString(state.answers?.desired_outcome);
-  const audience = cleanString(state.answers?.target_audience);
-  const hasOffer =
-    Array.isArray(state.answers?.offerings) &&
-    state.answers.offerings.length > 0;
-  const hasCta = cleanString(state.answers?.primary_conversion_goal);
-  const hasContactPath = Boolean(
-    cleanString(state.clientEmail) ||
-    cleanString(state.answers?.phone) ||
-    cleanString(state.answers?.booking_url)
-  );
+  const row = headers.map(h => (rowObj[h] !== undefined ? rowObj[h] : ""));
+  sh.appendRow(row);
+  return sh.getLastRow();
+}
 
-  const hasLocationSignal = Boolean(
-    cleanString(state.answers?.service_area) ||
-    cleanString(state.answers?.office_address) ||
-    cleanString(state.answers?.location_context)
-  );
+function updateLatestSubmissionBySlug_(slug, patch) {
+  const sh = submissionsSheet_();
+  const headers = headers_(sh);
+  const slugCol = headers.indexOf("slug");
+  if (slugCol === -1) throw new Error('Submissions sheet missing column "slug"');
 
-  const hasBuyerIntel =
-    (state.answers?.buyer_decision_factors?.length > 0) ||
-    (state.answers?.common_objections?.length > 0);
+  const values = sh.getDataRange().getValues();
+  let rowIndex = null;
 
-  const diff = Array.isArray(state.answers?.differentiators)
-    ? state.answers.differentiators.length
-    : 0;
-  const trust = Array.isArray(state.answers?.trust_signals)
-    ? state.answers.trust_signals.length
-    : 0;
-  const cred = Array.isArray(state.answers?.credibility_factors)
-    ? state.answers.credibility_factors.length
-    : 0;
+  for (let i = values.length - 1; i >= 1; i--) {
+    if (String(values[i][slugCol]).trim() === String(slug).trim()) {
+      rowIndex = i + 1;
+      break;
+    }
+  }
 
-  const hasTrustOrDiff = diff + trust + cred > 0;
+  if (!rowIndex) return;
 
-  if (!whyNow && !desiredOutcome) missing.push("business_purpose");
-  if (!audience) missing.push("target_audience");
-  if (!hasOffer) missing.push("primary_offer");
-  if (!hasCta) missing.push("cta_direction");
-  if (!hasContactPath) missing.push("contact_path");
-  if (!hasBuyerIntel) missing.push("buyer_intelligence");
-  if (!hasTrustOrDiff) missing.push("trust_signals");
+  const existing = sh.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
+  const withTimestamp = Object.assign({}, patch, { updated_at: new Date().toISOString() });
+  const next = headers.map((h, i) => (h in withTimestamp ? withTimestamp[h] : existing[i]));
+  sh.getRange(rowIndex, 1, 1, headers.length).setValues([next]);
+}
 
-  const scoreParts = [
-    Boolean(whyNow || desiredOutcome),
-    Boolean(audience),
-    Boolean(hasOffer),
-    Boolean(hasCta),
-    Boolean(hasContactPath),
-    Boolean(hasLocationSignal),
-    Boolean(hasTrustOrDiff),
-    Boolean(hasBuyerIntel)
-  ];
+function getClientStatusBySlug_(slug) {
+  const rowIndex = findRowIndexBySlug_(slug);
+  if (!rowIndex) return null;
 
-  const score = scoreParts.filter(Boolean).length / scoreParts.length;
+  const row = getRowObject_(clientsSheet_(), rowIndex);
 
   return {
-    score,
-    required_domains_complete: missing.length === 0,
-    missing_domains: missing,
-    recommended_domains_missing: [
-      !hasLocationSignal ? "service_area_or_location" : ""
-    ].filter(Boolean),
-    can_generate_now:
-      Boolean(whyNow || desiredOutcome) &&
-      Boolean(audience) &&
-      Boolean(hasOffer) &&
-      Boolean(hasCta) &&
-      Boolean(hasContactPath) &&
-      hasBuyerIntel &&
-      hasTrustOrDiff
-  };
-}
-
-function buildSummaryPanel(state) {
-  return {
-    business_name: cleanString(state.businessName),
-    audience: cleanString(state.answers?.target_audience),
-    primary_offer: cleanList(state.answers?.offerings),
-    conversion_goal: cleanString(state.answers?.primary_conversion_goal),
-    booking_method: cleanString(state.answers?.booking_method),
-    service_area: cleanString(state.answers?.service_area),
-    suggested_vibe: cleanString(state.inference?.suggested_vibe),
-    suggested_components: cleanList(state.inference?.suggested_components),
-    trust_signals: cleanList(state.answers?.trust_signals),
-    missing_information: cleanList(state.inference?.missing_information),
-    experience_years: cleanString(state.answers?.experience_years)
+    ok: true,
+    slug: String(row.slug || ""),
+    status: String(row.factory_status || ""),
+    preview_url: String(row.preview_url || ""),
+    last_preview_deploy_url: String(row.last_preview_deploy_url || ""),
+    github_run_id: String(row.github_run_id || ""),
+    last_error: String(row.last_error || ""),
+    updated_at: String(row.updated_at || "")
   };
 }
 
 /* =========================
-   State Normalization
+   GitHub API Helpers
 ========================= */
 
-function normalizeState(state) {
-  const next = structuredClone(isObject(state) ? state : {});
+function githubRequest_(method, path, body) {
+  const url = "https://api.github.com" + path;
+  const options = {
+    method: method,
+    headers: {
+      Authorization: "Bearer " + cfg_("GITHUB_TOKEN"),
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    muteHttpExceptions: true
+  };
+  if (body !== undefined) {
+    options.contentType = "application/json";
+    options.payload = JSON.stringify(body);
+  }
+  const res = UrlFetchApp.fetch(url, options);
+  const code = res.getResponseCode();
+  if (code < 200 || code >= 300) throw new Error("GitHub API error " + code + ": " + res.getContentText());
+  return JSON.parse(res.getContentText() || "{}");
+}
 
-  next.answers = {
-    why_now: "",
-    desired_outcome: "",
-    primary_conversion_goal: "",
-    first_impression_goal: "",
-    target_audience: "",
-    offerings: [],
-    booking_method: "",
-    phone: "",
-    booking_url: "",
-    office_address: "",
-    location_context: "",
-    service_area: "",
-    differentiators: [],
-    trust_signals: [],
-    credibility_factors: [],
-    buyer_decision_factors: [],
-    common_objections: [],
-    red_flags_to_avoid: [],
-    pricing_context: "",
-    tone_preferences: "",
-    visual_direction: "",
-    process_notes: [],
-    faq_topics: [],
-    experience_years: "",
-    ...(isObject(next.answers) ? next.answers : {})
+/**
+ * Create/overwrite a file in the repo using GitHub Contents API.
+ * Writes to main branch by default (via API).
+ */
+function githubPutFile_(repoPath, contentString, message, overwrite) {
+  const owner = cfg_("GITHUB_OWNER");
+  const repo = cfg_("GITHUB_REPO");
+  const token = cfg_("GITHUB_TOKEN");
+
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${repoPath}?ref=main`;
+
+  let sha = null;
+  const existing = UrlFetchApp.fetch(apiUrl, {
+    method: "get",
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    muteHttpExceptions: true
+  });
+
+  const existingCode = existing.getResponseCode();
+  if (existingCode === 200) {
+    if (!overwrite) return { skipped: true };
+    sha = JSON.parse(existing.getContentText() || "{}").sha || null;
+  } else if (existingCode !== 404) {
+    throw new Error("GitHub file lookup error " + existingCode + ": " + existing.getContentText());
+  }
+
+  const payload = {
+    message: message,
+    content: Utilities.base64Encode(contentString),
+    branch: "main",
+    ...(sha ? { sha: sha } : {})
   };
 
-  next.inference = {
-    specialist_profile: null,
-    suggested_vibe: "",
-    suggested_components: [],
-    tone_direction: "",
-    visual_direction: "",
-    missing_information: [],
-    confidence_score: 0,
-    ...(isObject(next.inference) ? next.inference : {})
-  };
+  const res = UrlFetchApp.fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${repoPath}`, {
+    method: "put",
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
 
-  next.ghostwritten = {
-    tagline: "",
-    hero_headline: "",
-    hero_subheadline: "",
-    about_summary: "",
-    features_copy: [],
-    faqs: [],
-    ...(isObject(next.ghostwritten) ? next.ghostwritten : {})
-  };
+  const code = res.getResponseCode();
+  const text = res.getContentText();
+  if (code < 200 || code >= 300) throw new Error("GitHub PUT failed " + code + ": " + text);
 
-  next.answers.offerings = cleanList(next.answers.offerings);
-  next.answers.differentiators = cleanList(next.answers.differentiators);
-  next.answers.trust_signals = cleanList(next.answers.trust_signals);
-  next.answers.credibility_factors = cleanList(next.answers.credibility_factors);
-  next.answers.buyer_decision_factors = cleanList(next.answers.buyer_decision_factors);
-  next.answers.common_objections = cleanList(next.answers.common_objections);
-  next.answers.red_flags_to_avoid = cleanList(next.answers.red_flags_to_avoid);
-  next.answers.process_notes = cleanList(next.answers.process_notes);
-  next.answers.faq_topics = cleanList(next.answers.faq_topics);
+  const out = JSON.parse(text || "{}");
+  return { ok: true, commit_sha: out?.commit?.sha || "" };
+}
 
-  next.inference.suggested_components = cleanList(next.inference.suggested_components);
-  next.inference.missing_information = cleanList(next.inference.missing_information);
+function dispatchBuild_(slug) {
+  const owner = cfg_("GITHUB_OWNER");
+  const repo = cfg_("GITHUB_REPO");
+  const workflowFile = cfg_("WORKFLOW_FILE");
 
-  next.answers.why_now = cleanString(next.answers.why_now);
-  next.answers.desired_outcome = cleanString(next.answers.desired_outcome);
-  next.answers.primary_conversion_goal = cleanString(next.answers.primary_conversion_goal);
-  next.answers.first_impression_goal = cleanString(next.answers.first_impression_goal);
-  next.answers.target_audience = cleanString(next.answers.target_audience);
-  next.answers.booking_method = cleanString(next.answers.booking_method);
-  next.answers.phone = cleanString(next.answers.phone);
-  next.answers.booking_url = cleanString(next.answers.booking_url);
-  next.answers.office_address = cleanString(next.answers.office_address);
-  next.answers.location_context = cleanString(next.answers.location_context);
-  next.answers.service_area = cleanString(next.answers.service_area);
-  next.answers.pricing_context = cleanString(next.answers.pricing_context);
-  next.answers.tone_preferences = cleanString(next.answers.tone_preferences);
-  next.answers.visual_direction = cleanString(next.answers.visual_direction);
-  next.answers.experience_years = cleanString(next.answers.experience_years);
+  githubRequest_("post", `/repos/${owner}/${repo}/actions/workflows/${workflowFile}/dispatches`, {
+    ref: "main",
+    inputs: { client_slug: slug }
+  });
+}
 
-  next.clientEmail = cleanString(next.clientEmail);
-  next.businessName = cleanString(next.businessName);
-  next.slug = cleanString(next.slug);
-  next.phase = cleanString(next.phase) || "guided_enrichment";
-  next.last_intent = cleanString(next.last_intent);
+function listArtifactsForRun_(runId) {
+  const owner = cfg_("GITHUB_OWNER");
+  const repo = cfg_("GITHUB_REPO");
+  return githubRequest_("get", `/repos/${owner}/${repo}/actions/runs/${runId}/artifacts`);
+}
 
-  return next;
+/**
+ * Download a GitHub Actions artifact zip.
+ * GitHub often returns a redirect here; follow it manually WITHOUT
+ * forwarding the GitHub Authorization header to the storage URL.
+ */
+function downloadArtifactZip_(artifactId) {
+  const owner = cfg_("GITHUB_OWNER");
+  const repo = cfg_("GITHUB_REPO");
+  const token = cfg_("GITHUB_TOKEN");
+  const zipUrl = `https://api.github.com/repos/${owner}/${repo}/actions/artifacts/${artifactId}/zip`;
+
+  const res = UrlFetchApp.fetch(zipUrl, {
+    method: "get",
+    headers: {
+      Authorization: "Bearer " + token,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    },
+    muteHttpExceptions: true,
+    followRedirects: false
+  });
+
+  const code = res.getResponseCode();
+
+  if (code === 301 || code === 302 || code === 303 || code === 307 || code === 308) {
+    const headers = res.getAllHeaders();
+    const redirectUrl = headers.Location || headers.location;
+
+    if (!redirectUrl) {
+      throw new Error("Artifact download redirect missing Location header");
+    }
+
+    const redirected = UrlFetchApp.fetch(redirectUrl, {
+      method: "get",
+      muteHttpExceptions: true
+    });
+
+    const redirectedCode = redirected.getResponseCode();
+    if (redirectedCode < 200 || redirectedCode >= 300) {
+      throw new Error("Artifact redirected download failed " + redirectedCode + ": " + redirected.getContentText());
+    }
+
+    return redirected.getBlob().setName("artifact.zip");
+  }
+
+  if (code < 200 || code >= 300) {
+    throw new Error("Artifact download failed " + code + ": " + res.getContentText());
+  }
+
+  return res.getBlob().setName("artifact.zip");
+}
+
+function extractDistZipFromArtifact_(artifactZipBlob) {
+  const files = Utilities.unzip(artifactZipBlob);
+  const distFile = files.find(f => f.getName() === "dist.zip");
+  if (!distFile) throw new Error("dist.zip missing inside artifact zip");
+  return distFile;
 }
 
 /* =========================
-   Utility Helpers
+   Netlify Helpers
 ========================= */
 
-async function readJson(req) {
+function createPreviewSite_(slug) {
+  const name = "preview-" + String(slug).toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 50);
+  const res = UrlFetchApp.fetch("https://api.netlify.com/api/v1/sites", {
+    method: "post",
+    headers: { Authorization: "Bearer " + cfg_("NETLIFY_TOKEN") },
+    contentType: "application/json",
+    payload: JSON.stringify({ name, created_via: "siteforge-factory" }),
+    muteHttpExceptions: true
+  });
+
+  const code = res.getResponseCode();
+  if (code < 200 || code >= 300) throw new Error("Netlify create site error " + code + ": " + res.getContentText());
+
+  const site = JSON.parse(res.getContentText());
+  return { site_id: site.id, url: site.url, admin_url: site.admin_url };
+}
+
+function ensurePreviewSiteExists_(slug) {
+  const rowIndex = findRowIndexBySlug_(slug);
+  if (rowIndex) {
+    const row = getRowObject_(clientsSheet_(), rowIndex);
+    const previewSiteId = String(row.preview_site_id || "").trim();
+    if (previewSiteId) {
+      return { site_id: previewSiteId, url: row.preview_url || "" };
+    }
+  }
+
+  const created = createPreviewSite_(slug);
+  upsertClient_(slug, {
+    preview_site_id: created.site_id,
+    preview_url: String(created.url || "").replace(/^http:\/\//, "https://"),
+    preview_admin_url: created.admin_url
+  });
+  return created;
+}
+
+function deployZipToNetlify_(siteId, zipBlob) {
+  const url = `https://api.netlify.com/api/v1/sites/${siteId}/deploys`;
+  const res = UrlFetchApp.fetch(url, {
+    method: "post",
+    headers: {
+      Authorization: "Bearer " + cfg_("NETLIFY_TOKEN"),
+      "Content-Type": "application/zip"
+    },
+    payload: zipBlob.getBytes(),
+    muteHttpExceptions: true
+  });
+
+  const code = res.getResponseCode();
+  if (code < 200 || code >= 300) throw new Error("Netlify deploy error " + code + ": " + res.getContentText());
+
+  return JSON.parse(res.getContentText());
+}
+
+function deployPreviewToNetlify_(slug, distZipBlob) {
+  const site = ensurePreviewSiteExists_(slug);
+  const deploy = deployZipToNetlify_(site.site_id, distZipBlob);
+
+  const previewUrl = String(site.url || deploy.deploy_url || "").replace(/^http:\/\//, "https://");
+  const deployUrl = String(deploy.deploy_url || "").replace(/^http:\/\//, "https://");
+
+  upsertClient_(slug, {
+    preview_url: previewUrl,
+    last_preview_deploy_url: deployUrl
+  });
+
+  return previewUrl || deployUrl || "";
+}
+
+/* =========================
+   Optional Emailer
+========================= */
+
+function emailDistZipIfNeeded_(slug, distZipBlob) {
+  // no-op for now (your roadmap)
+}
+
+/* =========================
+   Webhook / Submission Router
+========================= */
+
+function doPost(e) {
   try {
-    return await req.json();
-  } catch {
+    if (!e || !e.postData) return json_({ ok: false, error: "No post data" }, 400);
+
+    const contentType = String(e.postData.type || "");
+    const raw = String(e.postData.contents || "");
+    const isJson = contentType.includes("application/json");
+
+    let payload = null;
+    if (isJson && raw) payload = JSON.parse(raw);
+
+    // 1) GitHub workflow_run webhook
+    if (payload && payload.workflow_run) {
+      return handleGitHubWebhook_(payload);
+    }
+
+    // 2) Must be JSON for all other routes
+    if (!payload) return json_({ ok: false, error: "Expected JSON body" }, 400);
+
+    // 3) Routed requests
+    const route = String(payload.route || "").trim();
+
+    if (route === "preflight_start") {
+      return handlePreflightStart_(payload);
+    }
+
+    if (route === "preflight_status") {
+      return handlePreflightStatus_(payload);
+    }
+
+    if (route === "preflight_update") {
+      return handlePreflightUpdate_(payload);
+    }
+
+    if (route === "preflight_recon") {
+      return handlePreflightRecon_(payload);
+    }
+
+    if (route === "preflight_gbp") {
+      return handlePreflightGbp_(payload);
+    }
+
+    if (route === "preflight_preview") {
+      return json_(handlePreflightPreview_(payload), 200);
+    } 
+
+
+    // 4) Default to existing factory submission behavior
+    return handleFactorySubmission_(payload);
+
+  } catch (err) {
+    return json_({ ok: false, error: String(err) }, 500);
+  }
+}
+
+function doGet(e) {
+  try {
+    const slug = String((e && e.parameter && e.parameter.slug) || "").trim();
+
+    if (!slug) {
+      return json_({ ok: false, error: "Missing slug" }, 400);
+    }
+
+    const status = getClientStatusBySlug_(slug);
+    if (!status) {
+      return json_({ ok: false, error: "Slug not found", slug: slug }, 404);
+    }
+
+    return json_(status, 200);
+  } catch (err) {
+    return json_({ ok: false, error: String(err) }, 500);
+  }
+}
+
+/**
+ * Optional shared-secret check. (Header signature verification is best done in a Cloudflare Worker proxy.)
+ * If GITHUB_WEBHOOK_SECRET is set, require payload.secret === it.
+ */
+function verifyWebhook_(payload) {
+  const secret = props_().getProperty("GITHUB_WEBHOOK_SECRET");
+  if (!secret) return true;
+  return payload && payload.secret && String(payload.secret) === String(secret);
+}
+
+/* =========================
+   Status Helpers
+========================= */
+
+function markFailure_(slug, message, extraPatch) {
+  const patch = Object.assign({
+    factory_status: "FAILED",
+    last_error: message
+  }, extraPatch || {});
+
+  if (slug) {
+    upsertClient_(slug, patch);
+    updateLatestSubmissionBySlug_(slug, {
+      status: "FAILED",
+      last_error: message
+    });
+  }
+}
+
+/* =========================
+   Handlers
+========================= */
+
+function handlePreflightStart_(body) {
+  const factoryKey = cfg_("FACTORY_KEY");
+
+  if (!body.factory_key || String(body.factory_key) !== String(factoryKey)) {
+    return json_({ ok: false, error: "Unauthorized" }, 401);
+  }
+
+  const businessName = String(body.business_name || "").trim();
+  const cityOrServiceArea = String(body.city_or_service_area || "").trim();
+  const description = String(body.description || "").trim();
+  const websiteOrSocial = String(body.website_or_social || "").trim();
+  const clientEmail = String(body.client_email || "").trim();
+
+  if (!businessName) {
+    return json_({ ok: false, error: "Missing business_name" }, 400);
+  }
+
+  if (!cityOrServiceArea) {
+    return json_({ ok: false, error: "Missing city_or_service_area" }, 400);
+  }
+
+  if (!description) {
+    return json_({ ok: false, error: "Missing description" }, 400);
+  }
+
+  const slug = slugify_(businessName);
+  const existing = getPreflightBySlug_(slug);
+
+  if (existing) {
+    return json_({
+      ok: true,
+      slug: slug,
+      preflight_status: String(existing.preflight_status || "in_progress"),
+      paid_unlocked: String(existing.paid_unlocked || "") === "true",
+      intake_status: String(existing.intake_status || "locked"),
+      message: "Pre-flight already exists for this slug."
+    }, 200);
+  }
+
+  upsertPreflight_(slug, {
+    created_at: new Date().toISOString(),
+
+    preflight_status: "in_progress",
+    paid_status: "not_paid",
+    paid_unlocked: false,
+    paid_unlocked_at: "",
+    intake_status: "locked",
+    build_status: "not_started",
+
+    input_business_name: businessName,
+    canonical_business_name: "",
+    client_email: clientEmail,
+    city_or_service_area_input: cityOrServiceArea,
+    description_input: description,
+    optional_website_or_social: websiteOrSocial,
+
+    entity_profile_json: JSON.stringify({}),
+    gbp_audit_json: JSON.stringify({}),
+    buyer_intelligence_json: JSON.stringify({}),
+    preflight_strategy_json: JSON.stringify({}),
+    paid_intake_json: JSON.stringify({}),
+
+    last_error: ""
+  });
+
+  return json_({
+    ok: true,
+    slug: slug,
+    preflight_status: "in_progress",
+    paid_unlocked: false,
+    intake_status: "locked",
+    message: "Pre-flight started."
+  }, 200);
+}
+
+
+function handlePreflightRecon_(body) {
+  const slug = String(body.slug || "").trim();
+  const entityProfile = body.entity_profile || {};
+  const buyerIntel = body.buyer_intelligence || {};
+  const internalStrategy = body.internal_strategy || {};
+  const clientPreview = body.client_preview || {};
+
+  if (!slug) {
+    return json_({ ok: false, error: "Missing slug" }, 400);
+  }
+
+  const existing = getPreflightBySlug_(slug);
+  if (!existing) {
+    return json_({ ok: false, error: "Slug not found" }, 404);
+  }
+
+  function isPlainObject_(value) {
+    return value && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function isEmptyObject_(value) {
+    return !isPlainObject_(value) || Object.keys(value).length === 0;
+  }
+
+  if (
+    isEmptyObject_(entityProfile) &&
+    isEmptyObject_(buyerIntel) &&
+    isEmptyObject_(internalStrategy) &&
+    isEmptyObject_(clientPreview)
+  ) {
+    upsertPreflight_(slug, {
+      preflight_status: "recon_failed",
+      last_error: "Recon payload was empty"
+    });
+
+    return json_({
+      ok: false,
+      error: "Recon payload was empty",
+      slug: slug
+    }, 422);
+  }
+
+  upsertPreflight_(slug, {
+    entity_profile_json: JSON.stringify(entityProfile),
+    buyer_intelligence_json: JSON.stringify(buyerIntel),
+    preflight_strategy_json: JSON.stringify({
+      internal_strategy: internalStrategy,
+      client_preview: clientPreview
+    }),
+    preflight_status: "recon_complete",
+    last_error: ""
+  });
+
+  return json_({
+    ok: true,
+    slug: slug,
+    preflight_status: "recon_complete"
+  }, 200);
+}
+
+function safeParse_(value) {
+  try {
+    return JSON.parse(String(value || "{}"));
+  } catch (err) {
     return {};
   }
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json",
-      "cache-control": "no-store"
-    }
-  });
-}
+function handlePreflightPreview_(body) {
+  const slug = String(body.slug || "").trim();
 
-function cleanString(v) {
-  return typeof v === "string" ? v.trim() : "";
-}
-
-function isObject(v) {
-  return !!v && typeof v === "object" && !Array.isArray(v);
-}
-
-function cleanList(arr) {
-  if (!Array.isArray(arr)) return [];
-  return arr.map(function(v) {
-    return cleanString(v);
-  }).filter(Boolean);
-}
-
-function uniqueList(arr) {
-  return Array.from(new Set(cleanList(arr)));
-}
-
-function removeFromList(arr, value) {
-  const needle = cleanString(value);
-  return cleanList(arr).filter(function(item) {
-    return item !== needle;
-  });
-}
-
-function deepMergeInto(target, source) {
-  if (!isObject(target) || !isObject(source)) return target;
-
-  Object.keys(source).forEach(function(key) {
-    const src = source[key];
-    const dst = target[key];
-
-    if (Array.isArray(src)) {
-      target[key] = src.slice();
-      return;
-    }
-
-    if (isObject(src)) {
-      target[key] = isObject(dst) ? dst : {};
-      deepMergeInto(target[key], src);
-      return;
-    }
-
-    target[key] = src;
-  });
-
-  return target;
-}
-
-function getLastAssistantIntent(state) {
-  const conversation = Array.isArray(state?.conversation) ? state.conversation : [];
-  const lastAssistant = [...conversation].reverse().find(function(item) {
-    return item && item.role === "assistant" && cleanString(item.content);
-  });
-
-  if (lastAssistant && isObject(lastAssistant.message) && cleanString(lastAssistant.message.intent)) {
-    return cleanString(lastAssistant.message.intent);
+  if (!slug) {
+    return { ok: false, error: "Missing slug" };
   }
 
-  return cleanString(state?.last_intent);
+  const row = getPreflightBySlug_(slug);
+  if (!row) {
+    return { ok: false, error: "Record not found" };
+  }
+
+  const strategy = safeParse_(row.preflight_strategy_json);
+  const gbp = safeParse_(row.gbp_audit_json);
+
+  const clientPreview = strategy.client_preview || {};
+
+  return {
+    ok: true,
+    slug: slug,
+
+    business_understanding:
+      clientPreview.summary ||
+      "We analyzed your business and identified strong positioning opportunities.",
+
+    opportunity:
+      clientPreview.opportunity ||
+      "There appears to be an opportunity to improve how customers discover and book your services online.",
+
+    website_direction:
+      clientPreview.sales_preview ||
+      "A focused website built around your services and customer experience could improve conversions.",
+
+    google_presence_insight:
+      gbp.gbp_status === "not_found"
+        ? "Your business does not appear to have a fully established Google Business presence yet. Aligning that with your website can improve local discovery."
+        : "Your Google presence may benefit from better alignment with how customers search for your services.",
+
+    recommended_focus:
+      clientPreview.recommended_focus || [],
+
+    next_step:
+      clientPreview.next_step_teaser ||
+      "In the build phase we refine your messaging, structure the website for conversions, and align your web presence with customer search behavior."
+  };
 }
 
-function looksLikeUrl(text) {
-  return /^https?:\/\//i.test(cleanString(text)) || /\.[a-z]{2,}($|\/)/i.test(cleanString(text));
+function handlePreflightUpdate_(body) {
+  const slug = String(body.slug || "").trim();
+
+  if (!slug) {
+    return json_({ ok: false, error: "Missing slug" }, 400);
+  }
+
+  const existing = getPreflightBySlug_(slug);
+  if (!existing) {
+    return json_({ ok: false, error: "Slug not found" }, 404);
+  }
+
+  const patch = {};
+
+  const allowedFields = [
+    "preflight_status",
+    "paid_status",
+    "paid_unlocked",
+    "paid_unlocked_at",
+    "intake_status",
+    "build_status",
+    "canonical_business_name",
+    "client_email",
+    "entity_profile_json",
+    "buyer_intelligence_json",
+    "preflight_strategy_json",
+    "gbp_audit_json",
+    "paid_intake_json",
+    "last_error"
+  ];
+
+  allowedFields.forEach(function(field) {
+    if (body[field] !== undefined) {
+      patch[field] = body[field];
+    }
+  });
+
+  if (patch.paid_unlocked !== undefined) {
+    const raw = String(patch.paid_unlocked).trim().toLowerCase();
+    patch.paid_unlocked = raw === "true" || raw === "1";
+  }
+
+  if (patch.paid_status === "paid" && !patch.paid_unlocked_at && !existing.paid_unlocked_at) {
+    patch.paid_unlocked_at = new Date().toISOString();
+  }
+
+  upsertPreflight_(slug, patch);
+
+  const updated = getPreflightBySlug_(slug);
+
+  return json_({
+    ok: true,
+    slug: slug,
+    preflight_status: String(updated.preflight_status || ""),
+    paid_status: String(updated.paid_status || ""),
+    paid_unlocked: String(updated.paid_unlocked || "").toLowerCase() === "true" || updated.paid_unlocked === true,
+    paid_unlocked_at: String(updated.paid_unlocked_at || ""),
+    intake_status: String(updated.intake_status || ""),
+    build_status: String(updated.build_status || "")
+  }, 200);
 }
 
-function looksLikePhone(text) {
-  const digits = cleanString(text).replace(/\D/g, "");
-  return digits.length >= 10;
+function handleFactorySubmission_(body) {
+  const factoryKey = cfg_("FACTORY_KEY");
+
+  if (!body.factory_key || String(body.factory_key) !== String(factoryKey)) {
+    return json_({ ok: false, error: "Unauthorized" }, 401);
+  }
+
+  const slug = body.business_json?.brand?.slug;
+  if (!slug) return json_({ ok: false, error: "Missing business_json.brand.slug" }, 400);
+
+  saveSubmissionToSheet_(slug, body);
+
+  upsertClient_(slug, {
+    client_email: body.client_email || "",
+    factory_status: "PENDING",
+    last_error: ""
+  });
+
+  updateLatestSubmissionBySlug_(slug, {
+    status: "PENDING",
+    last_error: ""
+  });
+
+  // Seed base.json before build
+  const repoPath = `clients/${slug}/business.base.json`;
+  const content = JSON.stringify(body.business_json, null, 2);
+
+  let seed;
+  try {
+    seed = githubPutFile_(repoPath, content, `Factory: seed business.base.json for ${slug}`, true);
+  } catch (err) {
+    markFailure_(slug, "Failed to seed business.base.json: " + String(err));
+    return json_({ ok: false, error: "Failed to seed base.json", detail: String(err) }, 500);
+  }
+
+  // Small delay to avoid immediate visibility edge cases
+  Utilities.sleep(2000);
+
+  try {
+    dispatchBuild_(slug);
+  } catch (err) {
+    markFailure_(slug, "Failed to dispatch build: " + String(err));
+    return json_({ ok: false, error: "Failed to dispatch build", detail: String(err) }, 500);
+  }
+
+  upsertClient_(slug, {
+    factory_status: "BUILD_DISPATCHED",
+    last_error: ""
+  });
+
+  updateLatestSubmissionBySlug_(slug, {
+    status: "BUILD_DISPATCHED",
+    last_error: ""
+  });
+
+  return json_({
+    ok: true,
+    message: "Base seeded + build dispatched",
+    slug: slug,
+    seed_commit_sha: seed.commit_sha || ""
+  }, 200);
 }
 
-function splitOfferings(text) {
-  const raw = cleanString(text);
-  if (!raw) return [];
-  return raw
-    .split(/\n|,|;/g)
-    .map(function(v) { return cleanString(v); })
-    .filter(Boolean);
+
+function handlePreflightStatus_(body) {
+  const slug = String(body.slug || "").trim();
+
+  if (!slug) {
+    return json_({ ok: false, error: "Missing slug" }, 400);
+  }
+
+  const row = getPreflightBySlug_(slug);
+
+  if (!row) {
+    return json_({
+      ok: false,
+      error: "Slug not found",
+      slug: slug
+    }, 404);
+  }
+
+  return json_({
+    ok: true,
+    slug: slug,
+
+    preflight_status: String(row.preflight_status || ""),
+    paid_status: String(row.paid_status || ""),
+    paid_unlocked: String(row.paid_unlocked || "") === "true" || row.paid_unlocked === true,
+    intake_status: String(row.intake_status || ""),
+    build_status: String(row.build_status || ""),
+
+    input_business_name: String(row.input_business_name || ""),
+    canonical_business_name: String(row.canonical_business_name || ""),
+    client_email: String(row.client_email || ""),
+    city_or_service_area_input: String(row.city_or_service_area_input || ""),
+    description_input: String(row.description_input || ""),
+    optional_website_or_social: String(row.optional_website_or_social || ""),
+
+    entity_profile_json: String(row.entity_profile_json || "{}"),
+    buyer_intelligence_json: String(row.buyer_intelligence_json || "{}"),
+    preflight_strategy_json: String(row.preflight_strategy_json || "{}"),
+    gbp_audit_json: String(row.gbp_audit_json || "{}"),
+    paid_intake_json: String(row.paid_intake_json || "{}"),
+
+    updated_at: String(row.updated_at || ""),
+    last_error: String(row.last_error || "")
+  }, 200);
 }
 
-function splitSentenceList(text) {
-  return cleanString(text)
-    .split(/\n|,|;|\./g)
-    .map(function(v) { return cleanString(v); })
-    .filter(Boolean);
+function handlePreflightGbp_(body) {
+  const slug = String(body.slug || "").trim();
+  const gbpAudit = body.gbp_audit || {};
+
+  if (!slug) {
+    return json_({ ok: false, error: "Missing slug" }, 400);
+  }
+
+  const existing = getPreflightBySlug_(slug);
+  if (!existing) {
+    return json_({ ok: false, error: "Slug not found" }, 404);
+  }
+
+  function isPlainObject_(value) {
+    return value && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function isEmptyObject_(value) {
+    return !isPlainObject_(value) || Object.keys(value).length === 0;
+  }
+
+  if (isEmptyObject_(gbpAudit)) {
+    upsertPreflight_(slug, {
+      last_error: "GBP audit payload was empty"
+    });
+
+    return json_({
+      ok: false,
+      error: "GBP audit payload was empty",
+      slug: slug
+    }, 422);
+  }
+
+  upsertPreflight_(slug, {
+    gbp_audit_json: JSON.stringify(gbpAudit),
+    last_error: ""
+  });
+
+  return json_({
+    ok: true,
+    slug: slug,
+    gbp_status: String(gbpAudit.gbp_status || "")
+  }, 200);
 }
 
-function normalizeBookingMethod(text) {
-  const lower = cleanString(text).toLowerCase();
 
-  if (/external|booking link|book online/.test(lower)) return "external_booking";
-  if (/phone|call/.test(lower)) return "phone";
-  if (/form|inquiry|contact/.test(lower)) return "contact_form";
-  if (/mix|both/.test(lower)) return "mixed";
+function handleGitHubWebhook_(payload) {
+  if (!verifyWebhook_(payload)) return json_({ ok: false, error: "Webhook unauthorized" }, 401);
 
-  return rawSlug(lower) || "";
+  const run = payload.workflow_run;
+  if (!run) return json_({ ok: true, ignored: "No workflow_run" });
+
+  if (String(run.status) !== "completed") {
+    return json_({ ok: true, ignored: "Run not completed", status: run.status });
+  }
+
+  const runName = String(run.name || "");
+  const slug = runName.startsWith("build-") ? runName.slice("build-".length).trim() : "";
+
+  if (!slug) {
+    return json_({ ok: false, error: "Could not derive slug from run.name", run_name: runName }, 400);
+  }
+
+  if (String(run.conclusion) !== "success") {
+    markFailure_(slug, "GitHub run did not succeed: " + String(run.conclusion), {
+      github_run_id: String(run.id || "")
+    });
+    return json_({ ok: true, ignored: "Run not successful", conclusion: run.conclusion });
+  }
+
+  upsertClient_(slug, {
+    factory_status: "BUILD_SUCCEEDED",
+    github_run_id: String(run.id || ""),
+    last_error: ""
+  });
+
+  updateLatestSubmissionBySlug_(slug, {
+    status: "BUILD_SUCCEEDED",
+    github_run_id: String(run.id || ""),
+    last_error: ""
+  });
+
+  // List artifacts
+  let artifacts;
+  try {
+    artifacts = listArtifactsForRun_(run.id);
+  } catch (err) {
+    markFailure_(slug, "Failed listing artifacts: " + String(err), {
+      github_run_id: String(run.id || "")
+    });
+    return json_({ ok: false, error: "Failed listing artifacts", detail: String(err) }, 500);
+  }
+
+  const want = "dist-" + slug;
+  const artifact = (artifacts.artifacts || []).find(a => a.name === want);
+
+  if (!artifact) {
+    markFailure_(slug, "Artifact not found: " + want, {
+      github_run_id: String(run.id || "")
+    });
+    return json_({
+      ok: false,
+      error: "Artifact not found",
+      expected: want,
+      available: (artifacts.artifacts || []).map(a => a.name)
+    }, 404);
+  }
+
+  // Download artifact zip
+  let artifactZipBlob;
+  try {
+    artifactZipBlob = downloadArtifactZip_(artifact.id);
+  } catch (err) {
+    markFailure_(slug, "Artifact download failed: " + String(err), {
+      github_run_id: String(run.id || "")
+    });
+    return json_({ ok: false, error: "Artifact download failed", detail: String(err) }, 500);
+  }
+
+  // Extract inner dist.zip
+  let distZip;
+  try {
+    distZip = extractDistZipFromArtifact_(artifactZipBlob);
+  } catch (err) {
+    markFailure_(slug, "dist.zip extraction failed: " + String(err), {
+      github_run_id: String(run.id || "")
+    });
+    return json_({ ok: false, error: "dist.zip extraction failed", detail: String(err) }, 500);
+  }
+
+  // Deploy preview
+  let previewUrl;
+  try {
+    previewUrl = deployPreviewToNetlify_(slug, distZip);
+  } catch (err) {
+    markFailure_(slug, "Preview deploy failed: " + String(err), {
+      github_run_id: String(run.id || "")
+    });
+    return json_({ ok: false, error: "Preview deploy failed", detail: String(err) }, 500);
+  }
+
+  const previewUrlHttps = String(previewUrl || "").replace(/^http:\/\//, "https://");
+
+  upsertClient_(slug, {
+    preview_url: previewUrlHttps,
+    factory_status: "PREVIEW_DEPLOYED",
+    github_run_id: String(run.id || ""),
+    last_error: ""
+  });
+
+  updateLatestSubmissionBySlug_(slug, {
+    status: "PREVIEW_DEPLOYED",
+    preview_url: previewUrlHttps,
+    github_run_id: String(run.id || ""),
+    last_error: ""
+  });
+
+  try { emailDistZipIfNeeded_(slug, distZip); } catch (e) {}
+
+  return json_({ ok: true, slug, preview_url: previewUrlHttps }, 200);
 }
 
-function normalizeUrl(value) {
-  const url = cleanString(value);
-  if (!url) return "";
-  if (/^https?:\/\//i.test(url)) return url;
-  return "https://" + url;
+/* =========================
+   Optional test helpers
+========================= */
+
+function testGitHubActionTrigger() {
+  dispatchBuild_("aura-electric-solar");
 }
 
-function rawSlug(text) {
-  return cleanString(text)
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-}
-
-function hasContactPath(state) {
-  return Boolean(
-    cleanString(state.clientEmail) ||
-    cleanString(state.answers?.phone) ||
-    cleanString(state.answers?.booking_url)
-  );
-}
-
-function hasLocationSignal(state) {
-  return Boolean(
-    cleanString(state.answers?.service_area) ||
-    cleanString(state.answers?.office_address) ||
-    cleanString(state.answers?.location_context)
-  );
-}
-
-function hasTrustSignal(state) {
-  const diff = Array.isArray(state.answers?.differentiators)
-    ? state.answers.differentiators.length
-    : 0;
-  const trust = Array.isArray(state.answers?.trust_signals)
-    ? state.answers.trust_signals.length
-    : 0;
-  const cred = Array.isArray(state.answers?.credibility_factors)
-    ? state.answers.credibility_factors.length
-    : 0;
-
-  return diff + trust + cred > 0;
-}
-
-function schemaToggleKeysToComponents(schemaToggles) {
-  const map = {
-    show_trustbar: "Trustbar",
-    show_about: "About",
-    show_features: "Features",
-    show_events: "Events",
-    show_process: "Process",
-    show_testimonials: "Testimonials",
-    show_comparison: "Comparison",
-    show_gallery: "Gallery",
-    show_investment: "Investment",
-    show_faqs: "FAQs",
-    show_service_area: "Service Area"
+function testPreflightStart() {
+  const payload = {
+    route: "preflight_start",
+    factory_key: cfg_("FACTORY_KEY"),
+    business_name: "Captain Bob Tours",
+    city_or_service_area: "Marco Island, FL",
+    description: "Private boat tours and dolphin watching",
+    website_or_social: "",
+    client_email: ""
   };
 
-  return Object.keys(map)
-    .filter(function(key) {
-      return Boolean(schemaToggles?.[key]);
-    })
-    .map(function(key) {
-      return map[key];
-    });
-}
-
-function extractOfferCandidates(text) {
-  return splitOfferings(text).filter(function(item) {
-    const lower = item.toLowerCase();
-
-    if (lower.length < 4) return false;
-    if (/life jacket|safe|safety|family friendly|personal experience|trust|review|testimonial|photo|image|gallery/.test(lower)) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
-function extractTrustSignals(text) {
-  const lower = cleanString(text).toLowerCase();
-  const out = [];
-
-  if (/life jacket|life jackets/.test(lower)) out.push("visible safety equipment");
-  if (/safe|safety/.test(lower)) out.push("safety reassurance");
-  if (/family friendly/.test(lower)) out.push("family-friendly experience");
-  if (/personal/.test(lower)) out.push("personalized experience");
-
-  return uniqueList(out);
-}
-
-function extractCredibilitySignals(text) {
-  const lower = cleanString(text).toLowerCase();
-  const out = [];
-
-  if (/customer|customers|review|reviews|testimonial/.test(lower)) {
-    out.push("customer review highlights");
-  }
-  if (/dolphin/.test(lower)) {
-    out.push("memorable wildlife experience");
-  }
-  if (/personal/.test(lower)) {
-    out.push("personal service reputation");
-  }
-
-  return uniqueList(out);
-}
-
-function extractPhotoSignals(text) {
-  const lower = cleanString(text).toLowerCase();
-  const out = [];
-
-  if (/preview imagery|stock|inspirational|ai images/.test(lower)) {
-    out.push("preview imagery approved for first build");
-  }
-  if (/have photos|i have photos|real photos/.test(lower)) {
-    out.push("client photos available");
-  }
-
-  return uniqueList(out);
+  Logger.log(handlePreflightStart_(payload).getContent());
 }
