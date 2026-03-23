@@ -9,7 +9,7 @@
     "show_about": true,
     "show_features": true,
     "show_events": false,
-    "show_process": false,
+    "show_process": true,
     "show_testimonials": true,
     "show_comparison": false,
     "show_gallery": true,
@@ -31,6 +31,10 @@
       {
         "label": "Services",
         "path": "#features"
+      },
+      {
+        "label": "Process",
+        "path": "#process"
       },
       {
         "label": "Reviews",
@@ -132,6 +136,28 @@
       "title": "Clear Quotes",
       "description": "Helpful pricing conversations without making the process feel confusing or rushed.",
       "icon_slug": "coins"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Request A Quote",
+      "description": "Request a quote."
+    },
+    {
+      "title": "Review The Home And",
+      "description": "Review the home and needs."
+    },
+    {
+      "title": "Schedule The Service",
+      "description": "Schedule the service."
+    },
+    {
+      "title": "Complete The Cleaning Carefully",
+      "description": "Complete the cleaning carefully."
+    },
+    {
+      "title": "Final Walkthrough And Satisfaction",
+      "description": "Final walkthrough and satisfaction check."
     }
   ],
   "gallery": {
