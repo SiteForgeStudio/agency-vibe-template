@@ -220,7 +220,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
   const targetAudience =
     cleanString(state.answers?.target_audience) ||
     cleanString(strategyContract.audience_model?.primary_persona) ||
-    "Homeowners looking for a trusted provider";
+    "Customers looking for a trusted provider";
 
   const industry =
     cleanString(strategyContract.business_context?.category) || "Service business";
@@ -283,28 +283,24 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
     ? buildServiceArea(state, strategyContract)
     : undefined;
 
-  const events = undefined;
-  const comparison = undefined;
-  const investment = undefined;
-
   const sections = {
     about: true,
     features,
-    events,
+    events: undefined,
     processSteps,
     testimonials,
-    comparison,
+    comparison: undefined,
     gallery,
-    investment,
+    investment: undefined,
     faqs,
     service_area: serviceAreaBlock
   };
 
   return {
     intelligence: {
-      industry,
-      target_persona: targetAudience,
-      tone_of_voice: tone
+      industry: normalizePublicText(industry),
+      target_persona: normalizePublicText(targetAudience),
+      tone_of_voice: normalizePublicText(tone)
     },
 
     strategy: toggles,
@@ -312,34 +308,34 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
     settings: {
       vibe,
       menu: buildMenu(toggles, sections),
-      cta_text: ctaText,
+      cta_text: normalizePublicText(ctaText),
       cta_link: ctaLink,
       cta_type: ctaType,
-      secondary_cta_text: inferSecondaryCtaText(strategyContract, phone),
+      secondary_cta_text: normalizePublicText(inferSecondaryCtaText(strategyContract, phone)),
       secondary_cta_link: inferSecondaryCtaLink(phone, bookingUrl)
     },
 
     brand: {
-      name: businessName,
+      name: normalizePublicText(businessName),
       slug,
-      tagline: inferBrandTagline(state, strategyContract),
+      tagline: normalizePublicText(inferBrandTagline(state, strategyContract)),
       email,
       phone,
-      office_address: officeAddress,
-      objection_handle: inferObjectionHandle(state, strategyContract)
+      office_address: normalizePublicText(officeAddress),
+      objection_handle: normalizePublicText(inferObjectionHandle(state, strategyContract))
     },
 
     hero: {
       headline:
         cleanString(state.ghostwritten?.hero_headline) && isUsableHeroHeadline(state.ghostwritten.hero_headline)
-          ? cleanString(state.ghostwritten.hero_headline)
-          : inferHeroHeadline(state, strategyContract),
+          ? normalizePublicText(cleanString(state.ghostwritten.hero_headline))
+          : normalizePublicText(inferHeroHeadline(state, strategyContract)),
       subtext:
         cleanString(state.ghostwritten?.hero_subheadline) && isUsableHeroSubtext(state.ghostwritten.hero_subheadline)
-          ? cleanString(state.ghostwritten.hero_subheadline)
-          : inferHeroSubtext(state, strategyContract),
+          ? normalizePublicText(cleanString(state.ghostwritten.hero_subheadline))
+          : normalizePublicText(inferHeroSubtext(state, strategyContract)),
       image: {
-        alt: inferHeroImageAlt(state, strategyContract),
+        alt: normalizePublicText(inferHeroImageAlt(state, strategyContract)),
         image_search_query: heroQuery
       }
     },
@@ -347,10 +343,10 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
     about: {
       story_text:
         cleanString(state.ghostwritten?.about_summary) && isUsableAboutCopy(state.ghostwritten.about_summary)
-          ? cleanString(state.ghostwritten.about_summary)
-          : inferAboutStory(state, strategyContract),
-      founder_note: inferFounderNote(state, strategyContract),
-      years_experience: inferYearsExperience(state, strategyContract)
+          ? normalizePublicText(cleanString(state.ghostwritten.about_summary))
+          : normalizePublicText(inferAboutStory(state, strategyContract)),
+      founder_note: normalizePublicText(inferFounderNote(state, strategyContract)),
+      years_experience: normalizePublicText(inferYearsExperience(state, strategyContract))
     },
 
     ...(trustbar ? { trustbar } : {}),
@@ -362,12 +358,12 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
 
     contact: {
       headline: "Get in Touch",
-      subheadline: inferContactSubheadline(state, strategyContract),
+      subheadline: normalizePublicText(inferContactSubheadline(state, strategyContract)),
       email,
       phone,
       email_recipient: email,
-      button_text: inferContactButtonText(strategyContract, bookingUrl),
-      office_address: officeAddress
+      button_text: normalizePublicText(inferContactButtonText(strategyContract, bookingUrl)),
+      office_address: normalizePublicText(officeAddress)
     },
 
     ...(serviceAreaBlock ? { service_area: serviceAreaBlock } : {}),
@@ -458,7 +454,7 @@ function buildTrustbar(state, strategyContract) {
 
   const items = trustSignals.map(function(label, idx) {
     return {
-      label: normalizeTrustbarLabel(label),
+      label: normalizePublicText(normalizeTrustbarLabel(label)),
       icon: pickTrustbarIcon(label, idx)
     };
   });
@@ -480,14 +476,17 @@ function buildProcessSteps(state, strategyContract) {
   const rawSteps = normalizeProcessStepSource(state.answers?.process_notes);
   if (rawSteps.length < 3) return [];
 
-  return rawSteps.slice(0, 5).map(function(step, idx) {
-    return {
-      title: inferProcessStepTitle(step, idx),
-      description: inferProcessStepDescription(step)
-    };
-  }).filter(function(step) {
-    return cleanString(step.title) && cleanString(step.description);
-  });
+  return rawSteps
+    .slice(0, 5)
+    .map(function(step, idx) {
+      return {
+        title: normalizePublicText(inferProcessStepTitle(step, idx)),
+        description: normalizePublicText(inferProcessStepDescription(step))
+      };
+    })
+    .filter(function(step) {
+      return cleanString(step.title) && cleanString(step.description);
+    });
 }
 
 function normalizeProcessStepSource(input) {
@@ -499,34 +498,45 @@ function normalizeProcessStepSource(input) {
   }
 
   return uniqueList(steps)
-    .map(function(step) { return cleanString(step); })
+    .map(function(step) { return normalizePublicText(step); })
     .filter(function(step) { return step.split(/\s+/).filter(Boolean).length >= 2; });
 }
 
 function splitProcessStepText(text) {
   return cleanString(text)
     .split(/\n|->|→|;|\.|, then | then /gi)
-    .map(function(step) { return cleanString(step); })
+    .map(function(step) { return normalizePublicText(step); })
     .filter(Boolean);
 }
 
 function inferProcessStepTitle(step, idx) {
-  const text = cleanString(step);
+  const text = cleanString(step).toLowerCase();
   if (!text) return `Step ${idx + 1}`;
 
-  const separatorMatch = text.match(/^([^:–—-]{3,48})\s*[:–—-]\s+(.+)$/);
-  if (separatorMatch) {
-    return toTitleCase(separatorMatch[1]);
+  const patterns = [
+    { match: ["quote", "request"], title: "Request a Quote" },
+    { match: ["review", "needs"], title: "Review Your Needs" },
+    { match: ["schedule"], title: "Schedule the Service" },
+    { match: ["confirm"], title: "Confirm the Details" },
+    { match: ["complete", "service"], title: "Complete the Service" },
+    { match: ["cleaning"], title: "Complete the Work" },
+    { match: ["walkthrough"], title: "Final Walkthrough" },
+    { match: ["satisfaction"], title: "Final Review" }
+  ];
+
+  for (const pattern of patterns) {
+    const matched = pattern.match.every(function(token) {
+      return text.includes(token);
+    });
+    if (matched) return pattern.title;
   }
 
-  const cleaned = text
-    .replace(/\b(and|the|a|an)\b/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const separatorMatch = cleanString(step).match(/^([^:–—-]{3,48})\s*[:–—-]\s+(.+)$/);
+  if (separatorMatch) {
+    return normalizeShortTitle(separatorMatch[1], idx);
+  }
 
-  const words = cleaned.split(/\s+/).filter(Boolean);
-  const titleWords = words.slice(0, Math.min(words.length, 3));
-  return toTitleCase(titleWords.join(" ")) || `Step ${idx + 1}`;
+  return normalizeShortTitle(step, idx);
 }
 
 function inferProcessStepDescription(step) {
@@ -541,27 +551,11 @@ function inferProcessStepDescription(step) {
   return cleanSentence(text);
 }
 
-function cleanSentence(text) {
-  const value = cleanString(text).replace(/^[-–—\d.\s]+/, "");
-  if (!value) return "";
-  return /[.!?]$/.test(value) ? value : `${value}.`;
-}
-
-function toTitleCase(text) {
-  return cleanString(text)
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(function(word) {
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
-    .join(" ");
-}
-
 function buildFeatures(state, strategyContract) {
   const offerings = cleanList(state.answers?.offerings);
   const differentiators = cleanList(state.answers?.differentiators);
   const decisionFactors = cleanList(state.answers?.buyer_decision_factors);
-  const audience = audienceToCustomerPhrase(cleanString(state.answers?.target_audience)) || "homeowners";
+  const audience = audienceToCustomerPhrase(cleanString(state.answers?.target_audience)) || "customers";
   const businessName = cleanString(state.businessName) || "this business";
 
   const items = [];
@@ -571,8 +565,8 @@ function buildFeatures(state, strategyContract) {
     if (!normalized) return;
 
     items.push({
-      title: normalized,
-      description: inferOfferingDescription(item, audience),
+      title: normalizePublicText(normalized),
+      description: normalizePublicText(inferOfferingDescription(item, audience)),
       icon_slug: pickFeatureIcon(item, idx)
     });
   });
@@ -582,8 +576,8 @@ function buildFeatures(state, strategyContract) {
     if (!normalized || isWeakProofOnlyItem(normalized)) return;
 
     items.push({
-      title: normalized,
-      description: inferDifferentiatorDescription(normalized, businessName, audience),
+      title: normalizePublicText(normalized),
+      description: normalizePublicText(inferDifferentiatorDescription(normalized, businessName, audience)),
       icon_slug: pickFeatureIcon(normalized, idx + items.length)
     });
   });
@@ -593,8 +587,8 @@ function buildFeatures(state, strategyContract) {
     if (!normalized || isWeakProofOnlyItem(normalized)) return;
 
     items.push({
-      title: normalized,
-      description: inferDecisionFactorDescription(normalized, audience),
+      title: normalizePublicText(normalized),
+      description: normalizePublicText(inferDecisionFactorDescription(normalized, audience)),
       icon_slug: pickFeatureIcon(normalized, idx + items.length)
     });
   });
@@ -604,7 +598,9 @@ function buildFeatures(state, strategyContract) {
   while (deduped.length < 3) {
     deduped.push({
       title: `Service Highlight ${deduped.length + 1}`,
-      description: `Built around clear communication, careful work, and a better client experience for ${audience}.`,
+      description: normalizePublicText(
+        `Built around clear communication, careful work, and a better client experience for ${audience}.`
+      ),
       icon_slug: pickFeatureIcon("", deduped.length)
     });
   }
@@ -613,21 +609,22 @@ function buildFeatures(state, strategyContract) {
 }
 
 function buildGallery(state, strategyContract) {
-  const industry = cleanString(strategyContract.business_context?.category);
   const visualDirection = cleanString(state.answers?.visual_direction);
   const offerings = cleanList(state.answers?.offerings);
   const serviceArea = cleanString(state.answers?.service_area);
+  const category = cleanString(strategyContract.business_context?.category);
+  const emotionalTone = cleanString(state.answers?.tone_preferences);
 
   const seeds = uniqueList([
-    buildVisualImageSeed(industry, offerings[0], visualDirection),
-    buildDetailImageSeed(industry, offerings[0]),
-    buildTrustImageSeed(industry, serviceArea),
-    buildLifestyleImageSeed(industry, visualDirection)
+    buildVisualImageSeed(category, offerings[0], visualDirection, emotionalTone),
+    buildDetailImageSeed(category, offerings[0], visualDirection),
+    buildTrustImageSeed(category, serviceArea, emotionalTone),
+    buildLifestyleImageSeed(category, visualDirection, emotionalTone)
   ]).filter(Boolean);
 
   const items = seeds.slice(0, 6).map(function(query, idx) {
     return {
-      title: inferGalleryTitle(query, idx),
+      title: normalizePublicText(inferGalleryTitle(query, idx)),
       image_search_query: clampWords(stripLocationTerms(query, serviceArea), 4, 8)
     };
   });
@@ -639,16 +636,16 @@ function buildGallery(state, strategyContract) {
     image_source: "search",
     items: items.length ? items : [
       {
-        title: "Professional Service",
-        image_search_query: "professional service detail clean finish"
+        title: "Project Detail",
+        image_search_query: "professional detail polished finish"
       },
       {
         title: "Careful Work",
-        image_search_query: "careful hands professional service detail"
+        image_search_query: "careful hands professional detail"
       },
       {
         title: "Trusted Experience",
-        image_search_query: "trusted home service premium detail"
+        image_search_query: "trusted premium service detail"
       }
     ]
   };
@@ -659,12 +656,15 @@ function buildFaqs(state, strategyContract) {
     ...cleanList(state.answers?.faq_topics),
     ...cleanList(state.answers?.common_objections),
     ...cleanList(strategyContract.site_structure?.faq_angles)
-  ]).slice(0, 6);
+  ])
+    .map(function(item) { return normalizeFaqQuestion(item); })
+    .filter(Boolean)
+    .slice(0, 6);
 
   return items.map(function(q) {
     return {
-      question: ensureQuestion(q),
-      answer: inferFaqAnswer(q, state, strategyContract)
+      question: ensureQuestion(normalizePublicText(q)),
+      answer: normalizePublicText(inferFaqAnswer(q, state, strategyContract))
     };
   });
 }
@@ -684,7 +684,7 @@ function buildTestimonials(state, strategyContract) {
 
   const base = trustSignals.map(function(signal, idx) {
     return {
-      quote: inferTestimonialQuote(signal, state, idx, quotes),
+      quote: normalizePublicText(inferTestimonialQuote(signal, state, idx, quotes)),
       author: `Happy Client ${idx + 1}`
     };
   });
@@ -708,13 +708,15 @@ function buildServiceArea(state, strategyContract) {
     cleanString(state.answers?.office_address);
 
   return {
-    main_city: mainCity,
+    main_city: normalizePublicText(mainCity),
     surrounding_areas: uniqueList([
       cleanString(state.answers?.service_area),
       cleanString(state.answers?.location_context)
-    ]).filter(function(value) {
-      return value && value !== mainCity;
-    })
+    ])
+      .filter(function(value) {
+        return value && value !== mainCity;
+      })
+      .map(function(value) { return normalizePublicText(value); })
   };
 }
 
@@ -755,11 +757,11 @@ function inferBrandTagline(state, strategyContract) {
   const audienceHint = audienceToCustomerPhrase(audience);
 
   if (cleanedOffer && audienceHint) {
-    return clampString(`${cleanedOffer} for ${audienceHint}.`, 96);
+    return clampString(`${cleanedOffer} for ${titleCaseSmart(audienceHint)}.`, 96);
   }
 
   if (cleanedOffer) {
-    return clampString(`${cleanedOffer} with a cleaner, more professional experience.`, 96);
+    return clampString(`${cleanedOffer} with a polished customer experience.`, 96);
   }
 
   if (industry) {
@@ -783,16 +785,16 @@ function inferObjectionHandle(state, strategyContract) {
 
   const normalized = cleanString(source).toLowerCase();
 
-  if (normalized.includes("cost")) {
+  if (normalized.includes("cost") || normalized.includes("price")) {
     return "Clear quotes and honest expectations from the start.";
   }
-  if (normalized.includes("trust")) {
+  if (normalized.includes("trust") || normalized.includes("reputation")) {
     return "Clear communication and dependable service you can feel good about.";
   }
-  if (normalized.includes("availability")) {
+  if (normalized.includes("availability") || normalized.includes("schedule")) {
     return "Responsive scheduling and dependable follow-through.";
   }
-  if (normalized.includes("quality")) {
+  if (normalized.includes("quality") || normalized.includes("detail")) {
     return "Careful work and attention to detail from start to finish.";
   }
 
@@ -806,7 +808,7 @@ function inferHeroHeadline(state, strategyContract) {
   const industry = cleanString(strategyContract.business_context?.category);
 
   if (offer && audience) {
-    return clampString(`${offer} for ${audience}`, 72);
+    return clampString(`${offer} for ${titleCaseSmart(audience)}`, 72);
   }
 
   if (offer) {
@@ -825,10 +827,10 @@ function inferHeroSubtext(state, strategyContract) {
   const differentiator = cleanList(state.answers?.differentiators)[0];
   const trust = cleanList(state.answers?.trust_signals)[0];
   const bookingMethod = cleanString(state.answers?.booking_method);
-  const years = cleanString(state.answers?.experience_years);
+  const years = normalizeYearsExperience(cleanString(state.answers?.experience_years));
 
   const sentenceA = [
-    years ? `${years} of experience` : "",
+    years || "",
     differentiator ? normalizeDifferentiatorPhrase(differentiator) : "",
     serviceArea ? `serving ${serviceArea}` : ""
   ].filter(Boolean).join(" — ");
@@ -870,24 +872,24 @@ function inferAboutStory(state, strategyContract) {
 function inferFounderNote(state, strategyContract) {
   const ownerBackground = cleanString(state.answers?.owner_background);
   const audience = audienceToCustomerPhrase(cleanString(state.answers?.target_audience));
-  const years = cleanString(state.answers?.experience_years);
+  const years = normalizeYearsExperience(cleanString(state.answers?.experience_years));
 
   if (ownerBackground && !looksLikeInternalStrategyText(ownerBackground)) {
     return cleanSentence(ownerBackground);
   }
 
   if (years && audience) {
-    return `${years} of experience serving ${audience} with careful, dependable work.`;
+    return `${years} serving ${audience} with careful, dependable work.`;
   }
 
   return "Built for people who value quality, clear communication, and a smooth process.";
 }
 
 function inferYearsExperience(state, strategyContract) {
-  const explicit = cleanString(state.answers?.experience_years);
+  const explicit = normalizeYearsExperience(cleanString(state.answers?.experience_years));
   if (explicit) return explicit;
 
-  const contractYears = cleanString(strategyContract.business_context?.years_experience);
+  const contractYears = normalizeYearsExperience(cleanString(strategyContract.business_context?.years_experience));
   if (contractYears) return contractYears;
 
   return "Experienced professional service";
@@ -964,12 +966,13 @@ function inferFaqAnswer(question, state, strategyContract) {
 
 function buildHeroImageQuery(state, strategyContract) {
   const offer = simplifyOfferPhrase(cleanList(state.answers?.offerings)[0]);
-  const industry = cleanString(strategyContract.business_context?.category);
+  const category = cleanString(strategyContract.business_context?.category);
   const visual = cleanString(state.answers?.visual_direction);
   const serviceArea = cleanString(state.answers?.service_area);
+  const tone = cleanString(state.answers?.tone_preferences);
 
-  const query = buildVisualImageSeed(industry, offer, visual) ||
-    `${offer || industry || "professional service"} clean detail`;
+  const query = buildVisualImageSeed(category, offer, visual, tone) ||
+    `${offer || category || "professional service"} clean detail`;
 
   return clampWords(stripLocationTerms(query, serviceArea), 4, 8);
 }
@@ -979,7 +982,7 @@ function buildHeroImageQuery(state, strategyContract) {
 ========================= */
 
 function isUsableHeroHeadline(text) {
-  const value = cleanString(text);
+  const value = normalizePublicText(text);
   if (!value) return false;
   if (looksLikeInternalStrategyText(value)) return false;
   if (/with a clear path to/i.test(value)) return false;
@@ -991,7 +994,7 @@ function isUsableHeroHeadline(text) {
 }
 
 function isUsableHeroSubtext(text) {
-  const value = cleanString(text);
+  const value = normalizePublicText(text);
   if (!value) return false;
   if (looksLikeInternalStrategyText(value)) return false;
   if (/people actively looking for/i.test(value)) return false;
@@ -999,7 +1002,7 @@ function isUsableHeroSubtext(text) {
 }
 
 function isUsableAboutCopy(text) {
-  const value = cleanString(text);
+  const value = normalizePublicText(text);
   if (!value) return false;
   if (looksLikeInternalStrategyText(value)) return false;
   return true;
@@ -1020,27 +1023,43 @@ function looksLikeInternalStrategyText(text) {
   });
 }
 
+function normalizePublicText(value) {
+  return cleanString(value)
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[—–]/g, " - ")
+    .replace(/…/g, "...")
+    .replace(/\uFFFD/g, "")
+    .replace(/\?/g, function(match, offset, str) {
+      const prev = str[offset - 1] || "";
+      const next = str[offset + 1] || "";
+      if (/\s/.test(prev) && /\s/.test(next)) return "-";
+      return match;
+    })
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function simplifyOfferPhrase(offer) {
-  let value = cleanString(offer);
+  let value = normalizePublicText(offer);
   if (!value) return "";
 
   value = value
     .replace(/\bin\s+[A-Z][^,.]*$/g, "")
-    .replace(/\bspecializing in\b/gi, "")
+    .replace(/\bserving\b.+$/i, "")
+    .replace(/\bfor\b\s+(homeowners|families|businesses|customers|clients)\b.*$/i, "")
     .replace(/\bwith\b.+$/i, "")
-    .replace(/\bfor\b.+$/i, "")
+    .replace(/\bwho\b.+$/i, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 
-  if (/window cleaning/i.test(value) && /glass restoration/i.test(value)) {
-    return "High-End Window Cleaning and Glass Restoration";
-  }
+  const parts = value
+    .split(/,| and | & /i)
+    .map(function(part) { return cleanSentenceFragment(part); })
+    .filter(Boolean);
 
-  if (/window cleaning/i.test(value)) {
-    return "High-End Window Cleaning";
-  }
-
-  return cleanSentenceFragment(value);
+  const compact = parts.slice(0, 2).join(" and ");
+  return titleCaseSmart(compact || value);
 }
 
 function audienceToCustomerPhrase(audience) {
@@ -1052,8 +1071,9 @@ function audienceToCustomerPhrase(audience) {
   if (value.includes("property manager")) return "property managers";
   if (value.includes("business")) return "businesses";
   if (value.includes("customer")) return "customers";
-  if (value.includes("people actively looking")) return "homeowners";
-  if (value.includes("trustworthy provider")) return "homeowners";
+  if (value.includes("client")) return "clients";
+  if (value.includes("people actively looking")) return "customers";
+  if (value.includes("trustworthy provider")) return "customers";
 
   return cleanSentenceFragment(value);
 }
@@ -1082,16 +1102,7 @@ function bookingMethodToCustomerSentence(method, trustSignal) {
 function normalizeOfferTitle(item) {
   const value = simplifyOfferPhrase(item);
   if (!value) return "";
-
-  if (/window cleaning/i.test(value) && /glass restoration/i.test(value)) {
-    return "Window Cleaning & Glass Restoration";
-  }
-
-  if (/window cleaning/i.test(value)) {
-    return "Window Cleaning";
-  }
-
-  return titleCaseSmart(value);
+  return normalizeShortTitle(value, 0);
 }
 
 function normalizeDifferentiatorTitle(item) {
@@ -1105,7 +1116,7 @@ function normalizeDifferentiatorTitle(item) {
   if (value.includes("professional")) return "Professional Experience";
   if (value.includes("trust")) return "Trusted Service";
 
-  return titleCaseSmart(cleanString(item));
+  return normalizeShortTitle(item, 0);
 }
 
 function normalizeDecisionFactorTitle(item) {
@@ -1118,7 +1129,7 @@ function normalizeDecisionFactorTitle(item) {
   if (value.includes("availability")) return "Reliable Scheduling";
   if (value.includes("specialization")) return "Specialized Experience";
 
-  return titleCaseSmart(cleanString(item));
+  return normalizeShortTitle(item, 0);
 }
 
 function inferOfferingDescription(item, audience) {
@@ -1138,7 +1149,7 @@ function inferDifferentiatorDescription(title, businessName, audience) {
   if (lower.includes("responsive scheduling")) {
     return "Easier planning, faster follow-up, and dependable communication from the start.";
   }
-  if (lower.includes("quality work")) {
+  if (lower.includes("quality work") || lower.includes("careful work")) {
     return "Careful workmanship and attention to detail that help the final result feel worth it.";
   }
   if (lower.includes("clear communication")) {
@@ -1147,7 +1158,7 @@ function inferDifferentiatorDescription(title, businessName, audience) {
   if (lower.includes("professional experience")) {
     return "A polished, respectful experience built around reliability, care, and professionalism.";
   }
-  if (lower.includes("trusted service")) {
+  if (lower.includes("trusted service") || lower.includes("trusted reputation")) {
     return `Built to give ${audience} more confidence in choosing ${businessName}.`;
   }
 
@@ -1191,11 +1202,11 @@ function normalizeTrustbarLabel(label) {
   const value = cleanString(label).toLowerCase();
   if (!value) return "";
 
-  if (value.includes("testimonial")) return "Trusted by Homeowners";
-  if (value.includes("review")) return "5-Star Reviews";
+  if (value.includes("testimonial")) return "Trusted by Clients";
+  if (value.includes("review")) return "Strong Reviews";
   if (value.includes("photo")) return "Proven Results";
   if (value.includes("experience")) return "Experienced Service";
-  if (value.includes("referral")) return "Locally Recommended";
+  if (value.includes("referral")) return "Highly Recommended";
 
   if (value === "future_google_business_profile") return "Local Business Presence";
   if (value === "local_service_area_relevance") return "Local Service Focus";
@@ -1208,50 +1219,52 @@ function inferTestimonialQuote(signal, state, idx, quotes) {
 
   if (lower.includes("testimonial") || lower.includes("review")) return quotes[2];
   if (lower.includes("photo")) return "The final result looked fantastic, and the whole experience felt polished and professional.";
-  if (lower.includes("experience")) return "You can feel the experience in the way everything is handled — clear, careful, and dependable.";
+  if (lower.includes("experience")) return "You can feel the experience in the way everything is handled - clear, careful, and dependable.";
   if (lower.includes("referral")) return "They came highly recommended, and the service absolutely lived up to that reputation.";
 
   return quotes[idx % quotes.length];
 }
 
-function buildVisualImageSeed(industry, offer, visualDirection) {
-  const value = cleanString(`${offer || industry} ${visualDirection}`).toLowerCase();
-
-  if (value.includes("window")) return "sunlit clean window glass detail";
-  if (value.includes("home service")) return "premium home service clean detail";
-  if (value.includes("clean")) return "bright clean detail premium service";
-  return "professional service clean detail";
+function buildVisualImageSeed(category, offer, visualDirection, emotionalTone) {
+  return clampWords(
+    `${cleanSentenceFragment(offer || category || "professional work")} ${cleanSentenceFragment(visualDirection || emotionalTone || "clean detail")}`,
+    4,
+    8
+  );
 }
 
-function buildDetailImageSeed(industry, offer) {
-  const value = cleanString(`${offer || industry}`).toLowerCase();
-
-  if (value.includes("window")) return "window cleaning detail squeegee glass";
-  if (value.includes("glass")) return "clear glass detail polished finish";
-  return "professional detail workmanship closeup";
+function buildDetailImageSeed(category, offer, visualDirection) {
+  return clampWords(
+    `${cleanSentenceFragment(offer || category || "professional work")} detail closeup polished finish`,
+    4,
+    8
+  );
 }
 
-function buildTrustImageSeed(industry, serviceArea) {
-  const value = cleanString(industry).toLowerCase();
-
-  if (value.includes("window")) return "bright home exterior clean windows";
-  return "trusted service exterior professional look";
+function buildTrustImageSeed(category, serviceArea, emotionalTone) {
+  return clampWords(
+    `${cleanSentenceFragment(category || "professional service")} trusted polished exterior detail`,
+    4,
+    8
+  );
 }
 
-function buildLifestyleImageSeed(industry, visualDirection) {
-  const value = cleanString(`${industry} ${visualDirection}`).toLowerCase();
-
-  if (value.includes("window")) return "natural light modern home clean glass";
-  if (value.includes("modern")) return "modern premium service environment";
-  return "premium service lifestyle detail";
+function buildLifestyleImageSeed(category, visualDirection, emotionalTone) {
+  return clampWords(
+    `${cleanSentenceFragment(visualDirection || emotionalTone || "modern premium")} ${cleanSentenceFragment(category || "service")} environment`,
+    4,
+    8
+  );
 }
 
 function inferGalleryTitle(query, idx) {
   const q = cleanString(query).toLowerCase();
 
-  if (q.includes("window")) return "Clean Glass Detail";
-  if (q.includes("home")) return "Residential Service";
-  if (q.includes("detail")) return "Attention to Detail";
+  if (q.includes("closeup")) return "Detail View";
+  if (q.includes("exterior")) return "Finished Exterior";
+  if (q.includes("environment")) return "Client Experience";
+  if (q.includes("detail")) return idx === 0 ? "Project Detail" : "Attention to Detail";
+  if (q.includes("polished")) return "Polished Finish";
   if (q.includes("premium")) return "Premium Finish";
 
   return `Project ${idx + 1}`;
@@ -1275,35 +1288,84 @@ function stripLocationTerms(text, serviceArea) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function cleanSentenceFragment(text) {
-  return cleanString(text)
-    .replace(/[|]/g, " ")
-    .replace(/\s{2,}/g, " ")
-    .replace(/[.,;:]+$/g, "")
+function normalizeFaqQuestion(text) {
+  const value = cleanString(text).toLowerCase();
+  if (!value) return "";
+
+  if (value.includes("cost concern") || value === "cost concerns") {
+    return "How does pricing work?";
+  }
+  if (value.includes("trustworth")) {
+    return "How do I know I can trust your service?";
+  }
+  if (value.includes("availability")) {
+    return "How far in advance should I schedule?";
+  }
+
+  return cleanString(text);
+}
+
+function normalizeYearsExperience(value) {
+  const text = cleanString(value);
+  if (!text) return "";
+  if (/\byear/i.test(text)) return text;
+  if (/^\d+$/.test(text)) return `${text} years of experience`;
+  return text;
+}
+
+function normalizeShortTitle(text, idx) {
+  const cleaned = cleanString(text)
+    .replace(/\b(and|the|a|an|of|for|with)\b/gi, " ")
+    .replace(/[|,:;]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
+
+  const words = cleaned.split(/\s+/).filter(Boolean).slice(0, 5);
+  return titleCaseSmart(words.join(" ")) || `Step ${idx + 1}`;
+}
+
+function cleanSentence(text) {
+  const value = normalizePublicText(cleanString(text).replace(/^[-–—\d.\s]+/, ""));
+  if (!value) return "";
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+}
+
+function cleanSentenceFragment(text) {
+  return normalizePublicText(
+    cleanString(text)
+      .replace(/[|]/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .replace(/[.,;:]+$/g, "")
+      .trim()
+  );
+}
+
+function toTitleCase(text) {
+  return cleanString(text)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(function(word) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
 }
 
 function titleCaseSmart(text) {
   return cleanString(text)
     .split(/\s+/)
     .filter(Boolean)
-    .map(function(word) {
-      if (word.toLowerCase() === "and") return "and";
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    .map(function(word, idx) {
+      const lower = word.toLowerCase();
+      if (idx > 0 && ["and", "of", "for", "with", "to"].includes(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
     .join(" ");
-}
-
-function capitalizeFirst(text) {
-  const value = cleanString(text);
-  if (!value) return "";
-  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function clampString(text, max) {
   const value = cleanString(text);
   if (!value) return "";
-  return value.length <= max ? value : `${value.slice(0, max - 1).trim()}…`;
+  return value.length <= max ? value : `${value.slice(0, max - 1).trim()}...`;
 }
 
 function normalizeDifferentiatorPhrase(text) {
@@ -1316,6 +1378,35 @@ function normalizeDifferentiatorPhrase(text) {
   if (value.includes("detail")) return "attention to detail";
 
   return value;
+}
+
+function canonicalFeatureKey(title) {
+  const value = cleanString(title).toLowerCase();
+  if (!value) return "";
+
+  if (value.includes("quality") || value.includes("careful") || value.includes("detail")) return "quality";
+  if (value.includes("schedule") || value.includes("availability")) return "scheduling";
+  if (value.includes("trust") || value.includes("reputation")) return "trust";
+  if (value.includes("quote") || value.includes("pricing")) return "pricing";
+  return value;
+}
+
+function uniqueObjectsByTitle(items) {
+  const seen = new Set();
+  return items.filter(function(item) {
+    const raw = cleanString(item?.title).toLowerCase();
+    if (!raw) return false;
+    const canonical = canonicalFeatureKey(raw);
+    if (seen.has(canonical)) return false;
+    seen.add(canonical);
+    return true;
+  });
+}
+
+function ensureQuestion(text) {
+  const q = cleanString(text);
+  if (!q) return "What should I know?";
+  return /[?]$/.test(q) ? q : `${q}?`;
 }
 
 function escapeRegExp(text) {
@@ -1336,10 +1427,9 @@ function pickFeatureIcon(text, idx) {
   if (value.includes("care") || value.includes("support")) return "heart";
   if (value.includes("team") || value.includes("people")) return "users";
   if (value.includes("map") || value.includes("local")) return "map";
-  if (value.includes("trust") || value.includes("safe")) return "shield";
-  if (value.includes("quality") || value.includes("award")) return "award";
+  if (value.includes("trust") || value.includes("safe") || value.includes("reputation")) return "shield";
+  if (value.includes("quality") || value.includes("award") || value.includes("detail")) return "award";
   if (value.includes("price") || value.includes("value") || value.includes("quote")) return "coins";
-  if (value.includes("window") || value.includes("glass")) return "sparkles";
   if (value.includes("schedule") || value.includes("availability")) return "clock";
   if (value.includes("phone") || value.includes("call")) return "phone";
 
@@ -1377,22 +1467,6 @@ function resolveSchemaVibe(input) {
   if (lower.includes("vintage") || lower.includes("boutique")) return "Vintage Boutique";
   if (lower.includes("industrial") || lower.includes("rugged")) return "Rugged Industrial";
   return "Modern Minimal";
-}
-
-function uniqueObjectsByTitle(items) {
-  const seen = new Set();
-  return items.filter(function(item) {
-    const key = cleanString(item?.title).toLowerCase();
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function ensureQuestion(text) {
-  const q = cleanString(text);
-  if (!q) return "What should I know?";
-  return /[?]$/.test(q) ? q : `${q}?`;
 }
 
 /* =========================
@@ -1880,5 +1954,9 @@ function isObject(v) {
 function clampWords(text, minWords, maxWords) {
   const words = cleanString(text).split(/\s+/).filter(Boolean);
   if (!words.length) return "service business professional work";
-  return words.slice(0, maxWords).join(" ");
+
+  const sliced = words.slice(0, maxWords);
+  while (sliced.length < minWords) sliced.push("detail");
+
+  return sliced.join(" ");
 }
