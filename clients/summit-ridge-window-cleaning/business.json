@@ -1,0 +1,215 @@
+{
+  "intelligence": {
+    "industry": "Window Cleaning Service",
+    "target_persona": "people actively looking for a trustworthy provider",
+    "tone_of_voice": "confident, clear, and conversion-focused"
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": false,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": true
+  },
+  "settings": {
+    "vibe": "Modern Minimal",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Services",
+        "path": "#features"
+      },
+      {
+        "label": "Reviews",
+        "path": "#testimonials"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "FAQ",
+        "path": "#faqs"
+      },
+      {
+        "label": "Area",
+        "path": "#service-area"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Request Quote",
+    "cta_link": "#contact",
+    "cta_type": "anchor",
+    "secondary_cta_text": "Call Now",
+    "secondary_cta_link": "#contact"
+  },
+  "brand": {
+    "name": "Summit Ridge Window Cleaning",
+    "slug": "summit-ridge-window-cleaning",
+    "tagline": "improve conversions",
+    "email": "contact@example.com",
+    "phone": "555-555-1234",
+    "office_address": "",
+    "objection_handle": "cost concerns"
+  },
+  "hero": {
+    "headline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado",
+    "subtext": "Built for people actively looking for a trustworthy provider with a clear path to request quote",
+    "image": {
+      "alt": "Modern Minimal | boulder, colorado local business",
+      "image_search_query": "Modern Minimal | boulder, colorado local business"
+    }
+  },
+  "about": {
+    "story_text": "Summit Ridge Window Cleaning is focused on high-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado with a website designed to build trust and drive action.",
+    "founder_note": "We built this experience for people actively looking for a trustworthy provider.",
+    "years_experience": "12"
+  },
+  "trustbar": {
+    "enabled": true,
+    "items": [
+      {
+        "label": "customer testimonials",
+        "icon": "shield"
+      },
+      {
+        "label": "before-and-after photos",
+        "icon": "star"
+      },
+      {
+        "label": "years of experience",
+        "icon": "clock"
+      },
+      {
+        "label": "local referrals",
+        "icon": "map"
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+      "description": "A focused offering tailored to people actively looking for a trustworthy provider.",
+      "icon_slug": "layers"
+    },
+    {
+      "title": "quality of service",
+      "description": "A meaningful reason customers choose Summit Ridge Window Cleaning.",
+      "icon_slug": "award"
+    },
+    {
+      "title": "availability",
+      "description": "A meaningful reason customers choose Summit Ridge Window Cleaning.",
+      "icon_slug": "cpu"
+    },
+    {
+      "title": "reputation",
+      "description": "Built to address an important buyer priority in the decision-making process.",
+      "icon_slug": "briefcase"
+    },
+    {
+      "title": "customer testimonials",
+      "description": "A trust-building signal that reinforces quality and confidence.",
+      "icon_slug": "briefcase"
+    },
+    {
+      "title": "before-and-after photos",
+      "description": "A trust-building signal that reinforces quality and confidence.",
+      "icon_slug": "sparkles"
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "layout": "grid",
+    "computed_count": 4,
+    "image_source": "search",
+    "items": [
+      {
+        "title": "Modern Minimal | boulder, colorado local business",
+        "image_search_query": "Modern Minimal | boulder, colorado local business experience"
+      },
+      {
+        "title": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+        "image_search_query": "High-end residential window cleaning specializing in large homes,"
+      },
+      {
+        "title": "Window Cleaning Service",
+        "image_search_query": "Window Cleaning Service experience detail"
+      },
+      {
+        "title": "people actively looking for a trustworthy provider",
+        "image_search_query": "people actively looking for a trustworthy provider experience"
+      }
+    ],
+    "computed_layout": "grid"
+  },
+  "contact": {
+    "headline": "Get in Touch",
+    "subheadline": "Tell us what you need and we?ll put together the right next step.",
+    "email": "contact@example.com",
+    "phone": "555-555-1234",
+    "email_recipient": "contact@example.com",
+    "button_text": "Request Quote",
+    "office_address": ""
+  },
+  "service_area": {
+    "main_city": "Boulder, Colorado",
+    "surrounding_areas": []
+  },
+  "testimonials": [
+    {
+      "quote": "We appreciated the professionalism, communication, and quality behind customer testimonials.",
+      "author": "Happy Client 1"
+    },
+    {
+      "quote": "We appreciated the professionalism, communication, and quality behind before-and-after photos.",
+      "author": "Happy Client 2"
+    },
+    {
+      "quote": "We appreciated the professionalism, communication, and quality behind years of experience.",
+      "author": "Happy Client 3"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "What is the process for window cleaning?",
+      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+    },
+    {
+      "question": "How do you ensure streak-free results?",
+      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+    },
+    {
+      "question": "What areas do you service?",
+      "answer": "We primarily serve Boulder, Colorado. Reach out if you want to confirm your location."
+    },
+    {
+      "question": "cost concerns?",
+      "answer": "Pricing is provided based on the size of the home and the level of restoration needed."
+    },
+    {
+      "question": "trustworthiness?",
+      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+    },
+    {
+      "question": "availability during peak seasons?",
+      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+    }
+  ]
+}
