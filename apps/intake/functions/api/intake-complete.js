@@ -216,7 +216,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
   const phone = cleanString(state.answers?.phone);
   const bookingUrl = cleanString(state.answers?.booking_url);
   const officeAddress = cleanString(state.answers?.office_address);
-  const serviceArea = cleanString(state.answers?.service_area);
+
   const targetAudience =
     cleanString(state.answers?.target_audience) ||
     cleanString(strategyContract.audience_model?.primary_persona) ||
@@ -519,8 +519,13 @@ function inferProcessStepTitle(step, idx) {
     return toTitleCase(separatorMatch[1]);
   }
 
-  const words = text.split(/\s+/).filter(Boolean);
-  const titleWords = words.slice(0, Math.min(words.length, 4));
+  const cleaned = text
+    .replace(/\b(and|the|a|an)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const words = cleaned.split(/\s+/).filter(Boolean);
+  const titleWords = words.slice(0, Math.min(words.length, 3));
   return toTitleCase(titleWords.join(" ")) || `Step ${idx + 1}`;
 }
 
@@ -556,7 +561,7 @@ function buildFeatures(state, strategyContract) {
   const offerings = cleanList(state.answers?.offerings);
   const differentiators = cleanList(state.answers?.differentiators);
   const decisionFactors = cleanList(state.answers?.buyer_decision_factors);
-  const audience = cleanString(state.answers?.target_audience) || "homeowners";
+  const audience = audienceToCustomerPhrase(cleanString(state.answers?.target_audience)) || "homeowners";
   const businessName = cleanString(state.businessName) || "this business";
 
   const items = [];
@@ -671,9 +676,15 @@ function buildTestimonials(state, strategyContract) {
     ...cleanList(state.answers?.differentiators)
   ]).slice(0, 3);
 
+  const quotes = [
+    "Professional, careful, and easy to work with from start to finish.",
+    "Clear communication, reliable scheduling, and great final results.",
+    `We chose ${cleanString(state.businessName) || "this team"} because they felt trustworthy and professional from the first interaction.`
+  ];
+
   const base = trustSignals.map(function(signal, idx) {
     return {
-      quote: inferTestimonialQuote(signal, state),
+      quote: inferTestimonialQuote(signal, state, idx, quotes),
       author: `Happy Client ${idx + 1}`
     };
   });
@@ -681,7 +692,7 @@ function buildTestimonials(state, strategyContract) {
   if (!base.length) {
     return [
       {
-        quote: "Professional, responsive, and easy to work with from start to finish.",
+        quote: quotes[0],
         author: "Happy Client"
       }
     ];
@@ -738,7 +749,6 @@ function inferSecondaryCtaLink(phone, bookingUrl) {
 function inferBrandTagline(state, strategyContract) {
   const offer = cleanList(state.answers?.offerings)[0];
   const audience = cleanString(state.answers?.target_audience);
-  const serviceArea = cleanString(state.answers?.service_area);
   const industry = cleanString(strategyContract.business_context?.category);
 
   const cleanedOffer = simplifyOfferPhrase(offer);
@@ -748,15 +758,15 @@ function inferBrandTagline(state, strategyContract) {
     return clampString(`${cleanedOffer} for ${audienceHint}.`, 96);
   }
 
-  if (cleanedOffer && serviceArea) {
+  if (cleanedOffer) {
     return clampString(`${cleanedOffer} with a cleaner, more professional experience.`, 96);
   }
 
   if (industry) {
-    return clampString(`Professional ${industry.toLowerCase()} with a clear path to get started.`, 96);
+    return clampString(`Professional ${industry.toLowerCase()} with a polished customer experience.`, 96);
   }
 
-  return "Professional service with a clear path to get started.";
+  return "Professional service with a polished customer experience.";
 }
 
 function inferObjectionHandle(state, strategyContract) {
@@ -807,7 +817,7 @@ function inferHeroHeadline(state, strategyContract) {
     return clampString(`${businessName} — ${industry}`, 72);
   }
 
-  return `Trusted ${industry || "service"} with a clear path to get started`;
+  return `Trusted ${industry || "service"} with a polished client experience`;
 }
 
 function inferHeroSubtext(state, strategyContract) {
@@ -870,7 +880,7 @@ function inferFounderNote(state, strategyContract) {
     return `${years} of experience serving ${audience} with careful, dependable work.`;
   }
 
-  return `Built for people who value quality, clear communication, and a smooth process.`;
+  return "Built for people who value quality, clear communication, and a smooth process.";
 }
 
 function inferYearsExperience(state, strategyContract) {
@@ -974,6 +984,9 @@ function isUsableHeroHeadline(text) {
   if (looksLikeInternalStrategyText(value)) return false;
   if (/with a clear path to/i.test(value)) return false;
   if (/improve conversions/i.test(value)) return false;
+  if (/people actively looking for/i.test(value)) return false;
+  if (/\.?\s+in\s+[A-Z]/.test(value)) return false;
+  if (value.split(/\s+/).length > 12) return false;
   return true;
 }
 
@@ -1000,23 +1013,34 @@ function looksLikeInternalStrategyText(text) {
     "people actively looking",
     "request quote",
     "clear path to",
-    "website designed to build trust and drive action"
+    "website designed to build trust",
+    "drive action"
   ].some(function(token) {
     return value.includes(token);
   });
 }
 
 function simplifyOfferPhrase(offer) {
-  const value = cleanString(offer);
+  let value = cleanString(offer);
   if (!value) return "";
 
-  return cleanSentenceFragment(
-    value
-      .replace(/\bin\s+[A-Z][^,.]*$/g, "")
-      .replace(/\bspecializing in\b/gi, "")
-      .replace(/\bwith\b.+$/i, "")
-      .replace(/\s{2,}/g, " ")
-  );
+  value = value
+    .replace(/\bin\s+[A-Z][^,.]*$/g, "")
+    .replace(/\bspecializing in\b/gi, "")
+    .replace(/\bwith\b.+$/i, "")
+    .replace(/\bfor\b.+$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (/window cleaning/i.test(value) && /glass restoration/i.test(value)) {
+    return "High-End Window Cleaning and Glass Restoration";
+  }
+
+  if (/window cleaning/i.test(value)) {
+    return "High-End Window Cleaning";
+  }
+
+  return cleanSentenceFragment(value);
 }
 
 function audienceToCustomerPhrase(audience) {
@@ -1028,7 +1052,8 @@ function audienceToCustomerPhrase(audience) {
   if (value.includes("property manager")) return "property managers";
   if (value.includes("business")) return "businesses";
   if (value.includes("customer")) return "customers";
-  if (value.includes("people actively looking")) return "homeowners who want a trusted provider";
+  if (value.includes("people actively looking")) return "homeowners";
+  if (value.includes("trustworthy provider")) return "homeowners";
 
   return cleanSentenceFragment(value);
 }
@@ -1045,18 +1070,27 @@ function bookingMethodToCustomerSentence(method, trustSignal) {
   }
   if (m === "request_quote" || m === "inquiry_first") {
     return trust
-      ? `Start with a quote request and move forward with confidence backed by ${trust.toLowerCase()}`
+      ? `Start with a quote request and move forward with confidence backed by ${normalizeTrustbarLabel(trust).toLowerCase()}`
       : "Start with a quote request and get clear guidance on the right next step";
   }
 
   return trust
-    ? `Built to create confidence through ${trust.toLowerCase()}`
+    ? `Built to create confidence through ${normalizeTrustbarLabel(trust).toLowerCase()}`
     : "Built to create trust and make the next step easy";
 }
 
 function normalizeOfferTitle(item) {
   const value = simplifyOfferPhrase(item);
   if (!value) return "";
+
+  if (/window cleaning/i.test(value) && /glass restoration/i.test(value)) {
+    return "Window Cleaning & Glass Restoration";
+  }
+
+  if (/window cleaning/i.test(value)) {
+    return "Window Cleaning";
+  }
+
   return titleCaseSmart(value);
 }
 
@@ -1088,19 +1122,13 @@ function normalizeDecisionFactorTitle(item) {
 }
 
 function inferOfferingDescription(item, audience) {
-  const value = cleanString(item);
-  if (!value) {
+  const normalizedTitle = normalizeOfferTitle(item);
+  if (!normalizedTitle) {
     return `A focused offering designed for ${audience}.`;
   }
 
-  const cleaned = cleanSentenceFragment(
-    value
-      .replace(/^high-end\s+/i, "")
-      .replace(/^premium\s+/i, "")
-  );
-
   return cleanSentence(
-    `${capitalizeFirst(cleaned)} delivered with careful work, clear communication, and a better experience for ${audience}`
+    `${normalizedTitle} delivered with careful work, clear communication, and a better experience for ${audience}`
   );
 }
 
@@ -1163,32 +1191,27 @@ function normalizeTrustbarLabel(label) {
   const value = cleanString(label).toLowerCase();
   if (!value) return "";
 
-  if (value === "customer_reviews") return "Customer Reviews";
-  if (value === "photo_gallery") return "Photo Gallery";
+  if (value.includes("testimonial")) return "Trusted by Homeowners";
+  if (value.includes("review")) return "5-Star Reviews";
+  if (value.includes("photo")) return "Proven Results";
+  if (value.includes("experience")) return "Experienced Service";
+  if (value.includes("referral")) return "Locally Recommended";
+
   if (value === "future_google_business_profile") return "Local Business Presence";
   if (value === "local_service_area_relevance") return "Local Service Focus";
 
   return titleCaseSmart(cleanString(label).replace(/[_-]/g, " "));
 }
 
-function inferTestimonialQuote(signal, state) {
+function inferTestimonialQuote(signal, state, idx, quotes) {
   const lower = cleanString(signal).toLowerCase();
-  const businessName = cleanString(state.businessName) || "the team";
 
-  if (lower.includes("testimonial") || lower.includes("review")) {
-    return `We chose ${businessName} because they felt professional, responsive, and easy to trust from the start.`;
-  }
-  if (lower.includes("photo")) {
-    return "The final result looked fantastic, and the whole experience felt polished and professional.";
-  }
-  if (lower.includes("experience")) {
-    return "You can feel the experience in the way everything is handled — clear, careful, and dependable.";
-  }
-  if (lower.includes("referral")) {
-    return "They came highly recommended, and the service absolutely lived up to that reputation.";
-  }
+  if (lower.includes("testimonial") || lower.includes("review")) return quotes[2];
+  if (lower.includes("photo")) return "The final result looked fantastic, and the whole experience felt polished and professional.";
+  if (lower.includes("experience")) return "You can feel the experience in the way everything is handled — clear, careful, and dependable.";
+  if (lower.includes("referral")) return "They came highly recommended, and the service absolutely lived up to that reputation.";
 
-  return "Professional, responsive, and easy to work with from start to finish.";
+  return quotes[idx % quotes.length];
 }
 
 function buildVisualImageSeed(industry, offer, visualDirection) {
@@ -1226,12 +1249,12 @@ function buildLifestyleImageSeed(industry, visualDirection) {
 function inferGalleryTitle(query, idx) {
   const q = cleanString(query).toLowerCase();
 
-  if (q.includes("window")) return idx === 0 ? "Clean Glass" : "Careful Window Work";
+  if (q.includes("window")) return "Clean Glass Detail";
   if (q.includes("home")) return "Residential Service";
   if (q.includes("detail")) return "Attention to Detail";
-  if (q.includes("premium")) return "Premium Experience";
+  if (q.includes("premium")) return "Premium Finish";
 
-  return `Gallery Image ${idx + 1}`;
+  return `Project ${idx + 1}`;
 }
 
 function stripLocationTerms(text, serviceArea) {
@@ -1857,6 +1880,5 @@ function isObject(v) {
 function clampWords(text, minWords, maxWords) {
   const words = cleanString(text).split(/\s+/).filter(Boolean);
   if (!words.length) return "service business professional work";
-  const sliced = words.slice(0, maxWords).join(" ");
-  return sliced;
+  return words.slice(0, maxWords).join(" ");
 }
