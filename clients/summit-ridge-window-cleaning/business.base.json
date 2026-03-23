@@ -62,76 +62,76 @@
   "brand": {
     "name": "Summit Ridge Window Cleaning",
     "slug": "summit-ridge-window-cleaning",
-    "tagline": "improve conversions",
+    "tagline": "High-end residential window cleaning large homes, glass restoration, and streak-free results fo?",
     "email": "contact@example.com",
     "phone": "555-555-1234",
     "office_address": "",
-    "objection_handle": "cost concerns"
+    "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
     "headline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado",
-    "subtext": "Built for people actively looking for a trustworthy provider with a clear path to request quote",
+    "subtext": "12 of experience ? careful, high-quality work ? serving Boulder, Colorado. Call directly to ask questions and schedule the right next step",
     "image": {
-      "alt": "Modern Minimal | boulder, colorado local business",
-      "image_search_query": "Modern Minimal | boulder, colorado local business"
+      "alt": "High-end residential window cleaning large homes, glass restoration, and streak-free results",
+      "image_search_query": "sunlit clean window glass detail"
     }
   },
   "about": {
-    "story_text": "Summit Ridge Window Cleaning is focused on high-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado with a website designed to build trust and drive action.",
-    "founder_note": "We built this experience for people actively looking for a trustworthy provider.",
+    "story_text": "Summit Ridge Window Cleaning focuses on high-end residential window cleaning large homes, glass restoration, and streak-free results for homeowners who want a trusted provider in Boulder, Colorado. The goal is a better experience from the first visit to the final result.",
+    "founder_note": "12 of experience serving homeowners who want a trusted provider with careful, dependable work.",
     "years_experience": "12"
   },
   "trustbar": {
     "enabled": true,
     "items": [
       {
-        "label": "customer testimonials",
+        "label": "Customer Testimonials",
         "icon": "shield"
       },
       {
-        "label": "before-and-after photos",
+        "label": "Before and After Photos",
         "icon": "star"
       },
       {
-        "label": "years of experience",
+        "label": "Years Of Experience",
         "icon": "clock"
       },
       {
-        "label": "local referrals",
+        "label": "Local Referrals",
         "icon": "map"
       }
     ]
   },
   "features": [
     {
-      "title": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
-      "description": "A focused offering tailored to people actively looking for a trustworthy provider.",
-      "icon_slug": "layers"
+      "title": "High-end Residential Window Cleaning Large Homes, Glass Restoration, and Streak-free Results",
+      "description": "Residential window cleaning specializing in large homes, glass restoration, and streak-free results delivered with careful work, clear communication, and a better experience for people actively looking for a trustworthy provider.",
+      "icon_slug": "sparkles"
     },
     {
-      "title": "quality of service",
-      "description": "A meaningful reason customers choose Summit Ridge Window Cleaning.",
+      "title": "Quality Work",
+      "description": "Careful workmanship and attention to detail that help the final result feel worth it.",
       "icon_slug": "award"
     },
     {
-      "title": "availability",
-      "description": "A meaningful reason customers choose Summit Ridge Window Cleaning.",
-      "icon_slug": "cpu"
+      "title": "Responsive Scheduling",
+      "description": "Easier planning, faster follow-up, and dependable communication from the start.",
+      "icon_slug": "star"
     },
     {
-      "title": "reputation",
-      "description": "Built to address an important buyer priority in the decision-making process.",
-      "icon_slug": "briefcase"
+      "title": "Careful Work",
+      "description": "Thoughtful service for clients who care about results, cleanliness, and attention to detail.",
+      "icon_slug": "heart"
     },
     {
-      "title": "customer testimonials",
-      "description": "A trust-building signal that reinforces quality and confidence.",
-      "icon_slug": "briefcase"
+      "title": "Trusted Reputation",
+      "description": "A stronger sense of confidence for clients who want to hire the right provider the first time.",
+      "icon_slug": "shield"
     },
     {
-      "title": "before-and-after photos",
-      "description": "A trust-building signal that reinforces quality and confidence.",
-      "icon_slug": "sparkles"
+      "title": "Clear Quotes",
+      "description": "Helpful pricing conversations without making the process feel confusing or rushed.",
+      "icon_slug": "coins"
     }
   ],
   "gallery": {
@@ -141,26 +141,26 @@
     "image_source": "search",
     "items": [
       {
-        "title": "Modern Minimal | boulder, colorado local business",
-        "image_search_query": "Modern Minimal | boulder, colorado local business experience"
+        "title": "Clean Glass",
+        "image_search_query": "sunlit clean window glass detail"
       },
       {
-        "title": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
-        "image_search_query": "High-end residential window cleaning specializing in large homes,"
+        "title": "Careful Window Work",
+        "image_search_query": "window cleaning detail squeegee glass"
       },
       {
-        "title": "Window Cleaning Service",
-        "image_search_query": "Window Cleaning Service experience detail"
+        "title": "Careful Window Work",
+        "image_search_query": "bright home exterior clean windows"
       },
       {
-        "title": "people actively looking for a trustworthy provider",
-        "image_search_query": "people actively looking for a trustworthy provider experience"
+        "title": "Residential Service",
+        "image_search_query": "natural light modern home clean glass"
       }
     ]
   },
   "contact": {
     "headline": "Get in Touch",
-    "subheadline": "Tell us what you need and we?ll put together the right next step.",
+    "subheadline": "Call today and we?ll help you figure out the best next step.",
     "email": "contact@example.com",
     "phone": "555-555-1234",
     "email_recipient": "contact@example.com",
@@ -173,26 +173,26 @@
   },
   "testimonials": [
     {
-      "quote": "We appreciated the professionalism, communication, and quality behind customer testimonials.",
+      "quote": "We chose Summit Ridge Window Cleaning because they felt professional, responsive, and easy to trust from the start.",
       "author": "Happy Client 1"
     },
     {
-      "quote": "We appreciated the professionalism, communication, and quality behind before-and-after photos.",
+      "quote": "The final result looked fantastic, and the whole experience felt polished and professional.",
       "author": "Happy Client 2"
     },
     {
-      "quote": "We appreciated the professionalism, communication, and quality behind years of experience.",
+      "quote": "You can feel the experience in the way everything is handled ? clear, careful, and dependable.",
       "author": "Happy Client 3"
     }
   ],
   "faqs": [
     {
       "question": "What is the process for window cleaning?",
-      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+      "answer": "We aim to keep the process clear, responsive, and easy from first contact to final follow-through."
     },
     {
       "question": "How do you ensure streak-free results?",
-      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+      "answer": "We keep the experience clear, helpful, and easy to understand."
     },
     {
       "question": "What areas do you service?",
@@ -204,11 +204,11 @@
     },
     {
       "question": "trustworthiness?",
-      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+      "answer": "We keep the experience clear, helpful, and easy to understand."
     },
     {
       "question": "availability during peak seasons?",
-      "answer": "We aim to keep the process clear, helpful, and easy to understand."
+      "answer": "We keep the experience clear, helpful, and easy to understand."
     }
   ]
 }
