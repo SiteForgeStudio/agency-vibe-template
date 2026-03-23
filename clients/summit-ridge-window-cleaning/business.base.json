@@ -66,30 +66,30 @@
   "brand": {
     "name": "Summit Ridge Window Cleaning",
     "slug": "summit-ridge-window-cleaning",
-    "tagline": "High-End Window Cleaning and Glass Restoration for homeowners.",
+    "tagline": "High-end Residential Window Cleaning Specializing In Large Homes and Glass Restoration for Cust...",
     "email": "contact@example.com",
     "phone": "555-555-1234",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
-    "headline": "High-End Window Cleaning and Glass Restoration for homeowners",
-    "subtext": "12 of experience ? careful, high-quality work ? serving Boulder, Colorado. Call directly to ask questions and schedule the right next step",
+    "headline": "High-end Residential Window Cleaning Specializing In Large Homes and Gl...",
+    "subtext": "12 years of experience - careful, high-quality work - serving Boulder, Colorado. Call directly to ask questions and schedule the right next step",
     "image": {
-      "alt": "High-End Window Cleaning and Glass Restoration",
-      "image_search_query": "sunlit clean window glass detail"
+      "alt": "High-end Residential Window Cleaning Specializing In Large Homes and Glass Restoration",
+      "image_search_query": "High-end Residential Window Cleaning Specializing In Large Homes"
     }
   },
   "about": {
-    "story_text": "Summit Ridge Window Cleaning focuses on high-end window cleaning and glass restoration for homeowners in Boulder, Colorado. The goal is a better experience from the first visit to the final result.",
-    "founder_note": "12 of experience serving homeowners with careful, dependable work.",
-    "years_experience": "12"
+    "story_text": "Summit Ridge Window Cleaning focuses on high-end residential window cleaning specializing in large homes and glass restoration for customers in Boulder, Colorado. The goal is a better experience from the first visit to the final result.",
+    "founder_note": "12 years of experience serving customers with careful, dependable work.",
+    "years_experience": "12 years of experience"
   },
   "trustbar": {
     "enabled": true,
     "items": [
       {
-        "label": "Trusted by Homeowners",
+        "label": "Trusted by Clients",
         "icon": "shield"
       },
       {
@@ -101,16 +101,16 @@
         "icon": "clock"
       },
       {
-        "label": "Locally Recommended",
+        "label": "Highly Recommended",
         "icon": "map"
       }
     ]
   },
   "features": [
     {
-      "title": "Window Cleaning & Glass Restoration",
-      "description": "Window Cleaning & Glass Restoration delivered with careful work, clear communication, and a better experience for homeowners.",
-      "icon_slug": "sparkles"
+      "title": "High-end Residential Window Cleaning Specializing",
+      "description": "High-end Residential Window Cleaning Specializing delivered with careful work, clear communication, and a better experience for customers.",
+      "icon_slug": "layers"
     },
     {
       "title": "Quality Work",
@@ -123,11 +123,6 @@
       "icon_slug": "star"
     },
     {
-      "title": "Careful Work",
-      "description": "Thoughtful service for clients who care about results, cleanliness, and attention to detail.",
-      "icon_slug": "heart"
-    },
-    {
       "title": "Trusted Reputation",
       "description": "A stronger sense of confidence for clients who want to hire the right provider the first time.",
       "icon_slug": "shield"
@@ -136,57 +131,58 @@
       "title": "Clear Quotes",
       "description": "Helpful pricing conversations without making the process feel confusing or rushed.",
       "icon_slug": "coins"
+    },
+    {
+      "title": "Reliable Scheduling",
+      "description": "A smoother client experience for busy customers who value dependable timing and follow-through.",
+      "icon_slug": "star"
     }
   ],
   "processSteps": [
     {
-      "title": "Request Quote",
+      "title": "Request a Quote",
       "description": "Request a quote."
     },
     {
-      "title": "Review Home Needs",
+      "title": "Review Your Needs",
       "description": "Review the home and needs."
     },
     {
-      "title": "Schedule Service",
+      "title": "Schedule the Service",
       "description": "Schedule the service."
     },
     {
-      "title": "Complete Cleaning Carefully",
+      "title": "Complete the Work",
       "description": "Complete the cleaning carefully."
     },
     {
-      "title": "Final Walkthrough Satisfaction",
+      "title": "Final Walkthrough",
       "description": "Final walkthrough and satisfaction check."
     }
   ],
   "gallery": {
     "enabled": true,
-    "layout": "grid",
-    "computed_count": 4,
+    "layout": "masonry",
+    "computed_count": 3,
     "image_source": "search",
     "items": [
       {
-        "title": "Clean Glass Detail",
-        "image_search_query": "sunlit clean window glass detail"
+        "title": "Project 1",
+        "image_search_query": "High-end residential window cleaning specializing in large homes,"
       },
       {
-        "title": "Clean Glass Detail",
-        "image_search_query": "window cleaning detail squeegee glass"
+        "title": "Finished Exterior",
+        "image_search_query": "Window Cleaning Service trusted polished exterior detail"
       },
       {
-        "title": "Clean Glass Detail",
-        "image_search_query": "bright home exterior clean windows"
-      },
-      {
-        "title": "Residential Service",
-        "image_search_query": "natural light modern home clean glass"
+        "title": "Project 3",
+        "image_search_query": "Modern Minimal , local business Window Cleaning"
       }
     ]
   },
   "contact": {
     "headline": "Get in Touch",
-    "subheadline": "Call today and we?ll help you figure out the best next step.",
+    "subheadline": "Call today and we'll help you figure out the best next step.",
     "email": "contact@example.com",
     "phone": "555-555-1234",
     "email_recipient": "contact@example.com",
@@ -207,7 +203,7 @@
       "author": "Happy Client 2"
     },
     {
-      "quote": "You can feel the experience in the way everything is handled ? clear, careful, and dependable.",
+      "quote": "You can feel the experience in the way everything is handled - clear, careful, and dependable.",
       "author": "Happy Client 3"
     }
   ],
@@ -225,16 +221,16 @@
       "answer": "We primarily serve Boulder, Colorado. Reach out if you want to confirm your location."
     },
     {
-      "question": "cost concerns?",
-      "answer": "Pricing is provided based on the size of the home and the level of restoration needed."
-    },
-    {
-      "question": "trustworthiness?",
+      "question": "How does pricing work?",
       "answer": "We keep the experience clear, helpful, and easy to understand."
     },
     {
-      "question": "availability during peak seasons?",
+      "question": "How do I know I can trust your service?",
       "answer": "We keep the experience clear, helpful, and easy to understand."
+    },
+    {
+      "question": "How far in advance should I schedule?",
+      "answer": "Call directly and we'll help you schedule the right next step."
     }
   ]
 }
