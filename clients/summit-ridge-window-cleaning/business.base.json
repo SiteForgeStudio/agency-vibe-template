@@ -66,50 +66,50 @@
   "brand": {
     "name": "Summit Ridge Window Cleaning",
     "slug": "summit-ridge-window-cleaning",
-    "tagline": "High-end residential window cleaning large homes, glass restoration, and streak-free results fo?",
+    "tagline": "High-End Window Cleaning and Glass Restoration for homeowners.",
     "email": "contact@example.com",
     "phone": "555-555-1234",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
-    "headline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado",
+    "headline": "High-End Window Cleaning and Glass Restoration for homeowners",
     "subtext": "12 of experience ? careful, high-quality work ? serving Boulder, Colorado. Call directly to ask questions and schedule the right next step",
     "image": {
-      "alt": "High-end residential window cleaning large homes, glass restoration, and streak-free results",
+      "alt": "High-End Window Cleaning and Glass Restoration",
       "image_search_query": "sunlit clean window glass detail"
     }
   },
   "about": {
-    "story_text": "Summit Ridge Window Cleaning focuses on high-end residential window cleaning large homes, glass restoration, and streak-free results for homeowners who want a trusted provider in Boulder, Colorado. The goal is a better experience from the first visit to the final result.",
-    "founder_note": "12 of experience serving homeowners who want a trusted provider with careful, dependable work.",
+    "story_text": "Summit Ridge Window Cleaning focuses on high-end window cleaning and glass restoration for homeowners in Boulder, Colorado. The goal is a better experience from the first visit to the final result.",
+    "founder_note": "12 of experience serving homeowners with careful, dependable work.",
     "years_experience": "12"
   },
   "trustbar": {
     "enabled": true,
     "items": [
       {
-        "label": "Customer Testimonials",
+        "label": "Trusted by Homeowners",
         "icon": "shield"
       },
       {
-        "label": "Before and After Photos",
+        "label": "Proven Results",
         "icon": "star"
       },
       {
-        "label": "Years Of Experience",
+        "label": "Experienced Service",
         "icon": "clock"
       },
       {
-        "label": "Local Referrals",
+        "label": "Locally Recommended",
         "icon": "map"
       }
     ]
   },
   "features": [
     {
-      "title": "High-end Residential Window Cleaning Large Homes, Glass Restoration, and Streak-free Results",
-      "description": "Residential window cleaning specializing in large homes, glass restoration, and streak-free results delivered with careful work, clear communication, and a better experience for people actively looking for a trustworthy provider.",
+      "title": "Window Cleaning & Glass Restoration",
+      "description": "Window Cleaning & Glass Restoration delivered with careful work, clear communication, and a better experience for homeowners.",
       "icon_slug": "sparkles"
     },
     {
@@ -140,23 +140,23 @@
   ],
   "processSteps": [
     {
-      "title": "Request A Quote",
+      "title": "Request Quote",
       "description": "Request a quote."
     },
     {
-      "title": "Review The Home And",
+      "title": "Review Home Needs",
       "description": "Review the home and needs."
     },
     {
-      "title": "Schedule The Service",
+      "title": "Schedule Service",
       "description": "Schedule the service."
     },
     {
-      "title": "Complete The Cleaning Carefully",
+      "title": "Complete Cleaning Carefully",
       "description": "Complete the cleaning carefully."
     },
     {
-      "title": "Final Walkthrough And Satisfaction",
+      "title": "Final Walkthrough Satisfaction",
       "description": "Final walkthrough and satisfaction check."
     }
   ],
@@ -167,15 +167,15 @@
     "image_source": "search",
     "items": [
       {
-        "title": "Clean Glass",
+        "title": "Clean Glass Detail",
         "image_search_query": "sunlit clean window glass detail"
       },
       {
-        "title": "Careful Window Work",
+        "title": "Clean Glass Detail",
         "image_search_query": "window cleaning detail squeegee glass"
       },
       {
-        "title": "Careful Window Work",
+        "title": "Clean Glass Detail",
         "image_search_query": "bright home exterior clean windows"
       },
       {
@@ -199,7 +199,7 @@
   },
   "testimonials": [
     {
-      "quote": "We chose Summit Ridge Window Cleaning because they felt professional, responsive, and easy to trust from the start.",
+      "quote": "We chose Summit Ridge Window Cleaning because they felt trustworthy and professional from the first interaction.",
       "author": "Happy Client 1"
     },
     {
