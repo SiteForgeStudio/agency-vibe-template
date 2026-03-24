@@ -1,8 +1,7 @@
 /**
  * SITEFORGE FACTORY: intake-next.js
- * Role: The Strategic Architect.
- * Mission: Refine the site strategy and harvest schema data via consultation.
- * Logic: Uses Preflight Recon (provenance) to propose solutions.
+ * Role: The Strategic Architect (Manifest Aligned)
+ * Mission: Refine strategy, harvest facts, and ghostwrite strategic components.
  */
 
 import { INTAKE_CONTROLLER_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -28,12 +27,11 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: "Missing slug in state" }), { status: 400 });
     }
 
-    // 1. EXTRACT ARCHITECT CONTEXT
+    // 1. EXTRACT CONTEXT FROM MANIFEST SOURCE OF TRUTH
     const strategy = state.provenance?.strategy_contract || {};
-    const businessName = state.businessName || "the business";
+    const recommendedSections = strategy.site_structure?.recommended_sections || [];
 
-    // 2. CALL OPENAI (The Strategic Brain)
-    // We pass the current state so the AI can "Harvest" facts into the schema.
+    // 2. CALL OPENAI (The Architect Brain)
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -49,13 +47,14 @@ export async function onRequestPost(context) {
             content: `
               USER MESSAGE: "${userMessage}"
               
-              CURRENT SCHEMA (ANSWERS): ${JSON.stringify(state.answers)}
-              STRATEGY CONTRACT: ${JSON.stringify(strategy)}
+              STRATEGY CONTRACT REQUIREMENTS: ${JSON.stringify(recommendedSections)}
+              CURRENT SCHEMA: ${JSON.stringify(state.answers)}
+              CURRENT GHOSTWRITING: ${JSON.stringify(state.ghostwritten)}
               
               ACTION:
-              1. Extract any specific facts (phone, services, area) into 'updates'.
-              2. Propose copy refinements in 'ghostwritten_updates'.
-              3. Respond as a senior digital strategist.
+              1. If the Strategy requires 'FAQ' or 'Process', you MUST draft them now in 'ghostwritten_updates'.
+              2. Extract facts to 'updates'.
+              3. Propose the next strategic component for verification.
             ` 
           }
         ],
@@ -64,78 +63,77 @@ export async function onRequestPost(context) {
     });
 
     const aiData = await aiRes.json();
-    if (!aiRes.ok) throw new Error(aiData.error?.message || "Architect Brain Failed");
+    if (!aiRes.ok) throw new Error(aiData.error?.message || "Architect Failed");
 
     const prediction = JSON.parse(aiData.choices[0].message.content);
 
-    // 3. APPLY HARVESTED UPDATES
-    // If the user mentioned a phone number, it goes into 'answers'
+    // 3. APPLY UPDATES (Facts and Ghostwritten Content)
     if (prediction.updates) {
       state.answers = { ...state.answers, ...prediction.updates };
     }
 
-    // If the AI drafted better headlines/copy based on the chat, it goes here
     if (prediction.ghostwritten_updates) {
       state.ghostwritten = { ...state.ghostwritten, ...prediction.ghostwritten_updates };
     }
 
-    // 4. UPDATE CONVERSATION LOG
+    // 4. LOG CONVERSATION
     if (!state.conversation) state.conversation = [];
     state.conversation.push({ role: "user", content: userMessage });
     state.conversation.push({ role: "assistant", content: prediction.response });
 
-    // 5. EVALUATE READINESS (Downstream Safety)
+    // 5. MANIFEST-STRICT READINESS CHECK
     state.readiness = evaluateReadiness(state);
 
-    // 6. SYNC TO ORCHESTRATOR (Google Apps Script)
+    // 6. SYNC TO GAS
     if (env.ORCHESTRATOR_SCRIPT_URL) {
       await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          slug: slug,
-          state: state,
-          updated_at: new Date().toISOString()
-        })
+        body: JSON.stringify({ slug, state, updated_at: new Date().toISOString() })
       });
     }
 
-    // 7. RESPOND
     return new Response(JSON.stringify({
       ok: true,
       message: prediction.response,
       state: state,
       action: state.readiness.can_generate_now ? "complete" : "continue"
-    }), { 
-      headers: { 
-        "Content-Type": "application/json",
-        "X-Request-ID": requestId
-      } 
-    });
+    }), { headers: { "Content-Type": "application/json", "X-Request-ID": requestId } });
 
   } catch (err) {
-    console.error("Intake-Next Error:", err);
     return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500 });
   }
 }
 
 /**
- * READINESS GATEKEEPER
+ * STRATEGY-AWARE READINESS GATE
+ * Ensures components required by the strategy_contract are present.
  */
 function evaluateReadiness(state) {
   const answers = state.answers || {};
-  const required = ["primary_offer", "service_area", "target_audience"];
-  const missing = required.filter(key => !answers[key] || answers[key] === "");
+  const ghost = state.ghostwritten || {};
+  const strategy = state.provenance?.strategy_contract || {};
+  const recommended = strategy.site_structure?.recommended_sections || [];
   
-  // Need at least one contact method
-  if (!answers.phone && !answers.booking_url && !answers.contact_email) {
-    missing.push("contact_path");
+  const missing = [];
+
+  // Core Data Requirements
+  if (!answers.primary_offer) missing.push("primary_offer");
+  if (!answers.service_area) missing.push("service_area");
+  if (!answers.phone && !answers.booking_url) missing.push("contact_path");
+
+  // Strategic Component Requirements (Ghostwriting Check)
+  if (recommended.includes("FAQ") && (!ghost.faq_items || ghost.faq_items.length < 2)) {
+    missing.push("faq_content");
+  }
+  if (recommended.includes("Process") && (!ghost.process_steps || ghost.process_steps.length < 3)) {
+    missing.push("process_content");
   }
 
-  const score = Math.max(0.1, (required.length + 1 - missing.length) / (required.length + 1));
+  const score = Math.max(0.1, (5 - missing.length) / 5);
 
   return {
-    score: parseFloat(score.toFixed(2)),
+    score: score,
     can_generate_now: missing.length === 0,
     missing_domains: missing
   };
