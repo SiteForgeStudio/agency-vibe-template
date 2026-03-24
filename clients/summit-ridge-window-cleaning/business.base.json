@@ -66,23 +66,23 @@
   "brand": {
     "name": "Summit Ridge Window Cleaning",
     "slug": "summit-ridge-window-cleaning",
-    "tagline": "High-end Residential Window Cleaning Specializing In Large Homes and Glass Restoration for Cust...",
+    "tagline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
     "email": "contact@example.com",
     "phone": "555-555-1234",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
-    "headline": "High-end Residential Window Cleaning Specializing In Large Homes and Gl...",
-    "subtext": "12 years of experience - careful, high-quality work - serving Boulder, Colorado. Call directly to ask questions and schedule the right next step",
+    "headline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado",
+    "subtext": "Built for people actively looking for a trustworthy provider with a clear path to request quote",
     "image": {
-      "alt": "High-end Residential Window Cleaning Specializing In Large Homes and Glass Restoration",
-      "image_search_query": "High-end Residential Window Cleaning Specializing In Large Homes"
+      "alt": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+      "image_search_query": "Modern Minimal | boulder, colorado local business High-end"
     }
   },
   "about": {
-    "story_text": "Summit Ridge Window Cleaning focuses on high-end residential window cleaning specializing in large homes and glass restoration for customers in Boulder, Colorado. The goal is a better experience from the first visit to the final result.",
-    "founder_note": "12 years of experience serving customers with careful, dependable work.",
+    "story_text": "Summit Ridge Window Cleaning is focused on high-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado with a website designed to build trust and drive action.",
+    "founder_note": "Built for people who value quality, clarity, and a smooth process.",
     "years_experience": "12 years of experience"
   },
   "trustbar": {
@@ -108,33 +108,18 @@
   },
   "features": [
     {
-      "title": "High-end Residential Window Cleaning Specializing",
-      "description": "High-end Residential Window Cleaning Specializing delivered with careful work, clear communication, and a better experience for customers.",
+      "title": "High-end Residential Window Cleaning Large",
+      "description": "Delivered with care and attention for customers.",
       "icon_slug": "layers"
     },
     {
       "title": "Quality Work",
-      "description": "Careful workmanship and attention to detail that help the final result feel worth it.",
+      "description": "A meaningful reason clients choose this business.",
       "icon_slug": "award"
     },
     {
       "title": "Responsive Scheduling",
-      "description": "Easier planning, faster follow-up, and dependable communication from the start.",
-      "icon_slug": "star"
-    },
-    {
-      "title": "Trusted Reputation",
-      "description": "A stronger sense of confidence for clients who want to hire the right provider the first time.",
-      "icon_slug": "shield"
-    },
-    {
-      "title": "Clear Quotes",
-      "description": "Helpful pricing conversations without making the process feel confusing or rushed.",
-      "icon_slug": "coins"
-    },
-    {
-      "title": "Reliable Scheduling",
-      "description": "A smoother client experience for busy customers who value dependable timing and follow-through.",
+      "description": "A meaningful reason clients choose this business.",
       "icon_slug": "star"
     }
   ],
@@ -152,7 +137,7 @@
       "description": "Schedule the service."
     },
     {
-      "title": "Complete the Work",
+      "title": "Complete Cleaning Carefully",
       "description": "Complete the cleaning carefully."
     },
     {
@@ -168,21 +153,21 @@
     "items": [
       {
         "title": "Project 1",
+        "image_search_query": "Modern Minimal | boulder, colorado local business"
+      },
+      {
+        "title": "Project 2",
         "image_search_query": "High-end residential window cleaning specializing in large homes,"
       },
       {
-        "title": "Finished Exterior",
-        "image_search_query": "Window Cleaning Service trusted polished exterior detail"
-      },
-      {
         "title": "Project 3",
-        "image_search_query": "Modern Minimal , local business Window Cleaning"
+        "image_search_query": "Window Cleaning Service detail"
       }
     ]
   },
   "contact": {
     "headline": "Get in Touch",
-    "subheadline": "Call today and we'll help you figure out the best next step.",
+    "subheadline": "Tell us what you need and we'll help you with the right next step.",
     "email": "contact@example.com",
     "phone": "555-555-1234",
     "email_recipient": "contact@example.com",
@@ -195,15 +180,15 @@
   },
   "testimonials": [
     {
-      "quote": "We chose Summit Ridge Window Cleaning because they felt trustworthy and professional from the first interaction.",
+      "quote": "Professional, careful, and easy to work with from start to finish.",
       "author": "Happy Client 1"
     },
     {
-      "quote": "The final result looked fantastic, and the whole experience felt polished and professional.",
+      "quote": "Clear communication, reliable scheduling, and a strong final result.",
       "author": "Happy Client 2"
     },
     {
-      "quote": "You can feel the experience in the way everything is handled - clear, careful, and dependable.",
+      "quote": "We chose Summit Ridge Window Cleaning because they felt trustworthy and professional from the first interaction.",
       "author": "Happy Client 3"
     }
   ],
