@@ -248,7 +248,9 @@ function buildVerification(state, strategyContract, meta = {}) {
     current_key: queueComplete ? "" : queue[0],
     queue,
     queue_complete: queueComplete,
-    last_answered_key: cleanString(meta.lastAnsweredKey || state.verification?.last_answered_key),
+    last_answered_key: cleanString(
+      meta.lastAnsweredKey || state.verification?.last_answered_key
+    ),
     weak_fields: detectWeakFields(state, strategyContract),
     refinement_mode: queue.some(function(key) {
       return PREMIUM_REFINEMENT_KEYS.includes(key);
@@ -348,7 +350,9 @@ function buildQuestionPayload(state) {
 function evaluateReadiness(state) {
   const missing = [];
 
-  const hasWhyNow = Boolean(cleanString(state.answers.why_now) || cleanString(state.answers.desired_outcome));
+  const hasWhyNow = Boolean(
+    cleanString(state.answers.why_now) || cleanString(state.answers.desired_outcome)
+  );
   const hasAudience = Boolean(cleanString(state.answers.target_audience));
   const hasOffer = state.answers.offerings.length > 0;
   const hasPrimaryCta = Boolean(cleanString(state.answers.primary_conversion_goal));
@@ -565,11 +569,17 @@ function buildPremiumTagline(state, strategyContract) {
     audience ? `for ${audienceToPublicPhrase(audience)}` : "",
     diff ? `with ${cleanSentenceFragment(diff).toLowerCase()}` : "",
     area ? `in ${area}` : ""
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const polished = normalizeMarketingLine(base);
 
-  return polished || cleanString(strategyContract?.positioning?.brand_promise) || cleanString(state.businessName);
+  return (
+    polished ||
+    cleanString(strategyContract?.positioning?.brand_promise) ||
+    cleanString(state.businessName)
+  );
 }
 
 function buildPremiumHeroHeadline(state, strategyContract) {
@@ -603,7 +613,9 @@ function buildPremiumHeroSubheadline(state, strategyContract) {
   if (wordCount(explicit) >= 10) return cleanSentence(explicit);
 
   const years = normalizeExperienceYears(cleanString(state.answers.experience_years));
-  const trust = cleanList(state.answers.trust_signals)[0] || cleanList(state.answers.credibility_factors)[0];
+  const trust =
+    cleanList(state.answers.trust_signals)[0] ||
+    cleanList(state.answers.credibility_factors)[0];
   const area = cleanString(state.answers.service_area);
   const booking = normalizeBookingMethod(state.answers.booking_method);
   const primary = normalizePrimaryConversionGoal(state.answers.primary_conversion_goal);
@@ -612,7 +624,9 @@ function buildPremiumHeroSubheadline(state, strategyContract) {
     years || "",
     trust ? cleanSentenceFragment(trust).toLowerCase() : "",
     area ? `serving ${area}` : ""
-  ].filter(Boolean).join(" - ");
+  ]
+    .filter(Boolean)
+    .join(" - ");
 
   const sentenceB =
     booking === "external_booking" || primary === "book_now"
@@ -631,7 +645,10 @@ function buildHeroImageAlt(state, strategyContract) {
   const offer = cleanList(state.answers.offerings)[0];
   const audience = cleanString(state.answers.target_audience);
   return cleanSentenceFragment(
-    [offer || cleanString(strategyContract?.business_context?.category), audience ? `for ${audience}` : ""]
+    [
+      offer || cleanString(strategyContract?.business_context?.category),
+      audience ? `for ${audience}` : ""
+    ]
       .filter(Boolean)
       .join(" ")
   );
@@ -650,10 +667,14 @@ function buildAboutSummary(state, strategyContract) {
 
   const sentence1 = [
     businessName,
-    offer ? `focuses on ${cleanSentenceFragment(offer).toLowerCase()}` : "is built to deliver a clear, premium client experience",
+    offer
+      ? `focuses on ${cleanSentenceFragment(offer).toLowerCase()}`
+      : "is built to deliver a clear, premium client experience",
     audience ? `for ${audienceToPublicPhrase(audience)}` : "",
     area ? `in ${area}` : ""
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const sentence2 = diff
     ? `The difference is in ${cleanSentenceFragment(diff).toLowerCase()}, not just the service itself.`
@@ -661,7 +682,7 @@ function buildAboutSummary(state, strategyContract) {
     ? cleanSentence(whyNow)
     : "The goal is to make the entire experience feel polished, clear, and easy to trust.";
 
-  return `${cleanSentence(sentence1)} ${cleanSentence(sentence2)}`;
+  return `${cleanSentence(sentence1)} ${sentence2}`;
 }
 
 function buildFounderNote(state, strategyContract) {
@@ -672,13 +693,13 @@ function buildFounderNote(state, strategyContract) {
   const diff = cleanList(state.answers.differentiators)[0];
   const trust = cleanList(state.answers.trust_signals)[0];
 
-  const note = [
-    years || "",
-    diff ? cleanSentenceFragment(diff).toLowerCase() : "",
-    trust ? cleanSentenceFragment(trust).toLowerCase() : ""
-  ].filter(Boolean).join(" - ");
+  const note = [years || "", diff ? cleanSentenceFragment(diff).toLowerCase() : "", trust ? cleanSentenceFragment(trust).toLowerCase() : ""]
+    .filter(Boolean)
+    .join(" - ");
 
-  return cleanSentence(note || "Built for clients who value quality, clarity, and dependable follow-through");
+  return cleanSentence(
+    note || "Built for clients who value quality, clarity, and dependable follow-through"
+  );
 }
 
 function buildContactSubheadline(state, strategyContract) {
@@ -725,7 +746,7 @@ function buildPremiumFeatures(state, strategyContract) {
     });
   });
 
-  buyer.slice(0, 1).forEach(function(item, idx) {
+  buyer.slice(0, 1).forEach(function(item) {
     items.push({
       title: "Why Clients Choose Us",
       description: cleanSentence(item),
@@ -733,7 +754,7 @@ function buildPremiumFeatures(state, strategyContract) {
     });
   });
 
-  trust.slice(0, 1).forEach(function(item, idx) {
+  trust.slice(0, 1).forEach(function(item) {
     items.push({
       title: cleanHeadline(normalizeTrustbarLabel(item) || "Trusted Service"),
       description: cleanSentence(
@@ -760,7 +781,7 @@ function buildPremiumFaqs(state, strategyContract) {
   const topics = uniqueList([
     ...cleanList(state.answers.faq_topics),
     ...cleanList(state.answers.common_objections),
-    ...cleanList(strategyContract?.site_structure?.faq_angles)
+    ...normalizeStringArray(strategyContract?.site_structure?.faq_angles || [])
   ]).slice(0, 6);
 
   if (!topics.length) return [];
@@ -779,7 +800,9 @@ function inferPremiumFaqAnswer(question, state, strategyContract) {
   const serviceArea = cleanString(state.answers.service_area);
   const booking = normalizeBookingMethod(state.answers.booking_method);
   const pricing = cleanString(state.answers.pricing_context);
-  const trust = cleanList(state.answers.trust_signals)[0] || cleanList(state.answers.credibility_factors)[0];
+  const trust =
+    cleanList(state.answers.trust_signals)[0] ||
+    cleanList(state.answers.credibility_factors)[0];
   const process = cleanList(state.answers.process_notes);
 
   if (lower.includes("price") || lower.includes("cost")) {
@@ -788,13 +811,21 @@ function inferPremiumFaqAnswer(question, state, strategyContract) {
   }
 
   if (lower.includes("trust")) {
-    if (trust) return cleanSentence(`${trust} helps clients feel confident before moving forward.`);
+    if (trust) {
+      return cleanSentence(
+        `${trust} helps clients feel confident before moving forward`
+      );
+    }
     return "We aim to make trust visible through clear communication, professional follow-through, and a more polished client experience from the first interaction.";
   }
 
   if (lower.includes("schedule") || lower.includes("book")) {
-    if (booking === "external_booking") return "You can use the booking link on the site to choose the best next step.";
-    if (booking === "phone") return "Call directly and we’ll help you schedule the right next step.";
+    if (booking === "external_booking") {
+      return "You can use the booking link on the site to choose the best next step.";
+    }
+    if (booking === "phone") {
+      return "Call directly and we’ll help you schedule the right next step.";
+    }
     return "Reach out through the contact form and we’ll help guide you from there.";
   }
 
@@ -819,7 +850,6 @@ function inferPremiumFaqAnswer(question, state, strategyContract) {
 function buildSafeTestimonials(state) {
   const provided = normalizeTestimonialsArray(state.answers.testimonials);
   if (provided.length > 0) return provided.slice(0, 3);
-
   return [];
 }
 
@@ -829,14 +859,13 @@ function buildSafeTestimonials(state) {
 
 function buildInference(state, strategyContract) {
   const weakFields = detectWeakFields(state, strategyContract);
-
   const heroImageQuery = buildHeroImageQuery(state, strategyContract);
 
   return {
     ...(isObject(state.inference) ? state.inference : {}),
     suggested_vibe: resolveSchemaVibe(
       cleanString(state.answers.visual_direction) ||
-      cleanString(strategyContract?.visual_strategy?.recommended_vibe)
+        cleanString(strategyContract?.visual_strategy?.recommended_vibe)
     ),
     suggested_components: normalizeStringArray(
       strategyContract?.site_structure?.recommended_sections || []
@@ -863,14 +892,23 @@ function detectWeakFields(state, strategyContract) {
   if (looksWeakOfferings(state.answers.offerings)) weak.push("offerings");
   if (looksWeakList(state.answers.buyer_decision_factors)) weak.push("buyer_decision_factors");
   if (looksWeakList(state.answers.differentiators)) weak.push("differentiators");
-  if (looksWeakList(state.answers.trust_signals) && looksWeakList(state.answers.credibility_factors)) {
+  if (
+    looksWeakList(state.answers.trust_signals) &&
+    looksWeakList(state.answers.credibility_factors)
+  ) {
     weak.push("trust_signals");
   }
   if (looksWeakVisualDirection(state.answers.visual_direction)) weak.push("visual_direction");
   if (looksWeakPricingContext(state.answers.pricing_context)) weak.push("pricing_context");
-  if (looksWeakFaqTopics(state.answers.faq_topics, state.answers.common_objections)) weak.push("faq_topics");
-  if (!isStrongMarketingLine(buildPremiumTagline(state, strategyContract))) weak.push("ghost_tagline");
-  if (!isStrongHeroHeadline(buildPremiumHeroHeadline(state, strategyContract))) weak.push("ghost_hero");
+  if (looksWeakFaqTopics(state.answers.faq_topics, state.answers.common_objections)) {
+    weak.push("faq_topics");
+  }
+  if (!isStrongMarketingLine(buildPremiumTagline(state, strategyContract))) {
+    weak.push("ghost_tagline");
+  }
+  if (!isStrongHeroHeadline(buildPremiumHeroHeadline(state, strategyContract))) {
+    weak.push("ghost_hero");
+  }
 
   return weak;
 }
@@ -888,8 +926,10 @@ function inferConfidenceScore(state, weakFields) {
   const positives = [
     Boolean(cleanString(state.answers.target_audience)),
     state.answers.offerings.length > 0,
-    state.answers.buyer_decision_factors.length > 0 || state.answers.common_objections.length > 0,
-    state.answers.differentiators.length > 0 || state.answers.trust_signals.length > 0,
+    state.answers.buyer_decision_factors.length > 0 ||
+      state.answers.common_objections.length > 0,
+    state.answers.differentiators.length > 0 ||
+      state.answers.trust_signals.length > 0,
     Boolean(cleanString(state.answers.visual_direction)),
     state.answers.process_notes.length >= 3,
     hasContactPath(state)
@@ -929,8 +969,12 @@ function buildSummaryPanel(state, strategyContract) {
       hero_subheadline: cleanString(state.ghostwritten?.hero_subheadline),
       hero_image_query: cleanString(state.inference?.hero_image_query)
     },
-    queue_remaining: Array.isArray(state.verification?.queue) ? state.verification.queue : [],
-    weak_fields: Array.isArray(state.verification?.weak_fields) ? state.verification.weak_fields : [],
+    queue_remaining: Array.isArray(state.verification?.queue)
+      ? state.verification.queue
+      : [],
+    weak_fields: Array.isArray(state.verification?.weak_fields)
+      ? state.verification.weak_fields
+      : [],
     readiness: state.readiness || {}
   };
 }
@@ -971,8 +1015,8 @@ function isFieldMissing(state, key) {
 function hasContactPath(state) {
   return Boolean(
     cleanString(state.clientEmail) ||
-    cleanString(state.answers.phone) ||
-    cleanString(state.answers.booking_url)
+      cleanString(state.answers.phone) ||
+      cleanString(state.answers.booking_url)
   );
 }
 
@@ -997,7 +1041,11 @@ function looksGenericAudience(value) {
     "people actively looking",
     "trustworthy provider"
   ];
-  return generic.some(function(token) { return v === token || v.includes(token); }) || wordCount(v) < 4;
+  return (
+    generic.some(function(token) {
+      return v === token || v.includes(token);
+    }) || wordCount(v) < 4
+  );
 }
 
 function looksWeakOfferings(items) {
@@ -1017,9 +1065,13 @@ function looksWeakList(items) {
     "availability",
     "communication"
   ];
-  return wordCount(joined) < 5 || bad.includes(joined) || items.every(function(item) {
-    return wordCount(item) <= 3;
-  });
+  return (
+    wordCount(joined) < 5 ||
+    bad.includes(joined) ||
+    items.every(function(item) {
+      return wordCount(item) <= 3;
+    })
+  );
 }
 
 function looksWeakVisualDirection(value) {
@@ -1071,11 +1123,10 @@ function normalizeDifferentiatorPhrase(value) {
 }
 
 function normalizeMarketingLine(value) {
-  const v = cleanSentenceFragment(value)
+  return cleanSentenceFragment(value)
     .replace(/\bin\s+in\b/gi, "in")
     .replace(/\s{2,}/g, " ")
     .trim();
-  return v;
 }
 
 function cleanHeadline(value) {
@@ -1090,8 +1141,12 @@ function audienceToPublicPhrase(value) {
   const v = cleanSentenceFragment(value);
   const lower = v.toLowerCase();
 
-  if (lower.includes("people actively looking")) return "homeowners and clients looking for the right fit";
-  if (lower.includes("trustworthy provider")) return "clients who want a provider they can trust";
+  if (lower.includes("people actively looking")) {
+    return "homeowners and clients looking for the right fit";
+  }
+  if (lower.includes("trustworthy provider")) {
+    return "clients who want a provider they can trust";
+  }
 
   return v;
 }
@@ -1113,7 +1168,9 @@ function buildHeroImageQuery(state, strategyContract) {
     offer ? normalizeOfferPhrase(offer) : "",
     audience ? audienceToImageSeed(audience) : "",
     category || ""
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return clampWords(seed, 4, 8);
 }
@@ -1156,7 +1213,12 @@ function normalizeBookingMethod(value) {
   const lower = cleanString(value).toLowerCase();
   if (!lower) return "";
   if (lower.includes("phone") || lower.includes("call")) return "phone";
-  if (lower.includes("booking") || lower.includes("calendar") || lower.includes("schedule") || lower.includes("link")) {
+  if (
+    lower.includes("booking") ||
+    lower.includes("calendar") ||
+    lower.includes("schedule") ||
+    lower.includes("link")
+  ) {
     return "external_booking";
   }
   if (lower.includes("form") || lower.includes("contact")) return "contact_form";
@@ -1332,6 +1394,30 @@ function normalizeState(state) {
     ...(isObject(next.answers) ? next.answers : {})
   };
 
+  next.answers.why_now = cleanString(next.answers.why_now);
+  next.answers.desired_outcome = cleanString(next.answers.desired_outcome);
+  next.answers.primary_conversion_goal = cleanString(next.answers.primary_conversion_goal);
+  next.answers.first_impression_goal = cleanString(next.answers.first_impression_goal);
+  next.answers.target_audience = cleanString(next.answers.target_audience);
+  next.answers.booking_method = cleanString(next.answers.booking_method);
+  next.answers.phone = cleanString(next.answers.phone);
+  next.answers.booking_url = cleanString(next.answers.booking_url);
+  next.answers.office_address = cleanString(next.answers.office_address);
+  next.answers.location_context = cleanString(next.answers.location_context);
+  next.answers.service_area = cleanString(next.answers.service_area);
+  next.answers.pricing_context = cleanString(next.answers.pricing_context);
+  next.answers.tone_preferences = cleanString(next.answers.tone_preferences);
+  next.answers.visual_direction = cleanString(next.answers.visual_direction);
+  next.answers.experience_years = cleanString(next.answers.experience_years);
+  next.answers.owner_background = cleanString(next.answers.owner_background);
+  next.answers.hero_headline = cleanString(next.answers.hero_headline);
+  next.answers.hero_subheadline = cleanString(next.answers.hero_subheadline);
+  next.answers.hero_image_alt = cleanString(next.answers.hero_image_alt);
+  next.answers.hero_image_query = cleanString(next.answers.hero_image_query);
+  next.answers.tagline = cleanString(next.answers.tagline);
+  next.answers.about_story = cleanString(next.answers.about_story);
+  next.answers.contact_subheadline = cleanString(next.answers.contact_subheadline);
+
   next.answers.offerings = normalizeStringArray(next.answers.offerings);
   next.answers.differentiators = normalizeStringArray(next.answers.differentiators);
   next.answers.trust_signals = normalizeStringArray(next.answers.trust_signals);
@@ -1357,6 +1443,13 @@ function normalizeState(state) {
     ...(isObject(next.ghostwritten) ? next.ghostwritten : {})
   };
 
+  next.ghostwritten.tagline = cleanString(next.ghostwritten.tagline);
+  next.ghostwritten.hero_headline = cleanString(next.ghostwritten.hero_headline);
+  next.ghostwritten.hero_subheadline = cleanString(next.ghostwritten.hero_subheadline);
+  next.ghostwritten.hero_image_alt = cleanString(next.ghostwritten.hero_image_alt);
+  next.ghostwritten.about_summary = cleanString(next.ghostwritten.about_summary);
+  next.ghostwritten.founder_note = cleanString(next.ghostwritten.founder_note);
+  next.ghostwritten.contact_subheadline = cleanString(next.ghostwritten.contact_subheadline);
   next.ghostwritten.features_copy = Array.isArray(next.ghostwritten.features_copy)
     ? next.ghostwritten.features_copy
     : [];
@@ -1378,19 +1471,24 @@ function normalizeState(state) {
 
 function isNavigationAction(action) {
   const a = cleanString(action).toLowerCase();
-  return [
-    "continue",
-    "next",
-    "back",
-    "skip",
-    "resume",
-    "start",
-    "open"
-  ].includes(a);
+  return ["continue", "next", "back", "skip", "resume", "start", "open"].includes(a);
 }
 
 function cleanString(v) {
-  return typeof v === "string" ? v.trim() : "";
+  if (typeof v === "string") return v.trim();
+  if (typeof v === "number") return String(v);
+  return "";
+}
+
+function cleanList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(cleanSentenceFragment).filter(Boolean);
+}
+
+function ensureQuestion(text) {
+  const value = cleanSentenceFragment(text).replace(/[?!.]+$/g, "");
+  if (!value) return "";
+  return `${value}?`;
 }
 
 function cleanSentenceFragment(text) {
@@ -1418,7 +1516,9 @@ function normalizeStringArray(value) {
 }
 
 function uniqueList(arr) {
-  return Array.from(new Set((Array.isArray(arr) ? arr : []).map(cleanSentenceFragment).filter(Boolean)));
+  return Array.from(
+    new Set((Array.isArray(arr) ? arr : []).map(cleanSentenceFragment).filter(Boolean))
+  );
 }
 
 function uniqueFeatureObjects(items) {
@@ -1534,9 +1634,15 @@ function pickFeatureIcon(text, idx) {
   if (value.includes("care") || value.includes("support")) return "heart";
   if (value.includes("team") || value.includes("people")) return "users";
   if (value.includes("map") || value.includes("local")) return "map";
-  if (value.includes("trust") || value.includes("safe") || value.includes("reputation")) return "shield";
-  if (value.includes("quality") || value.includes("award") || value.includes("detail")) return "award";
-  if (value.includes("price") || value.includes("value") || value.includes("quote")) return "coins";
+  if (value.includes("trust") || value.includes("safe") || value.includes("reputation")) {
+    return "shield";
+  }
+  if (value.includes("quality") || value.includes("award") || value.includes("detail")) {
+    return "award";
+  }
+  if (value.includes("price") || value.includes("value") || value.includes("quote")) {
+    return "coins";
+  }
   if (value.includes("schedule") || value.includes("availability")) return "clock";
   if (value.includes("phone") || value.includes("call")) return "phone";
 
