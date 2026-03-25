@@ -1,5 +1,5 @@
 /**
- * SITEFORGE FACTORY: intake-next.js (RECONCILIATION & PRUNING)
+ * SITEFORGE FACTORY: intake-next.js (PROD-READY / HARDENED RECONCILIATION)
  * Role: The Strategic Architect & State Machine Refiner
  */
 
@@ -30,7 +30,7 @@ export async function onRequestPost(context) {
     const strategy = state.provenance?.strategy_contract || {};
     const recommendedSections = strategy.site_structure?.recommended_sections || [];
 
-    // 2. Call OpenAI
+    // 2. Call OpenAI (Restored Full Prompting)
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -49,7 +49,7 @@ export async function onRequestPost(context) {
               CURRENT ANSWERS: ${JSON.stringify(state.answers || {})}
               
               ACTION: Extract facts to 'updates'. Draft 'ghostwritten_updates'.
-              If the user confirmed they have NO physical address or booking link, set address: "false" and booking_url: "false" in updates.
+              If the user confirmed they have NO address or booking link, set those to 'false' (string) in updates.
             ` 
           }
         ],
@@ -73,13 +73,12 @@ export async function onRequestPost(context) {
       state.ghostwritten = { ...state.ghostwritten, ...prediction.ghostwritten_updates };
     }
 
-    // A. Fix Offerings Array (Auditor requirement)
-    if (state.answers.primary_offer && !Array.isArray(state.answers.offerings)) {
+    // A. Fix Offerings Array (Mechanical fix for the Auditor)
+    if (state.answers.primary_offer && (!state.answers.offerings || !Array.isArray(state.answers.offerings))) {
       state.answers.offerings = [state.answers.primary_offer];
     }
 
-    // B. Aggressive Requirement Pruning
-    // We explicitly remove blockers that stop the 1.0 score for Service-Area Businesses.
+    // B. THE PRUNER: This solves the "0.33 Score" problem
     const noAddress = state.answers.address === "false" || state.answers.address === false;
     const noBooking = state.answers.booking_url === "false" || state.answers.booking_url === false;
 
@@ -88,12 +87,12 @@ export async function onRequestPost(context) {
       
       state.provenance.strategy_contract.content_requirements.publish_required_fields = fields.filter(f => {
         const lowerF = f.toLowerCase();
-        // Remove Address/Hours if no physical office
+        // Remove Address/Hours if it's a Service Area Business (SAB)
         if (noAddress && (lowerF.includes('address') || lowerF.includes('hours'))) return false;
         // Remove Booking if not used
         if (noBooking && lowerF.includes('booking')) return false;
-        // Remove boilerplate that the AI is currently ghostwriting anyway
-        if (lowerF.includes('description') || lowerF.includes('photos')) return false;
+        // Remove phone alias if phone is already present
+        if (state.answers.phone && lowerF.includes('phone number')) return false;
         return true;
       });
     }
@@ -101,33 +100,34 @@ export async function onRequestPost(context) {
     // 4. Update Conversation Logs
     if (!state.conversation) state.conversation = [];
     state.conversation.push({ role: "user", content: userMessage });
-    state.conversation.push({ role: "assistant", content: prediction.response || "State updated." });
+    state.conversation.push({ role: "assistant", content: prediction.response || "Details updated." });
 
-    // 5. Readiness & Verification Logic
+    // 5. Readiness & Verification Logic (Refined Math)
     const audit = (function(s) {
       const ans = s.answers || {};
       const reqFields = s.provenance?.strategy_contract?.content_requirements?.publish_required_fields || [];
       
-      // If the list is empty after pruning, score is 1.0 based on existing data
-      const missing = reqFields.filter(f => !ans[f] || ans[f] === "TBD" || ans[f] === "");
+      const missing = reqFields.filter(f => {
+         // Field is missing if it doesn't exist, is TBD, or is empty string
+         const val = ans[f];
+         return !val || val === "TBD" || val === "";
+      });
       
-      // Secondary check for offerings
-      if (!Array.isArray(ans.offerings) || ans.offerings.length === 0) {
-        missing.push("offerings");
-      }
+      // Ensure offerings is always counted
+      if (!Array.isArray(ans.offerings) || ans.offerings.length === 0) missing.push("offerings");
 
-      const totalPossible = reqFields.length + 1;
-      const totalMissing = missing.length;
+      const totalReq = reqFields.length + 1; // +1 for offerings
+      const score = (totalReq - missing.length) / totalReq;
 
       return {
-        score: totalPossible === 0 ? 1 : (totalPossible - totalMissing) / totalPossible,
-        can_generate_now: totalMissing === 0,
+        score: Math.max(0, Math.min(score, 1)),
+        can_generate_now: missing.length === 0,
         missing_domains: missing
       };
     })(state);
 
     state.readiness = audit;
-    state.slug = slug; // PROTECT THE SLUG
+    state.slug = slug; // Forced Persistence
 
     if (audit.can_generate_now) {
       state.verification = {
@@ -139,7 +139,7 @@ export async function onRequestPost(context) {
       state.verification = { queue_complete: false };
     }
 
-    // 6. Final Sync to Orchestrator
+    // 6. Final Sync (Orchestrator restored)
     if (env.ORCHESTRATOR_SCRIPT_URL) {
       try {
         await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
@@ -148,7 +148,7 @@ export async function onRequestPost(context) {
           body: JSON.stringify({ slug, state, updated_at: new Date().toISOString() })
         });
       } catch (e) {
-        console.error("Orchestrator Sync Failed", e);
+        console.error("Orchestrator sync failed", e);
       }
     }
 
