@@ -1,6 +1,12 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * Manifest-Compliant Verification & Refinement Engine (Final V4)
+ * Manifest-Compliant Verification & Refinement Engine (V4)
+ *
+ * Role: One focused verification key per turn
+ *       Scoped mutations only
+ *       Uses full strategy_contract
+ *       Expert strategist tone
+ *       Respects flexible requirements (no forced phone/address)
  */
 
 import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -15,10 +21,10 @@ export async function onRequestPost(context) {
     const userMessage = String(body.answer || "").trim();
 
     if (!state.provenance?.strategy_contract) {
-      throw new Error("Missing strategy_contract");
+      throw new Error("Missing strategy_contract - run intake-start first");
     }
 
-    // 1. Select ONE focused verification key
+    // 1. Select ONE verification key for this turn
     const currentKey = selectNextVerificationKey(state);
 
     // 2. Call AI with strong context
@@ -59,27 +65,32 @@ export async function onRequestPost(context) {
   }
 }
 
-/* ====================== HELPERS ====================== */
+/* ====================== CORE HELPERS ====================== */
 
 function selectNextVerificationKey(state) {
   const contract = state.provenance.strategy_contract;
   const verified = state.verified || {};
 
-  const priority = [
+  const priorityKeys = [
     ...cleanList(contract.content_requirements?.must_verify_now),
     "phone",
     "booking_url",
     "hero_headline",
+    "hero_subheadline",
     "visual_direction",
     "offerings",
+    "process_notes",
     "target_audience",
     "service_area",
-    "primary_conversion_goal"
+    "primary_conversion_goal",
+    "differentiators"
   ];
 
-  for (const key of priority) {
+  for (const key of priorityKeys) {
     const norm = normalizeKey(key);
-    if (!verified[norm]) return norm;
+    if (!verified[norm]) {
+      return norm;
+    }
   }
   return "final_review";
 }
@@ -98,16 +109,19 @@ async function callVerificationAI(state, currentKey, userMessage, env) {
       temperature: 0.3,
       messages: [
         { role: "system", content: INTAKE_VERIFICATION_SYSTEM_PROMPT },
-        { 
-          role: "user", 
+        {
+          role: "user",
           content: `Business: ${state.businessName}
-Current key: ${currentKey}
-Strategy summary: ${JSON.stringify({
-            archetype: contract.business_context?.strategic_archetype,
-            primary_conversion: contract.conversion_strategy?.primary_conversion,
-            must_verify_now: contract.content_requirements?.must_verify_now
-          })}
-User answer: "${userMessage}"`
+Current verification key: ${currentKey}
+
+Strategy highlights:
+- Archetype: ${contract.business_context?.strategic_archetype || "high_consideration_home_service"}
+- Primary conversion: ${contract.conversion_strategy?.primary_conversion || "request_quote"}
+- Must verify now: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
+
+User answer: "${userMessage}"
+
+Analyze and return structured JSON only.`
         }
       ],
       response_format: { type: "json_object" }
@@ -115,7 +129,7 @@ User answer: "${userMessage}"`
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || "AI call failed");
+  if (!res.ok) throw new Error(data.error?.message || "OpenAI failed");
 
   return JSON.parse(data.choices[0].message.content);
 }
@@ -125,24 +139,34 @@ function applyScopedUpdates(state, prediction, currentKey) {
   state.ghostwritten = state.ghostwritten || {};
   state.verified = state.verified || {};
 
-  if (prediction.updates) {
-    Object.keys(prediction.updates).forEach(k => {
-      if (isRelatedToKey(k, currentKey)) {
-        state.answers[k] = prediction.updates[k];
-        state.verified[normalizeKey(k)] = true;
+  // Scoped updates only
+  if (prediction.updates && typeof prediction.updates === "object") {
+    Object.keys(prediction.updates).forEach(key => {
+      if (isRelatedToKey(key, currentKey)) {
+        state.answers[key] = prediction.updates[key];
+        state.verified[normalizeKey(key)] = true;
       }
     });
   }
 
-  if (prediction.ghostwritten_updates) {
+  // Ghostwritten refinements
+  if (prediction.ghostwritten_updates && typeof prediction.ghostwritten_updates === "object") {
     Object.assign(state.ghostwritten, prediction.ghostwritten_updates);
   }
 }
 
-function isRelatedToKey(field, key) {
-  const map = { phone: ["phone"], service_area: ["service", "area"], offerings: ["offer"] };
-  const related = map[key] || [key];
-  return related.some(r => field.toLowerCase().includes(r));
+function isRelatedToKey(field, currentKey) {
+  const relations = {
+    phone: ["phone", "contact"],
+    booking_url: ["booking", "contact"],
+    service_area: ["service", "area"],
+    offerings: ["offer", "service"],
+    hero_headline: ["hero"],
+    visual_direction: ["visual", "image", "gallery"]
+  };
+
+  const related = relations[currentKey] || [currentKey];
+  return related.some(r => field.toLowerCase().includes(r.toLowerCase()));
 }
 
 function recomputeVerificationQueue(state) {
@@ -164,7 +188,11 @@ function evaluateReadiness(state) {
   const answers = state.answers || {};
   const verification = state.verification || {};
 
-  const hasContactPath = Boolean(answers.phone || answers.booking_url || state.clientEmail);
+  const hasContactPath = Boolean(
+    cleanString(answers.phone) ||
+    cleanString(answers.booking_url) ||
+    cleanString(state.clientEmail)
+  );
 
   const missing = [];
   if (!cleanString(answers.target_audience)) missing.push("target_audience");
@@ -173,15 +201,18 @@ function evaluateReadiness(state) {
   if (!hasContactPath) missing.push("contact_path");
 
   return {
-    score: verification.queue_complete && missing.length === 0 ? 1 : 0.65,
+    score: verification.queue_complete && missing.length === 0 ? 1.0 : 0.65,
     can_generate_now: verification.queue_complete === true && missing.length === 0,
     missing_domains: missing
   };
 }
 
-/* Utils */
-function normalizeKey(k) {
-  return String(k || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+/* ====================== UTILITIES ====================== */
+
+function normalizeKey(key) {
+  return String(key || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 function cleanString(v) {
