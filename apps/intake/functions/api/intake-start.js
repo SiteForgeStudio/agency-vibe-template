@@ -2,9 +2,10 @@
  * SITEFORGE FACTORY: intake-start.js
  * Role: Bootstraps the Paid Intake session.
  * Logic: Seeds 'strategy_contract' so intake-next can act as an Architect.
+ * Updated to work with new verification engine (intake-next.js + INTAKE_VERIFICATION_SYSTEM_PROMPT)
  */
 
-import { INTAKE_CONTROLLER_SYSTEM_PROMPT } from "./intake-prompts.js";
+import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -40,28 +41,46 @@ export async function onRequestPost(context) {
     }
 
     // 2. INITIALIZE STATE
-    // Pulling from the paid_intake_json or strategy_contract as seen in your previous successful curl
-    const strategy = reconData.strategy_contract || (reconData.paid_intake_json ? JSON.parse(reconData.paid_intake_json).strategy_contract : {});
-    
+    const strategy = reconData.strategy_contract || 
+                    (reconData.paid_intake_json ? JSON.parse(reconData.paid_intake_json).strategy_contract : {});
+
     const initialState = {
       slug: slug,
       businessName: reconData.input_business_name || strategy.business_context?.business_name || "New Partner",
       clientEmail: reconData.client_email || "",
       phase: "recon_validation",
+
       answers: {
         primary_offer: strategy.source_snapshot?.primary_offer_hint || "",
-        service_area: strategy.business_context?.service_area?.[0] || ""
+        service_area: strategy.business_context?.service_area?.[0] || "",
+        // Add more seeded fields from strategy if desired
       },
+
       ghostwritten: {},
+      
+      // New fields for the verification engine
+      verified: {},                    // Tracks what has been user-verified
+      verification: {
+        queue_complete: false,
+        verified_count: 0,
+        remaining_keys: [],
+      },
+
       conversation: [],
+      
       provenance: {
         strategy_contract: strategy,
         recon_snapshot: reconData
       },
-      readiness: { score: 0.1, can_generate_now: false, missing_domains: ["contact_path"] }
+
+      readiness: { 
+        score: 0.1, 
+        can_generate_now: false, 
+        missing_domains: ["contact_path"] 
+      }
     };
 
-    // 3. CALL OPENAI (The Strategic Brain)
+    // 3. CALL OPENAI (The Strategic Brain) — using the new verification prompt
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -71,10 +90,11 @@ export async function onRequestPost(context) {
       body: JSON.stringify({
         model: "gpt-4o",
         messages: [
-          { role: "system", content: INTAKE_CONTROLLER_SYSTEM_PROMPT },
+          { role: "system", content: INTAKE_VERIFICATION_SYSTEM_PROMPT },
           { 
             role: "user", 
-            content: `Initialize intake for ${initialState.businessName}. Strategy: ${JSON.stringify(strategy)}` 
+            content: `Initialize intake for ${initialState.businessName}. 
+Strategy Contract: ${JSON.stringify(strategy)}` 
           }
         ],
         response_format: { type: "json_object" }
@@ -85,7 +105,7 @@ export async function onRequestPost(context) {
     if (!aiRes.ok) throw new Error(aiData.error?.message || "OpenAI Failed");
 
     const prediction = JSON.parse(aiData.choices[0].message.content);
-    const openingMessage = prediction.response || "Analysis complete. Ready to build your strategy.";
+    const openingMessage = prediction.response || "I've reviewed your preflight strategy. Let's refine this into a high-converting one-page site. What's the best phone number or booking method for inquiries?";
 
     // 4. UPDATE STATE & SYNC
     initialState.conversation.push({ role: "assistant", content: openingMessage });
@@ -94,7 +114,11 @@ export async function onRequestPost(context) {
       await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, state: initialState, timestamp: new Date().toISOString() })
+        body: JSON.stringify({ 
+          slug, 
+          state: initialState, 
+          timestamp: new Date().toISOString() 
+        })
       });
     }
 
@@ -102,9 +126,12 @@ export async function onRequestPost(context) {
       ok: true,
       message: openingMessage,
       state: initialState
-    }), { headers: { "Content-Type": "application/json" } });
+    }), { 
+      headers: { "Content-Type": "application/json; charset=utf-8" } 
+    });
 
   } catch (err) {
+    console.error("[intake-start]", err);
     return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500 });
   }
 }
