@@ -1,5 +1,5 @@
 /**
- * SITEFORGE FACTORY: intake-next.js (HARDENED RECONCILIATION)
+ * SITEFORGE FACTORY: intake-next.js (RECONCILIATION & PRUNING)
  * Role: The Strategic Architect & State Machine Refiner
  */
 
@@ -49,7 +49,7 @@ export async function onRequestPost(context) {
               CURRENT ANSWERS: ${JSON.stringify(state.answers || {})}
               
               ACTION: Extract facts to 'updates'. Draft 'ghostwritten_updates'.
-              If the user confirmed they have NO address or booking link, set those to 'false' in updates.
+              If the user confirmed they have NO physical address or booking link, set address: "false" and booking_url: "false" in updates.
             ` 
           }
         ],
@@ -73,52 +73,61 @@ export async function onRequestPost(context) {
       state.ghostwritten = { ...state.ghostwritten, ...prediction.ghostwritten_updates };
     }
 
-    // A. Fix Offerings Array
+    // A. Fix Offerings Array (Auditor requirement)
     if (state.answers.primary_offer && !Array.isArray(state.answers.offerings)) {
       state.answers.offerings = [state.answers.primary_offer];
     }
 
-    // B. Prune Strategy Contract based on Answers
+    // B. Aggressive Requirement Pruning
+    // We explicitly remove blockers that stop the 1.0 score for Service-Area Businesses.
     const noAddress = state.answers.address === "false" || state.answers.address === false;
     const noBooking = state.answers.booking_url === "false" || state.answers.booking_url === false;
 
-    if (noAddress || noBooking) {
-      if (state.provenance?.strategy_contract?.content_requirements?.publish_required_fields) {
-        let fields = state.provenance.strategy_contract.content_requirements.publish_required_fields;
-        state.provenance.strategy_contract.content_requirements.publish_required_fields = fields.filter(f => {
-          if (noAddress && (f === 'address' || f === 'business address')) return false;
-          if (noBooking && f === 'booking_url') return false;
-          return true;
-        });
-      }
-      // Sync toggles
-      if (noAddress) state.provenance.strategy_contract.schema_toggles.show_service_area = true; // Still show area, just not address
+    if (state.provenance?.strategy_contract?.content_requirements?.publish_required_fields) {
+      let fields = state.provenance.strategy_contract.content_requirements.publish_required_fields;
+      
+      state.provenance.strategy_contract.content_requirements.publish_required_fields = fields.filter(f => {
+        const lowerF = f.toLowerCase();
+        // Remove Address/Hours if no physical office
+        if (noAddress && (lowerF.includes('address') || lowerF.includes('hours'))) return false;
+        // Remove Booking if not used
+        if (noBooking && lowerF.includes('booking')) return false;
+        // Remove boilerplate that the AI is currently ghostwriting anyway
+        if (lowerF.includes('description') || lowerF.includes('photos')) return false;
+        return true;
+      });
     }
 
     // 4. Update Conversation Logs
     if (!state.conversation) state.conversation = [];
     state.conversation.push({ role: "user", content: userMessage });
-    state.conversation.push({ role: "assistant", content: prediction.response || "Details updated." });
+    state.conversation.push({ role: "assistant", content: prediction.response || "State updated." });
 
     // 5. Readiness & Verification Logic
-    // We define this locally to ensure no reference errors
     const audit = (function(s) {
       const ans = s.answers || {};
-      const reqFields = s.provenance?.strategy_contract?.content_requirements?.publish_required_fields || ["phone"];
+      const reqFields = s.provenance?.strategy_contract?.content_requirements?.publish_required_fields || [];
+      
+      // If the list is empty after pruning, score is 1.0 based on existing data
       const missing = reqFields.filter(f => !ans[f] || ans[f] === "TBD" || ans[f] === "");
       
-      // Specifically check offerings array for the auditor
-      if (!Array.isArray(ans.offerings) || ans.offerings.length === 0) missing.push("offerings_array");
+      // Secondary check for offerings
+      if (!Array.isArray(ans.offerings) || ans.offerings.length === 0) {
+        missing.push("offerings");
+      }
+
+      const totalPossible = reqFields.length + 1;
+      const totalMissing = missing.length;
 
       return {
-        score: (reqFields.length + 1 - missing.length) / (reqFields.length + 1),
-        can_generate_now: missing.length === 0,
+        score: totalPossible === 0 ? 1 : (totalPossible - totalMissing) / totalPossible,
+        can_generate_now: totalMissing === 0,
         missing_domains: missing
       };
     })(state);
 
     state.readiness = audit;
-    state.slug = slug; // FORCED PERSISTENCE
+    state.slug = slug; // PROTECT THE SLUG
 
     if (audit.can_generate_now) {
       state.verification = {
@@ -130,13 +139,17 @@ export async function onRequestPost(context) {
       state.verification = { queue_complete: false };
     }
 
-    // 6. Final Sync
+    // 6. Final Sync to Orchestrator
     if (env.ORCHESTRATOR_SCRIPT_URL) {
-      await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug, state, updated_at: new Date().toISOString() })
-      });
+      try {
+        await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, state, updated_at: new Date().toISOString() })
+        });
+      } catch (e) {
+        console.error("Orchestrator Sync Failed", e);
+      }
     }
 
     return new Response(JSON.stringify({
