@@ -6,7 +6,7 @@
  *       Scoped mutations only
  *       Uses full strategy_contract
  *       Expert strategist tone
- *       Respects flexible requirements (no forced phone/address)
+ *       Respects flexible requirements (no forced phone/address when not needed)
  */
 
 import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -27,13 +27,13 @@ export async function onRequestPost(context) {
     // 1. Select ONE verification key for this turn
     const currentKey = selectNextVerificationKey(state);
 
-    // 2. Call AI with strong context
+    // 2. Call AI
     const aiResponse = await callVerificationAI(state, currentKey, userMessage, env);
 
-    // 3. Apply scoped updates only
+    // 3. Scoped updates only
     applyScopedUpdates(state, aiResponse, currentKey);
 
-    // 4. Recompute queue and readiness
+    // 4. Recompute
     state.verification = recomputeVerificationQueue(state);
     state.readiness = evaluateReadiness(state);
 
@@ -42,7 +42,7 @@ export async function onRequestPost(context) {
     state.conversation.push({ role: "user", content: userMessage });
     state.conversation.push({ role: "assistant", content: aiResponse.response });
 
-    // 6. Set phase
+    // 6. Phase
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "guided_enrichment";
 
     return new Response(
@@ -65,14 +65,14 @@ export async function onRequestPost(context) {
   }
 }
 
-/* ====================== CORE HELPERS ====================== */
+/* ====================== HELPERS ====================== */
 
 function selectNextVerificationKey(state) {
   const contract = state.provenance.strategy_contract;
   const verified = state.verified || {};
 
   const priorityKeys = [
-    ...cleanList(contract.content_requirements?.must_verify_now),
+    ...cleanList(contract.content_requirements?.must_verify_now || []),
     "phone",
     "booking_url",
     "hero_headline",
@@ -82,8 +82,7 @@ function selectNextVerificationKey(state) {
     "process_notes",
     "target_audience",
     "service_area",
-    "primary_conversion_goal",
-    "differentiators"
+    "primary_conversion_goal"
   ];
 
   for (const key of priorityKeys) {
@@ -114,14 +113,14 @@ async function callVerificationAI(state, currentKey, userMessage, env) {
           content: `Business: ${state.businessName}
 Current verification key: ${currentKey}
 
-Strategy highlights:
-- Archetype: ${contract.business_context?.strategic_archetype || "high_consideration_home_service"}
-- Primary conversion: ${contract.conversion_strategy?.primary_conversion || "request_quote"}
-- Must verify now: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
+Strategy:
+- Archetype: ${contract.business_context?.strategic_archetype || ""}
+- Primary conversion: ${contract.conversion_strategy?.primary_conversion || ""}
+- Must verify: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
 
 User answer: "${userMessage}"
 
-Analyze and return structured JSON only.`
+Return structured JSON only.`
         }
       ],
       response_format: { type: "json_object" }
@@ -139,33 +138,30 @@ function applyScopedUpdates(state, prediction, currentKey) {
   state.ghostwritten = state.ghostwritten || {};
   state.verified = state.verified || {};
 
-  // Scoped updates only
-  if (prediction.updates && typeof prediction.updates === "object") {
-    Object.keys(prediction.updates).forEach(key => {
-      if (isRelatedToKey(key, currentKey)) {
-        state.answers[key] = prediction.updates[key];
-        state.verified[normalizeKey(key)] = true;
+  if (prediction.updates) {
+    Object.keys(prediction.updates).forEach(k => {
+      if (isRelatedToKey(k, currentKey)) {
+        state.answers[k] = prediction.updates[k];
+        state.verified[normalizeKey(k)] = true;
       }
     });
   }
 
-  // Ghostwritten refinements
-  if (prediction.ghostwritten_updates && typeof prediction.ghostwritten_updates === "object") {
+  if (prediction.ghostwritten_updates) {
     Object.assign(state.ghostwritten, prediction.ghostwritten_updates);
   }
 }
 
 function isRelatedToKey(field, currentKey) {
-  const relations = {
-    phone: ["phone", "contact"],
-    booking_url: ["booking", "contact"],
+  const map = {
+    phone: ["phone"],
+    booking_url: ["booking"],
     service_area: ["service", "area"],
-    offerings: ["offer", "service"],
+    offerings: ["offer"],
     hero_headline: ["hero"],
-    visual_direction: ["visual", "image", "gallery"]
+    visual_direction: ["visual"]
   };
-
-  const related = relations[currentKey] || [currentKey];
+  const related = map[currentKey] || [currentKey];
   return related.some(r => field.toLowerCase().includes(r.toLowerCase()));
 }
 
@@ -210,9 +206,7 @@ function evaluateReadiness(state) {
 /* ====================== UTILITIES ====================== */
 
 function normalizeKey(key) {
-  return String(key || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+  return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function cleanString(v) {
