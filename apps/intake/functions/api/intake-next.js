@@ -1,12 +1,8 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * Manifest-Compliant Verification & Refinement Engine (V4)
+ * Manifest-Compliant Verification & Refinement Engine (Final V5)
  *
- * Role: One focused verification key per turn
- *       Scoped mutations only
- *       Uses full strategy_contract
- *       Expert strategist tone
- *       Respects flexible requirements (no forced phone/address when not needed)
+ * This is the disciplined version the manifest asked for.
  */
 
 import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -24,25 +20,24 @@ export async function onRequestPost(context) {
       throw new Error("Missing strategy_contract - run intake-start first");
     }
 
-    // 1. Select ONE verification key for this turn
+    // 1. Select ONE focused key
     const currentKey = selectNextVerificationKey(state);
 
-    // 2. Call AI
+    // 2. Get AI response
     const aiResponse = await callVerificationAI(state, currentKey, userMessage, env);
 
-    // 3. Scoped updates only
+    // 3. Scoped mutation only
     applyScopedUpdates(state, aiResponse, currentKey);
 
     // 4. Recompute
     state.verification = recomputeVerificationQueue(state);
     state.readiness = evaluateReadiness(state);
 
-    // 5. Update conversation
+    // 5. Conversation
     state.conversation = state.conversation || [];
     state.conversation.push({ role: "user", content: userMessage });
     state.conversation.push({ role: "assistant", content: aiResponse.response });
 
-    // 6. Phase
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "guided_enrichment";
 
     return new Response(
@@ -71,25 +66,21 @@ function selectNextVerificationKey(state) {
   const contract = state.provenance.strategy_contract;
   const verified = state.verified || {};
 
-  const priorityKeys = [
+  const priority = [
     ...cleanList(contract.content_requirements?.must_verify_now || []),
     "phone",
     "booking_url",
     "hero_headline",
-    "hero_subheadline",
     "visual_direction",
     "offerings",
-    "process_notes",
     "target_audience",
     "service_area",
     "primary_conversion_goal"
   ];
 
-  for (const key of priorityKeys) {
+  for (const key of priority) {
     const norm = normalizeKey(key);
-    if (!verified[norm]) {
-      return norm;
-    }
+    if (!verified[norm]) return norm;
   }
   return "final_review";
 }
@@ -105,22 +96,22 @@ async function callVerificationAI(state, currentKey, userMessage, env) {
     },
     body: JSON.stringify({
       model: "gpt-4o",
-      temperature: 0.3,
+      temperature: 0.25,
       messages: [
         { role: "system", content: INTAKE_VERIFICATION_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Business: ${state.businessName}
-Current verification key: ${currentKey}
+          content: `Business: ${state.businessName || "the business"}
+Current key to verify: ${currentKey}
 
-Strategy:
-- Archetype: ${contract.business_context?.strategic_archetype || ""}
-- Primary conversion: ${contract.conversion_strategy?.primary_conversion || ""}
+Key context from strategy:
+- Archetype: ${contract.business_context?.strategic_archetype}
+- Primary goal: ${contract.conversion_strategy?.primary_conversion}
 - Must verify: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
 
-User answer: "${userMessage}"
+User's answer: "${userMessage}"
 
-Return structured JSON only.`
+Return only valid JSON with analysis, updates, ghostwritten_updates, and response.`
         }
       ],
       response_format: { type: "json_object" }
@@ -128,7 +119,7 @@ Return structured JSON only.`
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || "OpenAI failed");
+  if (!res.ok) throw new Error(data.error?.message || "AI call failed");
 
   return JSON.parse(data.choices[0].message.content);
 }
@@ -152,7 +143,7 @@ function applyScopedUpdates(state, prediction, currentKey) {
   }
 }
 
-function isRelatedToKey(field, currentKey) {
+function isRelatedToKey(field, key) {
   const map = {
     phone: ["phone"],
     booking_url: ["booking"],
@@ -161,7 +152,7 @@ function isRelatedToKey(field, currentKey) {
     hero_headline: ["hero"],
     visual_direction: ["visual"]
   };
-  const related = map[currentKey] || [currentKey];
+  const related = map[key] || [key];
   return related.some(r => field.toLowerCase().includes(r.toLowerCase()));
 }
 
@@ -197,14 +188,13 @@ function evaluateReadiness(state) {
   if (!hasContactPath) missing.push("contact_path");
 
   return {
-    score: verification.queue_complete && missing.length === 0 ? 1.0 : 0.65,
+    score: verification.queue_complete && missing.length === 0 ? 1.0 : 0.7,
     can_generate_now: verification.queue_complete === true && missing.length === 0,
     missing_domains: missing
   };
 }
 
-/* ====================== UTILITIES ====================== */
-
+/* Utils */
 function normalizeKey(key) {
   return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
