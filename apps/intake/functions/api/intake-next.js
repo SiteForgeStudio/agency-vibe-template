@@ -1,6 +1,7 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * Manifest-Compliant Verification & Refinement Engine (Final V5)
+ * Complete file - Manifest-Compliant Verification Engine
+ * No patches needed - replace entire file with this.
  */
 
 import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -18,15 +19,20 @@ export async function onRequestPost(context) {
       throw new Error("Missing strategy_contract - run intake-start first");
     }
 
+    // 1. Select one verification key
     const currentKey = selectNextVerificationKey(state);
 
+    // 2. Call AI
     const aiResponse = await callVerificationAI(state, currentKey, userMessage, env);
 
+    // 3. Scoped updates only
     applyScopedUpdates(state, aiResponse, currentKey);
 
+    // 4. Recompute
     state.verification = recomputeVerificationQueue(state);
     state.readiness = evaluateReadiness(state);
 
+    // 5. Conversation
     state.conversation = state.conversation || [];
     state.conversation.push({ role: "user", content: userMessage });
     state.conversation.push({ role: "assistant", content: aiResponse.response });
@@ -95,16 +101,16 @@ async function callVerificationAI(state, currentKey, userMessage, env) {
         {
           role: "user",
           content: `Business: ${state.businessName || "the business"}
-Current verification key: ${currentKey}
+Current key: ${currentKey}
 
-Strategy context:
-- Archetype: ${contract.business_context?.strategic_archetype || "high_consideration_home_service"}
-- Primary conversion: ${contract.conversion_strategy?.primary_conversion || "request_quote"}
+Strategy:
+- Archetype: ${contract.business_context?.strategic_archetype || ""}
+- Primary conversion: ${contract.conversion_strategy?.primary_conversion || ""}
 - Must verify now: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
 
 User answer: "${userMessage}"
 
-Analyze the answer and return structured JSON only.`
+Return ONLY valid JSON with the exact structure: analysis, updates, ghostwritten_updates, response.`
         }
       ],
       response_format: { type: "json_object" }
