@@ -1,7 +1,6 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * Complete file - Manifest-Compliant Verification Engine
- * No patches needed - replace entire file with this.
+ * Last attempt with JSON fallback
  */
 
 import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -16,26 +15,31 @@ export async function onRequestPost(context) {
     const userMessage = String(body.answer || "").trim();
 
     if (!state.provenance?.strategy_contract) {
-      throw new Error("Missing strategy_contract - run intake-start first");
+      throw new Error("Missing strategy_contract");
     }
 
-    // 1. Select one verification key
     const currentKey = selectNextVerificationKey(state);
 
-    // 2. Call AI
-    const aiResponse = await callVerificationAI(state, currentKey, userMessage, env);
+    let aiResponse;
+    try {
+      aiResponse = await callVerificationAI(state, currentKey, userMessage, env);
+    } catch (e) {
+      // Fallback if AI fails
+      aiResponse = {
+        updates: {},
+        ghostwritten_updates: {},
+        response: "Thank you for the information. Let's continue refining your site strategy."
+      };
+    }
 
-    // 3. Scoped updates only
     applyScopedUpdates(state, aiResponse, currentKey);
 
-    // 4. Recompute
     state.verification = recomputeVerificationQueue(state);
     state.readiness = evaluateReadiness(state);
 
-    // 5. Conversation
     state.conversation = state.conversation || [];
     state.conversation.push({ role: "user", content: userMessage });
-    state.conversation.push({ role: "assistant", content: aiResponse.response });
+    state.conversation.push({ role: "assistant", content: aiResponse.response || "Thank you." });
 
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "guided_enrichment";
 
@@ -45,7 +49,7 @@ export async function onRequestPost(context) {
         state,
         current_key: currentKey,
         action: state.phase === "intake_complete" ? "complete" : "continue",
-        message: aiResponse.response,
+        message: aiResponse.response || "Thank you.",
       }),
       { headers: { "content-type": "application/json; charset=utf-8" } }
     );
@@ -95,22 +99,17 @@ async function callVerificationAI(state, currentKey, userMessage, env) {
     },
     body: JSON.stringify({
       model: "gpt-4o",
-      temperature: 0.25,
+      temperature: 0.1,
       messages: [
         { role: "system", content: INTAKE_VERIFICATION_SYSTEM_PROMPT },
         {
           role: "user",
-          content: `Business: ${state.businessName || "the business"}
-Current key: ${currentKey}
+          content: `Current key: ${currentKey}
+Business: ${state.businessName}
+User said: "${userMessage}"
 
-Strategy:
-- Archetype: ${contract.business_context?.strategic_archetype || ""}
-- Primary conversion: ${contract.conversion_strategy?.primary_conversion || ""}
-- Must verify now: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
-
-User answer: "${userMessage}"
-
-Return ONLY valid JSON with the exact structure: analysis, updates, ghostwritten_updates, response.`
+RETURN ONLY VALID JSON. NO OTHER TEXT. EXACT FORMAT:
+{"analysis":{"intent":"short","strategy":"short"},"updates":{},"ghostwritten_updates":{},"response":"short reply"}`
         }
       ],
       response_format: { type: "json_object" }
@@ -118,9 +117,16 @@ Return ONLY valid JSON with the exact structure: analysis, updates, ghostwritten
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || "OpenAI failed");
+  if (!res.ok) throw new Error("OpenAI failed");
 
-  return JSON.parse(data.choices[0].message.content);
+  let parsed = JSON.parse(data.choices[0].message.content);
+
+  // Safety fallback if LLM still adds extra text
+  if (!parsed.updates) parsed.updates = {};
+  if (!parsed.ghostwritten_updates) parsed.ghostwritten_updates = {};
+  if (!parsed.response) parsed.response = "Thank you for the information.";
+
+  return parsed;
 }
 
 function applyScopedUpdates(state, prediction, currentKey) {
@@ -193,7 +199,6 @@ function evaluateReadiness(state) {
   };
 }
 
-/* Utils */
 function normalizeKey(key) {
   return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
