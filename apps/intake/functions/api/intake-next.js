@@ -31,11 +31,12 @@ export async function onRequestPost(context) {
     state.answers = isObject(state.answers) ? state.answers : {};
     state.conversation = Array.isArray(state.conversation) ? state.conversation : [];
 
-    // If a user answer is present, apply it to the current key.
     const currentKeyBefore = state.current_key || selectNextVerificationKey(state);
 
     if (userMessage && currentKeyBefore) {
+      extractObviousSignals(state, userMessage);
       applyDeterministicAnswer(state, currentKeyBefore, userMessage);
+      sanitizeAnswers(state);
 
       state.conversation.push({
         role: "user",
@@ -49,6 +50,7 @@ export async function onRequestPost(context) {
     const nextKey = selectNextVerificationKey(state);
     state.current_key = nextKey;
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "guided_enrichment";
+    state.action = state.readiness.can_generate_now ? "complete" : "continue";
 
     const assistantMessage = nextKey
       ? buildQuestionForKey(state, nextKey)
@@ -63,7 +65,7 @@ export async function onRequestPost(context) {
       ok: true,
       state,
       current_key: nextKey,
-      action: state.readiness.can_generate_now ? "complete" : "continue",
+      action: state.action,
       message: assistantMessage
     });
   } catch (err) {
@@ -77,9 +79,14 @@ export async function onRequestPost(context) {
 -------------------------------- */
 
 function applyDeterministicAnswer(state, key, rawInput) {
-  const normalized = normalizeAnswerByKey(key, rawInput);
+  const canonicalKey = canonicalizeKey(key);
+  const normalized = normalizeAnswerByKey(canonicalKey, rawInput);
 
-  const targetPath = getAnswerPathForKey(key);
+  if (!doesAnswerMatchKey(canonicalKey, normalized)) {
+    return;
+  }
+
+  const targetPath = getAnswerPathForKey(canonicalKey);
   if (!targetPath) return;
 
   setByPath(state, targetPath, normalized);
@@ -105,11 +112,16 @@ function recomputeVerificationQueue(state) {
   const mustVerifyNow = cleanList(requirements.must_verify_now);
   const previewRequired = cleanList(requirements.preview_required_fields);
 
-  // Use must_verify_now first, then preview-required fields that map to answer fields.
-  const ordered = uniqueList([
+  const orderedRaw = [
     ...mustVerifyNow,
     ...previewRequired
-  ]);
+  ];
+
+  const ordered = uniqueList(
+    orderedRaw
+      .map(canonicalizeKey)
+      .filter((key) => !!getAnswerPathForKey(key))
+  );
 
   const remaining = ordered.filter((key) => !isKeySatisfied(state, key));
 
@@ -125,8 +137,17 @@ function evaluateReadiness(state) {
   const contract = state.provenance.strategy_contract || {};
   const requirements = contract.content_requirements || {};
 
-  const previewRequired = cleanList(requirements.preview_required_fields);
-  const publishRequired = cleanList(requirements.publish_required_fields);
+  const previewRequired = uniqueList(
+    cleanList(requirements.preview_required_fields)
+      .map(canonicalizeKey)
+      .filter((key) => !!getAnswerPathForKey(key))
+  );
+
+  const publishRequired = uniqueList(
+    cleanList(requirements.publish_required_fields)
+      .map(canonicalizeKey)
+      .filter((key) => !!getAnswerPathForKey(key))
+  );
 
   const previewMissing = previewRequired.filter((key) => !isKeySatisfied(state, key));
   const publishMissing = publishRequired.filter((key) => !isKeySatisfied(state, key));
@@ -148,7 +169,9 @@ function evaluateReadiness(state) {
 -------------------------------- */
 
 function buildQuestionForKey(state, key) {
+  const canonicalKey = canonicalizeKey(key);
   const contract = state.provenance.strategy_contract || {};
+
   const businessName =
     cleanString(state.businessName) ||
     cleanString(contract.business_context?.business_name) ||
@@ -161,16 +184,14 @@ function buildQuestionForKey(state, key) {
       : ""
   );
   const primaryConversion = cleanString(contract.conversion_strategy?.primary_conversion);
-  const vibe = cleanString(contract.visual_strategy?.recommended_vibe);
 
-  switch (key) {
+  switch (canonicalKey) {
     case "service area specifics":
       return `We already have ${serviceArea || "your core area"} as the base for ${businessName}. To make the preview feel accurate, do you serve all nearby areas or only specific neighborhoods, towns, or parts of the region?`;
 
     case "pricing structure":
       return `For a ${category || "service"} like this, pricing clarity affects trust fast. Do you price by project size, window count, home size, package, or custom quote?`;
 
-    case "booking process":
     case "booking_method":
       return `When someone is ready to ${primaryConversion || "take the next step"}, what should happen first — call, text, form submission, or something else?`;
 
@@ -184,22 +205,18 @@ function buildQuestionForKey(state, key) {
       return `What is the cleanest way to describe your service area on the site — a city, a county, a metro area, or a list of towns?`;
 
     case "phone":
-    case "public business phone number":
       return `What public phone number should appear on the site for inquiries or quote requests?`;
 
     case "booking_url":
       return `Do you already have a booking page, request form, or external link we should send people to?`;
 
     case "hours":
-    case "hours of operation":
       return `What hours or availability window should we show publicly on the site?`;
 
     case "business address":
-    case "address":
       return `Do you want to show a public business address, or should we present this as a service-area business without a storefront address?`;
 
     case "photos":
-    case "high-quality photos of previous work":
       return `Do you already have strong project photos we can use later, especially before-and-after or finished-work images?`;
 
     case "customer testimonials":
@@ -212,7 +229,7 @@ function buildQuestionForKey(state, key) {
       return `Would you like the site to include a founder or owner story, and if so, what should it emphasize?`;
 
     default:
-      return `Let’s tighten one more important detail for the preview. Can you clarify: ${key}?`;
+      return `Let’s tighten one more important detail for the preview. Can you clarify: ${canonicalKey}?`;
   }
 }
 
@@ -221,7 +238,8 @@ function buildQuestionForKey(state, key) {
 -------------------------------- */
 
 function isKeySatisfied(state, key) {
-  const targetPath = getAnswerPathForKey(key);
+  const canonicalKey = canonicalizeKey(key);
+  const targetPath = getAnswerPathForKey(canonicalKey);
 
   if (!targetPath) {
     return false;
@@ -237,21 +255,16 @@ function getAnswerPathForKey(key) {
   const map = {
     "primary_offer": "answers.primary_offer",
     "booking_method": "answers.booking_method",
-    "booking process": "answers.booking_method",
     "service_area": "answers.service_area",
     "service area specifics": "answers.service_area_specifics",
     "pricing structure": "answers.pricing_structure",
     "availability for peak seasons": "answers.peak_season_availability",
     "phone": "answers.phone",
-    "public business phone number": "answers.phone",
     "booking_url": "answers.booking_url",
     "hours": "answers.hours",
-    "hours of operation": "answers.hours",
     "business address": "answers.office_address",
-    "address": "answers.office_address",
     "description": "answers.business_description",
     "photos": "answers.photos_status",
-    "high-quality photos of previous work": "answers.photos_status",
     "detailed service descriptions": "answers.service_descriptions",
     "customer testimonials": "answers.testimonials_status",
     "founder bio": "answers.founder_bio"
@@ -260,34 +273,116 @@ function getAnswerPathForKey(key) {
   return map[normalized] || null;
 }
 
+function canonicalizeKey(key) {
+  const normalized = normalizeKey(key);
+
+  const canonicalMap = {
+    "booking process": "booking_method",
+    "public business phone number": "phone",
+    "hours of operation": "hours",
+    "address": "business address",
+    "high-quality photos of previous work": "photos"
+  };
+
+  return canonicalMap[normalized] || normalized;
+}
+
+/* --------------------------------
+   EXTRACTION + VALIDATION
+-------------------------------- */
+
+function extractObviousSignals(state, input) {
+  const text = cleanString(input);
+  if (!text) return;
+
+  const phoneMatch = text.match(/(?:\+?1[\s.\-]?)?(?:\(?\d{3}\)?[\s.\-]?)\d{3}[\s.\-]?\d{4}/);
+  if (phoneMatch && !hasMeaningfulValue(state.answers.phone)) {
+    state.answers.phone = normalizePhone(phoneMatch[0]);
+    state.meta.inferred.phone = true;
+  }
+
+  if (!hasMeaningfulValue(state.answers.booking_method)) {
+    if (/\bcall\b/i.test(text)) {
+      state.answers.booking_method = "call";
+      state.meta.inferred.booking_method = true;
+    } else if (/\btext\b/i.test(text)) {
+      state.answers.booking_method = "text";
+      state.meta.inferred.booking_method = true;
+    } else if (/\bform\b|\bcontact form\b|\bsubmit\b/i.test(text)) {
+      state.answers.booking_method = "form";
+      state.meta.inferred.booking_method = true;
+    }
+  }
+}
+
+function doesAnswerMatchKey(key, input) {
+  const k = canonicalizeKey(key);
+  const text = normalizeKey(input);
+
+  const patterns = {
+    "service area specifics": ["serve", "service", "area", "county", "city", "town", "neighborhood", "region", "boulder", "louisville", "lafayette"],
+    "pricing structure": ["price", "pricing", "quote", "cost", "rate", "estimate", "window count", "home size", "custom"],
+    "booking_method": ["call", "text", "form", "contact", "request", "book", "quote"],
+    "availability for peak seasons": ["season", "busy", "availability", "lead time", "schedule", "spring", "summer", "fall", "winter", "week"],
+    "phone": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    "booking_url": ["http", "www.", ".com", ".net", ".org", "/"],
+    "hours": ["mon", "tue", "wed", "thu", "fri", "sat", "sun", "am", "pm", "hour"],
+    "business address": ["street", "st", "road", "rd", "ave", "avenue", "suite", "unit", "drive", "dr", "lane", "ln", "blvd"]
+  };
+
+  const keywords = patterns[k];
+  if (!keywords) return true;
+
+  if (k === "phone") {
+    return /\d{3}[\s.\-]?\d{3}[\s.\-]?\d{4}/.test(text);
+  }
+
+  if (k === "booking_url") {
+    return /(https?:\/\/|www\.|[a-z0-9-]+\.[a-z]{2,})/i.test(input);
+  }
+
+  return keywords.some((word) => text.includes(word));
+}
+
+function sanitizeAnswers(state) {
+  const a = state.answers || {};
+  const verified = state.meta?.verified || {};
+
+  if (hasMeaningfulValue(a.service_area_specifics) && /price|pricing|quote|cost|rate|estimate|window count|home size/i.test(a.service_area_specifics)) {
+    a.service_area_specifics = "";
+    delete verified.service_area_specifics;
+  }
+
+  if (hasMeaningfulValue(a.pricing_structure) && /\bcounty\b|\btown\b|\bneighborhood\b|\bserve all\b/i.test(a.pricing_structure)) {
+    a.pricing_structure = "";
+    delete verified.pricing_structure;
+  }
+}
+
+/* --------------------------------
+   NORMALIZATION
+-------------------------------- */
+
 function normalizeAnswerByKey(key, rawInput) {
+  const canonicalKey = canonicalizeKey(key);
   const input = collapseWhitespace(rawInput);
 
-  switch (normalizeKey(key)) {
+  switch (canonicalKey) {
     case "phone":
-    case "public business phone number":
       return normalizePhone(input);
 
     case "hours":
-    case "hours of operation":
-      return input;
-
     case "photos":
-    case "high-quality photos of previous work":
     case "customer testimonials":
-      return input;
-
     case "service_area":
     case "service area specifics":
     case "pricing structure":
-    case "booking process":
     case "booking_method":
     case "availability for peak seasons":
     case "primary_offer":
     case "detailed service descriptions":
     case "founder bio":
     case "business address":
-    case "address":
     case "description":
     case "booking_url":
     default:
@@ -316,6 +411,7 @@ function normalizeState(state) {
 
   next.conversation = Array.isArray(next.conversation) ? next.conversation : [];
   next.phase = cleanString(next.phase) || "guided_enrichment";
+  next.action = cleanString(next.action) || "continue";
 
   return next;
 }
