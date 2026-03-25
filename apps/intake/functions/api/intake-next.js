@@ -1,5 +1,5 @@
 /**
- * SITEFORGE FACTORY: intake-next.js (HARDENED RECONCILIATION - NUCLEAR PRUNER)
+ * SITEFORGE FACTORY: intake-next.js (IRONCLAD RECONCILIATION)
  * Role: The Strategic Architect & State Machine Refiner
  */
 
@@ -30,7 +30,7 @@ export async function onRequestPost(context) {
     const strategy = state.provenance?.strategy_contract || {};
     const recommendedSections = strategy.site_structure?.recommended_sections || [];
 
-    // 2. Call OpenAI
+    // 2. Call OpenAI with Reinforced Instructions
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -48,8 +48,7 @@ export async function onRequestPost(context) {
               STRATEGY REQUIREMENTS: ${JSON.stringify(recommendedSections)}
               CURRENT ANSWERS: ${JSON.stringify(state.answers || {})}
               
-              ACTION: Extract facts to 'updates'. Draft 'ghostwritten_updates'.
-              If the user confirmed they have NO address or booking link, set those to 'false' (string) in updates.
+              CRITICAL ACTION: If the user indicates they do NOT have a physical office/address or do NOT have a booking link, you MUST set "address": "false" and/or "booking_url": "false" in your JSON 'updates'.
             ` 
           }
         ],
@@ -73,14 +72,25 @@ export async function onRequestPost(context) {
       state.ghostwritten = { ...state.ghostwritten, ...prediction.ghostwritten_updates };
     }
 
-    // A. Fix Offerings Array (Crucial for Auditor)
+    // A. Mechanical Fixes (Offerings & Phone)
     if (state.answers.primary_offer && (!state.answers.offerings || !Array.isArray(state.answers.offerings))) {
       state.answers.offerings = [state.answers.primary_offer];
     }
 
-    // B. THE NUCLEAR PRUNER: Case-insensitive, substring-based removal
-    const noAddr = String(state.answers.address).toLowerCase() === "false";
-    const noBook = String(state.answers.booking_url).toLowerCase() === "false";
+    // B. THE IRONCLAD PRUNER: Check AI flags OR fallback to direct message matching
+    const msgLower = userMessage.toLowerCase();
+    const noAddr = state.answers.address === "false" || 
+                   msgLower.includes("no office") || 
+                   msgLower.includes("no physical") || 
+                   msgLower.includes("dont have a physical office");
+    
+    const noBook = state.answers.booking_url === "false" || 
+                   msgLower.includes("no booking link") || 
+                   msgLower.includes("dont have a booking");
+
+    // Force values in answers so Auditor sees them as "answered"
+    if (noAddr) state.answers.address = "false";
+    if (noBook) state.answers.booking_url = "false";
 
     if (state.provenance?.strategy_contract?.content_requirements?.publish_required_fields) {
       let fields = state.provenance.strategy_contract.content_requirements.publish_required_fields;
@@ -88,16 +98,16 @@ export async function onRequestPost(context) {
       state.provenance.strategy_contract.content_requirements.publish_required_fields = fields.filter(f => {
         const check = String(f).toLowerCase().trim();
         
-        // Remove Address and Hours if user opted out of physical location
+        // Remove Address/Hours if Service Area Business
         if (noAddr && (check.includes('address') || check.includes('hours'))) return false;
         
-        // Remove Booking URL requirements
+        // Remove Booking
         if (noBook && check.includes('booking')) return false;
         
-        // Remove generic 'phone number' aliases if the 'phone' key is present
-        if (state.answers.phone && check.includes('phone')) return false;
+        // Remove redundant phone requirements
+        if (state.answers.phone && (check.includes('phone') || check.includes('number'))) return false;
         
-        // Remove boilerplate that AI handles by default
+        // Remove boilerplate
         if (check.includes('description') || check.includes('photo')) return false;
         
         return true;
@@ -114,13 +124,11 @@ export async function onRequestPost(context) {
       const ans = s.answers || {};
       const reqFields = s.provenance?.strategy_contract?.content_requirements?.publish_required_fields || [];
       
-      // Filter the pruned list against current state
       const missing = reqFields.filter(f => {
          const val = ans[f];
          return !val || val === "TBD" || val === "" || val === "false";
       });
       
-      // Separate check for offerings array
       const hasOfferings = Array.isArray(ans.offerings) && ans.offerings.length > 0;
       if (!hasOfferings) missing.push("offerings");
 
@@ -133,45 +141,3 @@ export async function onRequestPost(context) {
         missing_domains: missing
       };
     })(state);
-
-    state.readiness = audit;
-    state.slug = slug; 
-
-    if (audit.can_generate_now) {
-      state.verification = {
-        queue_complete: true,
-        verified_at: new Date().toISOString()
-      };
-      state.phase = "intake_complete";
-    } else {
-      state.verification = { queue_complete: false };
-    }
-
-    // 6. Final Sync to Orchestrator
-    if (env.ORCHESTRATOR_SCRIPT_URL) {
-      try {
-        await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ slug, state, updated_at: new Date().toISOString() })
-        });
-      } catch (e) {
-        console.error("Orchestrator sync failed", e);
-      }
-    }
-
-    return new Response(JSON.stringify({
-      ok: true,
-      message: prediction.response || "Strategic state updated.",
-      state: state,
-      action: state.verification.queue_complete ? "complete" : "continue"
-    }), { headers: { "Content-Type": "application/json", "X-Request-ID": requestId } });
-
-  } catch (err) {
-    return new Response(JSON.stringify({ 
-      ok: false, 
-      error: err.message, 
-      stack: err.stack 
-    }), { status: 500, headers: { "Content-Type": "application/json" } });
-  }
-}
