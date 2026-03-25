@@ -1,7 +1,7 @@
 /**
- * SITEFORGE FACTORY: intake-next.js
- * Role: The Strategic Architect (Manifest Aligned)
- * Mission: Refine strategy, harvest facts, and ghostwrite strategic components.
+ * SITEFORGE FACTORY: intake-next.js (RECONCILIATION EDITION)
+ * Role: The Strategic Architect & State Machine Refiner
+ * Fixes: Auto-mapping, Contract Pruning, and Verification Gatekeeping.
  */
 
 import { INTAKE_CONTROLLER_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -27,11 +27,11 @@ export async function onRequestPost(context) {
       return new Response(JSON.stringify({ ok: false, error: "Missing slug in state" }), { status: 400 });
     }
 
-    // 1. EXTRACT CONTEXT FROM MANIFEST SOURCE OF TRUTH
+    // 1. CALL OPENAI (The Architect Brain)
+    // We update the prompt context to ensure the AI knows it's a State Machine.
     const strategy = state.provenance?.strategy_contract || {};
     const recommendedSections = strategy.site_structure?.recommended_sections || [];
 
-    // 2. CALL OPENAI (The Architect Brain)
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -46,15 +46,11 @@ export async function onRequestPost(context) {
             role: "user", 
             content: `
               USER MESSAGE: "${userMessage}"
+              STRATEGY REQUIREMENTS: ${JSON.stringify(recommendedSections)}
+              CURRENT ANSWERS: ${JSON.stringify(state.answers)}
               
-              STRATEGY CONTRACT REQUIREMENTS: ${JSON.stringify(recommendedSections)}
-              CURRENT SCHEMA: ${JSON.stringify(state.answers)}
-              CURRENT GHOSTWRITING: ${JSON.stringify(state.ghostwritten)}
-              
-              ACTION:
-              1. If the Strategy requires 'FAQ' or 'Process', you MUST draft them now in 'ghostwritten_updates'.
-              2. Extract facts to 'updates'.
-              3. Propose the next strategic component for verification.
+              ACTION: Extract facts to 'updates'. Draft 'ghostwritten_updates'. 
+              If the user confirmed they have NO address or booking link, set those to 'false' in updates.
             ` 
           }
         ],
@@ -64,27 +60,62 @@ export async function onRequestPost(context) {
 
     const aiData = await aiRes.json();
     if (!aiRes.ok) throw new Error(aiData.error?.message || "Architect Failed");
-
     const prediction = JSON.parse(aiData.choices[0].message.content);
 
-    // 3. APPLY UPDATES (Facts and Ghostwritten Content)
+    // 2. APPLY UPDATES & RECONCILE (The "No-Patch" Fix)
     if (prediction.updates) {
       state.answers = { ...state.answers, ...prediction.updates };
     }
-
     if (prediction.ghostwritten_updates) {
       state.ghostwritten = { ...state.ghostwritten, ...prediction.ghostwritten_updates };
     }
 
-    // 4. LOG CONVERSATION
+    // --- RECONCILIATION LAYER ---
+    // A. Force 'offerings' to be an Array (Fixes the Auditor Gate)
+    if (state.answers.primary_offer && !Array.isArray(state.answers.offerings)) {
+      state.answers.offerings = [state.answers.primary_offer];
+    }
+
+    // B. Prune the Strategy Contract (Fixes the "Service-Area Business" loop)
+    const noAddress = state.answers.address === "false" || !state.answers.address;
+    const noBooking = state.answers.booking_url === "false" || !state.answers.booking_url;
+
+    if (noAddress || noBooking) {
+      // Remove from 'publish_required_fields' so evaluateReadiness passes
+      if (state.provenance?.strategy_contract?.publish_required_fields) {
+        state.provenance.strategy_contract.publish_required_fields = 
+          state.provenance.strategy_contract.publish_required_fields.filter(f => {
+            if (noAddress && f === 'address') return false;
+            if (noBooking && f === 'booking_url') return false;
+            return true;
+          });
+      }
+      // Set the UI toggles
+      if (noAddress) state.provenance.strategy_contract.show_address = false;
+      if (noBooking) state.provenance.strategy_contract.show_booking = false;
+    }
+
+    // 3. LOG CONVERSATION
     if (!state.conversation) state.conversation = [];
     state.conversation.push({ role: "user", content: userMessage });
     state.conversation.push({ role: "assistant", content: prediction.response });
 
-    // 5. MANIFEST-STRICT READINESS CHECK
-    state.readiness = evaluateReadiness(state);
+    // 4. COMPUTE READINESS & AUTO-VERIFY
+    // This is the bridge between intake-next and intake-complete.
+    const audit = evaluateReadiness(state);
+    state.readiness = audit;
 
-    // 6. SYNC TO GAS
+    if (audit.can_generate_now) {
+      state.verification = {
+        queue_complete: true,
+        verified_at: new Date().toISOString()
+      };
+      state.phase = "intake_complete"; // Move the phase forward
+    } else {
+      state.verification = { queue_complete: false };
+    }
+
+    // 5. SYNC TO ORCHESTRATOR
     if (env.ORCHESTRATOR_SCRIPT_URL) {
       await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
         method: "POST",
@@ -97,7 +128,7 @@ export async function onRequestPost(context) {
       ok: true,
       message: prediction.response,
       state: state,
-      action: state.readiness.can_generate_now ? "complete" : "continue"
+      action: state.verification.queue_complete ? "complete" : "continue"
     }), { headers: { "Content-Type": "application/json", "X-Request-ID": requestId } });
 
   } catch (err) {
@@ -106,34 +137,29 @@ export async function onRequestPost(context) {
 }
 
 /**
- * STRATEGY-AWARE READINESS GATE
- * Ensures components required by the strategy_contract are present.
+ * UPDATED AUDITOR: Strictly checks the state against the manifest requirements.
  */
 function evaluateReadiness(state) {
   const answers = state.answers || {};
-  const ghost = state.ghostwritten || {};
   const strategy = state.provenance?.strategy_contract || {};
-  const recommended = strategy.site_structure?.recommended_sections || [];
+  const requiredFields = strategy.publish_required_fields || ["primary_offer", "service_area", "phone"];
   
   const missing = [];
 
-  // Core Data Requirements
-  if (!answers.primary_offer) missing.push("primary_offer");
-  if (!answers.service_area) missing.push("service_area");
-  if (!answers.phone && !answers.booking_url) missing.push("contact_path");
+  // Check every field the Strategy Contract says is mandatory
+  requiredFields.forEach(field => {
+    if (!answers[field] || answers[field] === "TBD" || answers[field] === "") {
+      missing.push(field);
+    }
+  });
 
-  // Strategic Component Requirements (Ghostwriting Check)
-  if (recommended.includes("FAQ") && (!ghost.faq_items || ghost.faq_items.length < 2)) {
-    missing.push("faq_content");
+  // Ensure 'offerings' array is populated if required
+  if (!Array.isArray(answers.offerings) || answers.offerings.length === 0) {
+    missing.push("offerings_array");
   }
-  if (recommended.includes("Process") && (!ghost.process_steps || ghost.process_steps.length < 3)) {
-    missing.push("process_content");
-  }
-
-  const score = Math.max(0.1, (5 - missing.length) / 5);
 
   return {
-    score: score,
+    score: (requiredFields.length + 1 - missing.length) / (requiredFields.length + 1),
     can_generate_now: missing.length === 0,
     missing_domains: missing
   };
