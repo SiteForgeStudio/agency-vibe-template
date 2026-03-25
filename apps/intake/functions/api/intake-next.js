@@ -1,7 +1,6 @@
 /**
- * SITEFORGE FACTORY: intake-next.js (RECONCILIATION EDITION)
+ * SITEFORGE FACTORY: intake-next.js (HARDENED RECONCILIATION)
  * Role: The Strategic Architect & State Machine Refiner
- * Fixes: Auto-mapping, Contract Pruning, and Verification Gatekeeping.
  */
 
 import { INTAKE_CONTROLLER_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -16,22 +15,22 @@ export async function onRequestPost(context) {
     try {
       body = JSON.parse(rawBody);
     } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: "Invalid JSON" }), { status: 400 });
+      return new Response(JSON.stringify({ ok: false, error: "Invalid JSON body" }), { status: 400 });
     }
 
+    // 1. Context Extraction
     let state = body.state || {};
     const userMessage = (body.answer || "").trim();
-    const slug = state.slug;
+    const slug = state.slug || (state.provenance?.strategy_contract?.business_context?.slug);
 
     if (!slug) {
       return new Response(JSON.stringify({ ok: false, error: "Missing slug in state" }), { status: 400 });
     }
 
-    // 1. CALL OPENAI (The Architect Brain)
-    // We update the prompt context to ensure the AI knows it's a State Machine.
     const strategy = state.provenance?.strategy_contract || {};
     const recommendedSections = strategy.site_structure?.recommended_sections || [];
 
+    // 2. Call OpenAI
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -47,9 +46,9 @@ export async function onRequestPost(context) {
             content: `
               USER MESSAGE: "${userMessage}"
               STRATEGY REQUIREMENTS: ${JSON.stringify(recommendedSections)}
-              CURRENT ANSWERS: ${JSON.stringify(state.answers)}
+              CURRENT ANSWERS: ${JSON.stringify(state.answers || {})}
               
-              ACTION: Extract facts to 'updates'. Draft 'ghostwritten_updates'. 
+              ACTION: Extract facts to 'updates'. Draft 'ghostwritten_updates'.
               If the user confirmed they have NO address or booking link, set those to 'false' in updates.
             ` 
           }
@@ -59,10 +58,14 @@ export async function onRequestPost(context) {
     });
 
     const aiData = await aiRes.json();
-    if (!aiRes.ok) throw new Error(aiData.error?.message || "Architect Failed");
+    if (!aiRes.ok) throw new Error(aiData.error?.message || "OpenAI Architect Failed");
+    
     const prediction = JSON.parse(aiData.choices[0].message.content);
 
-    // 2. APPLY UPDATES & RECONCILE (The "No-Patch" Fix)
+    // 3. State Mutation & Reconciliation
+    if (!state.answers) state.answers = {};
+    if (!state.ghostwritten) state.ghostwritten = {};
+
     if (prediction.updates) {
       state.answers = { ...state.answers, ...prediction.updates };
     }
@@ -70,52 +73,64 @@ export async function onRequestPost(context) {
       state.ghostwritten = { ...state.ghostwritten, ...prediction.ghostwritten_updates };
     }
 
-    // --- RECONCILIATION LAYER ---
-    // A. Force 'offerings' to be an Array (Fixes the Auditor Gate)
+    // A. Fix Offerings Array
     if (state.answers.primary_offer && !Array.isArray(state.answers.offerings)) {
       state.answers.offerings = [state.answers.primary_offer];
     }
 
-    // B. Prune the Strategy Contract (Fixes the "Service-Area Business" loop)
-    const noAddress = state.answers.address === "false" || !state.answers.address;
-    const noBooking = state.answers.booking_url === "false" || !state.answers.booking_url;
+    // B. Prune Strategy Contract based on Answers
+    const noAddress = state.answers.address === "false" || state.answers.address === false;
+    const noBooking = state.answers.booking_url === "false" || state.answers.booking_url === false;
 
     if (noAddress || noBooking) {
-      // Remove from 'publish_required_fields' so evaluateReadiness passes
-      if (state.provenance?.strategy_contract?.publish_required_fields) {
-        state.provenance.strategy_contract.publish_required_fields = 
-          state.provenance.strategy_contract.publish_required_fields.filter(f => {
-            if (noAddress && f === 'address') return false;
-            if (noBooking && f === 'booking_url') return false;
-            return true;
-          });
+      if (state.provenance?.strategy_contract?.content_requirements?.publish_required_fields) {
+        let fields = state.provenance.strategy_contract.content_requirements.publish_required_fields;
+        state.provenance.strategy_contract.content_requirements.publish_required_fields = fields.filter(f => {
+          if (noAddress && (f === 'address' || f === 'business address')) return false;
+          if (noBooking && f === 'booking_url') return false;
+          return true;
+        });
       }
-      // Set the UI toggles
-      if (noAddress) state.provenance.strategy_contract.show_address = false;
-      if (noBooking) state.provenance.strategy_contract.show_booking = false;
+      // Sync toggles
+      if (noAddress) state.provenance.strategy_contract.schema_toggles.show_service_area = true; // Still show area, just not address
     }
 
-    // 3. LOG CONVERSATION
+    // 4. Update Conversation Logs
     if (!state.conversation) state.conversation = [];
     state.conversation.push({ role: "user", content: userMessage });
-    state.conversation.push({ role: "assistant", content: prediction.response });
+    state.conversation.push({ role: "assistant", content: prediction.response || "Details updated." });
 
-    // 4. COMPUTE READINESS & AUTO-VERIFY
-    // This is the bridge between intake-next and intake-complete.
-    const audit = evaluateReadiness(state);
+    // 5. Readiness & Verification Logic
+    // We define this locally to ensure no reference errors
+    const audit = (function(s) {
+      const ans = s.answers || {};
+      const reqFields = s.provenance?.strategy_contract?.content_requirements?.publish_required_fields || ["phone"];
+      const missing = reqFields.filter(f => !ans[f] || ans[f] === "TBD" || ans[f] === "");
+      
+      // Specifically check offerings array for the auditor
+      if (!Array.isArray(ans.offerings) || ans.offerings.length === 0) missing.push("offerings_array");
+
+      return {
+        score: (reqFields.length + 1 - missing.length) / (reqFields.length + 1),
+        can_generate_now: missing.length === 0,
+        missing_domains: missing
+      };
+    })(state);
+
     state.readiness = audit;
+    state.slug = slug; // FORCED PERSISTENCE
 
     if (audit.can_generate_now) {
       state.verification = {
         queue_complete: true,
         verified_at: new Date().toISOString()
       };
-      state.phase = "intake_complete"; // Move the phase forward
+      state.phase = "intake_complete";
     } else {
       state.verification = { queue_complete: false };
     }
 
-    // 5. SYNC TO ORCHESTRATOR
+    // 6. Final Sync
     if (env.ORCHESTRATOR_SCRIPT_URL) {
       await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
         method: "POST",
@@ -126,41 +141,16 @@ export async function onRequestPost(context) {
 
     return new Response(JSON.stringify({
       ok: true,
-      message: prediction.response,
+      message: prediction.response || "Strategic state updated.",
       state: state,
       action: state.verification.queue_complete ? "complete" : "continue"
     }), { headers: { "Content-Type": "application/json", "X-Request-ID": requestId } });
 
   } catch (err) {
-    return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500 });
+    return new Response(JSON.stringify({ 
+      ok: false, 
+      error: err.message, 
+      stack: err.stack 
+    }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
-}
-
-/**
- * UPDATED AUDITOR: Strictly checks the state against the manifest requirements.
- */
-function evaluateReadiness(state) {
-  const answers = state.answers || {};
-  const strategy = state.provenance?.strategy_contract || {};
-  const requiredFields = strategy.publish_required_fields || ["primary_offer", "service_area", "phone"];
-  
-  const missing = [];
-
-  // Check every field the Strategy Contract says is mandatory
-  requiredFields.forEach(field => {
-    if (!answers[field] || answers[field] === "TBD" || answers[field] === "") {
-      missing.push(field);
-    }
-  });
-
-  // Ensure 'offerings' array is populated if required
-  if (!Array.isArray(answers.offerings) || answers.offerings.length === 0) {
-    missing.push("offerings_array");
-  }
-
-  return {
-    score: (requiredFields.length + 1 - missing.length) / (requiredFields.length + 1),
-    can_generate_now: missing.length === 0,
-    missing_domains: missing
-  };
 }
