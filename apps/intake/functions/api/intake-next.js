@@ -1,8 +1,6 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
  * Manifest-Compliant Verification & Refinement Engine (Final V5)
- *
- * This is the disciplined version the manifest asked for.
  */
 
 import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -20,20 +18,15 @@ export async function onRequestPost(context) {
       throw new Error("Missing strategy_contract - run intake-start first");
     }
 
-    // 1. Select ONE focused key
     const currentKey = selectNextVerificationKey(state);
 
-    // 2. Get AI response
     const aiResponse = await callVerificationAI(state, currentKey, userMessage, env);
 
-    // 3. Scoped mutation only
     applyScopedUpdates(state, aiResponse, currentKey);
 
-    // 4. Recompute
     state.verification = recomputeVerificationQueue(state);
     state.readiness = evaluateReadiness(state);
 
-    // 5. Conversation
     state.conversation = state.conversation || [];
     state.conversation.push({ role: "user", content: userMessage });
     state.conversation.push({ role: "assistant", content: aiResponse.response });
@@ -102,16 +95,16 @@ async function callVerificationAI(state, currentKey, userMessage, env) {
         {
           role: "user",
           content: `Business: ${state.businessName || "the business"}
-Current key to verify: ${currentKey}
+Current verification key: ${currentKey}
 
-Key context from strategy:
-- Archetype: ${contract.business_context?.strategic_archetype}
-- Primary goal: ${contract.conversion_strategy?.primary_conversion}
-- Must verify: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
+Strategy context:
+- Archetype: ${contract.business_context?.strategic_archetype || "high_consideration_home_service"}
+- Primary conversion: ${contract.conversion_strategy?.primary_conversion || "request_quote"}
+- Must verify now: ${JSON.stringify(contract.content_requirements?.must_verify_now || [])}
 
-User's answer: "${userMessage}"
+User answer: "${userMessage}"
 
-Return only valid JSON with analysis, updates, ghostwritten_updates, and response.`
+Analyze the answer and return structured JSON only.`
         }
       ],
       response_format: { type: "json_object" }
@@ -119,7 +112,7 @@ Return only valid JSON with analysis, updates, ghostwritten_updates, and respons
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || "AI call failed");
+  if (!res.ok) throw new Error(data.error?.message || "OpenAI failed");
 
   return JSON.parse(data.choices[0].message.content);
 }
