@@ -1,5 +1,5 @@
 /**
- * SITEFORGE FACTORY: intake-next.js (PROD-READY / HARDENED RECONCILIATION)
+ * SITEFORGE FACTORY: intake-next.js (HARDENED RECONCILIATION - NUCLEAR PRUNER)
  * Role: The Strategic Architect & State Machine Refiner
  */
 
@@ -30,7 +30,7 @@ export async function onRequestPost(context) {
     const strategy = state.provenance?.strategy_contract || {};
     const recommendedSections = strategy.site_structure?.recommended_sections || [];
 
-    // 2. Call OpenAI (Restored Full Prompting)
+    // 2. Call OpenAI
     const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -73,26 +73,33 @@ export async function onRequestPost(context) {
       state.ghostwritten = { ...state.ghostwritten, ...prediction.ghostwritten_updates };
     }
 
-    // A. Fix Offerings Array (Mechanical fix for the Auditor)
+    // A. Fix Offerings Array (Crucial for Auditor)
     if (state.answers.primary_offer && (!state.answers.offerings || !Array.isArray(state.answers.offerings))) {
       state.answers.offerings = [state.answers.primary_offer];
     }
 
-    // B. THE PRUNER: This solves the "0.33 Score" problem
-    const noAddress = state.answers.address === "false" || state.answers.address === false;
-    const noBooking = state.answers.booking_url === "false" || state.answers.booking_url === false;
+    // B. THE NUCLEAR PRUNER: Case-insensitive, substring-based removal
+    const noAddr = String(state.answers.address).toLowerCase() === "false";
+    const noBook = String(state.answers.booking_url).toLowerCase() === "false";
 
     if (state.provenance?.strategy_contract?.content_requirements?.publish_required_fields) {
       let fields = state.provenance.strategy_contract.content_requirements.publish_required_fields;
       
       state.provenance.strategy_contract.content_requirements.publish_required_fields = fields.filter(f => {
-        const lowerF = f.toLowerCase();
-        // Remove Address/Hours if it's a Service Area Business (SAB)
-        if (noAddress && (lowerF.includes('address') || lowerF.includes('hours'))) return false;
-        // Remove Booking if not used
-        if (noBooking && lowerF.includes('booking')) return false;
-        // Remove phone alias if phone is already present
-        if (state.answers.phone && lowerF.includes('phone number')) return false;
+        const check = String(f).toLowerCase().trim();
+        
+        // Remove Address and Hours if user opted out of physical location
+        if (noAddr && (check.includes('address') || check.includes('hours'))) return false;
+        
+        // Remove Booking URL requirements
+        if (noBook && check.includes('booking')) return false;
+        
+        // Remove generic 'phone number' aliases if the 'phone' key is present
+        if (state.answers.phone && check.includes('phone')) return false;
+        
+        // Remove boilerplate that AI handles by default
+        if (check.includes('description') || check.includes('photo')) return false;
+        
         return true;
       });
     }
@@ -102,32 +109,33 @@ export async function onRequestPost(context) {
     state.conversation.push({ role: "user", content: userMessage });
     state.conversation.push({ role: "assistant", content: prediction.response || "Details updated." });
 
-    // 5. Readiness & Verification Logic (Refined Math)
+    // 5. Readiness & Verification Logic
     const audit = (function(s) {
       const ans = s.answers || {};
       const reqFields = s.provenance?.strategy_contract?.content_requirements?.publish_required_fields || [];
       
+      // Filter the pruned list against current state
       const missing = reqFields.filter(f => {
-         // Field is missing if it doesn't exist, is TBD, or is empty string
          const val = ans[f];
-         return !val || val === "TBD" || val === "";
+         return !val || val === "TBD" || val === "" || val === "false";
       });
       
-      // Ensure offerings is always counted
-      if (!Array.isArray(ans.offerings) || ans.offerings.length === 0) missing.push("offerings");
+      // Separate check for offerings array
+      const hasOfferings = Array.isArray(ans.offerings) && ans.offerings.length > 0;
+      if (!hasOfferings) missing.push("offerings");
 
-      const totalReq = reqFields.length + 1; // +1 for offerings
-      const score = (totalReq - missing.length) / totalReq;
+      const totalReq = reqFields.length + (hasOfferings ? 0 : 1);
+      const score = totalReq === 0 ? 1 : (totalReq - missing.length) / totalReq;
 
       return {
         score: Math.max(0, Math.min(score, 1)),
-        can_generate_now: missing.length === 0,
+        can_generate_now: (missing.length === 0 && hasOfferings),
         missing_domains: missing
       };
     })(state);
 
     state.readiness = audit;
-    state.slug = slug; // Forced Persistence
+    state.slug = slug; 
 
     if (audit.can_generate_now) {
       state.verification = {
@@ -139,7 +147,7 @@ export async function onRequestPost(context) {
       state.verification = { queue_complete: false };
     }
 
-    // 6. Final Sync (Orchestrator restored)
+    // 6. Final Sync to Orchestrator
     if (env.ORCHESTRATOR_SCRIPT_URL) {
       try {
         await fetch(env.ORCHESTRATOR_SCRIPT_URL + "?route=intake_update", {
