@@ -1,222 +1,337 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * Full file using OpenAI Tool Calling for reliable structured output
+ * Deterministic verification/refinement engine
+ *
+ * Rules:
+ * - intake-start.js remains the free -> paid bridge
+ * - strategy_contract is the source of queue/readiness intent
+ * - code owns mutation, readiness, queue, and current_key
+ * - no updates object
+ * - no ghostwritten_updates
+ * - no model-controlled mutation
  */
 
-import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
-
 export async function onRequestPost(context) {
-  const { request, env } = context;
+  const { request } = context;
 
   try {
     const body = await request.json();
-    let state = structuredClone(body.state || {});
-
-    const userMessage = String(body.answer || "").trim();
+    let state = normalizeState(structuredClone(body.state || {}));
+    const userMessage = cleanString(body.answer || "");
 
     if (!state.provenance?.strategy_contract) {
       throw new Error("Missing strategy_contract - run intake-start first");
     }
 
-    const currentKey = selectNextVerificationKey(state);
+    state.meta = state.meta || {};
+    state.meta.verified = isObject(state.meta.verified) ? state.meta.verified : {};
+    state.meta.seeded = isObject(state.meta.seeded) ? state.meta.seeded : {};
+    state.meta.inferred = isObject(state.meta.inferred) ? state.meta.inferred : {};
 
-    const toolResult = await callVerificationTool(state, currentKey, userMessage, env);
+    state.answers = isObject(state.answers) ? state.answers : {};
+    state.conversation = Array.isArray(state.conversation) ? state.conversation : [];
 
-    // Tool calling guarantees structured output
-    const prediction = toolResult;
+    // If a user answer is present, apply it to the current key.
+    const currentKeyBefore = state.current_key || selectNextVerificationKey(state);
 
-    applyScopedUpdates(state, prediction, currentKey);
+    if (userMessage && currentKeyBefore) {
+      applyDeterministicAnswer(state, currentKeyBefore, userMessage);
+
+      state.conversation.push({
+        role: "user",
+        content: userMessage
+      });
+    }
 
     state.verification = recomputeVerificationQueue(state);
     state.readiness = evaluateReadiness(state);
 
-    state.conversation = state.conversation || [];
-    state.conversation.push({ role: "user", content: userMessage });
-    state.conversation.push({ role: "assistant", content: prediction.response || "Thank you for the information." });
-
+    const nextKey = selectNextVerificationKey(state);
+    state.current_key = nextKey;
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "guided_enrichment";
 
-    return new Response(
-      JSON.stringify({
-        ok: true,
-        state,
-        current_key: currentKey,
-        action: state.phase === "intake_complete" ? "complete" : "continue",
-        message: prediction.response || "Thank you.",
-      }),
-      { headers: { "content-type": "application/json; charset=utf-8" } }
-    );
+    const assistantMessage = nextKey
+      ? buildQuestionForKey(state, nextKey)
+      : "Excellent — we have enough verified detail to generate the preview direction now.";
 
+    state.conversation.push({
+      role: "assistant",
+      content: assistantMessage
+    });
+
+    return json({
+      ok: true,
+      state,
+      current_key: nextKey,
+      action: state.readiness.can_generate_now ? "complete" : "continue",
+      message: assistantMessage
+    });
   } catch (err) {
     console.error("[intake-next]", err);
-    return new Response(
-      JSON.stringify({ ok: false, error: err.message }),
-      { status: 500, headers: { "content-type": "application/json" } }
-    );
+    return json({ ok: false, error: err.message }, 500);
   }
 }
 
-/* ====================== TOOL CALLING ====================== */
+/* --------------------------------
+   CORE FLOW
+-------------------------------- */
 
-async function callVerificationTool(state, currentKey, userMessage, env) {
-  const contract = state.provenance.strategy_contract;
+function applyDeterministicAnswer(state, key, rawInput) {
+  const normalized = normalizeAnswerByKey(key, rawInput);
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      temperature: 0.2,
-      messages: [
-        { role: "system", content: INTAKE_VERIFICATION_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Current verification key: ${currentKey}
-User answer: "${userMessage}"`
-        }
-      ],
-      tools: [{
-        type: "function",
-        function: {
-          name: "verify_field",
-          description: "Verify one field and return structured updates",
-          parameters: {
-            type: "object",
-            properties: {
-              analysis: {
-                type: "object",
-                properties: {
-                  intent: { type: "string" },
-                  strategy: { type: "string" }
-                },
-                required: ["intent", "strategy"]
-              },
-              updates: {
-                type: "object",
-                additionalProperties: true
-              },
-              ghostwritten_updates: {
-                type: "object",
-                additionalProperties: true
-              },
-              response: { type: "string" }
-            },
-            required: ["analysis", "updates", "ghostwritten_updates", "response"]
-          }
-        }
-      }],
-      tool_choice: { type: "function", function: { name: "verify_field" } }
-    })
-  });
+  const targetPath = getAnswerPathForKey(key);
+  if (!targetPath) return;
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || "OpenAI failed");
+  setByPath(state, targetPath, normalized);
 
-  const toolCall = data.choices[0].message.tool_calls[0];
-  return JSON.parse(toolCall.function.arguments);
+  const answerField = targetPath.replace(/^answers\./, "");
+  state.verified[answerField] = true;
+  state.meta.verified[answerField] = true;
+
+  if (state.meta.seeded[answerField] == null) {
+    state.meta.seeded[answerField] = hasMeaningfulValue(getByPath(state, targetPath));
+  }
 }
-
-/* ====================== HELPERS ====================== */
 
 function selectNextVerificationKey(state) {
-  const contract = state.provenance.strategy_contract;
-  const verified = state.verified || {};
-
-  const priority = [
-    ...cleanList(contract.content_requirements?.must_verify_now || []),
-    "phone",
-    "booking_url",
-    "hero_headline",
-    "visual_direction",
-    "offerings",
-    "target_audience",
-    "service_area",
-    "primary_conversion_goal"
-  ];
-
-  for (const key of priority) {
-    const norm = normalizeKey(key);
-    if (!verified[norm]) return norm;
-  }
-  return "final_review";
-}
-
-function applyScopedUpdates(state, prediction, currentKey) {
-  state.answers = state.answers || {};
-  state.ghostwritten = state.ghostwritten || {};
-  state.verified = state.verified || {};
-
-  if (prediction.updates) {
-    Object.keys(prediction.updates).forEach(k => {
-      if (isRelatedToKey(k, currentKey)) {
-        state.answers[k] = prediction.updates[k];
-        state.verified[normalizeKey(k)] = true;
-      }
-    });
-  }
-
-  if (prediction.ghostwritten_updates) {
-    Object.assign(state.ghostwritten, prediction.ghostwritten_updates);
-  }
-}
-
-function isRelatedToKey(field, key) {
-  const map = {
-    phone: ["phone"],
-    booking_url: ["booking"],
-    service_area: ["service", "area"],
-    offerings: ["offer"],
-    hero_headline: ["hero"],
-    visual_direction: ["visual"]
-  };
-  const related = map[key] || [key];
-  return related.some(r => field.toLowerCase().includes(r.toLowerCase()));
+  const verification = recomputeVerificationQueue(state);
+  return verification.remaining_keys[0] || null;
 }
 
 function recomputeVerificationQueue(state) {
-  const contract = state.provenance.strategy_contract;
-  const verified = state.verified || {};
-  const mustVerify = cleanList(contract.content_requirements?.must_verify_now || []);
+  const contract = state.provenance.strategy_contract || {};
+  const requirements = contract.content_requirements || {};
 
-  const remaining = mustVerify.filter(k => !verified[normalizeKey(k)]);
+  const mustVerifyNow = cleanList(requirements.must_verify_now);
+  const previewRequired = cleanList(requirements.preview_required_fields);
+
+  // Use must_verify_now first, then preview-required fields that map to answer fields.
+  const ordered = uniqueList([
+    ...mustVerifyNow,
+    ...previewRequired
+  ]);
+
+  const remaining = ordered.filter((key) => !isKeySatisfied(state, key));
 
   return {
     queue_complete: remaining.length === 0,
-    verified_count: Object.keys(verified).length,
+    verified_count: ordered.length - remaining.length,
     remaining_keys: remaining,
     last_updated: new Date().toISOString()
   };
 }
 
 function evaluateReadiness(state) {
-  const answers = state.answers || {};
-  const verification = state.verification || {};
+  const contract = state.provenance.strategy_contract || {};
+  const requirements = contract.content_requirements || {};
 
-  const hasContactPath = Boolean(
-    cleanString(answers.phone) ||
-    cleanString(answers.booking_url) ||
-    cleanString(state.clientEmail)
-  );
+  const previewRequired = cleanList(requirements.preview_required_fields);
+  const publishRequired = cleanList(requirements.publish_required_fields);
 
-  const missing = [];
-  if (!cleanString(answers.target_audience)) missing.push("target_audience");
-  if (!Array.isArray(answers.offerings) || answers.offerings.length === 0) missing.push("primary_offer");
-  if (!cleanString(answers.primary_conversion_goal)) missing.push("cta_direction");
-  if (!hasContactPath) missing.push("contact_path");
+  const previewMissing = previewRequired.filter((key) => !isKeySatisfied(state, key));
+  const publishMissing = publishRequired.filter((key) => !isKeySatisfied(state, key));
+
+  const total = Math.max(previewRequired.length, 1);
+  const completeCount = previewRequired.length - previewMissing.length;
+  const score = Number((completeCount / total).toFixed(2));
 
   return {
-    score: verification.queue_complete && missing.length === 0 ? 1.0 : 0.7,
-    can_generate_now: verification.queue_complete === true && missing.length === 0,
-    missing_domains: missing
+    score,
+    can_generate_now: previewMissing.length === 0,
+    missing_domains: previewMissing,
+    publish_missing: publishMissing
   };
 }
 
-/* Utils */
-function normalizeKey(key) {
-  return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+/* --------------------------------
+   QUESTION ENGINE
+-------------------------------- */
+
+function buildQuestionForKey(state, key) {
+  const contract = state.provenance.strategy_contract || {};
+  const businessName =
+    cleanString(state.businessName) ||
+    cleanString(contract.business_context?.business_name) ||
+    "your business";
+
+  const category = cleanString(contract.business_context?.category);
+  const serviceArea = cleanString(
+    Array.isArray(contract.business_context?.service_area)
+      ? contract.business_context.service_area[0]
+      : ""
+  );
+  const primaryConversion = cleanString(contract.conversion_strategy?.primary_conversion);
+  const vibe = cleanString(contract.visual_strategy?.recommended_vibe);
+
+  switch (key) {
+    case "service area specifics":
+      return `We already have ${serviceArea || "your core area"} as the base for ${businessName}. To make the preview feel accurate, do you serve all nearby areas or only specific neighborhoods, towns, or parts of the region?`;
+
+    case "pricing structure":
+      return `For a ${category || "service"} like this, pricing clarity affects trust fast. Do you price by project size, window count, home size, package, or custom quote?`;
+
+    case "booking process":
+    case "booking_method":
+      return `When someone is ready to ${primaryConversion || "take the next step"}, what should happen first — call, text, form submission, or something else?`;
+
+    case "availability for peak seasons":
+      return `Are there busy seasons, lead-time expectations, or scheduling limits we should set clearly so the site feels honest and well-managed?`;
+
+    case "primary_offer":
+      return `We have a starting offer from preflight, but I want to tighten it. What is the main service or result you most want this site to sell first?`;
+
+    case "service_area":
+      return `What is the cleanest way to describe your service area on the site — a city, a county, a metro area, or a list of towns?`;
+
+    case "phone":
+    case "public business phone number":
+      return `What public phone number should appear on the site for inquiries or quote requests?`;
+
+    case "booking_url":
+      return `Do you already have a booking page, request form, or external link we should send people to?`;
+
+    case "hours":
+    case "hours of operation":
+      return `What hours or availability window should we show publicly on the site?`;
+
+    case "business address":
+    case "address":
+      return `Do you want to show a public business address, or should we present this as a service-area business without a storefront address?`;
+
+    case "photos":
+    case "high-quality photos of previous work":
+      return `Do you already have strong project photos we can use later, especially before-and-after or finished-work images?`;
+
+    case "customer testimonials":
+      return `Do you already have customer testimonials or review quotes we can use to build trust on the page?`;
+
+    case "detailed service descriptions":
+      return `What are the main service types or packages you want described clearly on the page?`;
+
+    case "founder bio":
+      return `Would you like the site to include a founder or owner story, and if so, what should it emphasize?`;
+
+    default:
+      return `Let’s tighten one more important detail for the preview. Can you clarify: ${key}?`;
+  }
+}
+
+/* --------------------------------
+   SATISFACTION + MAPPING
+-------------------------------- */
+
+function isKeySatisfied(state, key) {
+  const targetPath = getAnswerPathForKey(key);
+
+  if (!targetPath) {
+    return false;
+  }
+
+  const value = getByPath(state, targetPath);
+  return hasMeaningfulValue(value);
+}
+
+function getAnswerPathForKey(key) {
+  const normalized = normalizeKey(key);
+
+  const map = {
+    "primary_offer": "answers.primary_offer",
+    "booking_method": "answers.booking_method",
+    "booking process": "answers.booking_method",
+    "service_area": "answers.service_area",
+    "service area specifics": "answers.service_area_specifics",
+    "pricing structure": "answers.pricing_structure",
+    "availability for peak seasons": "answers.peak_season_availability",
+    "phone": "answers.phone",
+    "public business phone number": "answers.phone",
+    "booking_url": "answers.booking_url",
+    "hours": "answers.hours",
+    "hours of operation": "answers.hours",
+    "business address": "answers.office_address",
+    "address": "answers.office_address",
+    "description": "answers.business_description",
+    "photos": "answers.photos_status",
+    "high-quality photos of previous work": "answers.photos_status",
+    "detailed service descriptions": "answers.service_descriptions",
+    "customer testimonials": "answers.testimonials_status",
+    "founder bio": "answers.founder_bio"
+  };
+
+  return map[normalized] || null;
+}
+
+function normalizeAnswerByKey(key, rawInput) {
+  const input = collapseWhitespace(rawInput);
+
+  switch (normalizeKey(key)) {
+    case "phone":
+    case "public business phone number":
+      return normalizePhone(input);
+
+    case "hours":
+    case "hours of operation":
+      return input;
+
+    case "photos":
+    case "high-quality photos of previous work":
+    case "customer testimonials":
+      return input;
+
+    case "service_area":
+    case "service area specifics":
+    case "pricing structure":
+    case "booking process":
+    case "booking_method":
+    case "availability for peak seasons":
+    case "primary_offer":
+    case "detailed service descriptions":
+    case "founder bio":
+    case "business address":
+    case "address":
+    case "description":
+    case "booking_url":
+    default:
+      return input;
+  }
+}
+
+/* --------------------------------
+   STATE NORMALIZATION
+-------------------------------- */
+
+function normalizeState(state) {
+  const next = isObject(state) ? state : {};
+
+  next.answers = isObject(next.answers) ? next.answers : {};
+  next.ghostwritten = isObject(next.ghostwritten) ? next.ghostwritten : {};
+  next.verified = isObject(next.verified) ? next.verified : {};
+  next.verification = isObject(next.verification) ? next.verification : {};
+  next.readiness = isObject(next.readiness) ? next.readiness : {};
+  next.provenance = isObject(next.provenance) ? next.provenance : {};
+  next.meta = isObject(next.meta) ? next.meta : {};
+
+  next.meta.verified = isObject(next.meta.verified) ? next.meta.verified : {};
+  next.meta.seeded = isObject(next.meta.seeded) ? next.meta.seeded : {};
+  next.meta.inferred = isObject(next.meta.inferred) ? next.meta.inferred : {};
+
+  next.conversation = Array.isArray(next.conversation) ? next.conversation : [];
+  next.phase = cleanString(next.phase) || "guided_enrichment";
+
+  return next;
+}
+
+/* --------------------------------
+   UTILITIES
+-------------------------------- */
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store"
+    }
+  });
 }
 
 function cleanString(v) {
@@ -225,5 +340,61 @@ function cleanString(v) {
 
 function cleanList(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr.map(v => String(v || "").trim()).filter(Boolean);
+  return arr.map(cleanString).filter(Boolean);
+}
+
+function uniqueList(arr) {
+  return Array.from(new Set(arr));
+}
+
+function isObject(v) {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+function normalizeKey(v) {
+  return cleanString(v).toLowerCase();
+}
+
+function collapseWhitespace(str) {
+  return cleanString(str).replace(/\s+/g, " ").trim();
+}
+
+function hasMeaningfulValue(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  return cleanString(value) !== "";
+}
+
+function getByPath(obj, path) {
+  return path.split(".").reduce((acc, part) => {
+    if (acc == null) return undefined;
+    return acc[part];
+  }, obj);
+}
+
+function setByPath(obj, path, value) {
+  const parts = path.split(".");
+  const last = parts.pop();
+
+  let ref = obj;
+  for (const part of parts) {
+    if (!isObject(ref[part])) ref[part] = {};
+    ref = ref[part];
+  }
+
+  ref[last] = value;
+}
+
+function normalizePhone(input) {
+  const digits = input.replace(/\D/g, "");
+
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  if (digits.length === 11 && digits.startsWith("1")) {
+    const d = digits.slice(1);
+    return `+1 (${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+  }
+
+  return input;
 }
