@@ -1,6 +1,6 @@
 /**
  * SITEFORGE FACTORY: intake-prompts.js
- * Clean, complete version - no duplicates
+ * Clean complete version - no duplicates
  */
 
 export const INTAKE_VERIFICATION_SYSTEM_PROMPT = `
@@ -50,10 +50,3 @@ export const ARCHETYPE_CONFIG = {
     focus: "Reliability, visible proof, ease of quoting"
   }
 };
-
-// Helper to check if a field is required for this client
-export function isFieldRequired(strategyContract, field) {
-  if (!strategyContract?.copy_policy?.fields_requiring_verification) return false;
-  const required = strategyContract.copy_policy.fields_requiring_verification;
-  return required.some(f => String(f).toLowerCase().includes(String(field).toLowerCase()));
-}
