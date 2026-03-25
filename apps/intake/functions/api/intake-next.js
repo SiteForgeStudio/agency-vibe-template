@@ -1,6 +1,6 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * Last attempt with JSON fallback
+ * Full file using OpenAI Tool Calling for reliable structured output
  */
 
 import { INTAKE_VERIFICATION_SYSTEM_PROMPT } from "./intake-prompts.js";
@@ -15,31 +15,24 @@ export async function onRequestPost(context) {
     const userMessage = String(body.answer || "").trim();
 
     if (!state.provenance?.strategy_contract) {
-      throw new Error("Missing strategy_contract");
+      throw new Error("Missing strategy_contract - run intake-start first");
     }
 
     const currentKey = selectNextVerificationKey(state);
 
-    let aiResponse;
-    try {
-      aiResponse = await callVerificationAI(state, currentKey, userMessage, env);
-    } catch (e) {
-      // Fallback if AI fails
-      aiResponse = {
-        updates: {},
-        ghostwritten_updates: {},
-        response: "Thank you for the information. Let's continue refining your site strategy."
-      };
-    }
+    const toolResult = await callVerificationTool(state, currentKey, userMessage, env);
 
-    applyScopedUpdates(state, aiResponse, currentKey);
+    // Tool calling guarantees structured output
+    const prediction = toolResult;
+
+    applyScopedUpdates(state, prediction, currentKey);
 
     state.verification = recomputeVerificationQueue(state);
     state.readiness = evaluateReadiness(state);
 
     state.conversation = state.conversation || [];
     state.conversation.push({ role: "user", content: userMessage });
-    state.conversation.push({ role: "assistant", content: aiResponse.response || "Thank you." });
+    state.conversation.push({ role: "assistant", content: prediction.response || "Thank you for the information." });
 
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "guided_enrichment";
 
@@ -49,7 +42,7 @@ export async function onRequestPost(context) {
         state,
         current_key: currentKey,
         action: state.phase === "intake_complete" ? "complete" : "continue",
-        message: aiResponse.response || "Thank you.",
+        message: prediction.response || "Thank you.",
       }),
       { headers: { "content-type": "application/json; charset=utf-8" } }
     );
@@ -61,6 +54,69 @@ export async function onRequestPost(context) {
       { status: 500, headers: { "content-type": "application/json" } }
     );
   }
+}
+
+/* ====================== TOOL CALLING ====================== */
+
+async function callVerificationTool(state, currentKey, userMessage, env) {
+  const contract = state.provenance.strategy_contract;
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      temperature: 0.2,
+      messages: [
+        { role: "system", content: INTAKE_VERIFICATION_SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: `Current verification key: ${currentKey}
+User answer: "${userMessage}"`
+        }
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "verify_field",
+          description: "Verify one field and return structured updates",
+          parameters: {
+            type: "object",
+            properties: {
+              analysis: {
+                type: "object",
+                properties: {
+                  intent: { type: "string" },
+                  strategy: { type: "string" }
+                },
+                required: ["intent", "strategy"]
+              },
+              updates: {
+                type: "object",
+                additionalProperties: true
+              },
+              ghostwritten_updates: {
+                type: "object",
+                additionalProperties: true
+              },
+              response: { type: "string" }
+            },
+            required: ["analysis", "updates", "ghostwritten_updates", "response"]
+          }
+        }
+      }],
+      tool_choice: { type: "function", function: { name: "verify_field" } }
+    })
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "OpenAI failed");
+
+  const toolCall = data.choices[0].message.tool_calls[0];
+  return JSON.parse(toolCall.function.arguments);
 }
 
 /* ====================== HELPERS ====================== */
@@ -86,47 +142,6 @@ function selectNextVerificationKey(state) {
     if (!verified[norm]) return norm;
   }
   return "final_review";
-}
-
-async function callVerificationAI(state, currentKey, userMessage, env) {
-  const contract = state.provenance.strategy_contract;
-
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o",
-      temperature: 0.1,
-      messages: [
-        { role: "system", content: INTAKE_VERIFICATION_SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Current key: ${currentKey}
-Business: ${state.businessName}
-User said: "${userMessage}"
-
-RETURN ONLY VALID JSON. NO OTHER TEXT. EXACT FORMAT:
-{"analysis":{"intent":"short","strategy":"short"},"updates":{},"ghostwritten_updates":{},"response":"short reply"}`
-        }
-      ],
-      response_format: { type: "json_object" }
-    })
-  });
-
-  const data = await res.json();
-  if (!res.ok) throw new Error("OpenAI failed");
-
-  let parsed = JSON.parse(data.choices[0].message.content);
-
-  // Safety fallback if LLM still adds extra text
-  if (!parsed.updates) parsed.updates = {};
-  if (!parsed.ghostwritten_updates) parsed.ghostwritten_updates = {};
-  if (!parsed.response) parsed.response = "Thank you for the information.";
-
-  return parsed;
 }
 
 function applyScopedUpdates(state, prediction, currentKey) {
@@ -199,6 +214,7 @@ function evaluateReadiness(state) {
   };
 }
 
+/* Utils */
 function normalizeKey(key) {
   return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
