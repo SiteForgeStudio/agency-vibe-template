@@ -80,16 +80,15 @@ export async function onRequestPost(context) {
 
 function applyDeterministicAnswer(state, key, rawInput) {
   const canonicalKey = canonicalizeKey(key);
-  const normalized = normalizeAnswerByKey(canonicalKey, rawInput);
-
-  if (!doesAnswerMatchKey(canonicalKey, normalized)) {
-    return;
-  }
-
   const targetPath = getAnswerPathForKey(canonicalKey);
   if (!targetPath) return;
 
-  setByPath(state, targetPath, normalized);
+  const extracted = extractAnswerForKey(canonicalKey, rawInput);
+  if (!hasMeaningfulValue(extracted)) {
+    return;
+  }
+
+  setByPath(state, targetPath, extracted);
 
   const answerField = targetPath.replace(/^answers\./, "");
   state.verified[answerField] = true;
@@ -288,7 +287,7 @@ function canonicalizeKey(key) {
 }
 
 /* --------------------------------
-   EXTRACTION + VALIDATION
+   EXTRACTION
 -------------------------------- */
 
 function extractObviousSignals(state, input) {
@@ -315,78 +314,89 @@ function extractObviousSignals(state, input) {
   }
 }
 
-function doesAnswerMatchKey(key, input) {
-  const k = canonicalizeKey(key);
-  const text = normalizeKey(input);
+function extractAnswerForKey(key, rawInput) {
+  const canonicalKey = canonicalizeKey(key);
+  const input = collapseWhitespace(rawInput);
 
-  const patterns = {
-    "service area specifics": ["serve", "service", "area", "county", "city", "town", "neighborhood", "region", "boulder", "louisville", "lafayette"],
-    "pricing structure": ["price", "pricing", "quote", "cost", "rate", "estimate", "window count", "home size", "custom"],
-    "booking_method": ["call", "text", "form", "contact", "request", "book", "quote"],
-    "availability for peak seasons": ["season", "busy", "availability", "lead time", "schedule", "spring", "summer", "fall", "winter", "week"],
-    "phone": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
-    "booking_url": ["http", "www.", ".com", ".net", ".org", "/"],
-    "hours": ["mon", "tue", "wed", "thu", "fri", "sat", "sun", "am", "pm", "hour"],
-    "business address": ["street", "st", "road", "rd", "ave", "avenue", "suite", "unit", "drive", "dr", "lane", "ln", "blvd"]
-  };
+  const sentences = input
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-  const keywords = patterns[k];
-  if (!keywords) return true;
+  const joined = (matches) => matches.join(" ").trim();
 
-  if (k === "phone") {
-    return /\d{3}[\s.\-]?\d{3}[\s.\-]?\d{4}/.test(text);
+  switch (canonicalKey) {
+    case "service area specifics": {
+      const matches = sentences.filter((s) =>
+        /\bserve\b|\bservice area\b|\bcounty\b|\bcity\b|\btown\b|\btowns\b|\bneighborhood\b|\bneighborhoods\b|\bregion\b|\bnearby\b|\barea\b/i.test(s)
+      );
+      return joined(matches);
+    }
+
+    case "pricing structure": {
+      const matches = sentences.filter((s) =>
+        /\bprice\b|\bpricing\b|\bquote\b|\bcost\b|\brate\b|\bestimate\b|\bwindow count\b|\bhome size\b|\bcustom\b/i.test(s)
+      );
+      return joined(matches);
+    }
+
+    case "booking_method": {
+      const matches = sentences.filter((s) =>
+        /\bcall\b|\btext\b|\bform\b|\bcontact\b|\brequest\b|\bbook\b/i.test(s)
+      );
+      if (!matches.length) return "";
+
+      const text = joined(matches);
+      if (/\bcall\b/i.test(text)) return "call";
+      if (/\btext\b/i.test(text)) return "text";
+      if (/\bform\b|\bcontact form\b/i.test(text)) return "form";
+      return text;
+    }
+
+    case "availability for peak seasons": {
+      const matches = sentences.filter((s) =>
+        /\bseason\b|\bbusiest\b|\bbusy\b|\blead time\b|\bavailability\b|\bspring\b|\bsummer\b|\bfall\b|\bwinter\b|\bweek\b|\bweeks\b/i.test(s)
+      );
+      return joined(matches);
+    }
+
+    case "phone": {
+      const match = input.match(/(?:\+?1[\s.\-]?)?(?:\(?\d{3}\)?[\s.\-]?)\d{3}[\s.\-]?\d{4}/);
+      return match ? normalizePhone(match[0]) : "";
+    }
+
+    case "booking_url": {
+      const match = input.match(/(https?:\/\/[^\s]+|www\.[^\s]+|[a-z0-9-]+\.[a-z]{2,}[^\s]*)/i);
+      return match ? match[0] : "";
+    }
+
+    default:
+      return input;
   }
-
-  if (k === "booking_url") {
-    return /(https?:\/\/|www\.|[a-z0-9-]+\.[a-z]{2,})/i.test(input);
-  }
-
-  return keywords.some((word) => text.includes(word));
 }
+
+/* --------------------------------
+   SANITIZING
+-------------------------------- */
 
 function sanitizeAnswers(state) {
   const a = state.answers || {};
   const verified = state.meta?.verified || {};
 
-  if (hasMeaningfulValue(a.service_area_specifics) && /price|pricing|quote|cost|rate|estimate|window count|home size/i.test(a.service_area_specifics)) {
+  if (hasMeaningfulValue(a.service_area_specifics) && a.service_area_specifics.length < 4) {
     a.service_area_specifics = "";
     delete verified.service_area_specifics;
+    delete state.verified.service_area_specifics;
   }
 
-  if (hasMeaningfulValue(a.pricing_structure) && /\bcounty\b|\btown\b|\bneighborhood\b|\bserve all\b/i.test(a.pricing_structure)) {
+  if (hasMeaningfulValue(a.pricing_structure) && a.pricing_structure.length < 4) {
     a.pricing_structure = "";
     delete verified.pricing_structure;
+    delete state.verified.pricing_structure;
   }
-}
 
-/* --------------------------------
-   NORMALIZATION
--------------------------------- */
-
-function normalizeAnswerByKey(key, rawInput) {
-  const canonicalKey = canonicalizeKey(key);
-  const input = collapseWhitespace(rawInput);
-
-  switch (canonicalKey) {
-    case "phone":
-      return normalizePhone(input);
-
-    case "hours":
-    case "photos":
-    case "customer testimonials":
-    case "service_area":
-    case "service area specifics":
-    case "pricing structure":
-    case "booking_method":
-    case "availability for peak seasons":
-    case "primary_offer":
-    case "detailed service descriptions":
-    case "founder bio":
-    case "business address":
-    case "description":
-    case "booking_url":
-    default:
-      return input;
+  if (a.booking_method && !["call", "text", "form"].includes(normalizeKey(a.booking_method))) {
+    a.booking_method = collapseWhitespace(a.booking_method);
   }
 }
 
