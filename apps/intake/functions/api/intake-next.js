@@ -41,7 +41,9 @@ export async function onRequestPost(context) {
       if (currentKeyBefore) {
         applyDeterministicAnswer(state, currentKeyBefore, userMessage);
       } else {
-        applyFreeformEnrichment(state, userMessage);
+        if (state.readiness.can_generate_now) {
+          applyFreeformEnrichment(state, userMessage);
+        } 
       }
 
       sanitizeAnswers(state);
