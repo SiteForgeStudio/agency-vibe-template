@@ -2,7 +2,7 @@
   "intelligence": {
     "industry": "Window Cleaning Service",
     "target_persona": "people actively looking for a trustworthy provider",
-    "tone_of_voice": "confident, clear, and conversion-focused"
+    "tone_of_voice": "Premium, confident, trustworthy"
   },
   "strategy": {
     "show_trustbar": true,
@@ -51,46 +51,42 @@
       {
         "label": "Area",
         "path": "#service-area"
-      },
-      {
-        "label": "Contact",
-        "path": "#contact"
       }
     ],
     "cta_text": "Request Quote",
     "cta_link": "#contact",
     "cta_type": "anchor",
     "secondary_cta_text": "Call Now",
-    "secondary_cta_link": "#contact"
+    "secondary_cta_link": "#about"
   },
   "brand": {
     "name": "Summit Ridge Window Cleaning",
     "slug": "summit-ridge-window-cleaning",
     "tagline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
     "email": "contact@example.com",
-    "phone": "555-555-1234",
+    "phone": "",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
-    "headline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado",
-    "subtext": "Built for people actively looking for a trustworthy provider with a clear path to request quote",
+    "headline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+    "subtext": "quality of service. Serving Boulder, Colorado for people actively looking for a trustworthy provider. Request a quote and we'll guide you from there.",
     "image": {
       "alt": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
-      "image_search_query": "Modern Minimal | boulder, colorado local business High-end"
+      "image_search_query": "luxury home exterior window cleaning"
     }
   },
   "about": {
-    "story_text": "Summit Ridge Window Cleaning is focused on high-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. in Boulder, Colorado with a website designed to build trust and drive action.",
+    "story_text": "Summit Ridge Window Cleaning specializes in high-end residential services, making it a strong candidate for a focused, high-conversion website.",
     "founder_note": "Built for people who value quality, clarity, and a smooth process.",
-    "years_experience": "12 years of experience"
+    "years_experience": "Experienced professional service"
   },
   "trustbar": {
     "enabled": true,
     "items": [
       {
         "label": "Trusted by Clients",
-        "icon": "shield"
+        "icon": "star"
       },
       {
         "label": "Proven Results",
@@ -98,79 +94,110 @@
       },
       {
         "label": "Experienced Service",
-        "icon": "clock"
+        "icon": "award"
       },
       {
         "label": "Highly Recommended",
-        "icon": "map"
+        "icon": "users"
       }
     ]
   },
   "features": [
     {
-      "title": "High-end Residential Window Cleaning Large",
-      "description": "Delivered with care and attention for customers.",
-      "icon_slug": "layers"
-    },
-    {
-      "title": "Quality Work",
-      "description": "A meaningful reason clients choose this business.",
+      "title": "Exterior Window Cleaning",
+      "description": "Detailed cleaning designed to leave large glass surfaces clear, bright, and streak-free.",
       "icon_slug": "award"
     },
     {
-      "title": "Responsive Scheduling",
-      "description": "A meaningful reason clients choose this business.",
-      "icon_slug": "star"
+      "title": "Glass Restoration",
+      "description": "Restore clarity and improve the look of weathered or hard-water-marked glass.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Premium Home Service",
+      "description": "Professional service for larger homes where detail, care, and presentation matter.",
+      "icon_slug": "award"
+    },
+    {
+      "title": "Large-Home Expertise",
+      "description": "Comfortable with larger residential properties, expansive glass, and high-visibility details.",
+      "icon_slug": "award"
+    },
+    {
+      "title": "White-Glove Experience",
+      "description": "Clear communication, careful work practices, and a polished customer experience from start to finish.",
+      "icon_slug": "heart"
+    },
+    {
+      "title": "Quality Work",
+      "description": "quality of service.",
+      "icon_slug": "award"
     }
   ],
   "processSteps": [
     {
       "title": "Request a Quote",
-      "description": "Request a quote."
+      "description": "Reach out with the details and get a quote based on the scope of work."
     },
     {
-      "title": "Review Your Needs",
-      "description": "Review the home and needs."
+      "title": "Confirm the Scope",
+      "description": "Review the property, expectations, and any details that matter before the work begins."
     },
     {
       "title": "Schedule the Service",
-      "description": "Schedule the service."
+      "description": "Choose the right time and confirm the details so everything feels organized."
     },
     {
-      "title": "Complete Cleaning Carefully",
-      "description": "Complete the cleaning carefully."
+      "title": "Complete the Work",
+      "description": "Carry out the cleaning carefully with attention to detail and presentation."
     },
     {
-      "title": "Final Walkthrough",
-      "description": "Final walkthrough and satisfaction check."
+      "title": "Final Review",
+      "description": "Make sure the finished result looks right and the experience ends cleanly."
     }
   ],
   "gallery": {
     "enabled": true,
-    "layout": "masonry",
-    "computed_count": 3,
-    "image_source": "search",
+    "title": "Gallery",
+    "layout": null,
+    "show_titles": true,
+    "image_source": {
+      "image_search_query": "professional window cleaning modern home exterior"
+    },
+    "computed_count": 6,
+    "computed_layout": "grid",
     "items": [
       {
-        "title": "Project 1",
-        "image_search_query": "Modern Minimal | boulder, colorado local business"
+        "title": "Exterior Results",
+        "image_search_query": "professional window cleaning modern home exterior"
       },
       {
-        "title": "Project 2",
-        "image_search_query": "High-end residential window cleaning specializing in large homes,"
+        "title": "Detail Work",
+        "image_search_query": "streak free glass cleaning close detail"
       },
       {
         "title": "Project 3",
-        "image_search_query": "Window Cleaning Service detail"
+        "image_search_query": "window cleaner large residential glass service"
+      },
+      {
+        "title": "Detail Work",
+        "image_search_query": "clean professional service detail photography"
+      },
+      {
+        "title": "Detail Work",
+        "image_search_query": "professional residential glass cleaning detail"
+      },
+      {
+        "title": "Before & After",
+        "image_search_query": "before after window cleaning glass detail"
       }
-    ],
-    "computed_layout": "grid"
+    ]
   },
   "contact": {
     "headline": "Get in Touch",
     "subheadline": "Tell us what you need and we'll help you with the right next step.",
     "email": "contact@example.com",
-    "phone": "555-555-1234",
+    "phone": "",
     "email_recipient": "contact@example.com",
     "button_text": "Request Quote",
     "office_address": ""
@@ -181,26 +208,22 @@
   },
   "testimonials": [
     {
-      "quote": "Professional, careful, and easy to work with from start to finish.",
+      "quote": "Customers often mention customer testimonials as a reason they felt confident choosing Summit Ridge Window Cleaning.",
       "author": "Happy Client 1"
     },
     {
-      "quote": "Clear communication, reliable scheduling, and a strong final result.",
+      "quote": "People appreciate the way Summit Ridge Window Cleaning combines careful work with a more polished, higher-trust customer experience.",
       "author": "Happy Client 2"
-    },
-    {
-      "quote": "We chose Summit Ridge Window Cleaning because they felt trustworthy and professional from the first interaction.",
-      "author": "Happy Client 3"
     }
   ],
   "faqs": [
     {
       "question": "What is the process for window cleaning?",
-      "answer": "We aim to keep the process clear, responsive, and easy from first contact to final follow-through."
+      "answer": "The process is designed to feel clear and well-managed, from the first quote request through the final result."
     },
     {
       "question": "How do you ensure streak-free results?",
-      "answer": "We keep the experience clear, helpful, and easy to understand."
+      "answer": "Attention to detail, careful technique, and a quality-first approach help deliver a cleaner final result."
     },
     {
       "question": "What areas do you service?",
@@ -212,11 +235,11 @@
     },
     {
       "question": "How do I know I can trust your service?",
-      "answer": "We keep the experience clear, helpful, and easy to understand."
+      "answer": "We focus on customer testimonials and a professional customer experience so the service feels easy to trust."
     },
     {
       "question": "How far in advance should I schedule?",
-      "answer": "Call directly and we'll help you schedule the right next step."
+      "answer": "Start with a quote request and we'll help you confirm the scope before scheduling."
     }
   ]
 }
