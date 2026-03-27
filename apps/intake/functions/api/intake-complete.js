@@ -1,17 +1,17 @@
 // functions/api/intake-complete.js
 /**
- * SiteForge Factory — Paid Intake Complete
+ * SiteForge Factory — Paid Intake Complete (V2)
  *
- * ROLE PER MANIFEST:
- * - Gate on readiness
- * - Require verification queue completion
- * - Map verified/seeded state into schema-valid business_json
- * - Light normalization only
- * - Submit
+ * ROLE:
+ * - gate on V2 readiness + enrichment
+ * - assemble schema-valid business_json from V2 intake state
+ * - preserve deterministic image query / gallery logic
+ * - optionally submit to /api/submit
  *
  * IMPORTANT:
- * This file is an assembler and validator.
- * It is NOT the primary strategy engine or copywriter.
+ * - no AI mutation
+ * - no story prompt generation
+ * - this is the one true assembler for final business_json
  */
 
 const SCHEMA_VIBES = [
@@ -71,7 +71,7 @@ export async function onRequestPost(context) {
   try {
     const body = await readJson(context.request);
     const state = normalizeState(body.state || {});
-    const action = cleanString(body.action || "");
+    const action = cleanString(body.action || state.action || "");
 
     if (!cleanString(state.slug)) {
       return json({ ok: false, error: "Missing state.slug" }, 400);
@@ -82,39 +82,40 @@ export async function onRequestPost(context) {
       return json({ ok: false, error: "Missing strategy_contract in state" }, 400);
     }
 
-    const verification = isObject(state.verification) ? state.verification : {};
-    if (verification.queue_complete !== true) {
+    state.readiness = evaluateNarrativeReadiness(state);
+    state.enrichment = evaluateEnrichment(state);
+
+    if (!state.readiness.can_generate_now) {
       return json(
         {
           ok: false,
-          error: "verification_incomplete",
-          message: "Please complete all required intake steps before generating the final payload.",
-          verification,
-          missing: cleanList(state.inference?.missing_information)
+          error: "intake_not_ready",
+          message: "Narrative unlock is not complete yet.",
+          readiness: state.readiness,
+          enrichment: state.enrichment
         },
         400
       );
     }
 
-    const readiness = evaluateReadiness(state);
-    state.readiness = readiness;
-
-    if (!readiness.can_generate_now) {
+    if (!state.enrichment.ready_for_preview) {
       return json(
         {
           ok: false,
-          error: "intake_not_ready",
-          readiness,
-          message: "We still need a few core details before building the final payload."
+          error: "premium_enrichment_incomplete",
+          message: "Narrative is clear, but premium enrichment is not strong enough for final preview assembly yet.",
+          readiness: state.readiness,
+          enrichment: state.enrichment
         },
         400
       );
     }
 
     const strategyBrief = buildStrategyBrief(state, strategyContract);
-    const businessJson = buildRawBusinessJson(state, strategyContract, strategyBrief);
-    const strategyMemory = buildStrategyMemory(state, strategyContract, strategyBrief, businessJson);
-    const validation = validateRawBusinessJson(businessJson);
+    let businessJson = buildBusinessJson(state, strategyContract, strategyBrief);
+    businessJson = ensureInspirationQueries(businessJson);
+
+    const validation = validateBusinessJson(businessJson);
 
     if (!validation.ok) {
       return json(
@@ -132,9 +133,9 @@ export async function onRequestPost(context) {
     const payload = {
       ok: true,
       slug: cleanString(state.slug),
-      readiness,
+      readiness: state.readiness,
+      enrichment: state.enrichment,
       strategy_brief: strategyBrief,
-      strategy_memory: strategyMemory,
       business_json: businessJson,
       business_base_json: businessJson
     };
@@ -142,12 +143,13 @@ export async function onRequestPost(context) {
     if (action === "complete") {
       payload.submit = await trySubmitBusinessJson(context.request, {
         business_json: businessJson,
-        client_email: cleanString(state.clientEmail)
+        client_email: cleanString(state.clientEmail) || cleanString(businessJson?.brand?.email)
       });
     }
 
     return json(payload);
   } catch (err) {
+    console.error("[intake-complete]", err);
     return json(
       {
         ok: false,
@@ -167,7 +169,7 @@ export async function onRequestGet() {
 }
 
 /* =========================
-   Build Outputs
+   Strategy Brief
 ========================= */
 
 function buildStrategyBrief(state, strategyContract) {
@@ -180,101 +182,88 @@ function buildStrategyBrief(state, strategyContract) {
     primary_conversion: cleanString(strategyContract.conversion_strategy?.primary_conversion),
     secondary_conversion: cleanString(strategyContract.conversion_strategy?.secondary_conversion),
     conversion_mode: cleanString(strategyContract.conversion_strategy?.conversion_mode),
-    target_audience: cleanString(state.answers?.target_audience),
-    primary_offer: cleanList(state.answers?.offerings),
+    audience: cleanString(state.answers?.audience),
+    primary_offer: cleanString(state.answers?.primary_offer),
     service_area: cleanString(state.answers?.service_area),
-    trust_signals: uniqueList([
-      ...cleanList(state.answers?.trust_signals),
-      ...cleanList(state.answers?.credibility_factors)
-    ]),
-    differentiators: cleanList(state.answers?.differentiators),
-    faq_topics: uniqueList([
-      ...cleanList(state.answers?.faq_topics),
-      ...cleanList(state.answers?.common_objections),
-      ...cleanList(strategyContract.site_structure?.faq_angles)
-    ]),
-    aeo_angles: cleanList(strategyContract.site_structure?.aeo_angles),
+    trust_signal: cleanString(state.answers?.trust_signal),
+    differentiation: cleanString(state.answers?.differentiation),
     recommended_vibe: cleanString(strategyContract.visual_strategy?.recommended_vibe),
-    schema_toggles: isObject(strategyContract.schema_toggles)
-      ? strategyContract.schema_toggles
-      : {},
-    asset_policy: isObject(strategyContract.asset_policy)
-      ? strategyContract.asset_policy
-      : {},
-    copy_policy: isObject(strategyContract.copy_policy)
-      ? strategyContract.copy_policy
-      : {}
+    schema_toggles: isObject(strategyContract.schema_toggles) ? strategyContract.schema_toggles : {},
+    asset_policy: isObject(strategyContract.asset_policy) ? strategyContract.asset_policy : {},
+    copy_policy: isObject(strategyContract.copy_policy) ? strategyContract.copy_policy : {}
   };
 }
 
-function buildRawBusinessJson(state, strategyContract, strategyBrief) {
+/* =========================
+   Main Assembly
+========================= */
+
+function buildBusinessJson(state, strategyContract, strategyBrief) {
   const businessName =
     cleanString(state.businessName) ||
     cleanString(strategyContract.business_context?.business_name) ||
     "Business Name";
 
-  const slug = cleanString(state.slug);
-  const email = cleanString(state.clientEmail) || "contact@example.com";
+  const slug = cleanString(state.slug) || normalizeSlug(businessName);
+  const email =
+    cleanString(state.clientEmail) ||
+    cleanString(state.answers?.email) ||
+    "contact@example.com";
+
   const phone = cleanString(state.answers?.phone);
   const bookingUrl = cleanString(state.answers?.booking_url);
   const officeAddress = cleanString(state.answers?.office_address);
 
+  const category = cleanString(strategyContract.business_context?.category) || "Service business";
   const targetAudience =
-    cleanString(state.answers?.target_audience) ||
+    cleanString(state.answers?.audience) ||
     cleanString(strategyContract.audience_model?.primary_persona) ||
-    "Customers looking for a trusted provider";
-
-  const industry =
-    cleanString(strategyContract.business_context?.category) ||
-    "Service business";
+    "Customers seeking a trusted provider";
 
   const tone =
-    cleanString(state.answers?.tone_preferences) ||
-    cleanString(state.inference?.tone_direction) ||
+    cleanString(state.answers?.tone_of_voice) ||
+    inferTone(strategyContract) ||
     "Professional, clear, trustworthy";
 
   const vibe = resolveSchemaVibe(
     cleanString(strategyContract.visual_strategy?.recommended_vibe)
   );
 
-  const processSteps = buildProcessSteps(state);
-  const features = buildFeatures(state);
-  const gallery = buildGallery(state, strategyContract);
-  const faqs = buildFaqs(state, strategyContract);
-  const testimonials = buildTestimonials(state);
   const trustbar = buildTrustbar(state, strategyContract);
-  const serviceAreaBlock = buildServiceArea(state);
+  const features = buildFeatures(state, strategyContract);
+  const processSteps = buildProcessSteps(state);
+  const gallery = buildGallery(state, strategyContract, vibe);
+  const testimonials = buildTestimonials(state, strategyContract);
+  const faqs = buildFaqs(state, strategyContract);
+  const serviceArea = buildServiceArea(state, strategyContract);
 
   const toggles = {
     show_trustbar: Boolean(strategyContract.schema_toggles?.show_trustbar) && Boolean(trustbar),
-    show_about: Boolean(strategyContract.schema_toggles?.show_about),
-    show_features: Boolean(strategyContract.schema_toggles?.show_features),
+    show_about: Boolean(strategyContract.schema_toggles?.show_about ?? true),
+    show_features: Boolean(strategyContract.schema_toggles?.show_features ?? true),
     show_events: false,
     show_process: processSteps.length >= 3,
-    show_testimonials: Boolean(strategyContract.schema_toggles?.show_testimonials) && testimonials.length > 0,
+    show_testimonials: Boolean(strategyContract.schema_toggles?.show_testimonials ?? true) && testimonials.length > 0,
     show_comparison: false,
-    show_gallery: Boolean(strategyContract.schema_toggles?.show_gallery) && Boolean(gallery),
+    show_gallery: Boolean(strategyContract.schema_toggles?.show_gallery ?? true) && Boolean(gallery),
     show_investment: false,
-    show_faqs: Boolean(strategyContract.schema_toggles?.show_faqs) && faqs.length > 0,
-    show_service_area: Boolean(strategyContract.schema_toggles?.show_service_area) && Boolean(serviceAreaBlock)
+    show_faqs: Boolean(strategyContract.schema_toggles?.show_faqs ?? true) && faqs.length > 0,
+    show_service_area: Boolean(strategyContract.schema_toggles?.show_service_area ?? true) && Boolean(serviceArea)
   };
 
   const sections = {
     about: true,
     features,
-    events: undefined,
     processSteps,
     testimonials,
-    comparison: undefined,
     gallery,
-    investment: undefined,
     faqs,
-    service_area: serviceAreaBlock
+    service_area: serviceArea
   };
 
   return {
     intelligence: {
-      industry: normalizePublicText(industry),
+      industry: normalizePublicText(category),
       target_persona: normalizePublicText(targetAudience),
       tone_of_voice: normalizePublicText(tone)
     },
@@ -284,9 +273,12 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
     settings: {
       vibe,
       menu: buildMenu(toggles, sections),
-      cta_text: normalizePublicText(inferPrimaryCtaText(strategyContract, bookingUrl)),
-      cta_link: bookingUrl || "#contact",
-      cta_type: bookingUrl ? "external" : "anchor",
+      cta_text: normalizePublicText(
+        cleanString(state.answers?.cta_text) ||
+        inferPrimaryCtaText(strategyContract, bookingUrl)
+      ),
+      cta_link: bookingUrl || cleanString(state.answers?.cta_link) || "#contact",
+      cta_type: bookingUrl ? "external" : inferCtaType(cleanString(state.answers?.cta_link) || "#contact"),
       secondary_cta_text: normalizePublicText(inferSecondaryCtaText(strategyContract, phone)),
       secondary_cta_link: inferSecondaryCtaLink(phone, bookingUrl)
     },
@@ -298,7 +290,7 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
       email,
       phone,
       office_address: normalizePublicText(officeAddress),
-      objection_handle: normalizePublicText(resolveObjectionHandle(state))
+      objection_handle: normalizePublicText(resolveObjectionHandle(state, strategyContract))
     },
 
     hero: {
@@ -331,57 +323,59 @@ function buildRawBusinessJson(state, strategyContract, strategyBrief) {
       office_address: normalizePublicText(officeAddress)
     },
 
-    ...(serviceAreaBlock ? { service_area: serviceAreaBlock } : {}),
+    ...(serviceArea ? { service_area: serviceArea } : {}),
     ...(testimonials.length ? { testimonials } : {}),
     ...(faqs.length ? { faqs } : {})
   };
 }
 
 /* =========================
-   Builders
+   Section Builders
 ========================= */
 
 function buildMenu(toggles, sections) {
   const items = [{ label: "Home", path: "#home" }];
 
-  const renderable = {
-    about: Boolean(toggles?.show_about && sections?.about),
-    features: Boolean(toggles?.show_features && Array.isArray(sections?.features) && sections.features.length),
-    events: false,
-    process: Boolean(toggles?.show_process && Array.isArray(sections?.processSteps) && sections.processSteps.length >= 3),
-    testimonials: Boolean(toggles?.show_testimonials && Array.isArray(sections?.testimonials) && sections.testimonials.length),
-    comparison: false,
-    gallery: Boolean(toggles?.show_gallery && sections?.gallery && Array.isArray(sections.gallery.items) && sections.gallery.items.length),
-    investment: false,
-    faqs: Boolean(toggles?.show_faqs && Array.isArray(sections?.faqs) && sections.faqs.length),
-    serviceArea: Boolean(toggles?.show_service_area && sections?.service_area && cleanString(sections.service_area.main_city))
-  };
+  if (toggles.show_about && sections.about) items.push({ label: "About", path: "#about" });
+  if (toggles.show_features && Array.isArray(sections.features) && sections.features.length) {
+    items.push({ label: "Services", path: "#features" });
+  }
+  if (toggles.show_process && Array.isArray(sections.processSteps) && sections.processSteps.length >= 3) {
+    items.push({ label: "Process", path: "#process" });
+  }
+  if (toggles.show_testimonials && Array.isArray(sections.testimonials) && sections.testimonials.length) {
+    items.push({ label: "Reviews", path: "#testimonials" });
+  }
+  if (toggles.show_gallery && sections.gallery && Array.isArray(sections.gallery.items) && sections.gallery.items.length) {
+    items.push({ label: "Gallery", path: "#gallery" });
+  }
+  if (toggles.show_faqs && Array.isArray(sections.faqs) && sections.faqs.length) {
+    items.push({ label: "FAQ", path: "#faqs" });
+  }
+  if (toggles.show_service_area && sections.service_area && cleanString(sections.service_area.main_city)) {
+    items.push({ label: "Area", path: "#service-area" });
+  }
 
-  if (renderable.about) items.push({ label: "About", path: "#about" });
-  if (renderable.features) items.push({ label: "Services", path: "#features" });
-  if (renderable.process) items.push({ label: "Process", path: "#process" });
-  if (renderable.testimonials) items.push({ label: "Reviews", path: "#testimonials" });
-  if (renderable.gallery) items.push({ label: "Gallery", path: "#gallery" });
-  if (renderable.faqs) items.push({ label: "FAQ", path: "#faqs" });
-  if (renderable.serviceArea) items.push({ label: "Area", path: "#service-area" });
   items.push({ label: "Contact", path: "#contact" });
 
-  return items;
+  return items
+    .filter((item) => ALLOWED_MENU_PATHS.includes(item.path))
+    .slice(0, 8);
 }
 
 function buildTrustbar(state, strategyContract) {
-  const trustSignals = uniqueList([
-    ...cleanList(state.answers?.trust_signals),
-    ...cleanList(state.answers?.credibility_factors),
-    ...cleanList(strategyContract.site_structure?.trust_signals)
+  const trustSeeds = uniqueList([
+    cleanString(state.answers?.trust_signal),
+    ...cleanList(strategyContract.proof_model?.trust_signals),
+    ...cleanList(strategyContract.proof_model?.credibility_sources)
   ]).slice(0, 4);
 
-  const items = trustSignals
-    .map(function(label, idx) {
-      const publicLabel = normalizeTrustbarLabel(label);
-      if (!publicLabel) return null;
+  const items = trustSeeds
+    .map((label, idx) => {
+      const normalized = normalizeTrustbarLabel(label);
+      if (!normalized) return null;
       return {
-        label: normalizePublicText(publicLabel),
+        label: normalizePublicText(normalized),
         icon: pickTrustbarIcon(label, idx)
       };
     })
@@ -397,98 +391,45 @@ function buildTrustbar(state, strategyContract) {
   return items.length ? { enabled: true, items: items.slice(0, 4) } : null;
 }
 
-function buildProcessSteps(state) {
-  const steps = normalizeProcessStepSource(state.answers?.process_notes);
-  if (steps.length < 3) return [];
+function buildFeatures(state, strategyContract) {
+  const features = [];
 
-  return steps.slice(0, 5).map(function(step, idx) {
-    return {
-      title: normalizePublicText(inferProcessStepTitle(step, idx)),
-      description: normalizePublicText(cleanSentence(step))
-    };
-  });
-}
+  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
+  const primaryOffer = cleanString(state.answers?.primary_offer);
+  const differentiation = cleanString(state.answers?.differentiation);
+  const audience = audienceToCustomerPhrase(cleanString(state.answers?.audience)) || "customers";
 
-function normalizeProcessStepSource(input) {
-  let steps = cleanList(input);
-
-  if (steps.length === 1) {
-    const expanded = splitProcessStepText(steps[0]);
-    if (expanded.length > 1) steps = expanded;
-  }
-
-  return uniqueList(steps)
-    .map(function(step) { return normalizePublicText(step); })
-    .filter(function(step) {
-      return step.split(/\s+/).filter(Boolean).length >= 2;
-    });
-}
-
-function splitProcessStepText(text) {
-  return cleanString(text)
-    .split(/\n|->|→|;|\.|, then | then /gi)
-    .map(function(step) { return normalizePublicText(step); })
-    .filter(Boolean);
-}
-
-function inferProcessStepTitle(step, idx) {
-  const text = cleanString(step).toLowerCase();
-  if (!text) return `Step ${idx + 1}`;
-
-  const patterns = [
-    { match: ["quote", "request"], title: "Request a Quote" },
-    { match: ["review", "needs"], title: "Review Your Needs" },
-    { match: ["schedule"], title: "Schedule the Service" },
-    { match: ["confirm"], title: "Confirm the Details" },
-    { match: ["walkthrough"], title: "Final Walkthrough" },
-    { match: ["satisfaction"], title: "Final Review" }
-  ];
-
-  for (const pattern of patterns) {
-    if (pattern.match.every(function(token) { return text.includes(token); })) {
-      return pattern.title;
-    }
-  }
-
-  return normalizeShortTitle(step, idx);
-}
-
-function buildFeatures(state) {
-  const ghostFeatures = normalizeGhostFeatures(state.ghostwritten?.features_copy);
-  if (ghostFeatures.length >= 3) {
-    return ghostFeatures.slice(0, 6);
-  }
-
-  const offerings = cleanList(state.answers?.offerings);
-  const differentiators = cleanList(state.answers?.differentiators);
-  const audience = audienceToCustomerPhrase(cleanString(state.answers?.target_audience)) || "customers";
-
-  const raw = [];
-
-  offerings.forEach(function(item, idx) {
-    raw.push({
-      title: normalizePublicText(normalizeOfferTitle(item) || `Service ${idx + 1}`),
-      description: normalizePublicText(`Delivered with care and attention for ${audience}.`),
-      icon_slug: pickFeatureIcon(item, idx)
+  const servicePhrases = splitMeaningfulPhrases(serviceDescriptions);
+  servicePhrases.slice(0, 3).forEach((phrase, idx) => {
+    features.push({
+      title: normalizePublicText(normalizeShortTitle(phrase, idx)),
+      description: normalizePublicText(cleanSentence(phrase)),
+      icon_slug: pickFeatureIcon(phrase, idx)
     });
   });
 
-  differentiators.forEach(function(item, idx) {
-    const title = normalizeDifferentiatorTitle(item);
-    if (!title) return;
-    raw.push({
-      title: normalizePublicText(title),
-      description: normalizePublicText("A meaningful reason clients choose this business."),
-      icon_slug: pickFeatureIcon(title, idx + raw.length)
+  if (primaryOffer) {
+    features.push({
+      title: normalizePublicText(normalizeShortTitle(primaryOffer, features.length)),
+      description: normalizePublicText(`Designed for ${audience}.`),
+      icon_slug: pickFeatureIcon(primaryOffer, features.length)
     });
-  });
+  }
 
-  const deduped = uniqueObjectsByTitle(raw).slice(0, 6);
+  if (differentiation) {
+    features.push({
+      title: normalizePublicText(normalizeDifferentiatorTitle(differentiation)),
+      description: normalizePublicText(cleanSentence(differentiation)),
+      icon_slug: pickFeatureIcon(differentiation, features.length)
+    });
+  }
+
+  const deduped = uniqueObjectsByTitle(features).slice(0, 6);
 
   while (deduped.length < 3) {
     deduped.push({
       title: `Service Highlight ${deduped.length + 1}`,
-      description: normalizePublicText("Clear, professional work designed to make the next step easy."),
+      description: "Clear, professional work designed to make the next step easy.",
       icon_slug: pickFeatureIcon("", deduped.length)
     });
   }
@@ -496,76 +437,24 @@ function buildFeatures(state) {
   return deduped;
 }
 
-function normalizeGhostFeatures(input) {
-  if (!Array.isArray(input)) return [];
+function buildProcessSteps(state) {
+  const source = cleanString(state.answers?.process_notes);
+  const steps = normalizeProcessStepSource(source);
 
-  return input
-    .map(function(item, idx) {
-      if (typeof item === "string") {
-        const title = normalizeShortTitle(item, idx);
-        return {
-          title: normalizePublicText(title),
-          description: normalizePublicText(cleanSentence(item)),
-          icon_slug: pickFeatureIcon(item, idx)
-        };
-      }
+  if (steps.length < 3) return [];
 
-      if (!isObject(item)) return null;
-
-      const title = cleanString(item.title) || normalizeShortTitle(item.description || `Feature ${idx + 1}`, idx);
-      const description = cleanString(item.description) || cleanSentence(item.title || "");
-      const icon = ALLOWED_ICON_TOKENS.includes(cleanString(item.icon_slug))
-        ? cleanString(item.icon_slug)
-        : pickFeatureIcon(title, idx);
-
-      if (!title || !description) return null;
-
-      return {
-        title: normalizePublicText(title),
-        description: normalizePublicText(description),
-        icon_slug: icon
-      };
-    })
-    .filter(Boolean);
+  return steps.slice(0, 5).map((step, idx) => ({
+    title: normalizePublicText(inferProcessStepTitle(step, idx)),
+    description: normalizePublicText(cleanSentence(step))
+  }));
 }
 
-function buildGallery(state, strategyContract) {
-  const provided = normalizeGalleryItems(state);
-  if (provided.length > 0) {
-    return {
-      enabled: true,
-      layout: provided.length >= 4 ? "grid" : "masonry",
-      computed_count: Math.max(3, Math.min(6, provided.length)),
-      image_source: "search",
-      items: provided.slice(0, 6)
-    };
-  }
-
-  const fallbackQueries = buildFallbackGalleryQueries(state, strategyContract);
-  if (!fallbackQueries.length) return null;
-
-  const items = fallbackQueries.slice(0, 6).map(function(query, idx) {
-    return {
-      title: `Project ${idx + 1}`,
-      image_search_query: query
-    };
-  });
-
-  return {
-    enabled: true,
-    layout: items.length >= 4 ? "grid" : "masonry",
-    computed_count: Math.max(3, Math.min(6, items.length)),
-    image_source: "search",
-    items
-  };
-}
-
-function normalizeGalleryItems(state) {
-  const explicitItems = Array.isArray(state.answers?.gallery_items) ? state.answers.gallery_items : [];
+function buildGallery(state, strategyContract, vibe) {
   const explicitQueries = cleanList(state.answers?.gallery_queries);
+  const explicitItems = Array.isArray(state.answers?.gallery_items) ? state.answers.gallery_items : [];
 
-  const items = explicitItems
-    .map(function(item, idx) {
+  let items = explicitItems
+    .map((item, idx) => {
       if (!isObject(item)) return null;
       const query = clampWords(cleanString(item.image_search_query), 4, 8);
       if (!query) return null;
@@ -576,99 +465,70 @@ function normalizeGalleryItems(state) {
     })
     .filter(Boolean);
 
-  if (items.length) return items;
-
-  return explicitQueries.map(function(query, idx) {
-    return {
+  if (!items.length && explicitQueries.length) {
+    items = explicitQueries.map((query, idx) => ({
       title: `Project ${idx + 1}`,
       image_search_query: clampWords(query, 4, 8)
-    };
-  });
-}
+    }));
+  }
 
-function buildFallbackGalleryQueries(state, strategyContract) {
-  const seeds = uniqueList([
-    cleanString(state.answers?.visual_direction),
-    cleanList(state.answers?.offerings)[0],
-    cleanString(strategyContract.business_context?.category)
-  ]).filter(Boolean);
+  const fallback = buildFallbackGalleryQueries(state, strategyContract);
+  if (!items.length && !fallback.length) return null;
+  if (!items.length) {
+    items = fallback.map((query, idx) => ({
+      title: `Project ${idx + 1}`,
+      image_search_query: query
+    }));
+  }
 
-  return seeds.map(function(seed) {
-    return clampWords(seed, 4, 8);
-  });
+  const normalized = normalizeGalleryShape(
+    {
+      enabled: true,
+      items,
+      image_source: { image_search_query: items[0]?.image_search_query || "" }
+    },
+    true,
+    cleanString(strategyContract.business_context?.category),
+    vibe
+  );
+
+  return normalized;
 }
 
 function buildFaqs(state, strategyContract) {
-  const ghostFaqs = normalizeGhostFaqs(state.ghostwritten?.faqs);
-  if (ghostFaqs.length > 0) return ghostFaqs.slice(0, 6);
-
-  const items = uniqueList([
-    ...cleanList(state.answers?.faq_topics),
+  const topics = uniqueList([
     ...cleanList(state.answers?.common_objections),
-    ...cleanList(strategyContract.site_structure?.faq_angles)
+    ...cleanList(state.answers?.buyer_decision_factors),
+    ...cleanList(state.answers?.faq_topics),
+    ...cleanList(state.answers?.faq_angles),
+    ...cleanList(strategyContract.site_structure?.faq_angles),
+    ...cleanList(strategyContract.audience_model?.common_objections),
+    ...cleanList(strategyContract.audience_model?.decision_factors)
   ])
-    .map(function(item) { return normalizeFaqQuestion(item); })
+    .map((item) => normalizeFaqQuestion(item))
     .filter(Boolean)
     .slice(0, 6);
 
-  return items.map(function(q) {
-    return {
-      question: ensureQuestion(normalizePublicText(q)),
-      answer: normalizePublicText(inferFaqAnswer(q, state, strategyContract))
-    };
-  });
+  return topics.map((question) => ({
+    question: ensureQuestion(normalizePublicText(question)),
+    answer: normalizePublicText(inferFaqAnswer(question, state, strategyContract))
+  }));
 }
 
-function normalizeGhostFaqs(input) {
-  if (!Array.isArray(input)) return [];
-
-  return input
-    .map(function(item) {
-      if (!isObject(item)) return null;
-      const question = ensureQuestion(cleanString(item.question));
-      const answer = cleanString(item.answer);
-      if (!question || !answer) return null;
-      return {
-        question: normalizePublicText(question),
-        answer: normalizePublicText(answer)
-      };
-    })
-    .filter(Boolean);
-}
-
-function buildTestimonials(state) {
-  const provided = normalizeProvidedTestimonials(state);
-  if (provided.length > 0) return provided.slice(0, 3);
-
-  const quotes = [
-    "Professional, careful, and easy to work with from start to finish.",
-    "Clear communication, reliable scheduling, and a strong final result.",
-    `We chose ${cleanString(state.businessName) || "this team"} because they felt trustworthy and professional from the first interaction.`
-  ];
-
-  return quotes.map(function(quote, idx) {
-    return {
-      quote: normalizePublicText(quote),
-      author: `Happy Client ${idx + 1}`
-    };
-  });
-}
-
-function normalizeProvidedTestimonials(state) {
+function buildTestimonials(state, strategyContract) {
   const provided =
-    Array.isArray(state.ghostwritten?.testimonials) ? state.ghostwritten.testimonials :
     Array.isArray(state.answers?.testimonials) ? state.answers.testimonials :
+    Array.isArray(state.ghostwritten?.testimonials) ? state.ghostwritten.testimonials :
     [];
 
-  return provided
-    .map(function(item, idx) {
+  const normalized = provided
+    .map((item, idx) => {
       if (typeof item === "string") {
         return {
           quote: normalizePublicText(item),
           author: `Happy Client ${idx + 1}`
         };
       }
-
       if (!isObject(item)) return null;
       const quote = cleanString(item.quote);
       const author = cleanString(item.author) || `Happy Client ${idx + 1}`;
@@ -679,37 +539,61 @@ function normalizeProvidedTestimonials(state) {
       };
     })
     .filter(Boolean);
+
+  if (normalized.length) return normalized.slice(0, 3);
+
+  const status = cleanString(state.answers?.testimonials_status).toLowerCase();
+  if (status.includes("not yet")) return [];
+
+  const trust = cleanString(state.answers?.trust_signal);
+  const businessName = cleanString(state.businessName) || "this team";
+
+  return [
+    {
+      quote: normalizePublicText(
+        trust
+          ? `Clients consistently mention ${trust.toLowerCase()} when talking about their experience.`
+          : "Professional, careful, and easy to work with from start to finish."
+      ),
+      author: "Happy Client 1"
+    },
+    {
+      quote: normalizePublicText(`We chose ${businessName} because they felt trustworthy and professional from the first interaction.`),
+      author: "Happy Client 2"
+    }
+  ];
 }
 
-function buildServiceArea(state) {
+function buildServiceArea(state, strategyContract) {
   const mainCity =
     cleanString(state.answers?.service_area) ||
-    cleanString(state.answers?.location_context) ||
-    cleanString(state.answers?.office_address);
+    cleanList(strategyContract.business_context?.service_area)[0] ||
+    cleanList(strategyContract.source_snapshot?.nap_recommendation?.service_area)[0];
 
   if (!mainCity) return null;
 
   return {
     main_city: normalizePublicText(mainCity),
     surrounding_areas: uniqueList([
-      cleanString(state.answers?.service_area),
-      cleanString(state.answers?.location_context)
+      ...cleanList(state.answers?.service_areas),
+      ...cleanList(strategyContract.business_context?.service_area),
+      ...cleanList(strategyContract.source_snapshot?.nap_recommendation?.service_area)
     ])
-      .filter(function(value) { return value && value !== mainCity; })
-      .map(function(value) { return normalizePublicText(value); })
+      .filter((value) => value && value !== mainCity)
+      .map((value) => normalizePublicText(value))
+      .slice(0, 6)
   };
 }
 
 /* =========================
-   Resolution / Fallbacks
+   Hero / Copy Resolution
 ========================= */
 
 function resolveTagline(state, strategyContract, businessName) {
   return (
-    cleanString(state.ghostwritten?.tagline) ||
     cleanString(state.answers?.tagline) ||
-    cleanList(state.answers?.offerings)[0] ||
-    cleanString(strategyContract.positioning?.brand_promise) ||
+    cleanString(strategyContract.source_snapshot?.primary_offer_hint) ||
+    cleanString(state.answers?.primary_offer) ||
     businessName
   );
 }
@@ -718,7 +602,7 @@ function resolveHeroHeadline(state, businessName) {
   return (
     cleanString(state.ghostwritten?.hero_headline) ||
     cleanString(state.answers?.hero_headline) ||
-    cleanList(state.answers?.offerings)[0] ||
+    cleanString(state.answers?.primary_offer) ||
     businessName
   );
 }
@@ -727,21 +611,22 @@ function resolveHeroSubtext(state, strategyContract) {
   return (
     cleanString(state.ghostwritten?.hero_subheadline) ||
     cleanString(state.answers?.hero_subheadline) ||
+    cleanString(state.answers?.website_direction) ||
     buildSimpleHeroSubtext(state, strategyContract)
   );
 }
 
 function buildSimpleHeroSubtext(state, strategyContract) {
-  const years = normalizeYearsExperience(cleanString(state.answers?.experience_years));
   const area = cleanString(state.answers?.service_area);
+  const audience = cleanString(state.answers?.audience);
   const primary = cleanString(strategyContract.conversion_strategy?.primary_conversion);
 
-  const sentenceA = [years, area ? `serving ${area}` : ""]
+  const sentenceA = [audience, area ? `serving ${area}` : ""]
     .filter(Boolean)
     .join(" - ");
 
   const sentenceB =
-    primary === "book_now" ? "Use the site to take the next step." :
+    primary === "book_now" ? "Take the next step directly through the site." :
     primary === "call_now" ? "Reach out directly and we’ll help you get started." :
     "Reach out and we’ll help guide you from there.";
 
@@ -751,25 +636,22 @@ function buildSimpleHeroSubtext(state, strategyContract) {
 function resolveHeroImageAlt(state, businessName) {
   return (
     cleanString(state.answers?.hero_image_alt) ||
-    cleanString(state.ghostwritten?.hero_image_alt) ||
-    cleanList(state.answers?.offerings)[0] ||
+    cleanString(state.answers?.primary_offer) ||
     businessName
   );
 }
 
 function resolveAboutStory(state, businessName) {
   return (
-    cleanString(state.ghostwritten?.about_summary) ||
+    cleanString(state.answers?.business_understanding) ||
     cleanString(state.answers?.about_story) ||
-    cleanString(state.answers?.why_now) ||
     `${businessName} is built around clear communication, reliable service, and a better customer experience.`
   );
 }
 
 function resolveFounderNote(state) {
   return (
-    cleanString(state.answers?.owner_background) ||
-    cleanString(state.ghostwritten?.founder_note) ||
+    cleanString(state.answers?.founder_bio) ||
     "Built for people who value quality, clarity, and a smooth process."
   );
 }
@@ -785,14 +667,14 @@ function resolveYearsExperience(state, strategyContract) {
 function resolveContactSubheadline(state, strategyContract) {
   return (
     cleanString(state.answers?.contact_subheadline) ||
-    cleanString(state.ghostwritten?.contact_subheadline) ||
     inferContactSubheadline(state, strategyContract)
   );
 }
 
-function resolveObjectionHandle(state) {
-  const objections = cleanList(state.answers?.common_objections);
-  const first = cleanString(objections[0]).toLowerCase();
+function resolveObjectionHandle(state, strategyContract) {
+  const first =
+    cleanString(cleanList(state.answers?.common_objections)[0]).toLowerCase() ||
+    cleanString(cleanList(strategyContract.audience_model?.common_objections)[0]).toLowerCase();
 
   if (first.includes("cost") || first.includes("price")) {
     return "Clear quotes and honest expectations from the start.";
@@ -808,12 +690,368 @@ function resolveObjectionHandle(state) {
 }
 
 /* =========================
-   Lightweight Inference
+   Image Logic
 ========================= */
 
-function inferPrimaryCtaText(strategyContract, bookingUrl) {
-  const primary = cleanString(strategyContract.conversion_strategy?.primary_conversion);
+function buildHeroImageQuery(state, strategyContract) {
+  const explicit =
+    cleanString(state.answers?.hero_image_query) ||
+    cleanString(state.answers?.visual_direction);
 
+  if (explicit) return clampWords(explicit, 4, 8);
+
+  const seeds = uniqueList([
+    cleanString(strategyContract.business_context?.category),
+    cleanString(state.answers?.primary_offer),
+    cleanString(cleanList(strategyContract.asset_policy?.preferred_image_themes)[0]),
+    cleanString(strategyContract.visual_strategy?.recommended_vibe)
+  ]).filter(Boolean);
+
+  return clampWords(seeds.join(" "), 4, 8);
+}
+
+function buildFallbackGalleryQueries(state, strategyContract) {
+  const primaryOffer = cleanString(state.answers?.primary_offer);
+  const category = cleanString(strategyContract.business_context?.category);
+  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
+  const vibe = cleanString(strategyContract.visual_strategy?.recommended_vibe);
+
+  const rawSeeds = uniqueList([
+    primaryOffer,
+    category,
+    themes[0],
+    themes[1],
+    `${category} results ${vibe}`
+  ]).filter(Boolean);
+
+  return rawSeeds.map((seed) => clampWords(seed, 4, 8)).filter(Boolean).slice(0, 6);
+}
+
+function ensureInspirationQueries(data) {
+  if (!data?.hero?.image?.image_search_query) {
+    const industry = String(data?.intelligence?.industry || "service").toLowerCase();
+    data.hero.image.image_search_query = clampWords(
+      `${industry} professional work in progress`,
+      4,
+      8
+    );
+  }
+
+  if (data?.strategy?.show_gallery) {
+    data.gallery = data.gallery || { enabled: true, items: [] };
+    data.gallery.enabled = true;
+
+    if (!Array.isArray(data.gallery.items)) data.gallery.items = [];
+
+    const count = Number(
+      data.gallery.computed_count ||
+      data.gallery.items.length ||
+      6
+    );
+
+    const baseSubject = String(data?.intelligence?.industry || "service");
+    const vibe = String(data?.settings?.vibe || "");
+    const fallbackBase = `${baseSubject} results showcase ${vibe}`.trim();
+
+    while (data.gallery.items.length < count) {
+      data.gallery.items.push({
+        title: `Project ${data.gallery.items.length + 1}`,
+        image_search_query: ""
+      });
+    }
+
+    data.gallery.items = data.gallery.items.map((it, i) => {
+      const title = String(it?.title || `Project ${i + 1}`);
+      const q = String(it?.image_search_query || "").trim();
+
+      return {
+        ...it,
+        title,
+        image_search_query: q || clampWords(`${fallbackBase} ${i + 1}`, 4, 8)
+      };
+    });
+
+    if (!isObject(data.gallery.image_source)) {
+      data.gallery.image_source = {};
+    }
+
+    if (!cleanString(data.gallery.image_source.image_search_query)) {
+      data.gallery.image_source.image_search_query =
+        data.gallery.items[0]?.image_search_query ||
+        clampWords(fallbackBase, 4, 8);
+    }
+  } else if (data.gallery) {
+    data.gallery.enabled = Boolean(data.gallery.enabled);
+  }
+
+  return data;
+}
+
+/* =========================
+   Validation
+========================= */
+
+function validateBusinessJson(data) {
+  const issues = [];
+
+  const reqTop = ["intelligence", "strategy", "settings", "brand", "hero", "about", "features", "contact"];
+  for (const key of reqTop) {
+    if (!data?.[key]) issues.push(`Missing top-level "${key}"`);
+  }
+
+  for (const key of ["industry", "target_persona", "tone_of_voice"]) {
+    if (!cleanString(data?.intelligence?.[key])) issues.push(`Missing intelligence.${key}`);
+  }
+
+  if (!SCHEMA_VIBES.includes(cleanString(data?.settings?.vibe))) {
+    issues.push("settings.vibe must be one of allowed enum values");
+  }
+
+  for (const key of ["cta_text", "cta_link", "cta_type"]) {
+    if (!cleanString(data?.settings?.[key])) issues.push(`Missing settings.${key}`);
+  }
+
+  if (!Array.isArray(data?.settings?.menu) || !data.settings.menu.length) {
+    issues.push("settings.menu must be a non-empty array");
+  } else {
+    data.settings.menu.forEach((item, idx) => {
+      if (!cleanString(item?.label)) issues.push(`settings.menu[${idx}].label missing`);
+      if (!ALLOWED_MENU_PATHS.includes(cleanString(item?.path))) {
+        issues.push(`settings.menu[${idx}].path invalid: ${item?.path}`);
+      }
+    });
+  }
+
+  for (const key of ["name", "tagline", "email"]) {
+    if (!cleanString(data?.brand?.[key])) issues.push(`Missing brand.${key}`);
+  }
+
+  for (const key of ["headline", "subtext"]) {
+    if (!cleanString(data?.hero?.[key])) issues.push(`Missing hero.${key}`);
+  }
+
+  if (!cleanString(data?.hero?.image?.alt)) issues.push("Missing hero.image.alt");
+  if (!cleanString(data?.hero?.image?.image_search_query)) issues.push("Missing hero.image.image_search_query");
+
+  for (const key of ["story_text", "founder_note", "years_experience"]) {
+    if (!cleanString(data?.about?.[key])) issues.push(`Missing about.${key}`);
+  }
+
+  if (!Array.isArray(data?.features) || data.features.length < 3) {
+    issues.push("features must be an array with at least 3 items");
+  } else {
+    data.features.forEach((item, idx) => {
+      for (const key of ["title", "description", "icon_slug"]) {
+        if (!cleanString(item?.[key])) issues.push(`features[${idx}].${key} missing`);
+      }
+      if (!ALLOWED_ICON_TOKENS.includes(cleanString(item?.icon_slug))) {
+        issues.push(`features[${idx}].icon_slug invalid: ${item?.icon_slug}`);
+      }
+    });
+  }
+
+  for (const key of ["headline", "subheadline", "email_recipient", "button_text"]) {
+    if (!cleanString(data?.contact?.[key])) issues.push(`Missing contact.${key}`);
+  }
+
+  if (data?.strategy?.show_gallery) {
+    if (!data?.gallery?.enabled) issues.push("strategy.show_gallery=true but gallery.enabled is not true");
+    if (!Array.isArray(data?.gallery?.items) || !data.gallery.items.length) {
+      issues.push("gallery.items must be a non-empty array when gallery enabled");
+    } else {
+      data.gallery.items.forEach((item, idx) => {
+        if (!cleanString(item?.title)) issues.push(`gallery.items[${idx}].title missing`);
+        if (!cleanString(item?.image_search_query)) issues.push(`gallery.items[${idx}].image_search_query missing`);
+      });
+    }
+  }
+
+  if (data?.trustbar) {
+    if (typeof data.trustbar.enabled !== "boolean") issues.push("trustbar.enabled must be boolean");
+    if (!Array.isArray(data.trustbar.items) || data.trustbar.items.length < 2) {
+      issues.push("trustbar.items must have 2+ items when trustbar exists");
+    }
+  }
+
+  return {
+    ok: issues.length === 0,
+    issues
+  };
+}
+
+/* =========================
+   Readiness / V2 Gating
+========================= */
+
+function evaluateNarrativeReadiness(state) {
+  const category = getCategory(state);
+  const model = getNarrativeModel(category);
+
+  const satisfiedBlocks = [];
+  const remainingBlocks = [];
+
+  for (const block of model.must_express) {
+    if (isBlockSatisfied(state, block)) satisfiedBlocks.push(block);
+    else remainingBlocks.push(block);
+  }
+
+  const total = model.must_express.length || 1;
+  return {
+    score: Number((satisfiedBlocks.length / total).toFixed(2)),
+    can_generate_now: remainingBlocks.length === 0,
+    remaining_blocks: remainingBlocks,
+    satisfied_blocks: satisfiedBlocks
+  };
+}
+
+function evaluateEnrichment(state) {
+  const category = getCategory(state);
+  const model = getNarrativeModel(category);
+
+  const satisfiedBlocks = [];
+  const remainingBlocks = [];
+
+  for (const block of model.premium_enrichment) {
+    if (isBlockSatisfied(state, block)) satisfiedBlocks.push(block);
+    else remainingBlocks.push(block);
+  }
+
+  const total = model.premium_enrichment.length || 1;
+  return {
+    score: Number((satisfiedBlocks.length / total).toFixed(2)),
+    ready_for_preview: remainingBlocks.length <= model.preview_tolerance,
+    remaining_blocks: remainingBlocks,
+    satisfied_blocks: satisfiedBlocks
+  };
+}
+
+function getNarrativeModel(category) {
+  const models = {
+    service: {
+      must_express: ["what_it_is", "who_its_for", "why_trust_it", "what_to_do_next"],
+      premium_enrichment: ["differentiation", "service_specificity", "process_clarity", "proof_depth", "faq_substance"],
+      preview_tolerance: 1
+    },
+    event: {
+      must_express: ["what_it_is", "who_its_for", "when_where", "what_to_do_next"],
+      premium_enrichment: ["agenda_or_format", "urgency_or_reason_now", "proof_depth", "faq_substance"],
+      preview_tolerance: 1
+    },
+    coach: {
+      must_express: ["what_it_is", "who_its_for", "transformation", "what_to_do_next"],
+      premium_enrichment: ["method_clarity", "proof_depth", "offer_specificity", "faq_substance"],
+      preview_tolerance: 1
+    },
+    portfolio: {
+      must_express: ["what_it_is", "who_its_for", "proof_of_quality", "what_to_do_next"],
+      premium_enrichment: ["style_or_positioning", "projects_or_examples", "process_clarity", "about_depth"],
+      preview_tolerance: 1
+    }
+  };
+
+  return models[category] || models.service;
+}
+
+const BLOCK_MAP = {
+  what_it_is: ["primary_offer", "business_understanding", "website_direction"],
+  who_its_for: ["audience"],
+  why_trust_it: ["trust_signal", "testimonials_status", "photos_status"],
+  what_to_do_next: ["contact_path", "booking_method", "cta_text", "cta_link"],
+  when_where: ["service_area", "service_areas", "hours"],
+  transformation: ["primary_offer", "differentiation"],
+  proof_of_quality: ["trust_signal", "testimonials_status", "photos_status", "gallery_queries"],
+
+  differentiation: ["differentiation"],
+  service_specificity: ["service_descriptions"],
+  process_clarity: ["process_notes"],
+  proof_depth: ["testimonials_status", "photos_status", "trust_signal"],
+  faq_substance: ["common_objections", "buyer_decision_factors", "faq_angles"],
+  agenda_or_format: ["service_descriptions", "process_notes"],
+  urgency_or_reason_now: ["peak_season_availability", "hours"],
+  method_clarity: ["process_notes", "service_descriptions"],
+  offer_specificity: ["pricing_structure", "service_descriptions"],
+  style_or_positioning: ["differentiation", "website_direction"],
+  projects_or_examples: ["gallery_queries", "photos_status"],
+  about_depth: ["founder_bio"]
+};
+
+function isBlockSatisfied(state, block) {
+  const fields = BLOCK_MAP[block] || [];
+  return fields.some((field) => hasMeaningfulValue(state.answers[field]));
+}
+
+/* =========================
+   Submit
+========================= */
+
+async function trySubmitBusinessJson(request, payload) {
+  const url = new URL(request.url);
+  const submitUrl = `${url.origin}/api/submit`;
+
+  const res = await fetch(submitUrl, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await res.text();
+  let parsed;
+
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    parsed = { raw: text };
+  }
+
+  return {
+    ok: res.ok,
+    status: res.status,
+    response: parsed
+  };
+}
+
+/* =========================
+   Helpers
+========================= */
+
+function getStrategyContract(state) {
+  return isObject(state?.provenance?.strategy_contract)
+    ? state.provenance.strategy_contract
+    : null;
+}
+
+function getCategory(state) {
+  const metaCategory = cleanString(state?.meta?.category).toLowerCase();
+  if (metaCategory) return normalizeCategory(metaCategory);
+
+  const contractCategory = cleanString(
+    state?.provenance?.strategy_contract?.business_context?.category
+  ).toLowerCase();
+
+  return normalizeCategory(contractCategory || "service");
+}
+
+function normalizeCategory(value) {
+  if (!value) return "service";
+  if (["event", "events", "tour", "tours", "experience"].includes(value)) return "event";
+  if (["coach", "coaching", "consultant", "consulting"].includes(value)) return "coach";
+  if (["portfolio", "creative", "artist", "designer", "photographer"].includes(value)) return "portfolio";
+  return "service";
+}
+
+function resolveSchemaVibe(vibe) {
+  const value = cleanString(vibe);
+  return SCHEMA_VIBES.includes(value) ? value : "Modern Minimal";
+}
+
+function inferTone(strategyContract) {
+  return cleanString(strategyContract?.source_snapshot?.client_preview?.sales_preview)
+    ? "Premium, confident, trustworthy"
+    : "";
+}
+
+function inferPrimaryCtaText(strategyContract, bookingUrl) {
+  const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
   if (bookingUrl || primary === "book_now") return "Book Now";
   if (primary === "call_now") return "Call Now";
   if (primary === "request_quote" || primary === "submit_inquiry") return "Request Quote";
@@ -821,8 +1059,7 @@ function inferPrimaryCtaText(strategyContract, bookingUrl) {
 }
 
 function inferSecondaryCtaText(strategyContract, phone) {
-  const secondary = cleanString(strategyContract.conversion_strategy?.secondary_conversion);
-
+  const secondary = cleanString(strategyContract?.conversion_strategy?.secondary_conversion);
   if (phone || secondary === "call_now") return "Call Now";
   if (secondary === "submit_inquiry") return "Send Inquiry";
   if (secondary === "request_quote") return "Request Quote";
@@ -836,19 +1073,14 @@ function inferSecondaryCtaLink(phone, bookingUrl) {
 }
 
 function inferContactSubheadline(state, strategyContract) {
-  const primary = cleanString(strategyContract.conversion_strategy?.primary_conversion);
-
-  if (primary === "call_now") {
-    return "Call today and we’ll help you figure out the best next step.";
-  }
-  if (primary === "book_now") {
-    return "Ready to get started? Reach out and we’ll help you book the right next step.";
-  }
+  const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
+  if (primary === "call_now") return "Call today and we’ll help you figure out the best next step.";
+  if (primary === "book_now") return "Ready to get started? Reach out and we’ll help you book the right next step.";
   return "Tell us what you need and we’ll help you with the right next step.";
 }
 
 function inferContactButtonText(strategyContract, bookingUrl) {
-  const primary = cleanString(strategyContract.conversion_strategy?.primary_conversion);
+  const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
   if (bookingUrl || primary === "book_now") return "Book Now";
   if (primary === "call_now") return "Call Now";
   if (primary === "request_quote") return "Request Quote";
@@ -856,14 +1088,14 @@ function inferContactButtonText(strategyContract, bookingUrl) {
 }
 
 function inferFaqAnswer(question, state, strategyContract) {
-  const bookingMethod = cleanString(state.answers?.booking_method);
+  const bookingMethod = cleanString(state.answers?.booking_method).toLowerCase();
   const serviceArea = cleanString(state.answers?.service_area);
-  const pricing = cleanString(state.answers?.pricing_context);
+  const pricing = cleanString(state.answers?.pricing_structure);
   const lower = cleanString(question).toLowerCase();
 
   if (lower.includes("book") || lower.includes("schedule")) {
-    if (bookingMethod === "external_booking") return "You can use the booking link on the site to choose the best next step.";
-    if (bookingMethod === "phone") return "Call directly and we’ll help you schedule the right next step.";
+    if (bookingMethod.includes("book")) return "You can use the booking link on the site to choose the best next step.";
+    if (bookingMethod.includes("call")) return "Call directly and we’ll help you schedule the right next step.";
     return "Reach out through the contact form and we’ll help guide you from there.";
   }
 
@@ -886,53 +1118,82 @@ function inferFaqAnswer(question, state, strategyContract) {
   return "We keep the experience clear, helpful, and easy to understand.";
 }
 
-function buildHeroImageQuery(state, strategyContract) {
-  const explicit =
-    cleanString(state.answers?.hero_image_query) ||
-    cleanString(state.inference?.hero_image_query);
+function normalizeGalleryShape(gallery, showGallery, industry, vibe) {
+  const gg = gallery || {};
+  const enabled = Boolean(gg.enabled ?? showGallery);
 
-  if (explicit) return clampWords(explicit, 4, 8);
+  let items = Array.isArray(gg.items) ? gg.items : [];
+  if (!Array.isArray(items) && Array.isArray(gg.images)) {
+    items = gg.images.map((im, i) => ({
+      title: im.title || im.alt || `Project ${i + 1}`,
+      image_search_query: im.image_search_query || ""
+    }));
+  }
 
-  const seeds = uniqueList([
-    cleanString(state.answers?.visual_direction),
-    cleanList(state.answers?.offerings)[0],
-    cleanString(strategyContract.business_context?.category)
-  ]).filter(Boolean);
+  const ind = String(industry || "").toLowerCase();
+  const isLuxury = ind.includes("watch") || ind.includes("jewelry") || String(vibe || "") === "Luxury Noir";
+  const isCreative = ind.includes("photo") || ind.includes("studio") || ind.includes("art");
+  const isTrades = ind.includes("detailing") || ind.includes("plumbing") || ind.includes("construction") || ind.includes("trades") || ind.includes("service");
 
-  return clampWords(seeds.join(" "), 4, 8);
+  const computed_layout =
+    gg.computed_layout ||
+    (isLuxury ? "bento" : isCreative ? "masonry" : isTrades ? "grid" : "grid");
+
+  const computed_count =
+    gg.computed_count ||
+    items.length ||
+    (isLuxury ? 5 : isCreative ? 9 : isTrades ? 6 : 6);
+
+  return {
+    enabled,
+    title: gg.title || "Gallery",
+    layout: gg.layout ?? null,
+    show_titles: gg.show_titles ?? true,
+    image_source: isObject(gg.image_source) ? gg.image_source : { image_search_query: "" },
+    computed_count: enabled ? computed_count : (gg.computed_count ?? null),
+    computed_layout: enabled ? computed_layout : (gg.computed_layout ?? null),
+    items
+  };
 }
 
-/* =========================
-   Generic Normalization
-========================= */
+function normalizeProcessStepSource(input) {
+  let steps = cleanList(input);
 
-function normalizePublicText(value) {
-  return cleanString(value)
-    .replace(/[’‘]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/[—–]/g, " - ")
-    .replace(/…/g, "...")
-    .replace(/\uFFFD/g, "")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  if (steps.length === 1) {
+    const expanded = splitProcessStepText(steps[0]);
+    if (expanded.length > 1) steps = expanded;
+  }
+
+  return uniqueList(steps)
+    .map((step) => normalizePublicText(step))
+    .filter((step) => step.split(/\s+/).filter(Boolean).length >= 2);
 }
 
-function normalizeOfferTitle(item) {
-  return normalizeShortTitle(item, 0);
+function splitProcessStepText(text) {
+  return cleanString(text)
+    .split(/\n|->|→|;|\.|, then | then /gi)
+    .map((step) => normalizePublicText(step))
+    .filter(Boolean);
 }
 
-function normalizeDifferentiatorTitle(item) {
-  const value = cleanString(item).toLowerCase();
-  if (!value) return "";
+function inferProcessStepTitle(step, idx) {
+  const text = cleanString(step).toLowerCase();
+  if (!text) return `Step ${idx + 1}`;
 
-  if (value.includes("quality")) return "Quality Work";
-  if (value.includes("availability") || value.includes("schedule")) return "Responsive Scheduling";
-  if (value.includes("communication")) return "Clear Communication";
-  if (value.includes("detail")) return "Attention to Detail";
-  if (value.includes("professional")) return "Professional Experience";
-  if (value.includes("trust") || value.includes("reputation")) return "Trusted Reputation";
+  const patterns = [
+    { match: ["quote", "request"], title: "Request a Quote" },
+    { match: ["review", "needs"], title: "Review Your Needs" },
+    { match: ["schedule"], title: "Schedule the Service" },
+    { match: ["confirm"], title: "Confirm the Details" },
+    { match: ["walkthrough"], title: "Final Walkthrough" },
+    { match: ["satisfaction"], title: "Final Review" }
+  ];
 
-  return normalizeShortTitle(item, 0);
+  for (const pattern of patterns) {
+    if (pattern.match.every((token) => text.includes(token))) return pattern.title;
+  }
+
+  return normalizeShortTitle(step, idx);
 }
 
 function normalizeTrustbarLabel(label) {
@@ -944,7 +1205,6 @@ function normalizeTrustbarLabel(label) {
   if (value.includes("photo")) return "Proven Results";
   if (value.includes("experience")) return "Experienced Service";
   if (value.includes("referral")) return "Highly Recommended";
-
   if (value === "future_google_business_profile") return "Local Business Presence";
   if (value === "local_service_area_relevance") return "Local Service Focus";
 
@@ -954,7 +1214,6 @@ function normalizeTrustbarLabel(label) {
 function audienceToCustomerPhrase(audience) {
   const value = cleanString(audience).toLowerCase();
   if (!value) return "";
-
   if (value.includes("homeowner")) return "homeowners";
   if (value.includes("family")) return "families";
   if (value.includes("property manager")) return "property managers";
@@ -963,24 +1222,27 @@ function audienceToCustomerPhrase(audience) {
   if (value.includes("client")) return "clients";
   if (value.includes("people actively looking")) return "customers";
   if (value.includes("trustworthy provider")) return "customers";
-
   return cleanSentenceFragment(value);
+}
+
+function normalizeDifferentiatorTitle(item) {
+  const value = cleanString(item).toLowerCase();
+  if (!value) return "";
+  if (value.includes("quality")) return "Quality Work";
+  if (value.includes("availability") || value.includes("schedule")) return "Responsive Scheduling";
+  if (value.includes("communication")) return "Clear Communication";
+  if (value.includes("detail")) return "Attention to Detail";
+  if (value.includes("professional")) return "Professional Experience";
+  if (value.includes("trust") || value.includes("reputation")) return "Trusted Reputation";
+  return normalizeShortTitle(item, 0);
 }
 
 function normalizeFaqQuestion(text) {
   const value = cleanString(text).toLowerCase();
   if (!value) return "";
-
-  if (value.includes("cost concern") || value === "cost concerns") {
-    return "How does pricing work?";
-  }
-  if (value.includes("trustworth")) {
-    return "How do I know I can trust your service?";
-  }
-  if (value.includes("availability")) {
-    return "How far in advance should I schedule?";
-  }
-
+  if (value.includes("cost concern") || value === "cost concerns") return "How does pricing work?";
+  if (value.includes("trustworth")) return "How do I know I can trust your service?";
+  if (value.includes("availability")) return "How far in advance should I schedule?";
   return cleanString(text);
 }
 
@@ -1005,6 +1267,154 @@ function normalizeShortTitle(text, idx) {
   return titleCaseSmart(words.join(" ")) || `Item ${idx + 1}`;
 }
 
+function splitMeaningfulPhrases(text) {
+  return cleanString(text)
+    .split(/\n|;|\.|, and | and /gi)
+    .map((part) => cleanSentenceFragment(part))
+    .filter((part) => part.split(/\s+/).filter(Boolean).length >= 2);
+}
+
+function pickTrustbarIcon(text, idx) {
+  const value = cleanString(text).toLowerCase();
+  if (value.includes("testimonial") || value.includes("review")) return "star";
+  if (value.includes("trust") || value.includes("safe")) return "shield";
+  if (value.includes("experience") || value.includes("award")) return "award";
+  if (value.includes("referral") || value.includes("people")) return "users";
+  if (value.includes("local") || value.includes("area")) return "map";
+  return ["shield", "star", "award", "heart"][idx % 4];
+}
+
+function pickFeatureIcon(text, idx) {
+  const value = cleanString(text).toLowerCase();
+  if (value.includes("fast") || value.includes("speed")) return "zap";
+  if (value.includes("team") || value.includes("people")) return "users";
+  if (value.includes("local") || value.includes("area")) return "map";
+  if (value.includes("trust") || value.includes("safe") || value.includes("reputation")) return "shield";
+  if (value.includes("quality") || value.includes("award") || value.includes("detail")) return "award";
+  if (value.includes("schedule") || value.includes("time")) return "clock";
+  return ["sparkles", "award", "shield", "clock", "heart", "map"][idx % 6];
+}
+
+function inferCtaType(link) {
+  return String(link || "").startsWith("#") ? "anchor" : "external";
+}
+
+function normalizeState(state) {
+  const next = isObject(state) ? state : {};
+
+  next.answers = {
+    business_name: "",
+    category: "",
+    primary_offer: "",
+    audience: "",
+    service_area: "",
+    service_areas: [],
+    trust_signal: "",
+    contact_path: "",
+    booking_method: "",
+    cta_text: "",
+    cta_link: "",
+    primary_conversion: "",
+    secondary_conversion: "",
+    conversion_mode: "",
+    differentiation: "",
+    website_direction: "",
+    business_understanding: "",
+    opportunity: "",
+    recommended_focus: [],
+    recommended_sections: [],
+    faq_angles: [],
+    aeo_angles: [],
+    future_dynamic_vibe_hint: "",
+    google_presence_insight: "",
+    next_step_teaser: "",
+    service_descriptions: "",
+    process_notes: "",
+    pricing_structure: "",
+    testimonials_status: "",
+    photos_status: "",
+    founder_bio: "",
+    common_objections: [],
+    buyer_decision_factors: [],
+    phone: "",
+    booking_url: "",
+    hours: "",
+    office_address: "",
+    offerings: [],
+    differentiators: [],
+    trust_signals: [],
+    credibility_factors: [],
+    faq_topics: [],
+    gallery_queries: [],
+    gallery_items: [],
+    testimonials: [],
+    peak_season_availability: "",
+    ...((isObject(next.answers) ? next.answers : {}))
+  };
+
+  next.ghostwritten = isObject(next.ghostwritten) ? next.ghostwritten : {};
+  next.provenance = isObject(next.provenance) ? next.provenance : {};
+  next.meta = isObject(next.meta) ? next.meta : {};
+  next.readiness = isObject(next.readiness) ? next.readiness : {};
+  next.enrichment = isObject(next.enrichment) ? next.enrichment : {};
+
+  next.answers.service_areas = cleanList(next.answers.service_areas);
+  next.answers.recommended_focus = cleanList(next.answers.recommended_focus);
+  next.answers.recommended_sections = cleanList(next.answers.recommended_sections);
+  next.answers.faq_angles = cleanList(next.answers.faq_angles);
+  next.answers.aeo_angles = cleanList(next.answers.aeo_angles);
+  next.answers.common_objections = cleanList(next.answers.common_objections);
+  next.answers.buyer_decision_factors = cleanList(next.answers.buyer_decision_factors);
+  next.answers.offerings = cleanList(next.answers.offerings);
+  next.answers.differentiators = cleanList(next.answers.differentiators);
+  next.answers.trust_signals = cleanList(next.answers.trust_signals);
+  next.answers.credibility_factors = cleanList(next.answers.credibility_factors);
+  next.answers.faq_topics = cleanList(next.answers.faq_topics);
+  next.answers.gallery_queries = cleanList(next.answers.gallery_queries);
+  next.answers.testimonials = Array.isArray(next.answers.testimonials) ? next.answers.testimonials : [];
+  next.answers.gallery_items = Array.isArray(next.answers.gallery_items) ? next.answers.gallery_items : [];
+
+  next.slug = cleanString(next.slug);
+  next.businessName = cleanString(next.businessName);
+  next.clientEmail = cleanString(next.clientEmail);
+
+  return next;
+}
+
+function cleanString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function cleanList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(cleanString).filter(Boolean);
+}
+
+function uniqueList(values) {
+  return Array.from(new Set(cleanList(values)));
+}
+
+function hasMeaningfulValue(value) {
+  if (Array.isArray(value)) return value.some((item) => hasMeaningfulValue(item));
+  if (isObject(value)) return Object.values(value).some((item) => hasMeaningfulValue(item));
+  return cleanString(String(value || "")) !== "";
+}
+
+function isObject(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizePublicText(value) {
+  return cleanString(value)
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[—–]/g, " - ")
+    .replace(/…/g, "...")
+    .replace(/\uFFFD/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function cleanSentence(text) {
   const value = normalizePublicText(cleanString(text).replace(/^[-–—\d.\s]+/, ""));
   if (!value) return "";
@@ -1025,7 +1435,7 @@ function titleCaseSmart(text) {
   return cleanString(text)
     .split(/\s+/)
     .filter(Boolean)
-    .map(function(word, idx) {
+    .map((word, idx) => {
       const lower = word.toLowerCase();
       if (idx > 0 && ["and", "of", "for", "with", "to"].includes(lower)) return lower;
       return lower.charAt(0).toUpperCase() + lower.slice(1);
@@ -1033,31 +1443,13 @@ function titleCaseSmart(text) {
     .join(" ");
 }
 
-function clampString(text, max) {
-  const value = cleanString(text);
-  if (!value) return "";
-  return value.length <= max ? value : `${value.slice(0, max - 1).trim()}...`;
-}
-
-function canonicalFeatureKey(title) {
-  const value = cleanString(title).toLowerCase();
-  if (!value) return "";
-
-  if (value.includes("quality") || value.includes("careful") || value.includes("detail")) return "quality";
-  if (value.includes("schedule") || value.includes("availability") || value.includes("responsive")) return "scheduling";
-  if (value.includes("trust") || value.includes("reputation")) return "trust";
-  if (value.includes("quote") || value.includes("pricing")) return "pricing";
-  return value;
-}
-
 function uniqueObjectsByTitle(items) {
   const seen = new Set();
-  return items.filter(function(item) {
+  return items.filter((item) => {
     const raw = cleanString(item?.title).toLowerCase();
     if (!raw) return false;
-    const canonical = canonicalFeatureKey(raw);
-    if (seen.has(canonical)) return false;
-    seen.add(canonical);
+    if (seen.has(raw)) return false;
+    seen.add(raw);
     return true;
   });
 }
@@ -1068,479 +1460,35 @@ function ensureQuestion(text) {
   return /[?]$/.test(q) ? q : `${q}?`;
 }
 
-function escapeRegExp(text) {
-  return cleanString(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function clampWords(text, min, max) {
+  const words = String(text || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length <= max && words.length >= min) return words.join(" ");
+  if (words.length > max) return words.slice(0, max).join(" ");
+  const pad = ["photography", "professional", "high", "quality", "detail"];
+  while (words.length < min && pad.length) words.push(pad.shift());
+  return words.slice(0, max).join(" ");
 }
 
-/* =========================
-   Icon Picking
-========================= */
-
-function pickFeatureIcon(text, idx) {
-  const value = cleanString(text).toLowerCase();
-  if (value.includes("fast") || value.includes("speed")) return "zap";
-  if (value.includes("tech") || value.includes("ai")) return "cpu";
-  if (value.includes("layer") || value.includes("system")) return "layers";
-  if (value.includes("launch") || value.includes("growth")) return "rocket";
-  if (value.includes("green") || value.includes("eco")) return "leaf";
-  if (value.includes("care") || value.includes("support")) return "heart";
-  if (value.includes("team") || value.includes("people")) return "users";
-  if (value.includes("map") || value.includes("local")) return "map";
-  if (value.includes("trust") || value.includes("safe") || value.includes("reputation")) return "shield";
-  if (value.includes("quality") || value.includes("award") || value.includes("detail")) return "award";
-  if (value.includes("price") || value.includes("value") || value.includes("quote")) return "coins";
-  if (value.includes("schedule") || value.includes("availability")) return "clock";
-  if (value.includes("phone") || value.includes("call")) return "phone";
-
-  const fallback = ["layers", "sparkles", "shield", "star", "check", "briefcase"];
-  return fallback[idx % fallback.length];
+function normalizeSlug(s) {
+  return String(s || "")
+    .toLowerCase()
+    .replace(/'/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
-function pickTrustbarIcon(text, idx) {
-  const value = cleanString(text).toLowerCase();
-  if (value.includes("insured") || value.includes("licensed")) return "shield";
-  if (value.includes("years") || value.includes("experience")) return "clock";
-  if (value.includes("local") || value.includes("area")) return "map";
-  if (value.includes("review")) return "star";
-  if (value.includes("award")) return "award";
-  if (value.includes("family") || value.includes("team")) return "users";
-
-  const fallback = ["shield", "star", "award", "users"];
-  return fallback[idx % fallback.length];
-}
-
-/* =========================
-   Utility Builders
-========================= */
-
-function resolveSchemaVibe(input) {
-  const value = cleanString(input);
-  if (SCHEMA_VIBES.includes(value)) return value;
-
-  const lower = value.toLowerCase();
-  if (lower.includes("luxury") || lower.includes("dark")) return "Luxury Noir";
-  if (lower.includes("modern") || lower.includes("minimal")) return "Modern Minimal";
-  if (lower.includes("solar") || lower.includes("energy")) return "Solar Flare";
-  if (lower.includes("tech") || lower.includes("ai")) return "Midnight Tech";
-  if (lower.includes("earth") || lower.includes("organic")) return "Zenith Earth";
-  if (lower.includes("vintage") || lower.includes("boutique")) return "Vintage Boutique";
-  if (lower.includes("industrial") || lower.includes("rugged")) return "Rugged Industrial";
-  return "Modern Minimal";
-}
-
-/* =========================
-   Strategy Memory
-========================= */
-
-function buildStrategyMemory(state, strategyContract, strategyBrief, businessJson) {
-  return {
-    intake_summary: {
-      business_name: cleanString(state.businessName),
-      slug: cleanString(state.slug),
-      target_audience: cleanString(state.answers?.target_audience),
-      primary_conversion_goal: cleanString(state.answers?.primary_conversion_goal),
-      booking_method: cleanString(state.answers?.booking_method),
-      booking_url: cleanString(state.answers?.booking_url),
-      phone: cleanString(state.answers?.phone),
-      service_area: cleanString(state.answers?.service_area),
-      offerings: cleanList(state.answers?.offerings),
-      differentiators: cleanList(state.answers?.differentiators),
-      trust_signals: uniqueList([
-        ...cleanList(state.answers?.trust_signals),
-        ...cleanList(state.answers?.credibility_factors)
-      ]),
-      faq_topics: cleanList(state.answers?.faq_topics),
-      common_objections: cleanList(state.answers?.common_objections),
-      process_notes: cleanList(state.answers?.process_notes),
-      visual_direction: cleanString(state.answers?.visual_direction),
-      target_persona: cleanString(state.answers?.target_audience),
-      tone_preferences: cleanString(state.answers?.tone_preferences),
-      preview_asset_mode: cleanString(strategyContract.asset_policy?.preview_asset_mode),
-      publish_requires_asset_swap: Boolean(strategyContract.asset_policy?.replace_assets_before_publish)
-    },
-    emitted_sections: Object.keys(businessJson || {})
-  };
-}
-
-/* =========================
-   Validation
-========================= */
-
-function validateRawBusinessJson(data) {
-  const issues = [];
-
-  if (!isObject(data)) {
-    return { ok: false, issues: ["business_json must be an object"] };
-  }
-
-  const allowedTopLevel = new Set([
-    "intelligence",
-    "strategy",
-    "settings",
-    "brand",
-    "hero",
-    "about",
-    "trustbar",
-    "events",
-    "service_area",
-    "features",
-    "processSteps",
-    "testimonials",
-    "comparison",
-    "investment",
-    "faqs",
-    "gallery",
-    "contact"
-  ]);
-
-  Object.keys(data).forEach(function(key) {
-    if (!allowedTopLevel.has(key)) {
-      issues.push(`unknown top-level key: ${key}`);
-    }
-  });
-
-  if (!cleanString(data?.intelligence?.industry)) issues.push("intelligence.industry is required");
-  if (!cleanString(data?.intelligence?.target_persona)) issues.push("intelligence.target_persona is required");
-  if (!cleanString(data?.intelligence?.tone_of_voice)) issues.push("intelligence.tone_of_voice is required");
-
-  if (!isObject(data?.strategy)) issues.push("strategy is required");
-
-  if (!cleanString(data?.settings?.vibe)) issues.push("settings.vibe is required");
-  if (!SCHEMA_VIBES.includes(cleanString(data?.settings?.vibe))) {
-    issues.push("settings.vibe must be a valid schema vibe");
-  }
-
-  if (!Array.isArray(data?.settings?.menu) || data.settings.menu.length === 0) {
-    issues.push("settings.menu must be a non-empty array");
-  } else {
-    data.settings.menu.forEach(function(item, idx) {
-      if (!cleanString(item?.label)) issues.push(`settings.menu[${idx}].label is required`);
-      if (!cleanString(item?.path)) {
-        issues.push(`settings.menu[${idx}].path is required`);
-      } else if (!ALLOWED_MENU_PATHS.includes(cleanString(item.path))) {
-        issues.push(`settings.menu[${idx}].path must be a valid schema anchor`);
-      }
-      if (Object.prototype.hasOwnProperty.call(item || {}, "href")) {
-        issues.push(`settings.menu[${idx}] must use path, not href`);
-      }
-    });
-  }
-
-  if (!cleanString(data?.settings?.cta_text)) issues.push("settings.cta_text is required");
-  if (!cleanString(data?.settings?.cta_link)) issues.push("settings.cta_link is required");
-  if (!["anchor", "external"].includes(cleanString(data?.settings?.cta_type))) {
-    issues.push("settings.cta_type must be anchor or external");
-  }
-
-  if (!cleanString(data?.brand?.name)) issues.push("brand.name is required");
-  if (!cleanString(data?.brand?.slug)) issues.push("brand.slug is required");
-  if (!cleanString(data?.brand?.tagline)) issues.push("brand.tagline is required");
-  if (!cleanString(data?.brand?.email)) issues.push("brand.email is required");
-
-  if (!cleanString(data?.hero?.headline)) issues.push("hero.headline is required");
-  if (!cleanString(data?.hero?.subtext)) issues.push("hero.subtext is required");
-  if (!cleanString(data?.hero?.image?.alt)) issues.push("hero.image.alt is required");
-  if (!cleanString(data?.hero?.image?.image_search_query)) {
-    issues.push("hero.image.image_search_query is required");
-  }
-
-  if (!cleanString(data?.about?.story_text)) issues.push("about.story_text is required");
-  if (!cleanString(data?.about?.founder_note)) issues.push("about.founder_note is required");
-  if (!cleanString(data?.about?.years_experience)) issues.push("about.years_experience is required");
-
-  if (!Array.isArray(data?.features) || data.features.length < 3) {
-    issues.push("features must contain at least 3 items");
-  } else {
-    data.features.forEach(function(item, idx) {
-      if (!cleanString(item?.title)) issues.push(`features[${idx}].title is required`);
-      if (!cleanString(item?.description)) issues.push(`features[${idx}].description is required`);
-      if (!cleanString(item?.icon_slug)) {
-        issues.push(`features[${idx}].icon_slug is required`);
-      } else if (!ALLOWED_ICON_TOKENS.includes(cleanString(item.icon_slug))) {
-        issues.push(`features[${idx}].icon_slug must be a valid icon token`);
-      }
-    });
-  }
-
-  if (!cleanString(data?.contact?.headline)) issues.push("contact.headline is required");
-  if (!cleanString(data?.contact?.subheadline)) issues.push("contact.subheadline is required");
-  if (!cleanString(data?.contact?.email_recipient)) issues.push("contact.email_recipient is required");
-  if (!cleanString(data?.contact?.button_text)) issues.push("contact.button_text is required");
-
-  if (data?.trustbar) {
-    if (typeof data.trustbar.enabled !== "boolean") {
-      issues.push("trustbar.enabled must be boolean");
-    }
-    if (!Array.isArray(data.trustbar.items) || data.trustbar.items.length < 2) {
-      issues.push("trustbar.items must contain at least 2 items when trustbar is present");
-    }
-  }
-
-  if (data?.strategy?.show_process) {
-    if (!Array.isArray(data?.processSteps) || data.processSteps.length < 3) {
-      issues.push("processSteps[] required with at least 3 items when strategy.show_process is true");
-    } else {
-      data.processSteps.forEach(function(item, idx) {
-        if (!cleanString(item?.title)) issues.push(`processSteps[${idx}].title is required`);
-        if (!cleanString(item?.description)) issues.push(`processSteps[${idx}].description is required`);
-      });
-    }
-  }
-
-  if (data?.strategy?.show_gallery) {
-    if (!isObject(data?.gallery)) {
-      issues.push("gallery is required when strategy.show_gallery is true");
-    } else if (!Array.isArray(data.gallery.items) || data.gallery.items.length === 0) {
-      issues.push("gallery.items are required when strategy.show_gallery is true");
-    }
-  }
-
-  if (data?.strategy?.show_testimonials && (!Array.isArray(data?.testimonials) || data.testimonials.length === 0)) {
-    issues.push("testimonials[] required when strategy.show_testimonials is true");
-  }
-
-  if (data?.strategy?.show_faqs && (!Array.isArray(data?.faqs) || data.faqs.length === 0)) {
-    issues.push("faqs[] required when strategy.show_faqs is true");
-  }
-
-  if (data?.strategy?.show_service_area) {
-    if (!isObject(data?.service_area) || !cleanString(data?.service_area?.main_city)) {
-      issues.push("service_area.main_city required when strategy.show_service_area is true");
-    }
-  }
-
-  return { ok: issues.length === 0, issues };
-}
-
-/* =========================
-   Submit
-========================= */
-
-async function trySubmitBusinessJson(request, payload) {
+async function readJson(request) {
+  const text = await request.text();
   try {
-    const url = new URL(request.url);
-    url.pathname = "/api/submit";
-    url.search = "";
-
-    const res = await fetch(url.toString(), {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const text = await res.text();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      parsed = { raw: text };
-    }
-
-    return {
-      ok: res.ok,
-      status: res.status,
-      response: parsed
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      error: String(err?.message || err)
-    };
-  }
-}
-
-/* =========================
-   Readiness
-========================= */
-
-function evaluateReadiness(state) {
-  const missing = [];
-
-  const whyNow = cleanString(state.answers?.why_now);
-  const desiredOutcome = cleanString(state.answers?.desired_outcome);
-  const audience = cleanString(state.answers?.target_audience);
-  const hasOffer = Array.isArray(state.answers?.offerings) && state.answers.offerings.length > 0;
-  const hasCta = cleanString(state.answers?.primary_conversion_goal);
-  const hasContactPath = Boolean(
-    cleanString(state.clientEmail) ||
-    cleanString(state.answers?.phone) ||
-    cleanString(state.answers?.booking_url)
-  );
-
-  const hasBuyerIntel =
-    (state.answers?.buyer_decision_factors?.length > 0) ||
-    (state.answers?.common_objections?.length > 0);
-
-  const queueComplete = state.verification?.queue_complete === true;
-
-  const diff = Array.isArray(state.answers?.differentiators) ? state.answers.differentiators.length : 0;
-  const trust = Array.isArray(state.answers?.trust_signals) ? state.answers.trust_signals.length : 0;
-  const cred = Array.isArray(state.answers?.credibility_factors) ? state.answers.credibility_factors.length : 0;
-  const hasTrustOrDiff = diff + trust + cred > 0;
-
-  if (!whyNow && !desiredOutcome) missing.push("business_purpose");
-  if (!audience) missing.push("target_audience");
-  if (!hasOffer) missing.push("primary_offer");
-  if (!hasCta) missing.push("cta_direction");
-  if (!hasContactPath) missing.push("contact_path");
-  if (!hasBuyerIntel) missing.push("buyer_intelligence");
-  if (!hasTrustOrDiff) missing.push("trust_signals");
-  if (!queueComplete) missing.push("verification_queue");
-
-  const scoreParts = [
-    Boolean(whyNow || desiredOutcome),
-    Boolean(audience),
-    Boolean(hasOffer),
-    Boolean(hasCta),
-    Boolean(hasContactPath),
-    Boolean(hasTrustOrDiff),
-    Boolean(hasBuyerIntel)
-  ];
-
-  const score = scoreParts.filter(Boolean).length / scoreParts.length;
-
-  return {
-    score,
-    required_domains_complete: missing.length === 0,
-    missing_domains: missing,
-    can_generate_now:
-      queueComplete &&
-      Boolean(whyNow || desiredOutcome) &&
-      Boolean(audience) &&
-      Boolean(hasOffer) &&
-      Boolean(hasCta) &&
-      Boolean(hasContactPath) &&
-      hasBuyerIntel &&
-      hasTrustOrDiff
-  };
-}
-
-/* =========================
-   Shared Helpers
-========================= */
-
-function getStrategyContract(state) {
-  return state?.provenance?.strategy_contract ||
-    state?.inference?.strategy_contract ||
-    null;
-}
-
-function normalizeState(state) {
-  const next = structuredClone(isObject(state) ? state : {});
-
-  next.answers = {
-    why_now: "",
-    desired_outcome: "",
-    primary_conversion_goal: "",
-    first_impression_goal: "",
-    target_audience: "",
-    offerings: [],
-    booking_method: "",
-    phone: "",
-    booking_url: "",
-    office_address: "",
-    differentiators: [],
-    trust_signals: [],
-    credibility_factors: [],
-    owner_background: "",
-    location_context: "",
-    service_area: "",
-    tone_preferences: "",
-    visual_direction: "",
-    process_notes: [],
-    faq_topics: [],
-    pricing_context: "",
-    buyer_decision_factors: [],
-    common_objections: [],
-    experience_years: "",
-    hero_headline: "",
-    hero_subheadline: "",
-    hero_image_alt: "",
-    hero_image_query: "",
-    tagline: "",
-    about_story: "",
-    contact_subheadline: "",
-    gallery_queries: [],
-    gallery_items: [],
-    testimonials: [],
-    ...(isObject(next.answers) ? next.answers : {})
-  };
-
-  next.ghostwritten = {
-    tagline: "",
-    hero_headline: "",
-    hero_subheadline: "",
-    hero_image_alt: "",
-    about_summary: "",
-    founder_note: "",
-    contact_subheadline: "",
-    features_copy: [],
-    faqs: [],
-    testimonials: [],
-    ...(isObject(next.ghostwritten) ? next.ghostwritten : {})
-  };
-
-  next.answers.offerings = cleanList(next.answers.offerings);
-  next.answers.differentiators = cleanList(next.answers.differentiators);
-  next.answers.trust_signals = cleanList(next.answers.trust_signals);
-  next.answers.credibility_factors = cleanList(next.answers.credibility_factors);
-  next.answers.faq_topics = cleanList(next.answers.faq_topics);
-  next.answers.buyer_decision_factors = cleanList(next.answers.buyer_decision_factors);
-  next.answers.common_objections = cleanList(next.answers.common_objections);
-  next.answers.process_notes = cleanList(next.answers.process_notes);
-  next.answers.gallery_queries = cleanList(next.answers.gallery_queries);
-  next.verification = isObject(next.verification) ? next.verification : {};
-
-  next.slug = cleanString(next.slug);
-  next.businessName = cleanString(next.businessName);
-  next.clientEmail = cleanString(next.clientEmail);
-
-  return next;
-}
-
-async function readJson(req) {
-  try {
-    return await req.json();
+    return JSON.parse(text || "{}");
   } catch {
-    return {};
+    throw new Error("Invalid JSON payload");
   }
 }
 
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
+function json(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
     status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store"
-    }
+    headers: { "content-type": "application/json; charset=utf-8" }
   });
-}
-
-function cleanString(v) {
-  return typeof v === "string" ? v.trim() : "";
-}
-
-function cleanList(arr) {
-  if (!Array.isArray(arr)) return [];
-  return arr.map(function(v) {
-    return typeof v === "string" ? v.trim() : "";
-  }).filter(Boolean);
-}
-
-function uniqueList(arr) {
-  return Array.from(new Set(cleanList(arr)));
-}
-
-function isObject(v) {
-  return !!v && typeof v === "object" && !Array.isArray(v);
-}
-
-function clampWords(text, minWords, maxWords) {
-  const words = cleanString(text).split(/\s+/).filter(Boolean);
-  if (!words.length) return "professional service detail work";
-
-  const sliced = words.slice(0, maxWords);
-  while (sliced.length < minWords) sliced.push("detail");
-  return sliced.join(" ");
 }
