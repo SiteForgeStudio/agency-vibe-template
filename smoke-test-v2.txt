@@ -1,0 +1,96 @@
+curl -s -X POST "https://intake.getsiteforge.com/api/intake-start" \
+  -H "Content-Type: application/json" \
+  -d '{"slug":"summit-ridge-window-cleaning-v2"}' | tee /tmp/siteforge_start.json
+
+=====================================================================
+
+  jq '.state' /tmp/siteforge_start.json > /tmp/siteforge_state_1.json
+
+  ====================================================================
+  ====================================================================
+
+  jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_1.json)" \
+  --arg answer "We mainly serve homeowners in Boulder and nearby upscale neighborhoods who care about spotless results, reliability, and professionalism. A lot of them have large homes, big glass, and want someone they can trust on the property." \
+  '{state:$state, answer:$answer}' > /tmp/siteforge_next_payload_1.json
+
+  =======================================================================
+
+  curl -s -X POST "https://intake.getsiteforge.com/api/intake-next" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_next_payload_1.json | tee /tmp/siteforge_next_1.json
+
+  =============================================================================
+
+  jq '.state' /tmp/siteforge_next_1.json > /tmp/siteforge_state_2.json
+
+  ===========================================================================
+
+  jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_2.json)" \
+  --arg answer "Our process is simple: customers reach out for a quote, we confirm the scope, schedule the work, complete the cleaning carefully, and do a final walkthrough if needed. We already have customer praise around reliability, professionalism, and spotless results. We also have before-and-after photos. Customers usually care most about trust, quality, responsiveness, and attention to detail." \
+  '{state:$state, answer:$answer}' > /tmp/siteforge_next_payload_2.json
+
+  ===========================================================================
+  curl -s -X POST "https://intake.getsiteforge.com/api/intake-next" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_next_payload_2.json | tee /tmp/siteforge_next_2.json
+  ============================================================================
+
+  jq '.state' /tmp/siteforge_next_2.json > /tmp/siteforge_state_final.json
+
+  ============================================================================
+  =============================DRY RUN===============================================
+
+  jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_final.json)" \
+  '{state:$state, action:"preview"}' > /tmp/siteforge_complete_preview.json
+  ==========================================================================
+
+  curl -s -X POST "https://intake.getsiteforge.com/api/intake-complete" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_complete_preview.json | tee /tmp/siteforge_complete_preview_response.json
+
+==========================================================================
+
+jq '{
+  ok,
+  slug,
+  readiness,
+  enrichment,
+  hero_query: .business_json.hero.image.image_search_query,
+  gallery_layout: .business_json.gallery.computed_layout,
+  gallery_count: .business_json.gallery.computed_count,
+  gallery_queries: [.business_json.gallery.items[].image_search_query],
+  menu: .business_json.settings.menu,
+  strategy: .business_json.strategy
+}' /tmp/siteforge_complete_preview_response.json
+
+===============================sunmit========================================
+
+jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_final.json)" \
+  '{state:$state, action:"complete"}' > /tmp/siteforge_complete_submit.json
+
+=============
+curl -s -X POST "https://intake.getsiteforge.com/api/intake-complete" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_complete_submit.json | tee /tmp/siteforge_complete_submit_response.json
+
+  ======
+
+jq '{ok, slug, submit}' /tmp/siteforge_complete_submit_response.json
+
+======
+
+watch -n 5 'curl -s "https://intake.getsiteforge.com/api/status?slug=summit-ridge-window-cleaning-v2" | jq "{status,preview_url,last_preview_deploy_url,last_error,updated_at}"'
+
+
+
+
+
+  
+
+
+
+  
