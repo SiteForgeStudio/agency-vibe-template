@@ -7,11 +7,6 @@
  * - assemble schema-valid business_json from V2 intake state
  * - preserve deterministic image query / gallery logic
  * - optionally submit to /api/submit
- *
- * IMPORTANT:
- * - no AI mutation
- * - no story prompt generation
- * - this is the one true assembler for final business_json
  */
 
 const SCHEMA_VIBES = [
@@ -113,7 +108,7 @@ export async function onRequestPost(context) {
 
     const strategyBrief = buildStrategyBrief(state, strategyContract);
     let businessJson = buildBusinessJson(state, strategyContract, strategyBrief);
-    businessJson = ensureInspirationQueries(businessJson);
+    businessJson = ensureInspirationQueries(businessJson, state, strategyContract);
 
     const validation = validateBusinessJson(businessJson);
 
@@ -393,26 +388,18 @@ function buildTrustbar(state, strategyContract) {
 
 function buildFeatures(state, strategyContract) {
   const features = [];
-
-  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
   const primaryOffer = cleanString(state.answers?.primary_offer);
   const differentiation = cleanString(state.answers?.differentiation);
-  const audience = audienceToCustomerPhrase(cleanString(state.answers?.audience)) || "customers";
+  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
+  const decisionFactors = cleanList(state.answers?.buyer_decision_factors);
+  const contractDecisionFactors = cleanList(strategyContract.audience_model?.decision_factors);
 
-  const servicePhrases = splitMeaningfulPhrases(serviceDescriptions);
-  servicePhrases.slice(0, 3).forEach((phrase, idx) => {
+  const serviceBullets = inferServiceBullets(primaryOffer, serviceDescriptions, strategyContract);
+  for (const bullet of serviceBullets) {
     features.push({
-      title: normalizePublicText(normalizeShortTitle(phrase, idx)),
-      description: normalizePublicText(cleanSentence(phrase)),
-      icon_slug: pickFeatureIcon(phrase, idx)
-    });
-  });
-
-  if (primaryOffer) {
-    features.push({
-      title: normalizePublicText(normalizeShortTitle(primaryOffer, features.length)),
-      description: normalizePublicText(`Designed for ${audience}.`),
-      icon_slug: pickFeatureIcon(primaryOffer, features.length)
+      title: normalizePublicText(bullet.title),
+      description: normalizePublicText(bullet.description),
+      icon_slug: pickFeatureIcon(`${bullet.title} ${bullet.description}`, features.length)
     });
   }
 
@@ -421,6 +408,17 @@ function buildFeatures(state, strategyContract) {
       title: normalizePublicText(normalizeDifferentiatorTitle(differentiation)),
       description: normalizePublicText(cleanSentence(differentiation)),
       icon_slug: pickFeatureIcon(differentiation, features.length)
+    });
+  }
+
+  const factors = uniqueList([...decisionFactors, ...contractDecisionFactors]).slice(0, 2);
+  for (const factor of factors) {
+    const mapped = mapDecisionFactorToFeature(factor);
+    if (!mapped) continue;
+    features.push({
+      title: normalizePublicText(mapped.title),
+      description: normalizePublicText(mapped.description),
+      icon_slug: pickFeatureIcon(`${mapped.title} ${mapped.description}`, features.length)
     });
   }
 
@@ -439,13 +437,13 @@ function buildFeatures(state, strategyContract) {
 
 function buildProcessSteps(state) {
   const source = cleanString(state.answers?.process_notes);
-  const steps = normalizeProcessStepSource(source);
+  const steps = extractProcessSteps(source);
 
   if (steps.length < 3) return [];
 
   return steps.slice(0, 5).map((step, idx) => ({
-    title: normalizePublicText(inferProcessStepTitle(step, idx)),
-    description: normalizePublicText(cleanSentence(step))
+    title: normalizePublicText(step.title || inferProcessStepTitle(step.description, idx)),
+    description: normalizePublicText(cleanSentence(step.description))
   }));
 }
 
@@ -472,11 +470,11 @@ function buildGallery(state, strategyContract, vibe) {
     }));
   }
 
-  const fallback = buildFallbackGalleryQueries(state, strategyContract);
+  const fallback = buildFallbackGalleryQueries(state, strategyContract, vibe);
   if (!items.length && !fallback.length) return null;
   if (!items.length) {
     items = fallback.map((query, idx) => ({
-      title: `Project ${idx + 1}`,
+      title: galleryTitleFromQuery(query, idx),
       image_search_query: query
     }));
   }
@@ -545,23 +543,12 @@ function buildTestimonials(state, strategyContract) {
   const status = cleanString(state.answers?.testimonials_status).toLowerCase();
   if (status.includes("not yet")) return [];
 
-  const trust = cleanString(state.answers?.trust_signal);
-  const businessName = cleanString(state.businessName) || "this team";
+  const praise = inferPraiseThemes(state, strategyContract);
 
-  return [
-    {
-      quote: normalizePublicText(
-        trust
-          ? `Clients consistently mention ${trust.toLowerCase()} when talking about their experience.`
-          : "Professional, careful, and easy to work with from start to finish."
-      ),
-      author: "Happy Client 1"
-    },
-    {
-      quote: normalizePublicText(`We chose ${businessName} because they felt trustworthy and professional from the first interaction.`),
-      author: "Happy Client 2"
-    }
-  ];
+  return praise.slice(0, 2).map((theme, idx) => ({
+    quote: normalizePublicText(theme),
+    author: `Happy Client ${idx + 1}`
+  }));
 }
 
 function buildServiceArea(state, strategyContract) {
@@ -611,26 +598,39 @@ function resolveHeroSubtext(state, strategyContract) {
   return (
     cleanString(state.ghostwritten?.hero_subheadline) ||
     cleanString(state.answers?.hero_subheadline) ||
-    cleanString(state.answers?.website_direction) ||
-    buildSimpleHeroSubtext(state, strategyContract)
+    buildPremiumHeroSubtext(state, strategyContract)
   );
 }
 
-function buildSimpleHeroSubtext(state, strategyContract) {
-  const area = cleanString(state.answers?.service_area);
+function buildPremiumHeroSubtext(state, strategyContract) {
   const audience = cleanString(state.answers?.audience);
-  const primary = cleanString(strategyContract.conversion_strategy?.primary_conversion);
+  const area = cleanString(state.answers?.service_area);
+  const differentiation = cleanString(state.answers?.differentiation);
+  const bookingMethod = cleanString(state.answers?.booking_method);
 
-  const sentenceA = [audience, area ? `serving ${area}` : ""]
+  const sentenceA = differentiation
+    ? cleanSentenceFragment(differentiation)
+    : cleanSentenceFragment(cleanString(state.answers?.website_direction));
+
+  const sentenceB = audience && area
+    ? `Serving ${area} for ${audience}.`
+    : area
+      ? `Serving ${area}.`
+      : audience
+        ? `Designed for ${audience}.`
+        : "";
+
+  const sentenceC =
+    bookingMethod.includes("quote")
+      ? "Request a quote and we’ll guide you from there."
+      : bookingMethod.includes("call")
+        ? "Reach out directly and we’ll help you get started."
+        : "Reach out and we’ll help you take the next step.";
+
+  return [sentenceA, sentenceB, sentenceC]
     .filter(Boolean)
-    .join(" - ");
-
-  const sentenceB =
-    primary === "book_now" ? "Take the next step directly through the site." :
-    primary === "call_now" ? "Reach out directly and we’ll help you get started." :
-    "Reach out and we’ll help guide you from there.";
-
-  return [sentenceA, sentenceB].filter(Boolean).join(". ");
+    .map(cleanSentence)
+    .join(" ");
 }
 
 function resolveHeroImageAlt(state, businessName) {
@@ -694,47 +694,48 @@ function resolveObjectionHandle(state, strategyContract) {
 ========================= */
 
 function buildHeroImageQuery(state, strategyContract) {
-  const explicit =
-    cleanString(state.answers?.hero_image_query) ||
-    cleanString(state.answers?.visual_direction);
-
-  if (explicit) return clampWords(explicit, 4, 8);
-
-  const seeds = uniqueList([
-    cleanString(strategyContract.business_context?.category),
-    cleanString(state.answers?.primary_offer),
-    cleanString(cleanList(strategyContract.asset_policy?.preferred_image_themes)[0]),
-    cleanString(strategyContract.visual_strategy?.recommended_vibe)
-  ]).filter(Boolean);
-
-  return clampWords(seeds.join(" "), 4, 8);
-}
-
-function buildFallbackGalleryQueries(state, strategyContract) {
-  const primaryOffer = cleanString(state.answers?.primary_offer);
   const category = cleanString(strategyContract.business_context?.category);
-  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
+  const offer = cleanString(state.answers?.primary_offer);
+  const area = cleanString(state.answers?.service_area);
   const vibe = cleanString(strategyContract.visual_strategy?.recommended_vibe);
+  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
+  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
 
-  const rawSeeds = uniqueList([
-    primaryOffer,
-    category,
-    themes[0],
-    themes[1],
-    `${category} results ${vibe}`
-  ]).filter(Boolean);
+  const candidates = [
+    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "hero"),
+    visualQueryFromThemes(themes, "hero"),
+    genericVisualQuery(category, area, vibe, "hero")
+  ].filter(Boolean);
 
-  return rawSeeds.map((seed) => clampWords(seed, 4, 8)).filter(Boolean).slice(0, 6);
+  return clampWords(candidates[0] || "professional service lifestyle photography", 4, 8);
 }
 
-function ensureInspirationQueries(data) {
+function buildFallbackGalleryQueries(state, strategyContract, vibe) {
+  const category = cleanString(strategyContract.business_context?.category);
+  const offer = cleanString(state.answers?.primary_offer);
+  const area = cleanString(state.answers?.service_area);
+  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
+  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
+
+  const visualSeeds = [
+    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "wide"),
+    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "detail"),
+    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "lifestyle"),
+    visualQueryFromThemes(themes, "gallery"),
+    genericVisualQuery(category, area, vibe, "gallery"),
+    beforeAfterQuery(category, offer)
+  ].filter(Boolean);
+
+  const queries = uniqueList(visualSeeds)
+    .map((seed) => clampWords(seed, 4, 8))
+    .filter(Boolean);
+
+  return queries.slice(0, 6);
+}
+
+function ensureInspirationQueries(data, state, strategyContract) {
   if (!data?.hero?.image?.image_search_query) {
-    const industry = String(data?.intelligence?.industry || "service").toLowerCase();
-    data.hero.image.image_search_query = clampWords(
-      `${industry} professional work in progress`,
-      4,
-      8
-    );
+    data.hero.image.image_search_query = buildHeroImageQuery(state, strategyContract);
   }
 
   if (data?.strategy?.show_gallery) {
@@ -746,28 +747,35 @@ function ensureInspirationQueries(data) {
     const count = Number(
       data.gallery.computed_count ||
       data.gallery.items.length ||
-      6
+      inferPremiumGalleryCount(
+        cleanString(strategyContract.business_context?.category),
+        cleanString(data?.settings?.vibe)
+      )
     );
 
-    const baseSubject = String(data?.intelligence?.industry || "service");
-    const vibe = String(data?.settings?.vibe || "");
-    const fallbackBase = `${baseSubject} results showcase ${vibe}`.trim();
+    const fallbackQueries = buildFallbackGalleryQueries(
+      state,
+      strategyContract,
+      cleanString(data?.settings?.vibe)
+    );
 
     while (data.gallery.items.length < count) {
+      const idx = data.gallery.items.length;
       data.gallery.items.push({
-        title: `Project ${data.gallery.items.length + 1}`,
-        image_search_query: ""
+        title: `Project ${idx + 1}`,
+        image_search_query: fallbackQueries[idx % fallbackQueries.length] || "professional service detail photography"
       });
     }
 
     data.gallery.items = data.gallery.items.map((it, i) => {
-      const title = String(it?.title || `Project ${i + 1}`);
+      const title = String(it?.title || galleryTitleFromQuery(it?.image_search_query, i));
       const q = String(it?.image_search_query || "").trim();
+      const fallback = fallbackQueries[i % fallbackQueries.length] || "professional service detail photography";
 
       return {
         ...it,
         title,
-        image_search_query: q || clampWords(`${fallbackBase} ${i + 1}`, 4, 8)
+        image_search_query: clampWords(q || fallback, 4, 8)
       };
     });
 
@@ -778,7 +786,8 @@ function ensureInspirationQueries(data) {
     if (!cleanString(data.gallery.image_source.image_search_query)) {
       data.gallery.image_source.image_search_query =
         data.gallery.items[0]?.image_search_query ||
-        clampWords(fallbackBase, 4, 8);
+        fallbackQueries[0] ||
+        "professional service lifestyle photography";
     }
   } else if (data.gallery) {
     data.gallery.enabled = Boolean(data.gallery.enabled);
@@ -1011,7 +1020,221 @@ async function trySubmitBusinessJson(request, payload) {
 }
 
 /* =========================
-   Helpers
+   Premium Builders
+========================= */
+
+function inferServiceBullets(primaryOffer, serviceDescriptions, strategyContract) {
+  const bullets = [];
+  const offer = cleanString(primaryOffer).toLowerCase();
+  const descriptions = cleanString(serviceDescriptions).toLowerCase();
+  const category = cleanString(strategyContract.business_context?.category).toLowerCase();
+
+  if (offer.includes("window cleaning") || category.includes("window")) {
+    bullets.push(
+      {
+        title: "Exterior Window Cleaning",
+        description: "Detailed cleaning designed to leave large glass surfaces clear, bright, and streak-free."
+      },
+      {
+        title: "Glass Restoration",
+        description: "Restore clarity and improve the look of weathered or hard-water-marked glass."
+      },
+      {
+        title: "Premium Home Service",
+        description: "Professional service for larger homes where detail, care, and presentation matter."
+      }
+    );
+  }
+
+  if (descriptions.includes("large homes") || descriptions.includes("big glass")) {
+    bullets.push({
+      title: "Large-Home Expertise",
+      description: "Comfortable with larger residential properties, expansive glass, and high-visibility details."
+    });
+  }
+
+  if (descriptions.includes("white-glove") || descriptions.includes("professionalism")) {
+    bullets.push({
+      title: "White-Glove Experience",
+      description: "Clear communication, careful work practices, and a polished customer experience from start to finish."
+    });
+  }
+
+  return uniqueObjectsByTitle(bullets);
+}
+
+function mapDecisionFactorToFeature(factor) {
+  const value = cleanString(factor).toLowerCase();
+  if (!value) return null;
+
+  if (value.includes("quality")) {
+    return {
+      title: "Quality-First Results",
+      description: "Every detail is handled carefully so the finished result looks clean, sharp, and consistent."
+    };
+  }
+  if (value.includes("reputation") || value.includes("trust")) {
+    return {
+      title: "Trusted Service",
+      description: "Built around professionalism, reliability, and a customer experience that feels easy to trust."
+    };
+  }
+  if (value.includes("availability") || value.includes("respons")) {
+    return {
+      title: "Responsive Scheduling",
+      description: "Clear communication and dependable follow-through make the process easier from the first inquiry."
+    };
+  }
+  if (value.includes("pricing")) {
+    return {
+      title: "Clear Quotes",
+      description: "Quotes are tailored to the scope of work so expectations feel straightforward and honest."
+    };
+  }
+  return null;
+}
+
+function extractProcessSteps(text) {
+  const raw = cleanString(text);
+  if (!raw) return [];
+
+  const normalized = raw
+    .replace(/from first contact to finished result/gi, "")
+    .replace(/\bthen\b/gi, " | ")
+    .replace(/\band do a final walkthrough if needed\b/gi, " | final walkthrough")
+    .replace(/\band\b/gi, " | ")
+    .replace(/,/g, " | ")
+    .replace(/\./g, " | ");
+
+  const pieces = normalized
+    .split(/\|/)
+    .map((part) => cleanSentenceFragment(part))
+    .filter(Boolean);
+
+  const canonical = [];
+  const seen = new Set();
+
+  for (const piece of pieces) {
+    const lower = piece.toLowerCase();
+
+    const step =
+      lower.includes("quote") ? { title: "Request a Quote", description: "Reach out with the details and get a quote based on the scope of work." } :
+      lower.includes("scope") || lower.includes("confirm") ? { title: "Confirm the Scope", description: "Review the property, expectations, and any details that matter before the work begins." } :
+      lower.includes("schedule") ? { title: "Schedule the Service", description: "Choose the right time and confirm the details so everything feels organized." } :
+      lower.includes("clean") || lower.includes("work") ? { title: "Complete the Work", description: "Carry out the cleaning carefully with attention to detail and presentation." } :
+      lower.includes("walkthrough") || lower.includes("final") ? { title: "Final Review", description: "Make sure the finished result looks right and the experience ends cleanly." } :
+      null;
+
+    if (step && !seen.has(step.title.toLowerCase())) {
+      seen.add(step.title.toLowerCase());
+      canonical.push(step);
+    }
+  }
+
+  return canonical;
+}
+
+function inferPraiseThemes(state, strategyContract) {
+  const status = cleanString(state.answers?.testimonials_status);
+  const trust = cleanString(state.answers?.trust_signal);
+  const differentiation = cleanString(state.answers?.differentiation);
+  const businessName = cleanString(state.businessName) || "this team";
+
+  const themes = [];
+
+  if (status) {
+    themes.push(`Clients consistently praise the professionalism, responsiveness, and finished results from working with ${businessName}.`);
+  }
+
+  if (trust) {
+    themes.push(`Customers often mention ${trust.toLowerCase()} as a reason they felt confident choosing ${businessName}.`);
+  }
+
+  if (differentiation) {
+    themes.push(`People appreciate the way ${businessName} combines careful work with a more polished, higher-trust customer experience.`);
+  }
+
+  if (!themes.length) {
+    themes.push(
+      `Professional, careful, and easy to work with from start to finish.`,
+      `We chose ${businessName} because they felt trustworthy and professional from the first interaction.`
+    );
+  }
+
+  return uniqueList(themes);
+}
+
+function visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, mode) {
+  const text = `${category} ${offer} ${serviceDescriptions}`.toLowerCase();
+
+  if (text.includes("window")) {
+    if (mode === "hero") return `luxury home exterior window cleaning`;
+    if (mode === "wide") return `professional window cleaning modern home exterior`;
+    if (mode === "detail") return `streak free glass cleaning close detail`;
+    if (mode === "lifestyle") return `window cleaner large residential glass service`;
+  }
+
+  const areaToken = cleanString(area) ? cleanString(area).split(",")[0] : "";
+  return [category, areaToken, vibe, "professional", "service", "photography"]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function visualQueryFromThemes(themes, mode) {
+  const joined = cleanList(themes).join(" ").toLowerCase();
+  if (!joined) return "";
+
+  if (joined.includes("lifestyle")) return mode === "hero"
+    ? "professional service lifestyle photography"
+    : "clean professional service detail photography";
+
+  if (joined.includes("realistic")) return "realistic residential service photography";
+
+  return "";
+}
+
+function genericVisualQuery(category, area, vibe, mode) {
+  const lower = cleanString(category).toLowerCase();
+  if (lower.includes("window")) {
+    return mode === "hero"
+      ? "modern luxury home clean glass exterior"
+      : "professional residential glass cleaning detail";
+  }
+
+  const areaToken = cleanString(area) ? cleanString(area).split(",")[0] : "";
+  return [areaToken, category, vibe, "professional", "photography"]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function beforeAfterQuery(category, offer) {
+  const lower = `${category} ${offer}`.toLowerCase();
+  if (lower.includes("window")) return "before after window cleaning glass detail";
+  return "before after service transformation detail";
+}
+
+function galleryTitleFromQuery(query, idx) {
+  const q = cleanString(query).toLowerCase();
+  if (q.includes("before after")) return "Before & After";
+  if (q.includes("detail")) return "Detail Work";
+  if (q.includes("exterior")) return "Exterior Results";
+  if (q.includes("lifestyle")) return "On-Site Service";
+  if (q.includes("modern home")) return "Residential Project";
+  return `Project ${idx + 1}`;
+}
+
+function inferPremiumGalleryCount(category, vibe) {
+  const lower = cleanString(category).toLowerCase();
+  const v = cleanString(vibe);
+
+  if (v === "Luxury Noir") return 5;
+  if (lower.includes("window") || lower.includes("service")) return 6;
+  if (lower.includes("photo") || lower.includes("creative")) return 8;
+  return 6;
+}
+
+/* =========================
+   Existing Helper Logic
 ========================= */
 
 function getStrategyContract(state) {
@@ -1091,11 +1314,14 @@ function inferFaqAnswer(question, state, strategyContract) {
   const bookingMethod = cleanString(state.answers?.booking_method).toLowerCase();
   const serviceArea = cleanString(state.answers?.service_area);
   const pricing = cleanString(state.answers?.pricing_structure);
+  const processNotes = cleanString(state.answers?.process_notes);
+  const trust = cleanString(state.answers?.trust_signal);
   const lower = cleanString(question).toLowerCase();
 
   if (lower.includes("book") || lower.includes("schedule")) {
-    if (bookingMethod.includes("book")) return "You can use the booking link on the site to choose the best next step.";
+    if (bookingMethod.includes("book")) return "Use the booking link to choose the best next step and timing.";
     if (bookingMethod.includes("call")) return "Call directly and we’ll help you schedule the right next step.";
+    if (bookingMethod.includes("quote")) return "Start with a quote request and we’ll help you confirm the scope before scheduling.";
     return "Reach out through the contact form and we’ll help guide you from there.";
   }
 
@@ -1108,11 +1334,27 @@ function inferFaqAnswer(question, state, strategyContract) {
   if (lower.includes("price") || lower.includes("cost")) {
     return pricing
       ? cleanSentence(pricing)
-      : "Pricing depends on the scope of work, and we’ll help guide you to the right fit.";
+      : "Pricing depends on the scope of work, and we’ll help guide you to the right fit with a clear quote.";
+  }
+
+  if (lower.includes("trust")) {
+    return trust
+      ? `We focus on ${trust.toLowerCase()} and a professional customer experience so the service feels easy to trust.`
+      : "We aim to make the experience feel clear, professional, and dependable from the first interaction.";
   }
 
   if (lower.includes("process")) {
-    return "We aim to keep the process clear, responsive, and easy from first contact to final follow-through.";
+    return processNotes
+      ? "The process is designed to feel clear and well-managed, from the first quote request through the final result."
+      : "We aim to keep the process clear, responsive, and easy from first contact to final follow-through.";
+  }
+
+  if (lower.includes("streak-free") || lower.includes("results")) {
+    return "Attention to detail, careful technique, and a quality-first approach help deliver a cleaner final result.";
+  }
+
+  if (lower.includes("advance") || lower.includes("availability")) {
+    return "Availability depends on the schedule and season, so reaching out early is the best way to lock in the timing you want.";
   }
 
   return "We keep the experience clear, helpful, and easy to understand.";
@@ -1133,16 +1375,16 @@ function normalizeGalleryShape(gallery, showGallery, industry, vibe) {
   const ind = String(industry || "").toLowerCase();
   const isLuxury = ind.includes("watch") || ind.includes("jewelry") || String(vibe || "") === "Luxury Noir";
   const isCreative = ind.includes("photo") || ind.includes("studio") || ind.includes("art");
-  const isTrades = ind.includes("detailing") || ind.includes("plumbing") || ind.includes("construction") || ind.includes("trades") || ind.includes("service");
+  const isTrades = ind.includes("detailing") || ind.includes("plumbing") || ind.includes("construction") || ind.includes("trades") || ind.includes("service") || ind.includes("window");
 
   const computed_layout =
     gg.computed_layout ||
-    (isLuxury ? "bento" : isCreative ? "masonry" : isTrades ? "grid" : "grid");
+    (isLuxury ? "bento" : isCreative ? "masonry" : "grid");
 
   const computed_count =
     gg.computed_count ||
     items.length ||
-    (isLuxury ? 5 : isCreative ? 9 : isTrades ? 6 : 6);
+    inferPremiumGalleryCount(industry, vibe);
 
   return {
     enabled,
@@ -1154,46 +1396,6 @@ function normalizeGalleryShape(gallery, showGallery, industry, vibe) {
     computed_layout: enabled ? computed_layout : (gg.computed_layout ?? null),
     items
   };
-}
-
-function normalizeProcessStepSource(input) {
-  let steps = cleanList(input);
-
-  if (steps.length === 1) {
-    const expanded = splitProcessStepText(steps[0]);
-    if (expanded.length > 1) steps = expanded;
-  }
-
-  return uniqueList(steps)
-    .map((step) => normalizePublicText(step))
-    .filter((step) => step.split(/\s+/).filter(Boolean).length >= 2);
-}
-
-function splitProcessStepText(text) {
-  return cleanString(text)
-    .split(/\n|->|→|;|\.|, then | then /gi)
-    .map((step) => normalizePublicText(step))
-    .filter(Boolean);
-}
-
-function inferProcessStepTitle(step, idx) {
-  const text = cleanString(step).toLowerCase();
-  if (!text) return `Step ${idx + 1}`;
-
-  const patterns = [
-    { match: ["quote", "request"], title: "Request a Quote" },
-    { match: ["review", "needs"], title: "Review Your Needs" },
-    { match: ["schedule"], title: "Schedule the Service" },
-    { match: ["confirm"], title: "Confirm the Details" },
-    { match: ["walkthrough"], title: "Final Walkthrough" },
-    { match: ["satisfaction"], title: "Final Review" }
-  ];
-
-  for (const pattern of patterns) {
-    if (pattern.match.every((token) => text.includes(token))) return pattern.title;
-  }
-
-  return normalizeShortTitle(step, idx);
 }
 
 function normalizeTrustbarLabel(label) {
@@ -1234,6 +1436,7 @@ function normalizeDifferentiatorTitle(item) {
   if (value.includes("detail")) return "Attention to Detail";
   if (value.includes("professional")) return "Professional Experience";
   if (value.includes("trust") || value.includes("reputation")) return "Trusted Reputation";
+  if (value.includes("white-glove")) return "White-Glove Service";
   return normalizeShortTitle(item, 0);
 }
 
@@ -1267,13 +1470,6 @@ function normalizeShortTitle(text, idx) {
   return titleCaseSmart(words.join(" ")) || `Item ${idx + 1}`;
 }
 
-function splitMeaningfulPhrases(text) {
-  return cleanString(text)
-    .split(/\n|;|\.|, and | and /gi)
-    .map((part) => cleanSentenceFragment(part))
-    .filter((part) => part.split(/\s+/).filter(Boolean).length >= 2);
-}
-
 function pickTrustbarIcon(text, idx) {
   const value = cleanString(text).toLowerCase();
   if (value.includes("testimonial") || value.includes("review")) return "star";
@@ -1292,6 +1488,7 @@ function pickFeatureIcon(text, idx) {
   if (value.includes("trust") || value.includes("safe") || value.includes("reputation")) return "shield";
   if (value.includes("quality") || value.includes("award") || value.includes("detail")) return "award";
   if (value.includes("schedule") || value.includes("time")) return "clock";
+  if (value.includes("glass") || value.includes("window")) return "sparkles";
   return ["sparkles", "award", "shield", "clock", "heart", "map"][idx % 6];
 }
 
