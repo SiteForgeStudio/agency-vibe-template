@@ -1,12 +1,13 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * V2.9 Signal Routing + Fragment Guard
+ * V3.0 Signal Routing + Differentiation Guard
  *
  * Goals:
  * - preserve the stable deployment-safe controller shape
  * - improve premium enrichment quality
  * - prevent mixed answers from polluting the wrong field
  * - tighten fragment detection for differentiation and draft text
+ * - prevent differentiation from absorbing process/proof paragraphs
  * - keep intake-next.js as source of truth for readiness and premium enrichment
  */
 
@@ -101,7 +102,7 @@ export async function onRequestGet() {
     ok: true,
     endpoint: "intake-next",
     method: "POST",
-    version: "v2.9-signal-routing-fragment-guard"
+    version: "v3.0-differentiation-guard"
   });
 }
 
@@ -118,9 +119,11 @@ function applyDeterministicAnswer(state, key, rawInput) {
   if (!hasMeaningfulValue(extracted)) return;
 
   if (canonicalKey === "service_descriptions") {
-    if (!isServiceSpecificAnswer(extracted)) {
-      return;
-    }
+    if (!isServiceSpecificAnswer(extracted)) return;
+  }
+
+  if (canonicalKey === "differentiation") {
+    if (!isDifferentiationAnswer(extracted)) return;
   }
 
   setByPath(state, targetPath, extracted);
@@ -188,7 +191,7 @@ function applyCrossFieldInference(state, rawInput, currentKey) {
       !passesQualityThreshold(state, "differentiation", "differentiation", state.answers.differentiation)
     ) {
       const candidate = buildDifferentiationFromSignals(text, state);
-      if (candidate) {
+      if (candidate && isDifferentiationAnswer(candidate)) {
         state.answers.differentiation = candidate;
         state.meta.inferred.differentiation = true;
       }
@@ -721,6 +724,7 @@ function passesQualityThreshold(state, block, field, value) {
         text.length >= 24 &&
         trimmed.length >= 24 &&
         trimmed === text &&
+        isDifferentiationAnswer(text) &&
         !isGenericPublicLanguage(text) &&
         !hasAwkwardEnding(text) &&
         containsAny(text, [
@@ -955,11 +959,15 @@ function extractAnswerForKey(key, rawInput, state) {
     case "primary_offer":
     case "business_understanding":
     case "website_direction":
-    case "differentiation":
     case "pricing_structure":
     case "hours":
     case "peak_season_availability":
       return input;
+
+    case "differentiation": {
+      const extracted = buildDifferentiationFromSignals(input, state);
+      return extracted && isDifferentiationAnswer(extracted) ? extracted : "";
+    }
 
     case "service_descriptions": {
       const extracted = extractServiceSpecificClause(input);
@@ -1139,7 +1147,7 @@ function normalizeState(next) {
 
   next.meta = isObject(next.meta) ? next.meta : {};
   next.meta.category = cleanString(next.meta.category);
-  next.meta.intake_version = "v2.9-signal-routing-fragment-guard";
+  next.meta.intake_version = "v3.0-differentiation-guard";
   next.meta.verified = isObject(next.meta.verified) ? next.meta.verified : {};
   next.meta.seeded = isObject(next.meta.seeded) ? next.meta.seeded : {};
   next.meta.inferred = isObject(next.meta.inferred) ? next.meta.inferred : {};
@@ -1243,7 +1251,7 @@ function bestPublicAudience(state) {
 
 function bestPublicDifferentiation(state) {
   const text = normalizePublicText(state.answers.differentiation);
-  if (text && !isGenericPublicLanguage(text) && !hasAwkwardEnding(text)) return text;
+  if (text && isDifferentiationAnswer(text) && !isGenericPublicLanguage(text) && !hasAwkwardEnding(text)) return text;
   return "";
 }
 
@@ -1540,21 +1548,22 @@ function buildTestimonialSeeds(state) {
 }
 
 function buildDifferentiationFromSignals(text, state) {
+  const lower = normalizePublicText(text).toLowerCase();
   const parts = [];
 
-  if (/large homes|high-end homes|upscale/i.test(text)) {
+  if (/large homes|high-end homes|upscale/i.test(lower)) {
     parts.push("built for larger, higher-expectation homes");
   }
-  if (/big glass|expansive glass/i.test(text)) {
+  if (/big glass|expansive glass/i.test(lower)) {
     parts.push("comfortable with expansive glass and highly visible finish work");
   }
-  if (/restoration|hard water/i.test(text)) {
+  if (/restoration|hard water/i.test(lower)) {
     parts.push("capable beyond a basic clean-only provider");
   }
-  if (/trust on the property|trustworthy|professionalism|reliability/i.test(text)) {
+  if (/trust on the property|trustworthy|professionalism|reliability/i.test(lower)) {
     parts.push("easy to trust on the property");
   }
-  if (/detail|careful|attention to detail|spotless|streak-free/i.test(text)) {
+  if (/detail|careful|attention to detail|spotless|streak-free/i.test(lower)) {
     parts.push("more polished in both care and finish quality");
   }
 
@@ -1563,7 +1572,7 @@ function buildDifferentiationFromSignals(text, state) {
   const offer = cleanSentenceFragment(bestPublicOffer(state));
   const tail = listToPhrase(parts.slice(0, 2));
 
-  return tightenDraft(
+  const candidate = tightenDraft(
     cleanSentence(
       joinNonEmpty([
         offer,
@@ -1573,6 +1582,8 @@ function buildDifferentiationFromSignals(text, state) {
     10,
     22
   );
+
+  return isDifferentiationAnswer(candidate) ? candidate : "";
 }
 
 function inferObjectionsFromText(text) {
@@ -2273,6 +2284,34 @@ function isServiceSpecificAnswer(text) {
   if (containsAny(value, disqualifiers) && !containsAny(value, ["glass restoration", "tracks", "frames", "interior", "exterior"])) {
     return false;
   }
+
+  return true;
+}
+
+function isDifferentiationAnswer(text) {
+  const value = normalizePublicText(text).toLowerCase();
+  if (!value) return false;
+  if (hasAwkwardEnding(value)) return false;
+
+  const differentiationSignals = [
+    "large homes", "big glass", "expansive glass", "restoration",
+    "easy to trust on the property", "higher-expectation homes",
+    "finish work", "polished", "high-end", "streak-free"
+  ];
+
+  const disqualifiers = [
+    "customers reach out for a quote",
+    "confirm scope",
+    "schedule the work",
+    "complete the cleaning carefully",
+    "final walkthrough",
+    "clients consistently mention",
+    "before-and-after photos are available",
+    "customers usually care most about"
+  ];
+
+  if (!containsAny(value, differentiationSignals)) return false;
+  if (containsAny(value, disqualifiers)) return false;
 
   return true;
 }
