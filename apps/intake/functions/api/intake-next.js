@@ -1,6 +1,6 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * V2.6 Premium Draft Gate
+ * V2.7 Clause-Safe Draft Cleanup
  *
  * Goals:
  * - preserve the stable deployment-safe controller shape
@@ -8,6 +8,7 @@
  * - extract cleaner proof/process/decision signals
  * - tighten ghostwritten draft quality
  * - require draft quality before completion
+ * - avoid clipped endings by preserving complete clauses
  */
 
 export async function onRequestPost(context) {
@@ -101,7 +102,7 @@ export async function onRequestGet() {
     ok: true,
     endpoint: "intake-next",
     method: "POST",
-    version: "v2.6-premium-draft-gate"
+    version: "v2.7-clause-safe"
   });
 }
 
@@ -163,7 +164,6 @@ function applyCrossFieldInference(state, rawInput, currentKey) {
   if (!text) return;
 
   const lower = text.toLowerCase();
-  const sentences = splitSentences(text);
 
   if (
     currentKey === "audience" ||
@@ -288,9 +288,9 @@ function deriveGhostwrittenCandidates(state) {
   );
 
   state.ghostwritten.hero_subheadline = tightenDraft(
-    buildHeroSubheadline(audience, differentiation, proof, process),
+    buildHeroSubheadline(audience, differentiation, proof, process, area),
     12,
-    28
+    26
   );
 
   state.ghostwritten.hero_image_alt = cleanSentenceFragment(
@@ -308,7 +308,7 @@ function deriveGhostwrittenCandidates(state) {
   state.ghostwritten.about_summary = tightenDraft(
     buildAboutSummary(businessName, offer, differentiation, process),
     16,
-    34
+    30
   );
 
   if (!hasMeaningfulValue(state.answers.founder_bio)) {
@@ -464,11 +464,11 @@ function evaluateDraftQuality(state) {
     issues.push("hero_headline_length");
   }
 
-  if (!hasMeaningfulValue(g.hero_subheadline) || wordCount(g.hero_subheadline) > 30) {
+  if (!hasMeaningfulValue(g.hero_subheadline) || wordCount(g.hero_subheadline) > 28) {
     issues.push("hero_subheadline_length");
   }
 
-  if (!hasMeaningfulValue(g.about_summary) || wordCount(g.about_summary) > 38) {
+  if (!hasMeaningfulValue(g.about_summary) || wordCount(g.about_summary) > 32) {
     issues.push("about_summary_length");
   }
 
@@ -476,7 +476,7 @@ function evaluateDraftQuality(state) {
     issues.push("about_repeats_headline");
   }
 
-  if (hasAwkwardEnding(g.tagline) || hasAwkwardEnding(g.hero_subheadline) || hasAwkwardEnding(g.about_summary)) {
+  if (hasAwkwardEnding(g.tagline) || hasAwkwardEnding(g.hero_subheadline) || hasAwkwardEnding(g.about_summary) || hasAwkwardEnding(answers.process_notes) || hasAwkwardEnding(answers.differentiation)) {
     issues.push("awkward_draft_ending");
   }
 
@@ -705,7 +705,7 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "differentiation":
       return (
-        text.length >= 30 &&
+        text.length >= 24 &&
         !isGenericPublicLanguage(text) &&
         !hasAwkwardEnding(text) &&
         containsAny(text, [
@@ -717,8 +717,9 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "service_specificity":
       return (
-        text.length >= 24 &&
+        text.length >= 20 &&
         !isGenericPublicLanguage(text) &&
+        !hasAwkwardEnding(text) &&
         containsAny(text, [
           "large homes", "big glass", "glass restoration", "residential", "commercial",
           "interior", "exterior", "frames", "tracks", "hard water", "streak-free",
@@ -728,8 +729,8 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "process_clarity":
       return (
-        text.length >= 30 &&
-        splitSentences(text).length >= 1 &&
+        text.length >= 24 &&
+        !hasAwkwardEnding(text) &&
         containsAny(text, [
           "quote", "scope", "schedule", "arrive", "clean", "walkthrough",
           "finish", "follow up", "confirm", "first contact"
@@ -738,9 +739,10 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "proof_depth":
       return (
-        text.length >= 16 &&
+        text.length >= 12 &&
         !isGenericPublicLanguage(text) &&
         !isLikelyAudienceText(text) &&
+        !hasAwkwardEnding(text) &&
         containsAny(text, [
           "review", "praise", "before-and-after", "before and after",
           "photos", "results", "customers mention", "customers say",
@@ -1118,7 +1120,7 @@ function normalizeState(next) {
 
   next.meta = isObject(next.meta) ? next.meta : {};
   next.meta.category = cleanString(next.meta.category);
-  next.meta.intake_version = "v2.6-premium-draft-gate";
+  next.meta.intake_version = "v2.7-clause-safe";
   next.meta.verified = isObject(next.meta.verified) ? next.meta.verified : {};
   next.meta.seeded = isObject(next.meta.seeded) ? next.meta.seeded : {};
   next.meta.inferred = isObject(next.meta.inferred) ? next.meta.inferred : {};
@@ -1237,7 +1239,7 @@ function bestPublicProof(state) {
 
   for (let i = 0; i < candidates.length; i++) {
     const text = normalizePublicText(candidates[i]);
-    if (text && !isGenericPublicLanguage(text) && !isLikelyAudienceText(text)) return text;
+    if (text && !isGenericPublicLanguage(text) && !isLikelyAudienceText(text) && !hasAwkwardEnding(text)) return text;
   }
 
   return "";
@@ -1258,44 +1260,37 @@ function buildTagline(offer, differentiation, area) {
 }
 
 function buildHeroHeadline(offer, differentiation, businessName) {
-  if (offer) {
-    return cleanSentenceFragment(offer);
-  }
-
-  if (differentiation) {
-    return cleanSentenceFragment(differentiation);
-  }
-
+  if (offer) return cleanSentenceFragment(offer);
+  if (differentiation) return cleanSentenceFragment(differentiation);
   return "Why clients choose " + businessName;
 }
 
-function buildHeroSubheadline(audience, differentiation, proof, process) {
-  const proofShort = summarizeProof(proof);
+function buildHeroSubheadline(audience, differentiation, proof, process, area) {
+  const audienceShort = compressAudience(audience, area);
   const diffShort = summarizeDifferentiation(differentiation);
+  const proofShort = summarizeProof(proof);
+  const processShort = summarizeProcess(process);
 
-  return compactSentence(
-    [
-      audience,
+  return cleanSentence(
+    joinNonEmpty([
+      audienceShort,
       diffShort,
-      proofShort || summarizeProcess(process)
-    ],
-    12,
-    28
+      proofShort || processShort
+    ], ". ")
   );
 }
 
 function buildAboutSummary(businessName, offer, differentiation, process) {
+  const offerShort = cleanSentenceFragment(offer || "professional work");
   const diffShort = summarizeDifferentiation(differentiation);
   const processShort = summarizeProcess(process);
 
-  return compactSentence(
-    [
-      businessName + " focuses on " + lowerFirst(offer || "professional work"),
+  return cleanSentence(
+    joinNonEmpty([
+      businessName + " focuses on " + lowerFirst(offerShort),
       diffShort,
       processShort
-    ],
-    16,
-    34
+    ], ". ")
   );
 }
 
@@ -1320,16 +1315,14 @@ function buildFeatureSeeds(state) {
     features.push({
       title: "Detail-Focused Work",
       description: tightenDraft(
-        compactSentence(
-          [
+        cleanSentence(
+          joinNonEmpty([
             "Built for jobs where finish quality and care matter",
-            extractSpecificClause(serviceText)
-          ],
-          10,
-          20
+            summarizeServiceSpecificity(serviceText)
+          ], ". ")
         ),
         10,
-        20
+        18
       )
     });
   }
@@ -1338,16 +1331,14 @@ function buildFeatureSeeds(state) {
     features.push({
       title: "Clear Process",
       description: tightenDraft(
-        compactSentence(
-          [
+        cleanSentence(
+          joinNonEmpty([
             "From first contact to final result, the experience feels organized and easy to trust",
             summarizeProcess(processText)
-          ],
-          10,
-          20
+          ], ". ")
         ),
         10,
-        20
+        18
       )
     });
   }
@@ -1356,16 +1347,14 @@ function buildFeatureSeeds(state) {
     features.push({
       title: "Believable Proof",
       description: tightenDraft(
-        compactSentence(
-          [
+        cleanSentence(
+          joinNonEmpty([
             "The strongest praise themes are specific and repeatable",
             summarizeProof(proofText)
-          ],
-          10,
-          20
+          ], ". ")
         ),
         10,
-        20
+        18
       )
     });
   }
@@ -1431,10 +1420,10 @@ function buildFaqSeeds(state) {
               "The experience should feel clear from first contact through completion."
             ],
             12,
-            24
+            22
           ),
           12,
-          24
+          22
         )
       )
     });
@@ -1471,10 +1460,10 @@ function buildFaqSeeds(state) {
               "so the site should answer those clearly instead of sounding vague."
             ],
             12,
-            24
+            22
           ),
           12,
-          24
+          22
         )
       )
     });
@@ -1491,10 +1480,10 @@ function buildFaqSeeds(state) {
               "which helps the preview sound grounded in how buyers actually choose."
             ],
             12,
-            24
+            22
           ),
           12,
-          24
+          22
         )
       )
     });
@@ -1535,19 +1524,19 @@ function buildDifferentiationFromSignals(text, state) {
   const parts = [];
 
   if (/large homes|high-end homes|upscale/i.test(text)) {
-    parts.push("especially strong for larger, higher-expectation homes");
+    parts.push("built for larger, higher-expectation homes");
   }
   if (/big glass|expansive glass/i.test(text)) {
-    parts.push("comfortable handling larger glass surfaces where quality is more visible");
+    parts.push("comfortable with expansive glass and highly visible finish work");
   }
   if (/restoration|hard water/i.test(text)) {
-    parts.push("more capable than a basic clean-only provider");
+    parts.push("capable beyond a basic clean-only provider");
   }
   if (/trust on the property|trustworthy|professionalism|reliability/i.test(text)) {
-    parts.push("clients feel comfortable having the work done on their property");
+    parts.push("easy to trust on the property");
   }
   if (/detail|careful|attention to detail|spotless|streak-free/i.test(text)) {
-    parts.push("the finish quality and care feel noticeably more polished");
+    parts.push("more polished in both care and finish quality");
   }
 
   if (!parts.length) return "";
@@ -1556,16 +1545,14 @@ function buildDifferentiationFromSignals(text, state) {
   const tail = listToPhrase(parts.slice(0, 2));
 
   return tightenDraft(
-    compactSentence(
-      [
-        offer ? offer : "",
+    cleanSentence(
+      joinNonEmpty([
+        offer,
         tail
-      ],
-      10,
-      24
+      ], ". ")
     ),
     10,
-    24
+    22
   );
 }
 
@@ -1661,67 +1648,54 @@ function extractServiceSpecificClause(text) {
   }
 
   if (strong.length) {
-    return tightenDraft(strong.slice(0, 2).join(". "), 8, 22);
+    return tightenDraft(buildCompleteClause(strong.slice(0, 2)), 8, 18);
   }
 
   return "";
 }
 
 function extractProcessClause(text) {
-  const sentences = splitSentences(text);
-  const ordered = [];
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
 
-  for (let i = 0; i < sentences.length; i++) {
-    if (containsAny(sentences[i], [
-      "quote", "scope", "schedule", "arrive", "clean", "walkthrough",
-      "finish", "follow up", "confirm", "first contact"
-    ])) {
-      ordered.push(cleanSentenceFragment(sentences[i]));
-    }
-  }
+  if (lower.indexOf("quote") !== -1) parts.push("Customers reach out for a quote");
+  if (lower.indexOf("scope") !== -1) parts.push("we confirm scope");
+  if (lower.indexOf("schedule") !== -1) parts.push("schedule the work");
+  if (lower.indexOf("clean") !== -1 || lower.indexOf("cleaning") !== -1) parts.push("complete the cleaning carefully");
+  if (lower.indexOf("walkthrough") !== -1) parts.push("finish with a final walkthrough if needed");
 
-  if (ordered.length) {
-    return tightenDraft(ordered.slice(0, 2).join(". "), 10, 24);
+  if (parts.length) {
+    return tightenDraft(buildOrderedWorkflowSentence(parts), 10, 22);
   }
 
   return "";
 }
 
 function extractProofClause(text) {
-  const sentences = splitSentences(text);
-  const proof = [];
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
 
-  for (let i = 0; i < sentences.length; i++) {
-    if (containsAny(sentences[i], [
-      "review", "praise", "customers say", "customers mention",
-      "reliability", "professionalism", "spotless", "attention to detail",
-      "responsive", "referrals", "results"
-    ])) {
-      proof.push(cleanSentenceFragment(sentences[i]));
-    }
-  }
+  if (lower.indexOf("reliability") !== -1) parts.push("reliability");
+  if (lower.indexOf("professionalism") !== -1) parts.push("professionalism");
+  if (lower.indexOf("spotless") !== -1) parts.push("spotless results");
+  if (lower.indexOf("attention to detail") !== -1) parts.push("attention to detail");
+  if (lower.indexOf("responsive") !== -1) parts.push("responsiveness");
 
-  if (proof.length) {
-    return tightenDraft(proof.slice(0, 2).join(". "), 6, 18);
+  if (parts.length) {
+    return cleanSentence("Clients consistently mention " + listToPhrase(parts.slice(0, 4)));
   }
 
   return "";
 }
 
 function extractPhotoClause(text) {
-  const sentences = splitSentences(text);
-  const photos = [];
+  const lower = normalizePublicText(text).toLowerCase();
 
-  for (let i = 0; i < sentences.length; i++) {
-    if (containsAny(sentences[i], [
-      "before-and-after", "before and after", "photos", "gallery", "project images", "completed work"
-    ])) {
-      photos.push(cleanSentenceFragment(sentences[i]));
-    }
+  if (lower.indexOf("before-and-after") !== -1 || lower.indexOf("before and after") !== -1) {
+    return "Before-and-after photos are available.";
   }
-
-  if (photos.length) {
-    return tightenDraft(photos.slice(0, 1).join(". "), 4, 14);
+  if (lower.indexOf("photos") !== -1 || lower.indexOf("gallery") !== -1 || lower.indexOf("project images") !== -1) {
+    return "Project photos are available.";
   }
 
   return "";
@@ -1808,13 +1782,15 @@ function tightenDraft(text, minWords, maxWords) {
     .trim();
 
   result = trimTrailingFragment(result);
-  result = cleanSentence(result);
+  result = keepCompleteSentences(result);
 
   const words = wordCount(result);
   if (words > (maxWords || 24)) {
-    const limited = result.split(/\s+/).slice(0, maxWords).join(" ");
-    result = cleanSentence(trimTrailingFragment(limited));
+    result = trimToWordLimitAtClause(result, maxWords || 24);
   }
+
+  result = trimTrailingFragment(result);
+  result = cleanSentence(result);
 
   return result;
 }
@@ -1836,7 +1812,7 @@ function summarizeProof(text) {
     return extractProofClause(text);
   }
 
-  return tightenDraft(listToPhrase(parts.slice(0, 3)), 4, 12);
+  return cleanSentenceFragment(listToPhrase(parts.slice(0, 3)));
 }
 
 function summarizeProcess(text) {
@@ -1853,7 +1829,7 @@ function summarizeProcess(text) {
     return extractProcessClause(text);
   }
 
-  return tightenDraft(listToPhrase(parts.slice(0, 3)), 4, 12);
+  return cleanSentenceFragment(listToPhrase(parts.slice(0, 3)));
 }
 
 function summarizeDifferentiation(text) {
@@ -1861,14 +1837,41 @@ function summarizeDifferentiation(text) {
   const parts = [];
 
   if (lower.indexOf("large homes") !== -1) parts.push("built for larger homes");
-  if (lower.indexOf("big glass") !== -1) parts.push("comfortable with expansive glass");
+  if (lower.indexOf("big glass") !== -1 || lower.indexOf("expansive glass") !== -1) parts.push("comfortable with expansive glass");
   if (lower.indexOf("restoration") !== -1) parts.push("capable beyond a basic clean");
-  if (lower.indexOf("trusted on the property") !== -1 || lower.indexOf("comfortable having the work done") !== -1) {
+  if (lower.indexOf("trusted on the property") !== -1 || lower.indexOf("easy to trust on the property") !== -1) {
     parts.push("easy to trust on the property");
   }
 
   if (!parts.length) return "";
-  return tightenDraft(listToPhrase(parts.slice(0, 2)), 4, 10);
+  return cleanSentenceFragment(listToPhrase(parts.slice(0, 2)));
+}
+
+function summarizeServiceSpecificity(text) {
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
+
+  if (lower.indexOf("large homes") !== -1) parts.push("larger homes");
+  if (lower.indexOf("big glass") !== -1) parts.push("expansive glass");
+  if (lower.indexOf("glass restoration") !== -1 || lower.indexOf("restoration") !== -1) parts.push("restoration work");
+  if (lower.indexOf("streak-free") !== -1) parts.push("streak-free results");
+
+  if (!parts.length) return "";
+  return "especially suited to " + listToPhrase(parts.slice(0, 3));
+}
+
+function compressAudience(text, area) {
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
+
+  if (area) parts.push("Built for " + area + " homeowners");
+  else parts.push("Built for homeowners");
+
+  if (lower.indexOf("large homes") !== -1) parts.push("with larger homes");
+  if (lower.indexOf("big glass") !== -1) parts.push("expansive glass");
+  if (lower.indexOf("reliability") !== -1) parts.push("high expectations for reliability");
+
+  return cleanSentence(joinNonEmpty(parts, ", "));
 }
 
 /* =========================
@@ -2099,7 +2102,7 @@ function compactSentence(parts, minWords, maxWords) {
 
   if (words.length < min) return text;
   if (words.length <= max) return cleanSentence(text);
-  return cleanSentence(words.slice(0, max).join(" "));
+  return cleanSentence(trimToWordLimitAtClause(text, max));
 }
 
 function extractSpecificClause(text) {
@@ -2142,7 +2145,7 @@ function hasRepeatedStart(a, b) {
 function hasAwkwardEnding(text) {
   const value = normalizePublicText(text);
   if (!value) return false;
-  return /(?:,|with|and|or|for|to|of|handling|especially|comfortable)\.?$/i.test(value);
+  return /(?:,|with|and|or|for|to|of|handling|especially|comfortable|easy|glass|a)\.?$/i.test(value);
 }
 
 function trimTrailingFragment(text) {
@@ -2151,7 +2154,40 @@ function trimTrailingFragment(text) {
   value = value.replace(/\bhandling\.?$/i, "");
   value = value.replace(/\bespecially\.?$/i, "");
   value = value.replace(/\bcomfortable\.?$/i, "");
+  value = value.replace(/\beasy\.?$/i, "");
+  value = value.replace(/\bglass\.?$/i, "");
+  value = value.replace(/\ba\.?$/i, "");
   return value.trim();
+}
+
+function keepCompleteSentences(text) {
+  const sentences = splitSentences(text);
+  if (!sentences.length) return normalizePublicText(text);
+
+  const clean = [];
+  for (let i = 0; i < sentences.length; i++) {
+    const s = trimTrailingFragment(sentences[i]);
+    if (s && !hasAwkwardEnding(s)) clean.push(s);
+  }
+
+  if (!clean.length) return trimTrailingFragment(text);
+  return cleanSentence(joinNonEmpty(clean, " "));
+}
+
+function trimToWordLimitAtClause(text, maxWords) {
+  const words = normalizePublicText(text).split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return normalizePublicText(text);
+
+  const limited = words.slice(0, maxWords).join(" ");
+  const clauses = limited.split(/[,.;:]/);
+  if (clauses.length > 1) {
+    const trimmed = clauses.slice(0, -1).join(",").trim();
+    if (trimmed && wordCount(trimmed) >= Math.max(6, Math.floor(maxWords * 0.6))) {
+      return trimTrailingFragment(trimmed);
+    }
+  }
+
+  return trimTrailingFragment(limited);
 }
 
 function isLikelyAudienceText(text) {
@@ -2196,4 +2232,33 @@ function normalizeDecisionFactors(items) {
   }
 
   return uniqueList(clean).slice(0, 6);
+}
+
+function joinNonEmpty(items, separator) {
+  const clean = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = normalizePublicText(items[i]);
+    if (item) clean.push(item);
+  }
+  return clean.join(separator || " ");
+}
+
+function buildCompleteClause(parts) {
+  const cleaned = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = cleanSentenceFragment(parts[i]);
+    if (part) cleaned.push(part);
+  }
+  return cleanSentence(joinNonEmpty(cleaned, ". "));
+}
+
+function buildOrderedWorkflowSentence(parts) {
+  const cleaned = [];
+  for (let i = 0; i < parts.length; i++) {
+    const part = cleanSentenceFragment(parts[i]);
+    if (part) cleaned.push(part);
+  }
+  if (!cleaned.length) return "";
+  if (cleaned.length === 1) return cleanSentence(cleaned[0]);
+  return cleanSentence(cleaned[0] + ", " + cleaned.slice(1, -1).join(", ") + (cleaned.length > 2 ? ", and " : " and ") + cleaned[cleaned.length - 1]);
 }
