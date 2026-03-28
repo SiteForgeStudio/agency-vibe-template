@@ -1,14 +1,13 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * V2.5 Narrative + Premium Enrichment Controller
+ * V2.6 Premium Draft Gate
  *
  * Goals:
- * - keep the current stable V2 state machine shape
- * - improve premium readiness without introducing deploy-risk features
- * - avoid structuredClone
- * - avoid regex lookbehind
- * - keep intake-next.js as source of truth for readiness + enrichment
- * - produce better ghostwritten seeds before intake-complete.js
+ * - preserve the stable deployment-safe controller shape
+ * - improve premium enrichment quality
+ * - extract cleaner proof/process/decision signals
+ * - tighten ghostwritten draft quality
+ * - require draft quality before completion
  */
 
 export async function onRequestPost(context) {
@@ -102,7 +101,7 @@ export async function onRequestGet() {
     ok: true,
     endpoint: "intake-next",
     method: "POST",
-    version: "v2.5-premium-safe"
+    version: "v2.6-premium-draft-gate"
   });
 }
 
@@ -133,20 +132,29 @@ function applyFreeformEnrichment(state, rawInput) {
   if (sentences.length < 2) return;
 
   if (!passesQualityThreshold(state, "service_specificity", "service_descriptions", state.answers.service_descriptions)) {
-    state.answers.service_descriptions = text;
-    state.meta.inferred.service_descriptions = true;
-    return;
+    const candidate = extractServiceSpecificClause(text);
+    if (candidate) {
+      state.answers.service_descriptions = candidate;
+      state.meta.inferred.service_descriptions = true;
+      return;
+    }
   }
 
   if (!passesQualityThreshold(state, "process_clarity", "process_notes", state.answers.process_notes)) {
-    state.answers.process_notes = text;
-    state.meta.inferred.process_notes = true;
-    return;
+    const candidate = extractProcessClause(text);
+    if (candidate) {
+      state.answers.process_notes = candidate;
+      state.meta.inferred.process_notes = true;
+      return;
+    }
   }
 
   if (!passesQualityThreshold(state, "about_depth", "founder_bio", state.answers.founder_bio)) {
-    state.answers.founder_bio = text;
-    state.meta.inferred.founder_bio = true;
+    const candidate = extractFounderStyleClause(text);
+    if (candidate) {
+      state.answers.founder_bio = candidate;
+      state.meta.inferred.founder_bio = true;
+    }
   }
 }
 
@@ -162,11 +170,23 @@ function applyCrossFieldInference(state, rawInput, currentKey) {
     /homeowners|families|clients|customers|property|large homes|big glass|upscale|luxury|commercial|residential/i.test(text)
   ) {
     if (
-      !passesQualityThreshold(state, "service_specificity", "service_descriptions", state.answers.service_descriptions) &&
-      /large homes|big glass|high-end|upscale|restoration|detail|property|spotless|streak-free|delicate|frames|tracks|hard water/i.test(text)
+      !passesQualityThreshold(state, "service_specificity", "service_descriptions", state.answers.service_descriptions)
     ) {
-      state.answers.service_descriptions = text;
-      state.meta.inferred.service_descriptions = true;
+      const serviceClause = extractServiceSpecificClause(text);
+      if (serviceClause) {
+        state.answers.service_descriptions = serviceClause;
+        state.meta.inferred.service_descriptions = true;
+      }
+    }
+
+    if (
+      !passesQualityThreshold(state, "differentiation", "differentiation", state.answers.differentiation)
+    ) {
+      const candidate = buildDifferentiationFromSignals(text, state);
+      if (candidate) {
+        state.answers.differentiation = candidate;
+        state.meta.inferred.differentiation = true;
+      }
     }
   }
 
@@ -175,52 +195,45 @@ function applyCrossFieldInference(state, rawInput, currentKey) {
     /process|quote|scope|schedule|walkthrough|finish|completed|results|photos|reviews|praise/i.test(lower)
   ) {
     if (
-      !passesQualityThreshold(state, "process_clarity", "process_notes", state.answers.process_notes) &&
-      sentences.length >= 2 &&
-      /quote|scope|schedule|clean|walkthrough|finish|confirm|first contact/i.test(lower)
+      !passesQualityThreshold(state, "process_clarity", "process_notes", state.answers.process_notes)
     ) {
-      state.answers.process_notes = text;
-      state.meta.inferred.process_notes = true;
+      const processClause = extractProcessClause(text);
+      if (processClause) {
+        state.answers.process_notes = processClause;
+        state.meta.inferred.process_notes = true;
+      }
     }
 
     if (
-      !passesQualityThreshold(state, "proof_depth", "testimonials_status", state.answers.testimonials_status) &&
-      /review|praise|customers say|customers mention|reliability|professionalism|spotless|attention to detail|responsive/i.test(lower)
+      !passesQualityThreshold(state, "proof_depth", "testimonials_status", state.answers.testimonials_status)
     ) {
-      state.answers.testimonials_status = text;
-      state.meta.inferred.testimonials_status = true;
+      const proofClause = extractProofClause(text);
+      if (proofClause) {
+        state.answers.testimonials_status = proofClause;
+        state.meta.inferred.testimonials_status = true;
+      }
     }
 
     if (
-      !passesQualityThreshold(state, "proof_depth", "photos_status", state.answers.photos_status) &&
-      /before-and-after|before and after|photos|gallery|project images|completed work/i.test(lower)
+      !passesQualityThreshold(state, "proof_depth", "photos_status", state.answers.photos_status)
     ) {
-      state.answers.photos_status = text;
-      state.meta.inferred.photos_status = true;
+      const photoClause = extractPhotoClause(text);
+      if (photoClause) {
+        state.answers.photos_status = photoClause;
+        state.meta.inferred.photos_status = true;
+      }
     }
 
     if (
-      (!Array.isArray(state.answers.buyer_decision_factors) || state.answers.buyer_decision_factors.length < 2) &&
-      /care most about|deciding based on|usually care most about|looking for|choose based on/i.test(lower)
+      (!Array.isArray(state.answers.buyer_decision_factors) || state.answers.buyer_decision_factors.length < 2)
     ) {
-      const factors = extractListLikeItems(text);
+      const factors = extractDecisionFactors(text);
       if (factors.length >= 2) {
         state.answers.buyer_decision_factors = uniqueList(
           state.answers.buyer_decision_factors.concat(factors)
         );
         state.meta.inferred.buyer_decision_factors = true;
       }
-    }
-  }
-
-  if (
-    !passesQualityThreshold(state, "differentiation", "differentiation", state.answers.differentiation) &&
-    /large homes|big glass|restoration|detail|specialize|specializing|trusted on the property|careful|streak-free|premium|upscale/i.test(lower)
-  ) {
-    const candidate = buildDifferentiationFromSignals(text, state);
-    if (candidate) {
-      state.answers.differentiation = candidate;
-      state.meta.inferred.differentiation = true;
     }
   }
 
@@ -262,110 +275,57 @@ function deriveGhostwrittenCandidates(state) {
   const proof = bestPublicProof(state);
   const process = bestPublicProcess(state);
 
-  if (!hasMeaningfulValue(state.ghostwritten.tagline)) {
-    const tagline = compactSentence(
+  state.ghostwritten.tagline = tightenDraft(
+    buildTagline(offer, differentiation, area),
+    6,
+    16
+  );
+
+  state.ghostwritten.hero_headline = tightenDraft(
+    buildHeroHeadline(offer, differentiation, businessName),
+    4,
+    14
+  );
+
+  state.ghostwritten.hero_subheadline = tightenDraft(
+    buildHeroSubheadline(audience, differentiation, proof, process),
+    12,
+    28
+  );
+
+  state.ghostwritten.hero_image_alt = cleanSentenceFragment(
+    compactSentence(
       [
+        businessName,
         offer,
-        differentiation,
-        area ? "Serving " + area : ""
+        area ? "in " + area : ""
       ],
-      6,
-      22
-    );
-    if (tagline) state.ghostwritten.tagline = tagline;
+      5,
+      14
+    )
+  );
+
+  state.ghostwritten.about_summary = tightenDraft(
+    buildAboutSummary(businessName, offer, differentiation, process),
+    16,
+    34
+  );
+
+  if (!hasMeaningfulValue(state.answers.founder_bio)) {
+    state.ghostwritten.founder_note = "Built around careful work, clear communication, and results clients feel good about showing off.";
+  } else {
+    state.ghostwritten.founder_note = tightenDraft(state.answers.founder_bio, 10, 24);
   }
 
-  if (!hasMeaningfulValue(state.ghostwritten.hero_headline)) {
-    state.ghostwritten.hero_headline =
-      buildHeroHeadline(offer, differentiation, businessName) ||
-      "Premium " + businessName + " service built around trust and results";
-  }
+  state.ghostwritten.contact_subheadline = tightenDraft(
+    buildContactSubheadline(state.answers.booking_method),
+    8,
+    18
+  );
 
-  if (!hasMeaningfulValue(state.ghostwritten.hero_subheadline)) {
-    state.ghostwritten.hero_subheadline =
-      compactSentence(
-        [
-          audience,
-          differentiation,
-          proof
-        ],
-        14,
-        34
-      ) ||
-      compactSentence(
-        [
-          offer,
-          "with a clear, professional experience from first contact to finished result"
-        ],
-        14,
-        34
-      );
-  }
-
-  if (!hasMeaningfulValue(state.ghostwritten.hero_image_alt)) {
-    state.ghostwritten.hero_image_alt = cleanSentenceFragment(
-      compactSentence(
-        [
-          businessName,
-          offer,
-          area ? "in " + area : ""
-        ],
-        6,
-        18
-      )
-    );
-  }
-
-  if (!hasMeaningfulValue(state.ghostwritten.about_summary)) {
-    state.ghostwritten.about_summary =
-      compactSentence(
-        [
-          businessName + " focuses on " + lowerFirst(offer || "professional work"),
-          differentiation,
-          process
-        ],
-        20,
-        46
-      ) || "";
-  }
-
-  if (!hasMeaningfulValue(state.ghostwritten.founder_note)) {
-    const founderSeed = cleanString(state.answers.founder_bio);
-    if (founderSeed && !isGenericPublicLanguage(founderSeed)) {
-      state.ghostwritten.founder_note = founderSeed;
-    } else {
-      state.ghostwritten.founder_note = compactSentence(
-        [
-          "Built around careful work, clear communication, and results clients feel good about showing off"
-        ],
-        10,
-        24
-      );
-    }
-  }
-
-  if (!hasMeaningfulValue(state.ghostwritten.contact_subheadline)) {
-    const method = cleanString(state.answers.booking_method) || "reach out";
-    state.ghostwritten.contact_subheadline = compactSentence(
-      [
-        "Tell us about the property or project and we will help you " + (method === "request quote" ? "get a clear next step" : "get started")
-      ],
-      10,
-      22
-    );
-  }
-
-  if (!Array.isArray(state.ghostwritten.features_copy) || state.ghostwritten.features_copy.length === 0) {
-    state.ghostwritten.features_copy = buildFeatureSeeds(state);
-  }
-
-  if (!Array.isArray(state.ghostwritten.faqs) || state.ghostwritten.faqs.length === 0) {
-    state.ghostwritten.faqs = buildFaqSeeds(state);
-  }
-
-  if (!Array.isArray(state.ghostwritten.testimonials) || state.ghostwritten.testimonials.length === 0) {
-    state.ghostwritten.testimonials = buildTestimonialSeeds(state);
-  }
+  state.ghostwritten.features_copy = buildFeatureSeeds(state);
+  state.ghostwritten.faqs = buildFaqSeeds(state);
+  state.ghostwritten.testimonials = buildTestimonialSeeds(state);
 }
 
 function buildAssistantMessage(state, nextKey) {
@@ -423,7 +383,12 @@ function buildEnrichmentQueue(state) {
     if (!isBlockSatisfied(state, block)) queue.push(block);
   }
 
-  return queue;
+  const draftGate = evaluateDraftQuality(state);
+  if (!draftGate.passed) {
+    queue.push("draft_quality");
+  }
+
+  return uniqueList(queue);
 }
 
 function evaluateNarrativeReadiness(state) {
@@ -460,7 +425,11 @@ function evaluateEnrichment(state) {
       score: 0,
       ready_for_preview: false,
       remaining_blocks: model.premium_enrichment.slice(),
-      satisfied_blocks: []
+      satisfied_blocks: [],
+      draft_quality: {
+        passed: false,
+        issues: ["narrative_incomplete"]
+      }
     };
   }
 
@@ -473,14 +442,58 @@ function evaluateEnrichment(state) {
     else remaining.push(block);
   }
 
+  const draftQuality = evaluateDraftQuality(state);
   const total = model.premium_enrichment.length || 1;
   const score = Number((satisfied.length / total).toFixed(2));
 
   return {
     score: score,
-    ready_for_preview: remaining.length <= model.preview_tolerance,
-    remaining_blocks: remaining,
-    satisfied_blocks: satisfied
+    ready_for_preview: remaining.length <= model.preview_tolerance && draftQuality.passed,
+    remaining_blocks: draftQuality.passed ? remaining : remaining.concat(["draft_quality"]),
+    satisfied_blocks: satisfied,
+    draft_quality: draftQuality
+  };
+}
+
+function evaluateDraftQuality(state) {
+  const issues = [];
+  const g = state.ghostwritten || {};
+  const answers = state.answers || {};
+
+  if (!hasMeaningfulValue(g.hero_headline) || wordCount(g.hero_headline) > 16) {
+    issues.push("hero_headline_length");
+  }
+
+  if (!hasMeaningfulValue(g.hero_subheadline) || wordCount(g.hero_subheadline) > 30) {
+    issues.push("hero_subheadline_length");
+  }
+
+  if (!hasMeaningfulValue(g.about_summary) || wordCount(g.about_summary) > 38) {
+    issues.push("about_summary_length");
+  }
+
+  if (hasRepeatedStart(g.about_summary, g.hero_headline)) {
+    issues.push("about_repeats_headline");
+  }
+
+  if (hasAwkwardEnding(g.tagline) || hasAwkwardEnding(g.hero_subheadline) || hasAwkwardEnding(g.about_summary)) {
+    issues.push("awkward_draft_ending");
+  }
+
+  if (isLikelyAudienceText(answers.testimonials_status)) {
+    issues.push("proof_field_contains_audience_text");
+  }
+
+  if (Array.isArray(answers.buyer_decision_factors)) {
+    const badFactor = answers.buyer_decision_factors.some(function (item) {
+      return isBadDecisionFactor(item);
+    });
+    if (badFactor) issues.push("buyer_factors_noisy");
+  }
+
+  return {
+    passed: issues.length === 0,
+    issues: issues
   };
 }
 
@@ -497,6 +510,7 @@ function buildCompatibilityVerification(state) {
     remaining_keys: nextKey ? [nextKey] : [],
     remaining_narrative_blocks: narrativeRemaining,
     remaining_enrichment_blocks: enrichmentRemaining,
+    draft_quality: state.enrichment && state.enrichment.draft_quality ? state.enrichment.draft_quality : null,
     last_updated: new Date().toISOString()
   };
 }
@@ -596,7 +610,8 @@ const BLOCK_MAP = {
   offer_specificity: ["service_descriptions", "pricing_structure"],
   style_or_positioning: ["differentiation", "website_direction"],
   projects_or_examples: ["gallery_queries", "photos_status"],
-  about_depth: ["founder_bio"]
+  about_depth: ["founder_bio"],
+  draft_quality: ["hero_headline", "hero_subheadline", "about_summary"]
 };
 
 const BLOCK_KEY_PRIORITY = {
@@ -619,7 +634,8 @@ const BLOCK_KEY_PRIORITY = {
   offer_specificity: ["pricing_structure", "service_descriptions"],
   style_or_positioning: ["differentiation"],
   projects_or_examples: ["photos_status"],
-  about_depth: ["founder_bio"]
+  about_depth: ["founder_bio"],
+  draft_quality: ["pricing_structure", "buyer_decision_factors", "testimonials_status"]
 };
 
 function resolveKeyFromBlock(block, state) {
@@ -632,6 +648,10 @@ function resolveKeyFromBlock(block, state) {
 }
 
 function isBlockSatisfied(state, block) {
+  if (block === "draft_quality") {
+    return evaluateDraftQuality(state).passed;
+  }
+
   const fields = BLOCK_MAP[block] || [];
   for (let i = 0; i < fields.length; i++) {
     if (passesFieldThresholdForKey(state, block, fields[i])) return true;
@@ -640,6 +660,9 @@ function isBlockSatisfied(state, block) {
 }
 
 function passesFieldThresholdForKey(state, block, field) {
+  if (block === "draft_quality") {
+    return evaluateDraftQuality(state).passed;
+  }
   return passesQualityThreshold(state, block, field, state.answers[field]);
 }
 
@@ -682,8 +705,9 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "differentiation":
       return (
-        text.length >= 40 &&
+        text.length >= 30 &&
         !isGenericPublicLanguage(text) &&
+        !hasAwkwardEnding(text) &&
         containsAny(text, [
           "large homes", "big glass", "restoration", "detail", "careful",
           "specialize", "specializing", "upscale", "premium", "delicate",
@@ -693,7 +717,7 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "service_specificity":
       return (
-        text.length >= 40 &&
+        text.length >= 24 &&
         !isGenericPublicLanguage(text) &&
         containsAny(text, [
           "large homes", "big glass", "glass restoration", "residential", "commercial",
@@ -704,8 +728,8 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "process_clarity":
       return (
-        text.length >= 45 &&
-        splitSentences(text).length >= 2 &&
+        text.length >= 30 &&
+        splitSentences(text).length >= 1 &&
         containsAny(text, [
           "quote", "scope", "schedule", "arrive", "clean", "walkthrough",
           "finish", "follow up", "confirm", "first contact"
@@ -714,8 +738,9 @@ function passesQualityThreshold(state, block, field, value) {
 
     case "proof_depth":
       return (
-        text.length >= 18 &&
+        text.length >= 16 &&
         !isGenericPublicLanguage(text) &&
+        !isLikelyAudienceText(text) &&
         containsAny(text, [
           "review", "praise", "before-and-after", "before and after",
           "photos", "results", "customers mention", "customers say",
@@ -728,7 +753,7 @@ function passesQualityThreshold(state, block, field, value) {
       if (Array.isArray(value)) {
         return list.length >= 2 && listHasUsefulFaqSignals(list);
       }
-      return text.length >= 30 && !isGenericPublicLanguage(text);
+      return text.length >= 20 && !isGenericPublicLanguage(text);
 
     case "agenda_or_format":
     case "urgency_or_reason_now":
@@ -905,7 +930,6 @@ function extractAnswerForKey(key, rawInput, state) {
   const canonicalKey = canonicalizeKey(key);
   const input = collapseWhitespace(rawInput);
   const sentences = splitSentences(input);
-  const joined = joinSentences(sentences);
 
   switch (canonicalKey) {
     case "audience":
@@ -913,13 +937,19 @@ function extractAnswerForKey(key, rawInput, state) {
     case "business_understanding":
     case "website_direction":
     case "differentiation":
-    case "service_descriptions":
-    case "process_notes":
-    case "founder_bio":
     case "pricing_structure":
     case "hours":
     case "peak_season_availability":
       return input;
+
+    case "service_descriptions":
+      return extractServiceSpecificClause(input) || input;
+
+    case "process_notes":
+      return extractProcessClause(input) || input;
+
+    case "founder_bio":
+      return extractFounderStyleClause(input) || input;
 
     case "trust_signal": {
       const matches = filterSentencesByPattern(
@@ -948,15 +978,17 @@ function extractAnswerForKey(key, rawInput, state) {
 
     case "testimonials_status":
       if (/\bno\b|\bnot yet\b|\bnone\b/i.test(input)) return "not yet";
-      return input;
+      return extractProofClause(input) || input;
 
     case "photos_status":
       if (/\bno\b|\bnot yet\b|\bnone\b/i.test(input)) return "not yet";
-      return input;
+      return extractPhotoClause(input) || input;
 
     case "buyer_decision_factors":
+      return extractDecisionFactors(input);
+
     case "common_objections":
-      return extractListLikeItems(input);
+      return extractObjectionList(input);
 
     case "phone": {
       const phoneMatch = input.match(/(?:\+?1[\s.\-]?)?(?:\(?\d{3}\)?[\s.\-]?)\d{3}[\s.\-]?\d{4}/);
@@ -1086,7 +1118,7 @@ function normalizeState(next) {
 
   next.meta = isObject(next.meta) ? next.meta : {};
   next.meta.category = cleanString(next.meta.category);
-  next.meta.intake_version = "v2.5-premium-safe";
+  next.meta.intake_version = "v2.6-premium-draft-gate";
   next.meta.verified = isObject(next.meta.verified) ? next.meta.verified : {};
   next.meta.seeded = isObject(next.meta.seeded) ? next.meta.seeded : {};
   next.meta.inferred = isObject(next.meta.inferred) ? next.meta.inferred : {};
@@ -1146,7 +1178,7 @@ function sanitizeAnswers(state) {
   state.answers.office_address = normalizePublicText(state.answers.office_address);
 
   state.answers.common_objections = uniqueList(state.answers.common_objections);
-  state.answers.buyer_decision_factors = uniqueList(state.answers.buyer_decision_factors);
+  state.answers.buyer_decision_factors = normalizeDecisionFactors(state.answers.buyer_decision_factors);
   state.answers.offerings = uniqueList(state.answers.offerings);
   state.answers.differentiators = uniqueList(state.answers.differentiators);
   state.answers.trust_signals = uniqueList(state.answers.trust_signals);
@@ -1166,7 +1198,6 @@ function sanitizeAnswers(state) {
 
 function bestPublicOffer(state) {
   const candidates = [
-    state.ghostwritten.tagline,
     state.answers.primary_offer,
     state.answers.business_understanding,
     state.provenance &&
@@ -1191,13 +1222,14 @@ function bestPublicAudience(state) {
 
 function bestPublicDifferentiation(state) {
   const text = normalizePublicText(state.answers.differentiation);
-  if (text && !isGenericPublicLanguage(text)) return text;
+  if (text && !isGenericPublicLanguage(text) && !hasAwkwardEnding(text)) return text;
   return "";
 }
 
 function bestPublicProof(state) {
   const candidates = [
     state.answers.testimonials_status,
+    state.answers.photos_status,
     state.answers.trust_signal,
     valueToText(state.answers.trust_signals),
     valueToText(state.answers.credibility_factors)
@@ -1205,7 +1237,7 @@ function bestPublicProof(state) {
 
   for (let i = 0; i < candidates.length; i++) {
     const text = normalizePublicText(candidates[i]);
-    if (text && !isGenericPublicLanguage(text)) return text;
+    if (text && !isGenericPublicLanguage(text) && !isLikelyAudienceText(text)) return text;
   }
 
   return "";
@@ -1213,20 +1245,69 @@ function bestPublicProof(state) {
 
 function bestPublicProcess(state) {
   const text = normalizePublicText(state.answers.process_notes);
-  if (text && splitSentences(text).length >= 2) return text;
+  if (text && !hasAwkwardEnding(text)) return text;
   return "";
 }
 
+function buildTagline(offer, differentiation, area) {
+  if (offer && area) {
+    return compactSentence([offer, "Serving " + area], 6, 16);
+  }
+  if (offer) return offer;
+  return differentiation || "";
+}
+
 function buildHeroHeadline(offer, differentiation, businessName) {
-  if (offer && differentiation) {
-    const phrase = cleanSentenceFragment(differentiation);
-    if (phrase.length <= 80) {
-      return cleanSentenceFragment(offer) + " for clients who value " + lowerFirst(phrase);
-    }
+  if (offer) {
+    return cleanSentenceFragment(offer);
   }
 
-  if (offer) return cleanSentenceFragment(offer);
+  if (differentiation) {
+    return cleanSentenceFragment(differentiation);
+  }
+
   return "Why clients choose " + businessName;
+}
+
+function buildHeroSubheadline(audience, differentiation, proof, process) {
+  const proofShort = summarizeProof(proof);
+  const diffShort = summarizeDifferentiation(differentiation);
+
+  return compactSentence(
+    [
+      audience,
+      diffShort,
+      proofShort || summarizeProcess(process)
+    ],
+    12,
+    28
+  );
+}
+
+function buildAboutSummary(businessName, offer, differentiation, process) {
+  const diffShort = summarizeDifferentiation(differentiation);
+  const processShort = summarizeProcess(process);
+
+  return compactSentence(
+    [
+      businessName + " focuses on " + lowerFirst(offer || "professional work"),
+      diffShort,
+      processShort
+    ],
+    16,
+    34
+  );
+}
+
+function buildContactSubheadline(bookingMethod) {
+  const method = cleanString(bookingMethod) || "reach out";
+  return compactSentence(
+    [
+      "Tell us about the property or project and we will help you " + (method === "request quote" ? "get a clear next step" : "get started")
+    ],
+    8,
+    18
+  );
 }
 
 function buildFeatureSeeds(state) {
@@ -1235,66 +1316,77 @@ function buildFeatureSeeds(state) {
   const processText = normalizePublicText(state.answers.process_notes);
   const proofText = normalizePublicText(state.answers.testimonials_status);
 
-  if (containsAny(serviceText, ["large homes", "big glass", "delicate", "restoration", "detail", "streak-free"])) {
+  if (serviceText) {
     features.push({
       title: "Detail-Focused Work",
-      description: compactSentence(
-        [
-          "Built for jobs where finish quality, care, and visual results matter",
-          extractSpecificClause(serviceText)
-        ],
+      description: tightenDraft(
+        compactSentence(
+          [
+            "Built for jobs where finish quality and care matter",
+            extractSpecificClause(serviceText)
+          ],
+          10,
+          20
+        ),
         10,
-        24
+        20
       )
     });
   }
 
-  if (containsAny(processText, ["quote", "scope", "schedule", "walkthrough", "confirm"])) {
+  if (processText) {
     features.push({
       title: "Clear Process",
-      description: compactSentence(
-        [
-          "From first contact to final result, the experience feels organized and easy to trust",
-          extractSpecificClause(processText)
-        ],
+      description: tightenDraft(
+        compactSentence(
+          [
+            "From first contact to final result, the experience feels organized and easy to trust",
+            summarizeProcess(processText)
+          ],
+          10,
+          20
+        ),
         10,
-        24
+        20
       )
     });
   }
 
-  if (containsAny(proofText, ["reliability", "professionalism", "spotless", "detail", "responsive"])) {
+  if (proofText) {
     features.push({
       title: "Believable Proof",
-      description: compactSentence(
-        [
-          "The strongest praise themes are specific and repeatable",
-          extractSpecificClause(proofText)
-        ],
+      description: tightenDraft(
+        compactSentence(
+          [
+            "The strongest praise themes are specific and repeatable",
+            summarizeProof(proofText)
+          ],
+          10,
+          20
+        ),
         10,
-        24
+        20
       )
     });
   }
 
+  const fallbackPool = [
+    {
+      title: "Premium Results",
+      description: "Sharper finish quality, careful execution, and a result that feels worth paying for."
+    },
+    {
+      title: "Professional Experience",
+      description: "Clear communication, clean expectations, and a process clients feel comfortable with."
+    },
+    {
+      title: "Trust on the Property",
+      description: "Built for clients who care who they hire, how the work is handled, and how the result looks."
+    }
+  ];
+
   while (features.length < 3) {
-    const fallbacks = [
-      {
-        title: "Premium Results",
-        description: "Sharper finish quality, careful execution, and a result that feels worth paying for."
-      },
-      {
-        title: "Professional Experience",
-        description: "Clear communication, clean expectations, and a process clients feel comfortable with."
-      },
-      {
-        title: "Trust on the Property",
-        description: "Built for clients who care who they hire, how the work is handled, and how the result looks."
-      }
-    ];
-    const next = fallbacks[features.length];
-    if (next) features.push(next);
-    else break;
+    features.push(fallbackPool[features.length]);
   }
 
   return features.slice(0, 4);
@@ -1303,7 +1395,7 @@ function buildFeatureSeeds(state) {
 function buildFaqSeeds(state) {
   const faqs = [];
   const objections = cleanList(state.answers.common_objections);
-  const factors = cleanList(state.answers.buyer_decision_factors);
+  const factors = normalizeDecisionFactors(state.answers.buyer_decision_factors);
   const pricing = normalizePublicText(state.answers.pricing_structure);
   const process = normalizePublicText(state.answers.process_notes);
   const booking = normalizePublicText(state.answers.booking_method);
@@ -1312,13 +1404,17 @@ function buildFaqSeeds(state) {
     faqs.push({
       question: "How does pricing work?",
       answer: cleanSentence(
-        compactSentence(
-          [
-            pricing,
-            "The goal is to set clear expectations without forcing generic package language where it does not fit."
-          ],
+        tightenDraft(
+          compactSentence(
+            [
+              pricing,
+              "The goal is to set clear expectations without forcing generic package language."
+            ],
+            12,
+            24
+          ),
           12,
-          28
+          24
         )
       )
     });
@@ -1328,13 +1424,17 @@ function buildFaqSeeds(state) {
     faqs.push({
       question: "What is the process like?",
       answer: cleanSentence(
-        compactSentence(
-          [
-            extractSpecificClause(process),
-            "The experience should feel clear from first contact through completion."
-          ],
+        tightenDraft(
+          compactSentence(
+            [
+              summarizeProcess(process),
+              "The experience should feel clear from first contact through completion."
+            ],
+            12,
+            24
+          ),
           12,
-          28
+          24
         )
       )
     });
@@ -1344,13 +1444,17 @@ function buildFaqSeeds(state) {
     faqs.push({
       question: "What should I do first if I want to get started?",
       answer: cleanSentence(
-        compactSentence(
-          [
-            "The best next step is to " + booking,
-            "so the customer has a simple, low-friction way to move forward."
-          ],
+        tightenDraft(
+          compactSentence(
+            [
+              "The best next step is to " + booking,
+              "so the customer has a simple, low-friction way to move forward."
+            ],
+            10,
+            20
+          ),
           10,
-          24
+          20
         )
       )
     });
@@ -1360,13 +1464,17 @@ function buildFaqSeeds(state) {
     faqs.push({
       question: "What concerns do customers usually have before hiring?",
       answer: cleanSentence(
-        compactSentence(
-          [
-            "Common concerns include " + listToPhrase(objections.slice(0, 3)),
-            "so the site should answer those clearly instead of sounding vague."
-          ],
+        tightenDraft(
+          compactSentence(
+            [
+              "Common concerns include " + listToPhrase(objections.slice(0, 3)),
+              "so the site should answer those clearly instead of sounding vague."
+            ],
+            12,
+            24
+          ),
           12,
-          28
+          24
         )
       )
     });
@@ -1376,13 +1484,17 @@ function buildFaqSeeds(state) {
     faqs.push({
       question: "What matters most to the right clients?",
       answer: cleanSentence(
-        compactSentence(
-          [
-            "The strongest decision factors are " + listToPhrase(factors.slice(0, 4)),
-            "which helps the preview sound grounded in how buyers actually choose."
-          ],
+        tightenDraft(
+          compactSentence(
+            [
+              "The strongest decision factors are " + listToPhrase(factors.slice(0, 4)),
+              "which helps the preview sound grounded in how buyers actually choose."
+            ],
+            12,
+            24
+          ),
           12,
-          28
+          24
         )
       )
     });
@@ -1410,13 +1522,13 @@ function buildTestimonialSeeds(state) {
   }
 
   if (!seeds.length) {
-    const raw = normalizePublicText(state.answers.testimonials_status);
+    const raw = summarizeProof(state.answers.testimonials_status);
     if (raw && !isGenericPublicLanguage(raw)) {
       seeds.push(cleanSentence(raw));
     }
   }
 
-  return seeds.slice(0, 3);
+  return uniqueList(seeds).slice(0, 3);
 }
 
 function buildDifferentiationFromSignals(text, state) {
@@ -1441,15 +1553,19 @@ function buildDifferentiationFromSignals(text, state) {
   if (!parts.length) return "";
 
   const offer = cleanSentenceFragment(bestPublicOffer(state));
-  const tail = listToPhrase(parts.slice(0, 3));
+  const tail = listToPhrase(parts.slice(0, 2));
 
-  return compactSentence(
-    [
-      offer ? offer + " with a focus that feels more premium in practice" : "",
-      tail
-    ],
-    12,
-    30
+  return tightenDraft(
+    compactSentence(
+      [
+        offer ? offer : "",
+        tail
+      ],
+      10,
+      24
+    ),
+    10,
+    24
   );
 }
 
@@ -1524,6 +1640,235 @@ function isGenericPublicLanguage(text) {
     containsAny(lower, ["quality", "professional", "trusted", "reliable", "best", "great"]);
 
   return tooGenericSingleConcept;
+}
+
+/* =========================
+   Extraction Helpers
+========================= */
+
+function extractServiceSpecificClause(text) {
+  const sentences = splitSentences(text);
+  const strong = [];
+
+  for (let i = 0; i < sentences.length; i++) {
+    if (containsAny(sentences[i], [
+      "large homes", "big glass", "glass restoration", "residential", "commercial",
+      "interior", "exterior", "frames", "tracks", "hard water", "streak-free",
+      "storefront", "property", "delicate", "upscale"
+    ])) {
+      strong.push(cleanSentenceFragment(sentences[i]));
+    }
+  }
+
+  if (strong.length) {
+    return tightenDraft(strong.slice(0, 2).join(". "), 8, 22);
+  }
+
+  return "";
+}
+
+function extractProcessClause(text) {
+  const sentences = splitSentences(text);
+  const ordered = [];
+
+  for (let i = 0; i < sentences.length; i++) {
+    if (containsAny(sentences[i], [
+      "quote", "scope", "schedule", "arrive", "clean", "walkthrough",
+      "finish", "follow up", "confirm", "first contact"
+    ])) {
+      ordered.push(cleanSentenceFragment(sentences[i]));
+    }
+  }
+
+  if (ordered.length) {
+    return tightenDraft(ordered.slice(0, 2).join(". "), 10, 24);
+  }
+
+  return "";
+}
+
+function extractProofClause(text) {
+  const sentences = splitSentences(text);
+  const proof = [];
+
+  for (let i = 0; i < sentences.length; i++) {
+    if (containsAny(sentences[i], [
+      "review", "praise", "customers say", "customers mention",
+      "reliability", "professionalism", "spotless", "attention to detail",
+      "responsive", "referrals", "results"
+    ])) {
+      proof.push(cleanSentenceFragment(sentences[i]));
+    }
+  }
+
+  if (proof.length) {
+    return tightenDraft(proof.slice(0, 2).join(". "), 6, 18);
+  }
+
+  return "";
+}
+
+function extractPhotoClause(text) {
+  const sentences = splitSentences(text);
+  const photos = [];
+
+  for (let i = 0; i < sentences.length; i++) {
+    if (containsAny(sentences[i], [
+      "before-and-after", "before and after", "photos", "gallery", "project images", "completed work"
+    ])) {
+      photos.push(cleanSentenceFragment(sentences[i]));
+    }
+  }
+
+  if (photos.length) {
+    return tightenDraft(photos.slice(0, 1).join(". "), 4, 14);
+  }
+
+  return "";
+}
+
+function extractDecisionFactors(text) {
+  const lower = normalizePublicText(text).toLowerCase();
+  let candidate = "";
+
+  const anchors = [
+    "care most about",
+    "deciding based on",
+    "usually care most about",
+    "choose based on",
+    "looking for"
+  ];
+
+  for (let i = 0; i < anchors.length; i++) {
+    const idx = lower.indexOf(anchors[i]);
+    if (idx !== -1) {
+      candidate = text.slice(idx + anchors[i].length);
+      break;
+    }
+  }
+
+  if (!candidate) return [];
+
+  candidate = candidate.replace(/^[:\s-]+/, "");
+  candidate = candidate.replace(/\.$/, "");
+
+  const items = candidate.split(/,| and /i);
+  const clean = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = cleanSentenceFragment(items[i]);
+    if (!item) continue;
+    if (isBadDecisionFactor(item)) continue;
+    clean.push(normalizeDecisionFactor(item));
+  }
+
+  return uniqueList(clean).slice(0, 6);
+}
+
+function extractObjectionList(text) {
+  const items = extractListLikeItems(text);
+  const clean = [];
+
+  for (let i = 0; i < items.length; i++) {
+    const item = normalizeDecisionFactor(items[i]);
+    if (item && !isBadDecisionFactor(item)) clean.push(item);
+  }
+
+  return uniqueList(clean);
+}
+
+function extractFounderStyleClause(text) {
+  const sentences = splitSentences(text);
+  for (let i = 0; i < sentences.length; i++) {
+    if (containsAny(sentences[i], [
+      "owner", "founder", "built", "started", "care", "craft", "service", "standards"
+    ])) {
+      return tightenDraft(sentences[i], 10, 24);
+    }
+  }
+  return "";
+}
+
+/* =========================
+   Draft Helpers
+========================= */
+
+function tightenDraft(text, minWords, maxWords) {
+  const cleaned = normalizePublicText(text);
+  if (!cleaned) return "";
+
+  let result = cleaned
+    .replace(/\.\./g, ".")
+    .replace(/\s+,/g, ",")
+    .replace(/\s+\./g, ".")
+    .replace(/\bwith a focus that feels more premium in practice\b/gi, "")
+    .replace(/\bwe mainly serve\b/gi, "Serving")
+    .replace(/\bA lot of them have\b/gi, "Many have")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  result = trimTrailingFragment(result);
+  result = cleanSentence(result);
+
+  const words = wordCount(result);
+  if (words > (maxWords || 24)) {
+    const limited = result.split(/\s+/).slice(0, maxWords).join(" ");
+    result = cleanSentence(trimTrailingFragment(limited));
+  }
+
+  return result;
+}
+
+function summarizeProof(text) {
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
+
+  if (lower.indexOf("reliability") !== -1) parts.push("clients mention reliability");
+  if (lower.indexOf("professionalism") !== -1) parts.push("professionalism");
+  if (lower.indexOf("spotless") !== -1) parts.push("spotless results");
+  if (lower.indexOf("attention to detail") !== -1) parts.push("attention to detail");
+  if (lower.indexOf("responsive") !== -1) parts.push("responsive communication");
+  if (lower.indexOf("before-and-after") !== -1 || lower.indexOf("before and after") !== -1 || lower.indexOf("photos") !== -1) {
+    parts.push("before-and-after proof");
+  }
+
+  if (!parts.length) {
+    return extractProofClause(text);
+  }
+
+  return tightenDraft(listToPhrase(parts.slice(0, 3)), 4, 12);
+}
+
+function summarizeProcess(text) {
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
+
+  if (lower.indexOf("quote") !== -1) parts.push("clear quoting");
+  if (lower.indexOf("scope") !== -1) parts.push("scope confirmation");
+  if (lower.indexOf("schedule") !== -1) parts.push("easy scheduling");
+  if (lower.indexOf("walkthrough") !== -1) parts.push("a final walkthrough");
+  if (lower.indexOf("finish") !== -1 || lower.indexOf("complete") !== -1) parts.push("a polished finish");
+
+  if (!parts.length) {
+    return extractProcessClause(text);
+  }
+
+  return tightenDraft(listToPhrase(parts.slice(0, 3)), 4, 12);
+}
+
+function summarizeDifferentiation(text) {
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
+
+  if (lower.indexOf("large homes") !== -1) parts.push("built for larger homes");
+  if (lower.indexOf("big glass") !== -1) parts.push("comfortable with expansive glass");
+  if (lower.indexOf("restoration") !== -1) parts.push("capable beyond a basic clean");
+  if (lower.indexOf("trusted on the property") !== -1 || lower.indexOf("comfortable having the work done") !== -1) {
+    parts.push("easy to trust on the property");
+  }
+
+  if (!parts.length) return "";
+  return tightenDraft(listToPhrase(parts.slice(0, 2)), 4, 10);
 }
 
 /* =========================
@@ -1647,16 +1992,6 @@ function hasMeaningfulValue(value) {
   }
 
   return cleanString(String(value || "")) !== "";
-}
-
-function getByPath(obj, path) {
-  const parts = cleanString(path).split(".").filter(Boolean);
-  let cur = obj;
-  for (let i = 0; i < parts.length; i++) {
-    if (!cur || typeof cur !== "object") return undefined;
-    cur = cur[parts[i]];
-  }
-  return cur;
 }
 
 function setByPath(obj, path, value) {
@@ -1791,4 +2126,74 @@ function lowerFirst(text) {
 
 function firstArrayItem(value) {
   return Array.isArray(value) && value.length ? value[0] : "";
+}
+
+function wordCount(text) {
+  return normalizePublicText(text).split(/\s+/).filter(Boolean).length;
+}
+
+function hasRepeatedStart(a, b) {
+  const one = normalizePublicText(a).toLowerCase();
+  const two = normalizePublicText(b).toLowerCase();
+  if (!one || !two) return false;
+  return one.slice(0, 50) === two.slice(0, 50);
+}
+
+function hasAwkwardEnding(text) {
+  const value = normalizePublicText(text);
+  if (!value) return false;
+  return /(?:,|with|and|or|for|to|of|handling|especially|comfortable)\.?$/i.test(value);
+}
+
+function trimTrailingFragment(text) {
+  let value = normalizePublicText(text);
+  value = value.replace(/(?:,|with|and|or|for|to|of)\s*$/i, "");
+  value = value.replace(/\bhandling\.?$/i, "");
+  value = value.replace(/\bespecially\.?$/i, "");
+  value = value.replace(/\bcomfortable\.?$/i, "");
+  return value.trim();
+}
+
+function isLikelyAudienceText(text) {
+  const lower = normalizePublicText(text).toLowerCase();
+  return containsAny(lower, [
+    "we mainly serve", "homeowners in", "nearby upscale neighborhoods",
+    "a lot of them have", "want someone they can trust"
+  ]);
+}
+
+function normalizeDecisionFactor(text) {
+  return cleanSentenceFragment(text)
+    .replace(/^the /i, "")
+    .replace(/^whether /i, "")
+    .replace(/^clients care about /i, "")
+    .replace(/^customers care about /i, "")
+    .trim();
+}
+
+function isBadDecisionFactor(item) {
+  const value = normalizePublicText(item);
+  if (!value) return true;
+  if (wordCount(value) > 6) return true;
+  if (containsAny(value, [
+    "our process", "reach out", "confirm the scope", "schedule the work",
+    "final walkthrough", "before-", "after photos", "we already have"
+  ])) {
+    return true;
+  }
+  return false;
+}
+
+function normalizeDecisionFactors(items) {
+  const clean = [];
+  const list = cleanList(items);
+
+  for (let i = 0; i < list.length; i++) {
+    const item = normalizeDecisionFactor(list[i]);
+    if (!item) continue;
+    if (isBadDecisionFactor(item)) continue;
+    clean.push(item);
+  }
+
+  return uniqueList(clean).slice(0, 6);
 }
