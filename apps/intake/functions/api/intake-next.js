@@ -1,14 +1,13 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * V2.7 Clause-Safe Draft Cleanup
+ * V2.8 Signal Routing Guard
  *
  * Goals:
  * - preserve the stable deployment-safe controller shape
  * - improve premium enrichment quality
- * - extract cleaner proof/process/decision signals
- * - tighten ghostwritten draft quality
- * - require draft quality before completion
- * - avoid clipped endings by preserving complete clauses
+ * - prevent mixed answers from polluting the wrong field
+ * - tighten fragment detection for differentiation and draft text
+ * - keep intake-next.js as source of truth for readiness and premium enrichment
  */
 
 export async function onRequestPost(context) {
@@ -102,7 +101,7 @@ export async function onRequestGet() {
     ok: true,
     endpoint: "intake-next",
     method: "POST",
-    version: "v2.7-clause-safe"
+    version: "v2.8-signal-routing-guard"
   });
 }
 
@@ -117,6 +116,13 @@ function applyDeterministicAnswer(state, key, rawInput) {
 
   const extracted = extractAnswerForKey(canonicalKey, rawInput, state);
   if (!hasMeaningfulValue(extracted)) return;
+
+  // Special routing guard: only write service_descriptions when real service-specific signals are present.
+  if (canonicalKey === "service_descriptions") {
+    if (!isServiceSpecificAnswer(extracted)) {
+      return;
+    }
+  }
 
   setByPath(state, targetPath, extracted);
 
@@ -134,7 +140,7 @@ function applyFreeformEnrichment(state, rawInput) {
 
   if (!passesQualityThreshold(state, "service_specificity", "service_descriptions", state.answers.service_descriptions)) {
     const candidate = extractServiceSpecificClause(text);
-    if (candidate) {
+    if (candidate && isServiceSpecificAnswer(candidate)) {
       state.answers.service_descriptions = candidate;
       state.meta.inferred.service_descriptions = true;
       return;
@@ -173,7 +179,7 @@ function applyCrossFieldInference(state, rawInput, currentKey) {
       !passesQualityThreshold(state, "service_specificity", "service_descriptions", state.answers.service_descriptions)
     ) {
       const serviceClause = extractServiceSpecificClause(text);
-      if (serviceClause) {
+      if (serviceClause && isServiceSpecificAnswer(serviceClause)) {
         state.answers.service_descriptions = serviceClause;
         state.meta.inferred.service_descriptions = true;
       }
@@ -192,6 +198,7 @@ function applyCrossFieldInference(state, rawInput, currentKey) {
 
   if (
     currentKey === "process_notes" ||
+    currentKey === "service_descriptions" ||
     /process|quote|scope|schedule|walkthrough|finish|completed|results|photos|reviews|praise/i.test(lower)
   ) {
     if (
@@ -476,7 +483,13 @@ function evaluateDraftQuality(state) {
     issues.push("about_repeats_headline");
   }
 
-  if (hasAwkwardEnding(g.tagline) || hasAwkwardEnding(g.hero_subheadline) || hasAwkwardEnding(g.about_summary) || hasAwkwardEnding(answers.process_notes) || hasAwkwardEnding(answers.differentiation)) {
+  if (
+    hasAwkwardEnding(g.tagline) ||
+    hasAwkwardEnding(g.hero_subheadline) ||
+    hasAwkwardEnding(g.about_summary) ||
+    hasAwkwardEnding(answers.process_notes) ||
+    hasAwkwardEnding(answers.differentiation)
+  ) {
     issues.push("awkward_draft_ending");
   }
 
@@ -720,6 +733,7 @@ function passesQualityThreshold(state, block, field, value) {
         text.length >= 20 &&
         !isGenericPublicLanguage(text) &&
         !hasAwkwardEnding(text) &&
+        isServiceSpecificAnswer(text) &&
         containsAny(text, [
           "large homes", "big glass", "glass restoration", "residential", "commercial",
           "interior", "exterior", "frames", "tracks", "hard water", "streak-free",
@@ -843,7 +857,7 @@ function buildQuestionForKey(state, key) {
         : "We have " + (serviceArea || "your main area") + " as a starting point. What is the best way to describe the area, neighborhoods, or radius you really want this site to speak to?";
 
     case "service_descriptions":
-      return "What kinds of jobs, property types, or service details should the preview describe so it sounds like a real premium business? Think specifics like large homes, delicate glass, restoration work, detail-focused service, or anything else that matters.";
+      return "What kinds of jobs, property types, or service details should the preview describe so it sounds like a real premium business? Think specifics like large homes, delicate glass, restoration work, interior or exterior detail, hard-water treatment, tracks and frames, or anything else that matters.";
 
     case "process_notes":
       return "Walk me through how working with " + businessName + " usually goes, from first contact to finished result. I want the site to make the experience feel clear, smooth, and professional.";
@@ -944,8 +958,10 @@ function extractAnswerForKey(key, rawInput, state) {
     case "peak_season_availability":
       return input;
 
-    case "service_descriptions":
-      return extractServiceSpecificClause(input) || input;
+    case "service_descriptions": {
+      const extracted = extractServiceSpecificClause(input);
+      return extracted && isServiceSpecificAnswer(extracted) ? extracted : "";
+    }
 
     case "process_notes":
       return extractProcessClause(input) || input;
@@ -1120,7 +1136,7 @@ function normalizeState(next) {
 
   next.meta = isObject(next.meta) ? next.meta : {};
   next.meta.category = cleanString(next.meta.category);
-  next.meta.intake_version = "v2.7-clause-safe";
+  next.meta.intake_version = "v2.8-signal-routing-guard";
   next.meta.verified = isObject(next.meta.verified) ? next.meta.verified : {};
   next.meta.seeded = isObject(next.meta.seeded) ? next.meta.seeded : {};
   next.meta.inferred = isObject(next.meta.inferred) ? next.meta.inferred : {};
@@ -1634,24 +1650,24 @@ function isGenericPublicLanguage(text) {
 ========================= */
 
 function extractServiceSpecificClause(text) {
-  const sentences = splitSentences(text);
-  const strong = [];
+  const lower = normalizePublicText(text).toLowerCase();
+  const parts = [];
 
-  for (let i = 0; i < sentences.length; i++) {
-    if (containsAny(sentences[i], [
-      "large homes", "big glass", "glass restoration", "residential", "commercial",
-      "interior", "exterior", "frames", "tracks", "hard water", "streak-free",
-      "storefront", "property", "delicate", "upscale"
-    ])) {
-      strong.push(cleanSentenceFragment(sentences[i]));
-    }
-  }
+  if (lower.indexOf("large homes") !== -1) parts.push("larger homes");
+  if (lower.indexOf("big glass") !== -1 || lower.indexOf("expansive glass") !== -1) parts.push("expansive glass");
+  if (lower.indexOf("glass restoration") !== -1 || lower.indexOf("restoration") !== -1) parts.push("glass restoration");
+  if (lower.indexOf("interior") !== -1) parts.push("interior work");
+  if (lower.indexOf("exterior") !== -1) parts.push("exterior work");
+  if (lower.indexOf("tracks") !== -1) parts.push("tracks");
+  if (lower.indexOf("frames") !== -1) parts.push("frames");
+  if (lower.indexOf("hard water") !== -1) parts.push("hard-water treatment");
+  if (lower.indexOf("streak-free") !== -1) parts.push("streak-free finishing");
 
-  if (strong.length) {
-    return tightenDraft(buildCompleteClause(strong.slice(0, 2)), 8, 18);
-  }
+  if (!parts.length) return "";
 
-  return "";
+  return cleanSentence(
+    "Especially suited to " + listToPhrase(parts.slice(0, 4))
+  );
 }
 
 function extractProcessClause(text) {
@@ -1855,6 +1871,7 @@ function summarizeServiceSpecificity(text) {
   if (lower.indexOf("big glass") !== -1) parts.push("expansive glass");
   if (lower.indexOf("glass restoration") !== -1 || lower.indexOf("restoration") !== -1) parts.push("restoration work");
   if (lower.indexOf("streak-free") !== -1) parts.push("streak-free results");
+  if (lower.indexOf("hard-water") !== -1 || lower.indexOf("hard water") !== -1) parts.push("hard-water treatment");
 
   if (!parts.length) return "";
   return "especially suited to " + listToPhrase(parts.slice(0, 3));
@@ -2105,22 +2122,6 @@ function compactSentence(parts, minWords, maxWords) {
   return cleanSentence(trimToWordLimitAtClause(text, max));
 }
 
-function extractSpecificClause(text) {
-  const sentences = splitSentences(text);
-  for (let i = 0; i < sentences.length; i++) {
-    if (
-      containsAny(sentences[i], [
-        "large homes", "big glass", "restoration", "detail", "careful",
-        "quote", "schedule", "walkthrough", "spotless", "reliability",
-        "professionalism", "responsive"
-      ])
-    ) {
-      return cleanSentenceFragment(sentences[i]);
-    }
-  }
-  return cleanSentenceFragment(sentences.length ? sentences[0] : text);
-}
-
 function lowerFirst(text) {
   const clean = cleanSentenceFragment(text);
   if (!clean) return "";
@@ -2145,7 +2146,7 @@ function hasRepeatedStart(a, b) {
 function hasAwkwardEnding(text) {
   const value = normalizePublicText(text);
   if (!value) return false;
-  return /(?:,|with|and|or|for|to|of|handling|especially|comfortable|easy|glass|a)\.?$/i.test(value);
+  return /(?:,|with|and|or|for|to|of|handling|especially|comfortable|easy|glass|a|larger|higher-expectation|more polished|built for)\.?$/i.test(value);
 }
 
 function trimTrailingFragment(text) {
@@ -2157,6 +2158,10 @@ function trimTrailingFragment(text) {
   value = value.replace(/\beasy\.?$/i, "");
   value = value.replace(/\bglass\.?$/i, "");
   value = value.replace(/\ba\.?$/i, "");
+  value = value.replace(/\blarger\.?$/i, "");
+  value = value.replace(/\bhigher-expectation\.?$/i, "");
+  value = value.replace(/\bmore polished\.?$/i, "");
+  value = value.replace(/\bbuilt for\.?$/i, "");
   return value.trim();
 }
 
@@ -2243,13 +2248,29 @@ function joinNonEmpty(items, separator) {
   return clean.join(separator || " ");
 }
 
-function buildCompleteClause(parts) {
-  const cleaned = [];
-  for (let i = 0; i < parts.length; i++) {
-    const part = cleanSentenceFragment(parts[i]);
-    if (part) cleaned.push(part);
+function isServiceSpecificAnswer(text) {
+  const value = normalizePublicText(text).toLowerCase();
+  if (!value) return false;
+
+  const specificitySignals = [
+    "large homes", "big glass", "expansive glass", "glass restoration",
+    "interior", "exterior", "frames", "tracks", "hard water",
+    "streak-free", "storefront", "property types", "delicate glass",
+    "restoration work", "larger homes"
+  ];
+
+  const disqualifiers = [
+    "quote", "scope", "schedule", "walkthrough", "before-and-after",
+    "photos are available", "clients consistently mention",
+    "customers usually care most about"
+  ];
+
+  if (!containsAny(value, specificitySignals)) return false;
+  if (containsAny(value, disqualifiers) && !containsAny(value, ["glass restoration", "tracks", "frames", "interior", "exterior"])) {
+    return false;
   }
-  return cleanSentence(joinNonEmpty(cleaned, ". "));
+
+  return true;
 }
 
 function buildOrderedWorkflowSentence(parts) {
