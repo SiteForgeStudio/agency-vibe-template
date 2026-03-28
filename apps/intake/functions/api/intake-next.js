@@ -1,6 +1,6 @@
 /**
  * SITEFORGE FACTORY — intake-next.js
- * V2.8 Signal Routing Guard
+ * V2.9 Signal Routing + Fragment Guard
  *
  * Goals:
  * - preserve the stable deployment-safe controller shape
@@ -101,7 +101,7 @@ export async function onRequestGet() {
     ok: true,
     endpoint: "intake-next",
     method: "POST",
-    version: "v2.8-signal-routing-guard"
+    version: "v2.9-signal-routing-fragment-guard"
   });
 }
 
@@ -117,7 +117,6 @@ function applyDeterministicAnswer(state, key, rawInput) {
   const extracted = extractAnswerForKey(canonicalKey, rawInput, state);
   if (!hasMeaningfulValue(extracted)) return;
 
-  // Special routing guard: only write service_descriptions when real service-specific signals are present.
   if (canonicalKey === "service_descriptions") {
     if (!isServiceSpecificAnswer(extracted)) {
       return;
@@ -716,9 +715,12 @@ function passesQualityThreshold(state, block, field, value) {
     case "when_where":
       return text.length >= 8 || list.length >= 1;
 
-    case "differentiation":
+    case "differentiation": {
+      const trimmed = trimTrailingFragment(text);
       return (
         text.length >= 24 &&
+        trimmed.length >= 24 &&
+        trimmed === text &&
         !isGenericPublicLanguage(text) &&
         !hasAwkwardEnding(text) &&
         containsAny(text, [
@@ -727,6 +729,7 @@ function passesQualityThreshold(state, block, field, value) {
           "trusted on the property", "streak-free", "high-end"
         ])
       );
+    }
 
     case "service_specificity":
       return (
@@ -1136,7 +1139,7 @@ function normalizeState(next) {
 
   next.meta = isObject(next.meta) ? next.meta : {};
   next.meta.category = cleanString(next.meta.category);
-  next.meta.intake_version = "v2.8-signal-routing-guard";
+  next.meta.intake_version = "v2.9-signal-routing-fragment-guard";
   next.meta.verified = isObject(next.meta.verified) ? next.meta.verified : {};
   next.meta.seeded = isObject(next.meta.seeded) ? next.meta.seeded : {};
   next.meta.inferred = isObject(next.meta.inferred) ? next.meta.inferred : {};
@@ -2146,7 +2149,7 @@ function hasRepeatedStart(a, b) {
 function hasAwkwardEnding(text) {
   const value = normalizePublicText(text);
   if (!value) return false;
-  return /(?:,|with|and|or|for|to|of|handling|especially|comfortable|easy|glass|a|larger|higher-expectation|more polished|built for)\.?$/i.test(value);
+  return /(?:,|with|and|or|for|to|of|handling|especially|comfortable|easy|glass|a|larger|higher-expectation|more polished|built for|built)\.?$/i.test(value);
 }
 
 function trimTrailingFragment(text) {
@@ -2162,6 +2165,7 @@ function trimTrailingFragment(text) {
   value = value.replace(/\bhigher-expectation\.?$/i, "");
   value = value.replace(/\bmore polished\.?$/i, "");
   value = value.replace(/\bbuilt for\.?$/i, "");
+  value = value.replace(/\bbuilt\.?$/i, "");
   return value.trim();
 }
 
