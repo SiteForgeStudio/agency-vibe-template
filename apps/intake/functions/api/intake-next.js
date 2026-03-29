@@ -109,6 +109,29 @@ export async function onRequestGet() {
 /* =========================
    Core Flow
 ========================= */
+function isMixedSignalAnswer(text, targetKey) {
+  const lower = text.toLowerCase();
+
+  const signals = {
+    process: /process|quote|scope|schedule|walkthrough|finish/i.test(lower),
+    proof: /review|praise|photos|before|after|results/i.test(lower),
+    audience: /homeowners|clients|customers|families|business/i.test(lower),
+    decision: /trust|quality|responsiveness|detail|care/i.test(lower)
+  };
+
+  const activeSignals = Object.values(signals).filter(Boolean).length;
+
+  // If multiple signal types present, treat as mixed
+  if (activeSignals >= 2) {
+    // Allow for certain keys
+    if (targetKey === "process_notes" && signals.process) return false;
+    if (targetKey === "service_descriptions" && signals.audience) return false;
+
+    return true;
+  }
+
+  return false;
+}
 
 function applyDeterministicAnswer(state, key, rawInput) {
   const canonicalKey = canonicalizeKey(key);
@@ -118,8 +141,14 @@ function applyDeterministicAnswer(state, key, rawInput) {
   const extracted = extractAnswerForKey(canonicalKey, rawInput, state);
   if (!hasMeaningfulValue(extracted)) return;
 
+  // 🚨 NEW GUARD: prevent mixed answers from being treated as clean field answers
+  if (isMixedSignalAnswer(rawInput, canonicalKey)) {
+    return;
+  }
+
   if (canonicalKey === "service_descriptions") {
     if (!isServiceSpecificAnswer(extracted)) return;
+    if (isMixedSignalAnswer(rawInput, canonicalKey)) return;
   }
 
   if (canonicalKey === "differentiation") {
@@ -187,15 +216,17 @@ function applyCrossFieldInference(state, rawInput, currentKey) {
       }
     }
 
-    if (
-      !passesQualityThreshold(state, "differentiation", "differentiation", state.answers.differentiation)
-    ) {
-      const candidate = buildDifferentiationFromSignals(text, state);
-      if (candidate && isDifferentiationAnswer(candidate)) {
-        state.answers.differentiation = candidate;
-        state.meta.inferred.differentiation = true;
-      }
-    }
+// 🚨 ONLY derive differentiation from clean signals, not mixed answers
+if (
+  !passesQualityThreshold(state, "differentiation", "differentiation", state.answers.differentiation) &&
+  !isMixedSignalAnswer(text, "differentiation")
+) {
+  const candidate = buildDifferentiationFromSignals(text, state);
+  if (candidate && isDifferentiationAnswer(candidate)) {
+    state.answers.differentiation = candidate;
+    state.meta.inferred.differentiation = true;
+  }
+}
   }
 
   if (
@@ -735,21 +766,18 @@ function passesQualityThreshold(state, block, field, value) {
       );
     }
 
-case "service_specificity": {
-  const text = answers.service_descriptions || "";
-  const source = state?.meta?.last_user_answer || "";
-
-  // Combine clean stored field + raw answer context
-  const combined = `${text} ${source}`.trim();
-
-  return (
-    text &&
-    text.length > 20 &&
-    !isGeneric(text) &&
-    !hasAwkwardEnding(text) &&
-    isServiceSpecificAnswer(combined)
-  );
-}
+    case "service_specificity":
+      return (
+        text.length >= 20 &&
+        !isGenericPublicLanguage(text) &&
+        !hasAwkwardEnding(text) &&
+        isServiceSpecificAnswer(text) &&
+        containsAny(text, [
+          "large homes", "big glass", "glass restoration", "residential", "commercial",
+          "interior", "exterior", "frames", "tracks", "hard water", "streak-free",
+          "storefront", "property", "delicate"
+        ])
+      );
 
     case "process_clarity":
       return (
