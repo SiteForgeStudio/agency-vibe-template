@@ -735,18 +735,21 @@ function passesQualityThreshold(state, block, field, value) {
       );
     }
 
-    case "service_specificity":
-      return (
-        text.length >= 20 &&
-        !isGenericPublicLanguage(text) &&
-        !hasAwkwardEnding(text) &&
-        isServiceSpecificAnswer(text) &&
-        containsAny(text, [
-          "large homes", "big glass", "glass restoration", "residential", "commercial",
-          "interior", "exterior", "frames", "tracks", "hard water", "streak-free",
-          "storefront", "property", "delicate"
-        ])
-      );
+case "service_specificity": {
+  const text = answers.service_descriptions || "";
+  const source = state?.meta?.last_user_answer || "";
+
+  // Combine clean stored field + raw answer context
+  const combined = `${text} ${source}`.trim();
+
+  return (
+    text &&
+    text.length > 20 &&
+    !isGeneric(text) &&
+    !hasAwkwardEnding(text) &&
+    isServiceSpecificAnswer(combined)
+  );
+}
 
     case "process_clarity":
       return (
