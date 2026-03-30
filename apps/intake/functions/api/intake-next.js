@@ -115,20 +115,33 @@ function isMixedSignalAnswer(text, targetKey) {
   const signals = {
     process: /process|quote|scope|schedule|walkthrough|finish/i.test(lower),
     proof: /review|praise|photos|before|after|results/i.test(lower),
-    audience: /homeowners|clients|customers|families|business/i.test(lower),
-    decision: /trust|quality|responsiveness|detail|care/i.test(lower)
+    audience: /homeowners|clients|customers|families|business|neighborhood|property/i.test(lower),
+    decision: /trust|quality|responsiveness|detail|care/i.test(lower),
+    service: /interior|exterior|tracks|frames|restoration|glass|homes/i.test(lower)
   };
 
   const activeSignals = Object.values(signals).filter(Boolean).length;
 
-  // If multiple signal types present, treat as mixed
-  if (activeSignals >= 2) {
-    // Allow for certain keys
-    if (targetKey === "process_notes" && signals.process) return false;
-    if (targetKey === "service_descriptions" && signals.audience) return false;
+  if (activeSignals < 2) return false;
 
-    return true;
+  // ✅ ALLOW mixed answers for BROAD fields
+  if ([
+    "audience",
+    "primary_offer",
+    "business_understanding",
+    "website_direction"
+  ].includes(targetKey)) {
+    return false;
   }
+
+  // ✅ allow for safe structured fields
+  if (targetKey === "process_notes" && signals.process) return false;
+  if (targetKey === "testimonials_status" && signals.proof) return false;
+  if (targetKey === "photos_status" && signals.proof) return false;
+  if (targetKey === "buyer_decision_factors" && signals.decision) return false;
+
+  return true;
+}
 
   return false;
 }
@@ -140,6 +153,17 @@ function applyDeterministicAnswer(state, key, rawInput) {
 
   const extracted = extractAnswerForKey(canonicalKey, rawInput, state);
   if (!hasMeaningfulValue(extracted)) return;
+
+  // ✅ allow overwrite of weak seeded values
+  const existing = getByPath(state, targetPath);
+  const isWeakSeed =
+    state.meta.seeded &&
+    state.meta.seeded[canonicalKey] &&
+    (!hasMeaningfulValue(existing) || existing.length < 40);
+
+  if (isMixedSignalAnswer(rawInput, canonicalKey) && !isWeakSeed) {
+    return;
+  }
 
   // 🚨 NEW GUARD: prevent mixed answers from being treated as clean field answers
   if (isMixedSignalAnswer(rawInput, canonicalKey)) {
