@@ -143,8 +143,6 @@ function isMixedSignalAnswer(text, targetKey) {
   return true;
 }
 
-  return false;
-}
 
 function applyDeterministicAnswer(state, key, rawInput) {
   const canonicalKey = canonicalizeKey(key);
