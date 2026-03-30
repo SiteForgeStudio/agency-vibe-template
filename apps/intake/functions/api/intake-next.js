@@ -1278,6 +1278,18 @@ function sanitizeAnswers(state) {
    Premium Helpers
 ========================= */
 
+function getByPath(obj, path) {
+  const parts = cleanString(path).split(".").filter(Boolean);
+  let cur = obj;
+
+  for (let i = 0; i < parts.length; i++) {
+    if (!cur || typeof cur !== "object") return undefined;
+    cur = cur[parts[i]];
+  }
+
+  return cur;
+}
+
 function bestPublicOffer(state) {
   const candidates = [
     state.answers.primary_offer,
