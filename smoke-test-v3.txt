@@ -1,0 +1,101 @@
+curl -s -X POST "https://intake.getsiteforge.com/api/intake-start" \
+  -H "Content-Type: application/json" \
+  -d '{"slug":"summit-ridge-window-cleaning-v3-smoke"}' \
+  | tee /tmp/siteforge_start.json
+
+  ###################################
+
+  jq '.state' /tmp/siteforge_start.json > /tmp/siteforge_state_1.json
+
+  ###################################
+
+  jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_1.json)" \
+  --arg answer "We mainly serve homeowners in Boulder and nearby upscale neighborhoods who care about spotless results, reliability, and professionalism. Many have large homes with expansive glass and want someone they can trust on the property." \
+  '{state:$state, answer:$answer}' \
+  > /tmp/siteforge_next_payload_1.json
+
+  ##############  3  #####################
+
+  curl -s -X POST "https://intake.getsiteforge.com/api/intake-next" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_next_payload_1.json \
+  | tee /tmp/siteforge_next_1.json
+
+  ##################################
+
+  jq '.state' /tmp/siteforge_next_1.json > /tmp/siteforge_state_2.json
+
+  #############  4  ####################
+
+  jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_2.json)" \
+  --arg answer "Our process is simple: customers request a quote, we confirm the scope, schedule the work, and complete the cleaning carefully with attention to detail. We often do a final walkthrough. Clients consistently mention reliability, professionalism, and spotless results, and we have strong before-and-after photos. Most customers choose us based on trust, quality, responsiveness, and how careful we are on the property." \
+  '{state:$state, answer:$answer}' \
+  > /tmp/siteforge_next_payload_2.json
+
+  ####################################
+
+curl -s -X POST "https://intake.getsiteforge.com/api/intake-next" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_next_payload_2.json \
+  | tee /tmp/siteforge_next_2.json
+
+  #####################################
+
+  jq '.state' /tmp/siteforge_next_2.json > /tmp/siteforge_state_3.json
+
+  ############### 5 Turn 3 DIFFERENTIATION ###################
+
+  jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_3.json)" \
+  --arg answer "We are not a volume window cleaning company. We focus on high-end residential work for larger homes with expansive glass, where attention to detail and care on the property matter. Clients choose us because we are reliable, professional, and deliver a noticeably better final result." \
+  '{state:$state, answer:$answer}' \
+  > /tmp/siteforge_next_payload_3.json
+
+  #############################
+
+  curl -s -X POST "https://intake.getsiteforge.com/api/intake-next" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_next_payload_3.json \
+  | tee /tmp/siteforge_next_3.json
+
+  #################
+
+  jq '.state' /tmp/siteforge_next_3.json > /tmp/siteforge_state_4.json
+
+  ########## 6. Turn 4 — Service Specificity (DEEP DETAIL)######################
+
+jq -n \
+  --argjson state "$(cat /tmp/siteforge_state_4.json)" \
+  --arg answer "We handle interior and exterior window cleaning for large residential properties, including detailed work on glass panels, frames, and tracks. We also address hard water buildup and offer glass restoration where needed, focusing on delicate surfaces and high-visibility areas." \
+  '{state:$state, answer:$answer}' \
+  > /tmp/siteforge_next_payload_4.json
+
+  #######
+
+  curl -s -X POST "https://intake.getsiteforge.com/api/intake-next" \
+  -H "Content-Type: application/json" \
+  --data @/tmp/siteforge_next_payload_4.json \
+  | tee /tmp/siteforge_next_4.json
+
+  ##############
+
+  jq '.state' /tmp/siteforge_next_4.json > /tmp/siteforge_state_final.json
+
+  ########################### 7. EVALUATION CHECK  #############################
+
+  jq '{
+  phase: .phase,
+  action: .action,
+  current_key: .current_key,
+  audience: .answers.audience,
+  differentiation: .answers.differentiation,
+  service_descriptions: .answers.service_descriptions,
+  enrichment: .enrichment,
+  verification: .verification
+}' /tmp/siteforge_state_final.json
+
+
+  
+  
