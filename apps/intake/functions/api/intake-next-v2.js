@@ -629,67 +629,143 @@ function computeVerificationPriority({ config, missing, partial, shouldVerify, n
 }
 
 function buildQuestionCandidates(strategy, factRegistry, sectionStatus, verificationQueue) {
-  const grouped = new Map();
-  const fieldIntentMap = getFieldIntentMap(strategy);
-
-  for (const item of verificationQueue) {
-    const bundleId = cleanString(item.bundle_id);
-    if (!bundleId) continue;
-
-    if (!grouped.has(bundleId)) {
-      grouped.set(bundleId, {
-        bundle_id: bundleId,
-        score: 0,
-        target_fields: [],
-        target_sections: [],
-        primary_field: "",
-        intent: "",
-        reason: "",
-        tone: "consultative"
-      });
+    const grouped = new Map();
+    const fieldIntentMap = getFieldIntentMap(strategy);
+  
+    for (const item of verificationQueue) {
+      const bundleId = cleanString(item.bundle_id);
+      if (!bundleId) continue;
+  
+      if (!grouped.has(bundleId)) {
+        grouped.set(bundleId, {
+          bundle_id: bundleId,
+          score: 0,
+          target_fields: [],
+          target_sections: [],
+          primary_field: "",
+          intent: "",
+          reason: "",
+          tone: "consultative",
+          missing_count: 0,
+          partial_count: 0,
+          verify_count: 0
+        });
+      }
+  
+      const group = grouped.get(bundleId);
+      const config = fieldIntentMap[item.field_key] || {};
+  
+      if (item.missing) group.missing_count += 1;
+      if (item.partial) group.partial_count += 1;
+      if (item.requires_client_verification) group.verify_count += 1;
+  
+      group.target_fields = uniqueList(group.target_fields.concat([item.field_key]));
+      group.target_sections = uniqueList(group.target_sections.concat(item.related_sections || []));
+  
+      if (!group.primary_field) {
+        group.primary_field = cleanString(config.primary_field || item.field_key);
+      }
+      if (!group.intent) group.intent = cleanString(config.bundle_intent);
+      if (!group.reason) group.reason = cleanString(config.bundle_reason);
     }
-
-    const group = grouped.get(bundleId);
-    const config = fieldIntentMap[item.field_key] || {};
-
-    group.score += Number(item.priority || 0);
-    group.target_fields = uniqueList(group.target_fields.concat([item.field_key]));
-    group.target_sections = uniqueList(group.target_sections.concat(item.related_sections || []));
-    if (!group.primary_field) {
-      group.primary_field = cleanString(config.primary_field || item.field_key);
-    }
-    if (!group.intent) group.intent = cleanString(config.bundle_intent);
-    if (!group.reason) group.reason = cleanString(config.bundle_reason);
+  
+    const strategicBundleHealth = {
+      conversion: bundleCompletion("conversion", grouped, factRegistry),
+      positioning: bundleCompletion("positioning", grouped, factRegistry),
+      service_area: bundleCompletion("service_area", grouped, factRegistry),
+      proof: bundleCompletion("proof", grouped, factRegistry)
+    };
+  
+    const strategicAverage =
+      (
+        strategicBundleHealth.conversion +
+        strategicBundleHealth.positioning +
+        strategicBundleHealth.service_area +
+        strategicBundleHealth.proof
+      ) / 4;
+  
+    const candidates = Array.from(grouped.values())
+      .map((candidate) => {
+        const weakSections = candidate.target_sections.filter(
+          (section) => (sectionStatus?.[section]?.score ?? 0) < 0.75
+        );
+  
+        const missingFields = candidate.target_fields.filter(
+          (field) => !hasMeaningfulValue(factRegistry?.[field]?.value)
+        );
+  
+        const partialFields = candidate.target_fields.filter(
+          (field) => cleanString(factRegistry?.[field]?.status) === "partial"
+        );
+  
+        let score = 0;
+  
+        // Base strategic weight matters more than raw field count
+        score += bundlePlannerWeight(candidate.bundle_id);
+  
+        // Missing still matters, but not enough to let contact_details hijack the flow
+        score += missingFields.length * 45;
+        score += partialFields.length * 18;
+        score += weakSections.length * 16;
+  
+        // Penalize contact details until strategic bundles are reasonably developed
+        if (candidate.bundle_id === "contact_details") {
+          if (strategicAverage < 0.6) {
+            score -= 260;
+          } else if (strategicAverage < 0.8) {
+            score -= 140;
+          }
+        }
+  
+        // Favor early strategic bundles explicitly
+        if (candidate.bundle_id === "conversion") score += 110;
+        if (candidate.bundle_id === "positioning") score += 95;
+        if (candidate.bundle_id === "service_area") score += 75;
+        if (candidate.bundle_id === "proof") score += 60;
+  
+        return {
+          ...candidate,
+          score,
+          target_fields: candidate.target_fields,
+          target_sections: candidate.target_sections
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+  
+    return candidates;
   }
-
-  const candidates = Array.from(grouped.values())
-    .map((candidate) => {
-      const weakSections = candidate.target_sections.filter(
-        (section) => (sectionStatus?.[section]?.score ?? 0) < 0.75
-      );
-      const missingFields = candidate.target_fields.filter(
-        (field) => !hasMeaningfulValue(factRegistry?.[field]?.value)
-      );
-      const partialFields = candidate.target_fields.filter(
-        (field) => cleanString(factRegistry?.[field]?.status) === "partial"
-      );
-
-      const extraScore =
-        (missingFields.length * 40) +
-        (partialFields.length * 18) +
-        (weakSections.length * 20);
-
-      return {
-        ...candidate,
-        score: candidate.score + extraScore,
-        target_fields: candidate.target_fields,
-        target_sections: candidate.target_sections
-      };
-    })
-    .sort((a, b) => b.score - a.score);
-
-  return candidates;
-}
+  
+  function bundleCompletion(bundleId, grouped, factRegistry) {
+    const candidate = grouped.get(bundleId);
+    if (!candidate || !Array.isArray(candidate.target_fields) || !candidate.target_fields.length) {
+      return 0;
+    }
+  
+    const filled = candidate.target_fields.filter((field) =>
+      hasMeaningfulValue(factRegistry?.[field]?.value)
+    ).length;
+  
+    return filled / candidate.target_fields.length;
+  }
+  
+  function bundlePlannerWeight(bundleId) {
+    switch (bundleId) {
+      case "conversion":
+        return 220;
+      case "positioning":
+        return 205;
+      case "service_area":
+        return 180;
+      case "proof":
+        return 165;
+      case "brand_story":
+        return 110;
+      case "contact_details":
+        return 40;
+      default:
+        return 80;
+    }
+  }
 
 function planNextQuestion(questionCandidates, previousBundleId) {
   const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
@@ -782,77 +858,104 @@ function syncCompatibilityMirrors(state) {
 ========================= */
 
 async function renderNextQuestion({ env, blueprint, previousPlan, interpretation, businessName }) {
-  const plan = blueprint.question_plan;
-  if (!plan) {
-    return "Excellent — we now have enough verified clarity to move into final assembly.";
-  }
-
-  const fallback = buildDeterministicQuestion(plan, blueprint, businessName);
-
-  if (!env?.OPENAI_API_KEY) {
-    return fallback;
-  }
-
-  try {
-    const payload = {
-      model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
-      temperature: 0.4,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: [
-            "You write the next intake question for SiteForge Factory.",
-            "Style: consultative, expert-level, natural, concise, premium.",
-            "Do not mention schema, JSON, fields, or technical internals.",
-            "Ask one strong next question.",
-            "Do not repeat what was just answered.",
-            "Do not hardcode industries.",
-            'Return JSON only: { "message": "..." }'
-          ].join("\n")
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              business_name: cleanString(businessName),
-              previous_bundle_id: cleanString(previousPlan?.bundle_id),
-              next_bundle_id: cleanString(plan.bundle_id),
-              primary_field: cleanString(plan.primary_field),
-              intent: cleanString(plan.intent),
-              reason: cleanString(plan.reason),
-              updated_fact_keys: cleanList(interpretation?.updated_fact_keys),
-              answer_summary: cleanString(interpretation?.answer_summary),
-              unresolved_points: normalizeStringArray(interpretation?.unresolved_points)
-            },
-            null,
-            2
-          )
-        }
-      ]
+    const plan = blueprint.question_plan;
+    if (!plan) {
+      return "Excellent — we now have enough verified clarity to move into final assembly.";
+    }
+  
+    const fallback = buildDeterministicQuestion(plan, blueprint, businessName);
+  
+    if (!env?.OPENAI_API_KEY) {
+      return fallback;
+    }
+  
+    const bundleScopedHints = {
+      conversion:
+        "Ask only about the next step, booking flow, pricing expectations, or availability expectations.",
+      positioning:
+        "Ask only about audience, offer, or differentiation.",
+      service_area:
+        "Ask only about the primary market and nearby cities or regions served.",
+      proof:
+        "Ask only about trust signals, outcomes, reviews, reputation, or credibility.",
+      brand_story:
+        "Ask only about founder story, standards, philosophy, or why the business was built this way.",
+      contact_details:
+        "Ask only about factual public contact details like phone, email, address, hours, or booking link."
     };
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) return fallback;
-
-    const data = await response.json();
-    const raw = data?.choices?.[0]?.message?.content;
-    const parsed = safeJsonParse(raw);
-    const message = cleanString(parsed?.message);
-    return message || fallback;
-  } catch (err) {
-    console.error("[intake-next-v2:render-question]", err);
-    return fallback;
+  
+    try {
+      const payload = {
+        model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
+        temperature: 0.35,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content: [
+              "You write the next intake question for SiteForge Factory.",
+              "Style: consultative, expert-level, natural, concise, premium.",
+              "Do not mention schema, JSON, fields, or technical internals.",
+              "Ask exactly one strong next question.",
+              "Do not repeat what was just answered.",
+              "Do not hardcode industries.",
+              "Stay strictly inside the requested bundle scope.",
+              "Do not combine multiple bundles into one question.",
+              "If unresolved points exist, only use the ones that belong to the next bundle.",
+              'Return JSON only: { "message": "..." }'
+            ].join("\n")
+          },
+          {
+            role: "user",
+            content: JSON.stringify(
+              {
+                business_name: cleanString(businessName),
+                previous_bundle_id: cleanString(previousPlan?.bundle_id),
+                next_bundle_id: cleanString(plan.bundle_id),
+                primary_field: cleanString(plan.primary_field),
+                intent: cleanString(plan.intent),
+                reason: cleanString(plan.reason),
+                bundle_scope_rule: bundleScopedHints[cleanString(plan.bundle_id)] || "Ask only within the selected bundle.",
+                updated_fact_keys: cleanList(interpretation?.updated_fact_keys),
+                answer_summary: cleanString(interpretation?.answer_summary),
+                unresolved_points: normalizeStringArray(interpretation?.unresolved_points)
+              },
+              null,
+              2
+            )
+          }
+        ]
+      };
+  
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify(payload)
+      });
+  
+      if (!response.ok) return fallback;
+  
+      const data = await response.json();
+      const raw = data?.choices?.[0]?.message?.content;
+      const parsed = safeJsonParse(raw);
+      const message = cleanString(parsed?.message);
+  
+      if (!message) return fallback;
+  
+      // Guard against overloaded multi-bundle questions.
+      if (isOverloadedQuestion(message, plan.bundle_id)) {
+        return fallback;
+      }
+  
+      return message;
+    } catch (err) {
+      console.error("[intake-next-v2:render-question]", err);
+      return fallback;
+    }
   }
-}
 
 function buildDeterministicQuestion(plan, blueprint, businessName) {
   const name = cleanString(businessName) || cleanString(getByPath(blueprint.business_draft, "brand.name")) || "your business";
@@ -1438,6 +1541,32 @@ function normalizeStringArray(value) {
     .filter(Boolean);
 }
 
+function isOverloadedQuestion(message, bundleId) {
+    const text = cleanString(message).toLowerCase();
+    if (!text) return false;
+  
+    const bundleKeywords = {
+      conversion: ["book", "booking", "quote", "pricing", "availability", "call", "form", "next step"],
+      positioning: ["audience", "customer", "offer", "different", "difference", "stand out", "ideal fit"],
+      service_area: ["city", "cities", "area", "areas", "region", "regions", "neighborhood", "neighborhoods", "serve"],
+      proof: ["review", "reviews", "trust", "results", "experience", "credibility", "reputation", "testimonial"],
+      brand_story: ["story", "founder", "why", "philosophy", "standards", "started"],
+      contact_details: ["phone", "email", "address", "hours", "contact", "booking link"]
+    };
+  
+    const activeBundles = Object.entries(bundleKeywords)
+      .map(([key, words]) => ({
+        key,
+        matched: words.some((word) => text.includes(word))
+      }))
+      .filter((entry) => entry.matched)
+      .map((entry) => entry.key);
+  
+    if (activeBundles.length <= 1) return false;
+  
+    return !activeBundles.every((key) => key === bundleId);
+  }
+
 function isObject(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -1634,3 +1763,4 @@ function stringifyFactValue(value) {
   if (typeof value === "number") return String(value);
   return cleanString(value);
 }
+
