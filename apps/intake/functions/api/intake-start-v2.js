@@ -19,2050 +19,2116 @@
  */
 
 export async function onRequestPost(context) {
-    const { request, env } = context;
-  
+  const { request, env } = context;
+
+  try {
+    const rawBody = await request.text();
+    let body;
+
     try {
-      const rawBody = await request.text();
-      let body;
-  
-      try {
-        body = JSON.parse(rawBody);
-      } catch {
-        return json({ ok: false, error: "Invalid JSON payload" }, 400);
-      }
-  
-      const slug = cleanString(body.slug);
-      if (!slug) {
-        return json({ ok: false, error: "Missing slug", received: body }, 400);
-      }
-  
-      // 1) FETCH SOURCE OF TRUTH
-      const url = new URL(request.url);
-      const reconReq = new Request(`${url.origin}/api/preflight-status`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug })
-      });
-  
-      const reconRes = await fetch(reconReq);
-      const reconData = await reconRes.json();
-  
-      if (!reconRes.ok || !reconData?.ok) {
-        throw new Error(`Preflight data not found for slug: ${slug}.`);
-      }
-  
-      const strategy = safeStrategy(reconData);
-      const seededAnswers = buildSeededAnswers(strategy, reconData);
-  
-      // 2) BUILD BLUEPRINT
-      const blueprint = buildBlueprintFromPreflight(strategy, reconData, seededAnswers);
-  
-      // 3) INITIALIZE STATE
-      const initialState = {
-        slug,
-        businessName:
-          cleanString(reconData?.input_business_name) ||
-          cleanString(strategy?.business_context?.business_name) ||
-          cleanString(seededAnswers?.business_name) ||
-          "New Partner",
-        clientEmail: cleanString(reconData?.client_email),
-        phase: "blueprint_verify",
-  
-        // compatibility fields
-        answers: seededAnswers,
-        ghostwritten: {},
-        verified: {},
-  
-        verification: {
-          queue_complete: blueprint.verification_queue.length === 0,
-          verified_count: 0,
-          remaining_keys: blueprint.verification_queue.map((item) => item.field_key),
-          last_updated: new Date().toISOString()
-        },
-  
-        conversation: [],
-  
-        meta: {
-          category: cleanString(seededAnswers?.category) || "general",
-          intake_version: "v2-blueprint",
-          seeded: buildSeedMeta(seededAnswers),
-          inferred: {},
-          verified: {}
-        },
-  
-        provenance: {
-          strategy_contract: strategy,
-          recon_snapshot: reconData
-        },
-  
-        // new controller state
-        blueprint,
-  
-        readiness: evaluateBlueprintReadiness(blueprint)
-      };
-  
-      // compatibility mirrors
-      initialState.current_key = blueprint.question_plan?.primary_field || null;
-  
-      const openingMessage =
-        renderQuestion(blueprint.question_plan, blueprint) ||
-        fallbackOpeningMessage(initialState);
-  
-      initialState.conversation.push({
-        role: "assistant",
-        content: openingMessage
-      });
-  
-      // 4) SYNC TO ORCHESTRATOR
-      if (env.ORCHESTRATOR_SCRIPT_URL) {
-        await fetch(`${env.ORCHESTRATOR_SCRIPT_URL}?route=intake_start`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            slug,
-            state: initialState,
-            timestamp: new Date().toISOString()
-          })
-        });
-      }
-  
-      return json({
-        ok: true,
-        message: openingMessage,
-        state: initialState
-      });
-    } catch (err) {
-      console.error("[intake-start-v2]", err);
-      return json({ ok: false, error: err.message || "Unknown error" }, 500);
+      body = JSON.parse(rawBody);
+    } catch {
+      return json({ ok: false, error: "Invalid JSON payload" }, 400);
     }
-  }
-  
-  /* --------------------------------
-     RESPONSE HELPERS
-  -------------------------------- */
-  
-  function json(data, status = 200) {
-    return new Response(JSON.stringify(data), {
-      status,
-      headers: {
-        "content-type": "application/json; charset=utf-8",
-        "cache-control": "no-store"
-      }
+
+    const slug = cleanString(body.slug);
+    if (!slug) {
+      return json({ ok: false, error: "Missing slug", received: body }, 400);
+    }
+
+    // 1) FETCH SOURCE OF TRUTH
+    const url = new URL(request.url);
+    const reconReq = new Request(`${url.origin}/api/preflight-status`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slug })
     });
+
+    const reconRes = await fetch(reconReq);
+    const reconData = await reconRes.json();
+
+    if (!reconRes.ok || !reconData?.ok) {
+      throw new Error(`Preflight data not found for slug: ${slug}.`);
+    }
+
+    const strategy = safeStrategy(reconData);
+    const seededAnswers = buildSeededAnswers(strategy, reconData);
+
+    // 2) BUILD BLUEPRINT
+    const blueprint = buildBlueprintFromPreflight(strategy, reconData, seededAnswers);
+
+    // 3) INITIALIZE STATE
+    const initialState = {
+      slug,
+      businessName:
+        cleanString(reconData?.input_business_name) ||
+        cleanString(strategy?.business_context?.business_name) ||
+        cleanString(seededAnswers?.business_name) ||
+        "New Partner",
+      clientEmail: cleanString(reconData?.client_email),
+      phase: "blueprint_verify",
+
+      // compatibility fields
+      answers: seededAnswers,
+      ghostwritten: {},
+      verified: {},
+
+      verification: {
+        queue_complete: blueprint.verification_queue.length === 0,
+        verified_count: 0,
+        remaining_keys: blueprint.verification_queue.map((item) => item.field_key),
+        last_updated: new Date().toISOString()
+      },
+
+      conversation: [],
+
+      meta: {
+        category: cleanString(seededAnswers?.category) || "general",
+        intake_version: "v2-blueprint",
+        seeded: buildSeedMeta(seededAnswers),
+        inferred: {},
+        verified: {}
+      },
+
+      provenance: {
+        strategy_contract: strategy,
+        recon_snapshot: reconData
+      },
+
+      // new controller state
+      blueprint,
+
+      readiness: evaluateBlueprintReadiness(blueprint)
+    };
+
+    // compatibility mirrors
+    initialState.current_key = blueprint.question_plan?.primary_field || null;
+
+    const openingMessage =
+      renderQuestion(blueprint.question_plan, blueprint) ||
+      fallbackOpeningMessage(initialState);
+
+    initialState.conversation.push({
+      role: "assistant",
+      content: openingMessage
+    });
+
+    // 4) SYNC TO ORCHESTRATOR
+    if (env.ORCHESTRATOR_SCRIPT_URL) {
+      await fetch(`${env.ORCHESTRATOR_SCRIPT_URL}?route=intake_start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          state: initialState,
+          timestamp: new Date().toISOString()
+        })
+      });
+    }
+
+    return json({
+      ok: true,
+      message: openingMessage,
+      state: initialState
+    });
+  } catch (err) {
+    console.error("[intake-start-v2]", err);
+    return json({ ok: false, error: err.message || "Unknown error" }, 500);
   }
-  
-  /* --------------------------------
-     CORE PARSING / NORMALIZATION
-  -------------------------------- */
-  
-  function cleanString(value) {
-    return typeof value === "string" ? value.trim() : "";
+}
+
+/* --------------------------------
+   RESPONSE HELPERS
+-------------------------------- */
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store"
+    }
+  });
+}
+
+/* --------------------------------
+   CORE PARSING / NORMALIZATION
+-------------------------------- */
+
+function cleanString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function cleanList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map(cleanString).filter(Boolean);
+}
+
+function isObject(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function compactObject(obj) {
+  const out = {};
+
+  for (const [key, value] of Object.entries(obj || {})) {
+    if (Array.isArray(value) && value.length > 0) {
+      out[key] = value;
+      continue;
+    }
+
+    if (isObject(value) && Object.keys(value).length > 0) {
+      out[key] = value;
+      continue;
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      out[key] = value.trim();
+      continue;
+    }
+
+    if (typeof value === "boolean") {
+      out[key] = value;
+    }
   }
-  
-  function cleanList(value) {
-    if (!Array.isArray(value)) return [];
-    return value.map(cleanString).filter(Boolean);
+
+  return out;
+}
+
+function hasMeaningfulValue(value) {
+  if (Array.isArray(value)) {
+    return value.some((item) => hasMeaningfulValue(item));
   }
-  
-  function isObject(value) {
-    return !!value && typeof value === "object" && !Array.isArray(value);
+
+  if (isObject(value)) {
+    return Object.values(value).some((item) => hasMeaningfulValue(item));
   }
-  
-  function compactObject(obj) {
-    const out = {};
-  
-    for (const [key, value] of Object.entries(obj || {})) {
-      if (Array.isArray(value) && value.length > 0) {
-        out[key] = value;
-        continue;
+
+  if (typeof value === "boolean") return true;
+
+  return cleanString(value) !== "";
+}
+
+function firstNonEmpty(values) {
+  for (const value of values || []) {
+    if (Array.isArray(value) && value.length > 0) {
+      const nested = firstNonEmpty(value);
+      if (nested) return nested;
+      continue;
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return "";
+}
+
+function uniqueList(values) {
+  return Array.from(new Set(cleanList(values)));
+}
+
+function slugify(value) {
+  return cleanString(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function titleCaseWords(value) {
+  return cleanString(value)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function asArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+/* --------------------------------
+   PRE-FLIGHT / STRATEGY ACCESS
+-------------------------------- */
+
+function safeStrategy(reconData) {
+  if (isObject(reconData?.strategy_contract)) {
+    return reconData.strategy_contract;
+  }
+
+  if (reconData?.paid_intake_json) {
+    try {
+      const parsed = JSON.parse(reconData.paid_intake_json);
+      if (isObject(parsed?.strategy_contract)) {
+        return parsed.strategy_contract;
       }
-  
-      if (isObject(value) && Object.keys(value).length > 0) {
-        out[key] = value;
-        continue;
-      }
-  
-      if (typeof value === "string" && value.trim()) {
-        out[key] = value.trim();
-        continue;
-      }
-  
-      if (typeof value === "boolean") {
-        out[key] = value;
-      }
+    } catch {
+      // ignore and fall through
     }
-  
-    return out;
   }
-  
-  function hasMeaningfulValue(value) {
-    if (Array.isArray(value)) {
-      return value.some((item) => hasMeaningfulValue(item));
-    }
-  
-    if (isObject(value)) {
-      return Object.values(value).some((item) => hasMeaningfulValue(item));
-    }
-  
-    if (typeof value === "boolean") return true;
-  
-    return cleanString(value) !== "";
+
+  return {};
+}
+
+function normalizeCategory(value) {
+  const raw = cleanString(value).toLowerCase();
+
+  if (!raw) return "general";
+
+  if (["event", "events", "tour", "tours", "experience", "class", "workshop"].includes(raw)) {
+    return "event";
   }
-  
-  function firstNonEmpty(values) {
-    for (const value of values || []) {
-      if (Array.isArray(value) && value.length > 0) {
-        const nested = firstNonEmpty(value);
-        if (nested) return nested;
-        continue;
-      }
-  
-      if (typeof value === "string" && value.trim()) {
-        return value.trim();
-      }
-    }
-  
-    return "";
+
+  if (["coach", "coaching", "consultant", "consulting", "advisor", "therapy", "therapist", "trainer"].includes(raw)) {
+    return "coach";
   }
-  
-  function uniqueList(values) {
-    return Array.from(new Set(cleanList(values)));
+
+  if (["portfolio", "creative", "artist", "designer", "photographer", "videographer"].includes(raw)) {
+    return "portfolio";
   }
-  
-  function slugify(value) {
-    return cleanString(value)
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+
+  return "service";
+}
+
+/* --------------------------------
+   STRATEGY EXTRACTION (COMPATIBILITY)
+-------------------------------- */
+
+function buildSeededAnswers(strategy, reconData) {
+  const businessContext = isObject(strategy?.business_context) ? strategy.business_context : {};
+  const conversionStrategy = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
+  const audienceModel = isObject(strategy?.audience_model) ? strategy.audience_model : {};
+  const proofModel = isObject(strategy?.proof_model) ? strategy.proof_model : {};
+  const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
+  const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  const serviceAreas = uniqueList([
+    ...cleanList(businessContext?.service_area),
+    ...cleanList(napRecommendation?.service_area)
+  ]);
+
+  const bookingMethod = deriveBookingMethod(strategy, reconData);
+  const contactPath = deriveContactPath(strategy, reconData);
+  const cta = deriveCta(strategy, reconData);
+  const trustSignal = deriveTrustSignal(strategy, reconData);
+  const websiteDirection = deriveWebsiteDirection(strategy, reconData);
+  const opportunity = deriveOpportunity(strategy, reconData);
+  const recommendedFocus = deriveRecommendedFocus(strategy, reconData);
+  const recommendedSections = deriveRecommendedSections(strategy, reconData);
+
+  return compactObject({
+    business_name:
+      cleanString(businessContext?.business_name) ||
+      cleanString(reconSnapshot?.input_business_name) ||
+      cleanString(napRecommendation?.name),
+
+    category: normalizeCategory(
+      businessContext?.category ||
+      businessContext?.business_type ||
+      strategy?.internal_strategy?.business_category ||
+      "general"
+    ),
+
+    primary_offer:
+      cleanString(sourceSnapshot?.primary_offer_hint) ||
+      cleanString(reconSnapshot?.description_input) ||
+      cleanString(reconSnapshot?.primary_offer) ||
+      cleanString(reconSnapshot?.business_understanding),
+
+    audience:
+      cleanString(audienceModel?.primary_persona) ||
+      cleanString(audienceModel?.secondary_persona),
+
+    service_area: serviceAreas[0] || "",
+    service_areas: serviceAreas,
+
+    trust_signal: trustSignal,
+    contact_path: contactPath,
+    booking_method: bookingMethod,
+
+    cta_text: cta.text,
+    cta_link: cta.link,
+
+    primary_conversion: cleanString(conversionStrategy?.primary_conversion),
+    secondary_conversion: cleanString(conversionStrategy?.secondary_conversion),
+    conversion_mode: cleanString(conversionStrategy?.conversion_mode),
+
+    differentiation:
+      firstNonEmpty([
+        cleanList(audienceModel?.decision_factors),
+        cleanList(recommendedFocus)
+      ]) || "",
+
+    website_direction: websiteDirection,
+    business_understanding:
+      cleanString(clientPreview?.summary) ||
+      cleanString(reconSnapshot?.business_understanding),
+
+    opportunity,
+    recommended_focus: recommendedFocus,
+    recommended_sections: recommendedSections,
+
+    faq_angles: cleanList(siteStructure?.faq_angles),
+    aeo_angles: cleanList(siteStructure?.aeo_angles),
+    future_dynamic_vibe_hint: cleanString(siteStructure?.future_dynamic_vibe_hint),
+
+    google_presence_insight:
+      cleanString(reconSnapshot?.google_presence_insight) ||
+      cleanString(sourceSnapshot?.gbp_status),
+
+    next_step_teaser:
+      cleanString(clientPreview?.next_step_teaser) ||
+      cleanString(reconSnapshot?.next_step)
+  });
+}
+
+function deriveBookingMethod(strategy, reconData) {
+  const conversion = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  const explicit = firstNonEmpty([
+    cleanString(sourceSnapshot?.booking_method_hint),
+    cleanString(sourceSnapshot?.booking_url),
+    cleanString(reconSnapshot?.booking_url),
+    cleanString(reconSnapshot?.booking_method),
+    cleanString(strategy?.contact?.booking_url),
+    cleanString(strategy?.contact?.method)
+  ]);
+
+  if (explicit) return explicit;
+
+  const mode = cleanString(conversion?.conversion_mode || conversion?.primary_conversion).toLowerCase();
+
+  if (mode.includes("quote")) return "request quote";
+  if (mode.includes("book")) return "book online";
+  if (mode.includes("call")) return "call";
+  if (mode.includes("text")) return "text";
+  if (mode.includes("form")) return "contact form";
+
+  return "";
+}
+
+function deriveContactPath(strategy, reconData) {
+  const conversion = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  const explicit = firstNonEmpty([
+    cleanString(sourceSnapshot?.booking_url),
+    cleanString(reconSnapshot?.booking_url),
+    cleanString(strategy?.contact?.booking_url),
+    cleanString(strategy?.contact?.method),
+    cleanString(napRecommendation?.phone),
+    cleanString(reconSnapshot?.client_phone)
+  ]);
+
+  if (explicit) return explicit;
+
+  const destination = cleanString(conversion?.cta_destination).toLowerCase();
+  const mode = cleanString(conversion?.conversion_mode || conversion?.primary_conversion).toLowerCase();
+
+  if (destination === "contact") return "contact";
+  if (destination) return destination;
+  if (mode.includes("quote")) return "request quote";
+  if (mode.includes("call")) return "call";
+  if (mode.includes("book")) return "book online";
+  if (mode.includes("form")) return "contact form";
+
+  return "";
+}
+
+function deriveCta(strategy, reconData) {
+  const conversion = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
+  const settings = isObject(strategy?.settings) ? strategy.settings : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  const text =
+    cleanString(conversion?.cta_text) ||
+    cleanString(settings?.cta_text) ||
+    cleanString(reconSnapshot?.cta_text);
+
+  const destination =
+    cleanString(conversion?.cta_destination) ||
+    cleanString(settings?.cta_link) ||
+    cleanString(reconSnapshot?.cta_link);
+
+  const type =
+    cleanString(conversion?.cta_type) ||
+    cleanString(settings?.cta_type);
+
+  let link = destination;
+
+  if (!link && text) {
+    link = type === "anchor" ? "#contact" : "";
+  } else if (link && !link.startsWith("#") && type === "anchor") {
+    link = `#${link.replace(/^#/, "")}`;
   }
-  
-  function titleCaseWords(value) {
-    return cleanString(value)
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-      .join(" ");
+
+  return {
+    text,
+    link
+  };
+}
+
+function deriveTrustSignal(strategy, reconData) {
+  const proofModel = isObject(strategy?.proof_model) ? strategy.proof_model : {};
+  const audienceModel = isObject(strategy?.audience_model) ? strategy.audience_model : {};
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  return firstNonEmpty([
+    cleanList(proofModel?.trust_signals),
+    cleanList(proofModel?.credibility_sources),
+    cleanList(audienceModel?.decision_factors),
+    cleanString(reconSnapshot?.google_presence_insight),
+    cleanString(sourceSnapshot?.trust_hint)
+  ]);
+}
+
+function deriveWebsiteDirection(strategy, reconData) {
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  return firstNonEmpty([
+    cleanString(clientPreview?.sales_preview),
+    cleanString(reconSnapshot?.website_direction),
+    cleanString(clientPreview?.summary)
+  ]);
+}
+
+function deriveOpportunity(strategy, reconData) {
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  return firstNonEmpty([
+    cleanString(clientPreview?.opportunity),
+    cleanString(reconSnapshot?.opportunity)
+  ]);
+}
+
+function deriveRecommendedFocus(strategy, reconData) {
+  const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  return uniqueList([
+    ...cleanList(clientPreview?.recommended_focus),
+    ...cleanList(reconSnapshot?.recommended_focus),
+    ...cleanList(siteStructure?.faq_angles)
+  ]).slice(0, 6);
+}
+
+function deriveRecommendedSections(strategy, reconData) {
+  const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  return uniqueList([
+    ...cleanList(siteStructure?.recommended_sections),
+    ...cleanList(reconSnapshot?.recommended_sections)
+  ]);
+}
+
+function buildSeedMeta(seededAnswers) {
+  const seeded = {};
+  for (const [key, value] of Object.entries(seededAnswers || {})) {
+    seeded[key] = hasMeaningfulValue(value);
   }
-  
-  function asArray(value) {
-    return Array.isArray(value) ? value : [];
-  }
-  
-  /* --------------------------------
-     PRE-FLIGHT / STRATEGY ACCESS
-  -------------------------------- */
-  
-  function safeStrategy(reconData) {
-    if (isObject(reconData?.strategy_contract)) {
-      return reconData.strategy_contract;
-    }
-  
-    if (reconData?.paid_intake_json) {
-      try {
-        const parsed = JSON.parse(reconData.paid_intake_json);
-        if (isObject(parsed?.strategy_contract)) {
-          return parsed.strategy_contract;
-        }
-      } catch {
-        // ignore and fall through
-      }
-    }
-  
-    return {};
-  }
-  
-  function normalizeCategory(value) {
-    const raw = cleanString(value).toLowerCase();
-  
-    if (!raw) return "general";
-  
-    if (["event", "events", "tour", "tours", "experience", "class", "workshop"].includes(raw)) {
-      return "event";
-    }
-  
-    if (["coach", "coaching", "consultant", "consulting", "advisor", "therapy", "therapist", "trainer"].includes(raw)) {
-      return "coach";
-    }
-  
-    if (["portfolio", "creative", "artist", "designer", "photographer", "videographer"].includes(raw)) {
-      return "portfolio";
-    }
-  
-    return "service";
-  }
-  
-  /* --------------------------------
-     STRATEGY EXTRACTION (COMPATIBILITY)
-  -------------------------------- */
-  
-  function buildSeededAnswers(strategy, reconData) {
-    const businessContext = isObject(strategy?.business_context) ? strategy.business_context : {};
-    const conversionStrategy = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
-    const audienceModel = isObject(strategy?.audience_model) ? strategy.audience_model : {};
-    const proofModel = isObject(strategy?.proof_model) ? strategy.proof_model : {};
-    const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
-    const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    const serviceAreas = uniqueList([
-      ...cleanList(businessContext?.service_area),
-      ...cleanList(napRecommendation?.service_area)
-    ]);
-  
-    const bookingMethod = deriveBookingMethod(strategy, reconData);
-    const contactPath = deriveContactPath(strategy, reconData);
-    const cta = deriveCta(strategy, reconData);
-    const trustSignal = deriveTrustSignal(strategy, reconData);
-    const websiteDirection = deriveWebsiteDirection(strategy, reconData);
-    const opportunity = deriveOpportunity(strategy, reconData);
-    const recommendedFocus = deriveRecommendedFocus(strategy, reconData);
-    const recommendedSections = deriveRecommendedSections(strategy, reconData);
-  
-    return compactObject({
+  return seeded;
+}
+
+/* --------------------------------
+   BLUEPRINT
+-------------------------------- */
+
+function buildBlueprintFromPreflight(strategy, reconData, seededAnswers) {
+  const normalizedStrategy = buildNormalizedStrategy(strategy, reconData);
+  const factRegistry = buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrategy);
+  const businessDraft = buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry);
+  const sectionStatus = computeSectionStatus(normalizedStrategy, factRegistry, businessDraft);
+  const verificationQueue = buildVerificationQueue(normalizedStrategy, factRegistry, sectionStatus);
+  const questionCandidates = buildQuestionCandidates(normalizedStrategy, factRegistry, sectionStatus, verificationQueue);
+  const questionPlan = planNextQuestion(questionCandidates);
+
+  return {
+    strategy: normalizedStrategy,
+    fact_registry: factRegistry,
+    business_draft: businessDraft,
+    section_status: sectionStatus,
+    verification_queue: verificationQueue,
+    question_candidates: questionCandidates,
+    question_plan: questionPlan
+  };
+}
+
+function buildNormalizedStrategy(strategy, reconData) {
+  const businessContext = isObject(strategy?.business_context) ? strategy.business_context : {};
+  const conversionStrategy = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
+  const audienceModel = isObject(strategy?.audience_model) ? strategy.audience_model : {};
+  const proofModel = isObject(strategy?.proof_model) ? strategy.proof_model : {};
+  const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
+  const visualStrategy = isObject(strategy?.visual_strategy) ? strategy.visual_strategy : {};
+  const assetPolicy = isObject(strategy?.asset_policy) ? strategy.asset_policy : {};
+  const copyPolicy = isObject(strategy?.copy_policy) ? strategy.copy_policy : {};
+  const contentRequirements = isObject(strategy?.content_requirements) ? strategy.content_requirements : {};
+  const schemaToggles = isObject(strategy?.schema_toggles) ? strategy.schema_toggles : {};
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
+  const reconSnapshot = isObject(reconData) ? reconData : {};
+
+  const serviceArea = uniqueList([
+    ...cleanList(businessContext?.service_area),
+    ...cleanList(napRecommendation?.service_area),
+    cleanString(reconSnapshot?.city_or_service_area_input)
+  ]);
+
+  return {
+    business_context: {
+      slug:
+        cleanString(businessContext?.slug) ||
+        cleanString(reconSnapshot?.slug),
       business_name:
         cleanString(businessContext?.business_name) ||
         cleanString(reconSnapshot?.input_business_name) ||
         cleanString(napRecommendation?.name),
-  
-      category: normalizeCategory(
+      category:
+        cleanString(businessContext?.category) ||
+        cleanString(businessContext?.business_type),
+      normalized_category: normalizeCategory(
         businessContext?.category ||
-        businessContext?.business_type ||
-        strategy?.internal_strategy?.business_category ||
-        "general"
+          businessContext?.business_type ||
+          strategy?.internal_strategy?.business_category ||
+          "general"
       ),
-  
-      primary_offer:
-        cleanString(sourceSnapshot?.primary_offer_hint) ||
-        cleanString(reconSnapshot?.description_input) ||
-        cleanString(reconSnapshot?.primary_offer) ||
-        cleanString(reconSnapshot?.business_understanding),
-  
-      audience:
-        cleanString(audienceModel?.primary_persona) ||
-        cleanString(audienceModel?.secondary_persona),
-  
-      service_area: serviceAreas[0] || "",
-      service_areas: serviceAreas,
-  
-      trust_signal: trustSignal,
-      contact_path: contactPath,
-      booking_method: bookingMethod,
-  
-      cta_text: cta.text,
-      cta_link: cta.link,
-  
+      business_model: cleanString(businessContext?.business_model),
+      strategic_archetype: cleanString(businessContext?.strategic_archetype),
+      service_area: serviceArea
+    },
+
+    conversion_strategy: {
       primary_conversion: cleanString(conversionStrategy?.primary_conversion),
       secondary_conversion: cleanString(conversionStrategy?.secondary_conversion),
       conversion_mode: cleanString(conversionStrategy?.conversion_mode),
-  
-      differentiation:
-        firstNonEmpty([
-          cleanList(audienceModel?.decision_factors),
-          cleanList(recommendedFocus)
-        ]) || "",
-  
-      website_direction: websiteDirection,
-      business_understanding:
-        cleanString(clientPreview?.summary) ||
-        cleanString(reconSnapshot?.business_understanding),
-  
-      opportunity,
-      recommended_focus: recommendedFocus,
-      recommended_sections: recommendedSections,
-  
+      cta_text: cleanString(conversionStrategy?.cta_text),
+      cta_type: cleanString(conversionStrategy?.cta_type) || "anchor",
+      cta_destination: cleanString(conversionStrategy?.cta_destination) || "contact"
+    },
+
+    audience_model: {
+      primary_persona: cleanString(audienceModel?.primary_persona),
+      secondary_persona: cleanString(audienceModel?.secondary_persona),
+      decision_factors: cleanList(audienceModel?.decision_factors),
+      common_objections: cleanList(audienceModel?.common_objections)
+    },
+
+    proof_model: {
+      trust_signals: cleanList(proofModel?.trust_signals),
+      credibility_sources: cleanList(proofModel?.credibility_sources)
+    },
+
+    site_structure: {
+      recommended_sections: cleanList(siteStructure?.recommended_sections),
       faq_angles: cleanList(siteStructure?.faq_angles),
       aeo_angles: cleanList(siteStructure?.aeo_angles),
-      future_dynamic_vibe_hint: cleanString(siteStructure?.future_dynamic_vibe_hint),
-  
-      google_presence_insight:
-        cleanString(reconSnapshot?.google_presence_insight) ||
-        cleanString(sourceSnapshot?.gbp_status),
-  
-      next_step_teaser:
-        cleanString(clientPreview?.next_step_teaser) ||
-        cleanString(reconSnapshot?.next_step)
-    });
-  }
-  
-  function deriveBookingMethod(strategy, reconData) {
-    const conversion = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    const explicit = firstNonEmpty([
-      cleanString(sourceSnapshot?.booking_method_hint),
-      cleanString(sourceSnapshot?.booking_url),
-      cleanString(reconSnapshot?.booking_url),
-      cleanString(reconSnapshot?.booking_method),
-      cleanString(strategy?.contact?.booking_url),
-      cleanString(strategy?.contact?.method)
-    ]);
-  
-    if (explicit) return explicit;
-  
-    const mode = cleanString(conversion?.conversion_mode || conversion?.primary_conversion).toLowerCase();
-  
-    if (mode.includes("quote")) return "request quote";
-    if (mode.includes("book")) return "book online";
-    if (mode.includes("call")) return "call";
-    if (mode.includes("text")) return "text";
-    if (mode.includes("form")) return "contact form";
-  
-    return "";
-  }
-  
-  function deriveContactPath(strategy, reconData) {
-    const conversion = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    const explicit = firstNonEmpty([
-      cleanString(sourceSnapshot?.booking_url),
-      cleanString(reconSnapshot?.booking_url),
-      cleanString(strategy?.contact?.booking_url),
-      cleanString(strategy?.contact?.method),
-      cleanString(napRecommendation?.phone),
-      cleanString(reconSnapshot?.client_phone)
-    ]);
-  
-    if (explicit) return explicit;
-  
-    const destination = cleanString(conversion?.cta_destination).toLowerCase();
-    const mode = cleanString(conversion?.conversion_mode || conversion?.primary_conversion).toLowerCase();
-  
-    if (destination === "contact") return "contact";
-    if (destination) return destination;
-    if (mode.includes("quote")) return "request quote";
-    if (mode.includes("call")) return "call";
-    if (mode.includes("book")) return "book online";
-    if (mode.includes("form")) return "contact form";
-  
-    return "";
-  }
-  
-  function deriveCta(strategy, reconData) {
-    const conversion = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
-    const settings = isObject(strategy?.settings) ? strategy.settings : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    const text =
-      cleanString(conversion?.cta_text) ||
-      cleanString(settings?.cta_text) ||
-      cleanString(reconSnapshot?.cta_text);
-  
-    const destination =
-      cleanString(conversion?.cta_destination) ||
-      cleanString(settings?.cta_link) ||
-      cleanString(reconSnapshot?.cta_link);
-  
-    const type =
-      cleanString(conversion?.cta_type) ||
-      cleanString(settings?.cta_type);
-  
-    let link = destination;
-  
-    if (!link && text) {
-      link = type === "anchor" ? "#contact" : "";
-    } else if (link && !link.startsWith("#") && type === "anchor") {
-      link = `#${link.replace(/^#/, "")}`;
-    }
-  
-    return {
-      text,
-      link
-    };
-  }
-  
-  function deriveTrustSignal(strategy, reconData) {
-    const proofModel = isObject(strategy?.proof_model) ? strategy.proof_model : {};
-    const audienceModel = isObject(strategy?.audience_model) ? strategy.audience_model : {};
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    return firstNonEmpty([
-      cleanList(proofModel?.trust_signals),
-      cleanList(proofModel?.credibility_sources),
-      cleanList(audienceModel?.decision_factors),
-      cleanString(reconSnapshot?.google_presence_insight),
-      cleanString(sourceSnapshot?.trust_hint)
-    ]);
-  }
-  
-  function deriveWebsiteDirection(strategy, reconData) {
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    return firstNonEmpty([
-      cleanString(clientPreview?.sales_preview),
-      cleanString(reconSnapshot?.website_direction),
-      cleanString(clientPreview?.summary)
-    ]);
-  }
-  
-  function deriveOpportunity(strategy, reconData) {
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    return firstNonEmpty([
-      cleanString(clientPreview?.opportunity),
-      cleanString(reconSnapshot?.opportunity)
-    ]);
-  }
-  
-  function deriveRecommendedFocus(strategy, reconData) {
-    const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    return uniqueList([
-      ...cleanList(clientPreview?.recommended_focus),
-      ...cleanList(reconSnapshot?.recommended_focus),
-      ...cleanList(siteStructure?.faq_angles)
-    ]).slice(0, 6);
-  }
-  
-  function deriveRecommendedSections(strategy, reconData) {
-    const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    return uniqueList([
-      ...cleanList(siteStructure?.recommended_sections),
-      ...cleanList(reconSnapshot?.recommended_sections)
-    ]);
-  }
-  
-  function buildSeedMeta(seededAnswers) {
-    const seeded = {};
-    for (const [key, value] of Object.entries(seededAnswers || {})) {
-      seeded[key] = hasMeaningfulValue(value);
-    }
-    return seeded;
-  }
-  
-  /* --------------------------------
-     BLUEPRINT
-  -------------------------------- */
-  
-  function buildBlueprintFromPreflight(strategy, reconData, seededAnswers) {
-    const normalizedStrategy = buildNormalizedStrategy(strategy, reconData);
-    const factRegistry = buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrategy);
-    const businessDraft = buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry);
-    const sectionStatus = computeSectionStatus(normalizedStrategy, factRegistry, businessDraft);
-    const verificationQueue = buildVerificationQueue(normalizedStrategy, factRegistry, sectionStatus);
-    const questionCandidates = buildQuestionCandidates(normalizedStrategy, factRegistry, sectionStatus, verificationQueue);
-    const questionPlan = planNextQuestion(questionCandidates);
-  
-    return {
-      strategy: normalizedStrategy,
-      fact_registry: factRegistry,
-      business_draft: businessDraft,
-      section_status: sectionStatus,
-      verification_queue: verificationQueue,
-      question_candidates: questionCandidates,
-      question_plan: questionPlan
-    };
-  }
-  
-  function buildNormalizedStrategy(strategy, reconData) {
-    const businessContext = isObject(strategy?.business_context) ? strategy.business_context : {};
-    const conversionStrategy = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
-    const audienceModel = isObject(strategy?.audience_model) ? strategy.audience_model : {};
-    const proofModel = isObject(strategy?.proof_model) ? strategy.proof_model : {};
-    const siteStructure = isObject(strategy?.site_structure) ? strategy.site_structure : {};
-    const visualStrategy = isObject(strategy?.visual_strategy) ? strategy.visual_strategy : {};
-    const assetPolicy = isObject(strategy?.asset_policy) ? strategy.asset_policy : {};
-    const copyPolicy = isObject(strategy?.copy_policy) ? strategy.copy_policy : {};
-    const contentRequirements = isObject(strategy?.content_requirements) ? strategy.content_requirements : {};
-    const schemaToggles = isObject(strategy?.schema_toggles) ? strategy.schema_toggles : {};
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
-    const reconSnapshot = isObject(reconData) ? reconData : {};
-  
-    const serviceArea = uniqueList([
-      ...cleanList(businessContext?.service_area),
-      ...cleanList(napRecommendation?.service_area),
-      cleanString(reconSnapshot?.city_or_service_area_input)
-    ]);
-  
-    return {
-      business_context: {
-        slug:
-          cleanString(businessContext?.slug) ||
-          cleanString(reconSnapshot?.slug),
-        business_name:
-          cleanString(businessContext?.business_name) ||
-          cleanString(reconSnapshot?.input_business_name) ||
-          cleanString(napRecommendation?.name),
-        category:
-          cleanString(businessContext?.category) ||
-          cleanString(businessContext?.business_type),
-        normalized_category: normalizeCategory(
-          businessContext?.category ||
-            businessContext?.business_type ||
-            strategy?.internal_strategy?.business_category ||
-            "general"
-        ),
-        business_model: cleanString(businessContext?.business_model),
-        strategic_archetype: cleanString(businessContext?.strategic_archetype),
-        service_area: serviceArea
-      },
-  
-      conversion_strategy: {
-        primary_conversion: cleanString(conversionStrategy?.primary_conversion),
-        secondary_conversion: cleanString(conversionStrategy?.secondary_conversion),
-        conversion_mode: cleanString(conversionStrategy?.conversion_mode),
-        cta_text: cleanString(conversionStrategy?.cta_text),
-        cta_type: cleanString(conversionStrategy?.cta_type) || "anchor",
-        cta_destination: cleanString(conversionStrategy?.cta_destination) || "contact"
-      },
-  
-      audience_model: {
-        primary_persona: cleanString(audienceModel?.primary_persona),
-        secondary_persona: cleanString(audienceModel?.secondary_persona),
-        decision_factors: cleanList(audienceModel?.decision_factors),
-        common_objections: cleanList(audienceModel?.common_objections)
-      },
-  
-      proof_model: {
-        trust_signals: cleanList(proofModel?.trust_signals),
-        credibility_sources: cleanList(proofModel?.credibility_sources)
-      },
-  
-      site_structure: {
-        recommended_sections: cleanList(siteStructure?.recommended_sections),
-        faq_angles: cleanList(siteStructure?.faq_angles),
-        aeo_angles: cleanList(siteStructure?.aeo_angles),
-        future_dynamic_vibe_hint: cleanString(siteStructure?.future_dynamic_vibe_hint)
-      },
-  
-      visual_strategy: {
-        recommended_vibe: cleanString(visualStrategy?.recommended_vibe) || "Modern Minimal",
-        preferred_image_themes: cleanList(assetPolicy?.preferred_image_themes)
-      },
-  
-      copy_policy: {
-        allow_ai_inferred_copy: !!copyPolicy?.allow_ai_inferred_copy,
-        allow_ai_assisted_copy: !!copyPolicy?.allow_ai_assisted_copy,
-        require_client_verification_for_facts: !!copyPolicy?.require_client_verification_for_facts,
-        fields_ai_can_draft: cleanList(copyPolicy?.fields_ai_can_draft),
-        fields_requiring_verification: cleanList(copyPolicy?.fields_requiring_verification)
-      },
-  
-      content_requirements: {
-        must_verify_now: cleanList(contentRequirements?.must_verify_now),
-        must_collect_paid_phase: cleanList(contentRequirements?.must_collect_paid_phase),
-        preview_required_fields: cleanList(contentRequirements?.preview_required_fields),
-        publish_required_fields: cleanList(contentRequirements?.publish_required_fields)
-      },
-  
-      schema_toggles: normalizeSchemaToggles(schemaToggles, strategy, reconData)
-    };
-  }
-  
-  function normalizeSchemaToggles(schemaToggles, strategy, reconData) {
-    const recommendedSections = deriveRecommendedSections(strategy, reconData).map((item) => item.toLowerCase());
-  
-    const inferred = {
-      show_trustbar: recommendedSections.some((s) => s.includes("trust")),
-      show_about: recommendedSections.some((s) => s.includes("about")),
-      show_features:
-        recommendedSections.some((s) => s.includes("service")) ||
-        recommendedSections.some((s) => s.includes("feature")) ||
-        recommendedSections.some((s) => s.includes("offer")),
-      show_events: recommendedSections.some((s) => s.includes("event")),
-      show_process: recommendedSections.some((s) => s.includes("process")),
-      show_testimonials: recommendedSections.some((s) => s.includes("testimonial")) || recommendedSections.some((s) => s.includes("review")),
-      show_comparison: recommendedSections.some((s) => s.includes("comparison")),
-      show_gallery: recommendedSections.some((s) => s.includes("gallery")) || recommendedSections.some((s) => s.includes("portfolio")),
-      show_investment: recommendedSections.some((s) => s.includes("investment")) || recommendedSections.some((s) => s.includes("pricing")),
-      show_faqs: recommendedSections.some((s) => s.includes("faq")),
-      show_service_area: recommendedSections.some((s) => s.includes("area")) || recommendedSections.some((s) => s.includes("location"))
-    };
-  
-    return {
-      show_trustbar: getBoolean(schemaToggles?.show_trustbar, inferred.show_trustbar),
-      show_about: getBoolean(schemaToggles?.show_about, inferred.show_about),
-      show_features: getBoolean(schemaToggles?.show_features, inferred.show_features || true),
-      show_events: getBoolean(schemaToggles?.show_events, inferred.show_events),
-      show_process: getBoolean(schemaToggles?.show_process, inferred.show_process),
-      show_testimonials: getBoolean(schemaToggles?.show_testimonials, inferred.show_testimonials),
-      show_comparison: getBoolean(schemaToggles?.show_comparison, inferred.show_comparison),
-      show_gallery: getBoolean(schemaToggles?.show_gallery, inferred.show_gallery),
-      show_investment: getBoolean(schemaToggles?.show_investment, inferred.show_investment),
-      show_faqs: getBoolean(schemaToggles?.show_faqs, inferred.show_faqs),
-      show_service_area: getBoolean(schemaToggles?.show_service_area, inferred.show_service_area)
-    };
-  }
-  
-  function getBoolean(value, fallback = false) {
-    return typeof value === "boolean" ? value : !!fallback;
-  }
-  
-  /* --------------------------------
-     FACT REGISTRY
-  -------------------------------- */
-  
-  function buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrategy) {
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
-    const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
-    const visualStrategy = isObject(strategy?.visual_strategy) ? strategy.visual_strategy : {};
-    const copyPolicy = normalizedStrategy.copy_policy;
-  
-    const facts = {};
-  
-    addFact(facts, "business_name", seededAnswers.business_name, {
-      source: "preflight",
-      verified: true,
-      related_sections: ["brand"]
-    });
-  
-    addFact(facts, "industry", normalizedStrategy.business_context.category, {
-      source: "preflight",
-      verified: true,
-      related_sections: ["intelligence"]
-    });
-  
-    addFact(facts, "target_persona", seededAnswers.audience, {
-      source: "preflight",
-      related_sections: ["intelligence", "hero", "features"]
-    });
-  
-    addFact(facts, "tone_of_voice", inferToneOfVoice(strategy, seededAnswers), {
-      source: "inferred",
-      related_sections: ["intelligence", "brand", "hero"]
-    });
-  
-    addFact(facts, "primary_offer", seededAnswers.primary_offer, {
-      source: "preflight",
-      related_sections: ["hero", "features"]
-    });
-  
-    addFact(facts, "service_area_main", seededAnswers.service_area, {
-      source: "preflight",
-      related_sections: ["service_area", "hero"]
-    });
-  
-    addFact(facts, "service_area_list", seededAnswers.service_areas, {
-      source: "preflight",
-      related_sections: ["service_area"]
-    });
-  
-    addFact(facts, "primary_conversion", seededAnswers.primary_conversion, {
-      source: "preflight",
-      related_sections: ["settings", "contact"]
-    });
-  
-    addFact(facts, "secondary_conversion", seededAnswers.secondary_conversion, {
-      source: "preflight",
-      related_sections: ["settings", "contact"]
-    });
-  
-    addFact(facts, "conversion_mode", seededAnswers.conversion_mode, {
-      source: "preflight",
-      related_sections: ["settings", "contact"]
-    });
-  
-    addFact(facts, "cta_text", seededAnswers.cta_text, {
-      source: "preflight",
-      related_sections: ["settings", "contact"]
-    });
-  
-    addFact(facts, "cta_link", seededAnswers.cta_link, {
-      source: "preflight",
-      related_sections: ["settings", "contact"]
-    });
-  
-    addFact(facts, "contact_path", seededAnswers.contact_path, {
-      source: "preflight",
-      related_sections: ["contact"]
-    });
-  
-    addFact(facts, "booking_method", seededAnswers.booking_method, {
-      source: "preflight",
-      related_sections: ["contact", "hero"]
-    });
-  
-    addFact(facts, "trust_signal", seededAnswers.trust_signal, {
-      source: "preflight",
-      related_sections: ["trustbar", "testimonials", "about"]
-    });
-  
-    addFact(facts, "differentiation", seededAnswers.differentiation, {
-      source: "preflight",
-      related_sections: ["hero", "about", "features"]
-    });
-  
-    addFact(facts, "website_direction", seededAnswers.website_direction, {
-      source: "preflight",
-      related_sections: ["hero", "about"]
-    });
-  
-    addFact(facts, "business_understanding", seededAnswers.business_understanding, {
-      source: "preflight",
-      related_sections: ["hero", "about"]
-    });
-  
-    addFact(facts, "opportunity", seededAnswers.opportunity, {
-      source: "preflight",
-      related_sections: ["hero", "about", "faqs"]
-    });
-  
-    addFact(facts, "recommended_focus", seededAnswers.recommended_focus, {
-      source: "preflight",
-      related_sections: ["features", "hero", "faqs"]
-    });
-  
-    addFact(facts, "recommended_sections", seededAnswers.recommended_sections, {
-      source: "preflight",
-      verified: true,
-      related_sections: ["strategy"]
-    });
-  
-    addFact(facts, "faq_angles", seededAnswers.faq_angles, {
-      source: "preflight",
-      related_sections: ["faqs"]
-    });
-  
-    addFact(facts, "aeo_angles", seededAnswers.aeo_angles, {
-      source: "preflight",
-      related_sections: ["faqs", "hero"]
-    });
-  
-    addFact(facts, "vibe", cleanString(visualStrategy?.recommended_vibe), {
-      source: "preflight",
-      related_sections: ["settings"]
-    });
-  
-    addFact(facts, "image_themes", cleanList(normalizedStrategy.visual_strategy.preferred_image_themes), {
-      source: "preflight",
-      related_sections: ["hero", "gallery"]
-    });
-  
-    addFact(facts, "google_presence_insight", seededAnswers.google_presence_insight, {
-      source: "preflight",
-      related_sections: ["about", "trustbar"]
-    });
-  
-    addFact(facts, "next_step_teaser", seededAnswers.next_step_teaser, {
-      source: "preflight",
-      related_sections: ["hero"]
-    });
-  
-    addFact(facts, "review_quotes", [], {
-      source: "missing",
-      requires_client_verification: includesVerificationField(copyPolicy, "review_quotes"),
-      related_sections: ["testimonials"]
-    });
-  
-    addFact(facts, "phone", cleanString(napRecommendation?.phone), {
-      source: cleanString(napRecommendation?.phone) ? "preflight" : "missing",
-      requires_client_verification: includesVerificationField(copyPolicy, "phone"),
-      related_sections: ["brand", "contact"]
-    });
-  
-    addFact(facts, "address", cleanString(napRecommendation?.address), {
-      source: cleanString(napRecommendation?.address) ? "preflight" : "missing",
-      requires_client_verification: includesVerificationField(copyPolicy, "address"),
-      related_sections: ["brand", "contact"]
-    });
-  
-    addFact(facts, "hours", "", {
-      source: "missing",
-      requires_client_verification: includesVerificationField(copyPolicy, "hours"),
-      related_sections: ["contact"]
-    });
-  
-    addFact(facts, "pricing", "", {
-      source: "missing",
-      requires_client_verification: includesVerificationField(copyPolicy, "pricing"),
-      related_sections: ["investment", "faqs", "contact"]
-    });
-  
-    addFact(facts, "booking_url", derivePossibleBookingUrl(strategy, reconData), {
-      source: derivePossibleBookingUrl(strategy, reconData) ? "preflight" : "missing",
-      requires_client_verification: includesVerificationField(copyPolicy, "booking_url"),
-      related_sections: ["contact", "settings"]
-    });
-  
-    addFact(facts, "email", cleanString(reconData?.client_email), {
-      source: cleanString(reconData?.client_email) ? "preflight" : "missing",
-      related_sections: ["brand", "contact"]
-    });
-  
-    addFact(facts, "founder_story", "", {
-      source: "missing",
-      related_sections: ["about"]
-    });
-  
-    addFact(facts, "years_experience", "", {
-      source: "missing",
-      related_sections: ["about", "trustbar"]
-    });
-  
-    addFact(facts, "service_list", inferServiceList(seededAnswers, clientPreview), {
-      source: hasMeaningfulValue(inferServiceList(seededAnswers, clientPreview)) ? "inferred" : "missing",
-      related_sections: ["features"]
-    });
-  
-    addFact(facts, "process_summary", "", {
-      source: "missing",
-      related_sections: ["processSteps"]
-    });
-  
-    addFact(facts, "surrounding_cities", [], {
-      source: "missing",
-      related_sections: ["service_area"]
-    });
-  
-    addFact(facts, "gallery_visual_direction", firstNonEmpty([
-      cleanList(normalizedStrategy.visual_strategy.preferred_image_themes),
-      cleanList(seededAnswers.recommended_focus)
-    ]), {
-      source: "preflight",
-      related_sections: ["gallery", "hero"]
-    });
-  
-    return facts;
-  }
-  
-  function addFact(registry, key, value, options = {}) {
-    registry[key] = {
-      value,
-      source: options.source || "missing",
-      confidence: typeof options.confidence === "number" ? options.confidence : inferConfidence(options.source, value),
-      verified: !!options.verified,
-      requires_client_verification: !!options.requires_client_verification,
-      related_sections: asArray(options.related_sections),
-      status: hasMeaningfulValue(value) ? (options.verified ? "verified" : "seeded") : "missing"
-    };
-  }
-  
-  function inferConfidence(source, value) {
-    if (!hasMeaningfulValue(value)) return 0;
-    if (source === "preflight") return 0.85;
-    if (source === "inferred") return 0.65;
-    if (source === "user") return 1;
-    return 0.5;
-  }
-  
-  function includesVerificationField(copyPolicy, name) {
-    return cleanList(copyPolicy?.fields_requiring_verification).includes(name);
-  }
-  
-  function derivePossibleBookingUrl(strategy, reconData) {
-    const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
-    return firstNonEmpty([
-      cleanString(sourceSnapshot?.booking_url),
-      cleanString(reconData?.booking_url),
-      cleanString(strategy?.contact?.booking_url)
-    ]);
-  }
-  
-  function inferToneOfVoice(strategy, seededAnswers) {
-    const vibe = cleanString(strategy?.visual_strategy?.recommended_vibe || seededAnswers?.future_dynamic_vibe_hint).toLowerCase();
-    const category = cleanString(strategy?.business_context?.category).toLowerCase();
-    const archetype = cleanString(strategy?.business_context?.strategic_archetype).toLowerCase();
-  
-    if (vibe.includes("luxury")) return "Confident, polished, and premium";
-    if (vibe.includes("legacy")) return "Reassuring, credible, and professional";
-    if (vibe.includes("solar flare")) return "Bold, energetic, and modern";
-    if (archetype.includes("high_consideration")) return "Trust-building, clear, and expert";
-    if (category) return `${titleCaseWords(category)}-appropriate, clear, and confident`;
-    return "Clear, modern, and trustworthy";
-  }
-  
-  function inferServiceList(seededAnswers, clientPreview) {
-    const focus = cleanList(seededAnswers?.recommended_focus);
-    const faq = cleanList(seededAnswers?.faq_angles);
-    const offer = cleanString(seededAnswers?.primary_offer);
-    const previewFocus = cleanList(clientPreview?.recommended_focus);
-  
-    const candidates = uniqueList([...focus, ...previewFocus, ...faq]).filter((item) => {
-      const lower = item.toLowerCase();
-      return !lower.includes("?") && lower.length <= 60;
-    });
-  
-    if (candidates.length > 0) return candidates.slice(0, 4);
-    if (offer) return [offer];
-    return [];
-  }
-  
-  /* --------------------------------
-     BUSINESS DRAFT
-  -------------------------------- */
-  
-  function buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry) {
-    const businessName = factValue(factRegistry, "business_name");
-    const recommendedSections = cleanList(seededAnswers.recommended_sections);
-    const serviceAreas = cleanList(seededAnswers.service_areas);
-    const menu = buildMenu(normalizedStrategy.schema_toggles);
-  
-    const headline = buildHeroHeadline(seededAnswers, normalizedStrategy);
-    const subtext = buildHeroSubtext(seededAnswers, normalizedStrategy);
-    const heroImageQuery = buildHeroImageQuery(normalizedStrategy, seededAnswers);
-    const galleryImageQuery = buildGalleryImageQuery(normalizedStrategy, seededAnswers);
-  
-    const draft = {
-      intelligence: compactObject({
-        industry: factValue(factRegistry, "industry"),
-        target_persona: factValue(factRegistry, "target_persona"),
-        tone_of_voice: factValue(factRegistry, "tone_of_voice")
-      }),
-  
-      strategy: compactObject({
-        ...normalizedStrategy.schema_toggles
-      }),
-  
-      settings: compactObject({
-        vibe: factValue(factRegistry, "vibe") || "Modern Minimal",
-        menu,
-        cta_text: factValue(factRegistry, "cta_text") || "Get Started",
-        cta_link: normalizeAnchorLink(factValue(factRegistry, "cta_link") || "#contact"),
-        cta_type: inferCtaType(factValue(factRegistry, "cta_link") || "#contact"),
-        secondary_cta_text: buildSecondaryCtaText(normalizedStrategy, seededAnswers),
-        secondary_cta_link: buildSecondaryCtaLink(normalizedStrategy)
-      }),
-  
-      brand: compactObject({
-        name: businessName,
-        slug:
-          slugify(cleanString(normalizedStrategy.business_context.slug)) ||
-          slugify(businessName),
-        tagline: buildTagline(seededAnswers),
-        email: factValue(factRegistry, "email"),
-        phone: factValue(factRegistry, "phone"),
-        office_address: factValue(factRegistry, "address"),
-        objection_handle: buildObjectionHandle(normalizedStrategy)
-      }),
-  
-      hero: compactObject({
-        headline,
-        subtext,
-        image: compactObject({
-          alt: buildHeroImageAlt(normalizedStrategy, seededAnswers),
-          image_search_query: heroImageQuery
-        })
-      }),
-  
-      about: compactObject({
-        story_text: buildAboutStory(seededAnswers),
-        founder_note: buildFounderNote(seededAnswers),
-        years_experience: factValue(factRegistry, "years_experience")
-      }),
-  
-      features: buildFeatures(seededAnswers, normalizedStrategy),
-  
-      contact: compactObject({
-        title: buildContactTitle(normalizedStrategy),
-        text: buildContactText(normalizedStrategy, seededAnswers),
-        cta_text: factValue(factRegistry, "cta_text") || "Get Started",
-        cta_link: normalizeAnchorLink(factValue(factRegistry, "cta_link") || "#contact"),
-        email: factValue(factRegistry, "email"),
-        phone: factValue(factRegistry, "phone"),
-        booking_url: factValue(factRegistry, "booking_url"),
-        office_address: factValue(factRegistry, "address")
+      future_dynamic_vibe_hint: cleanString(siteStructure?.future_dynamic_vibe_hint)
+    },
+
+    visual_strategy: {
+      recommended_vibe: cleanString(visualStrategy?.recommended_vibe) || "Modern Minimal",
+      preferred_image_themes: cleanList(assetPolicy?.preferred_image_themes)
+    },
+
+    copy_policy: {
+      allow_ai_inferred_copy: !!copyPolicy?.allow_ai_inferred_copy,
+      allow_ai_assisted_copy: !!copyPolicy?.allow_ai_assisted_copy,
+      require_client_verification_for_facts: !!copyPolicy?.require_client_verification_for_facts,
+      fields_ai_can_draft: cleanList(copyPolicy?.fields_ai_can_draft),
+      fields_requiring_verification: cleanList(copyPolicy?.fields_requiring_verification)
+    },
+
+    content_requirements: {
+      must_verify_now: cleanList(contentRequirements?.must_verify_now),
+      must_collect_paid_phase: cleanList(contentRequirements?.must_collect_paid_phase),
+      preview_required_fields: cleanList(contentRequirements?.preview_required_fields),
+      publish_required_fields: cleanList(contentRequirements?.publish_required_fields)
+    },
+
+    schema_toggles: normalizeSchemaToggles(schemaToggles, strategy, reconData)
+  };
+}
+
+function normalizeSchemaToggles(schemaToggles, strategy, reconData) {
+  const recommendedSections = deriveRecommendedSections(strategy, reconData).map((item) => item.toLowerCase());
+
+  const inferred = {
+    show_trustbar: recommendedSections.some((s) => s.includes("trust")),
+    show_about: recommendedSections.some((s) => s.includes("about")),
+    show_features:
+      recommendedSections.some((s) => s.includes("service")) ||
+      recommendedSections.some((s) => s.includes("feature")) ||
+      recommendedSections.some((s) => s.includes("offer")),
+    show_events: recommendedSections.some((s) => s.includes("event")),
+    show_process: recommendedSections.some((s) => s.includes("process")),
+    show_testimonials:
+      recommendedSections.some((s) => s.includes("testimonial")) ||
+      recommendedSections.some((s) => s.includes("review")),
+    show_comparison: recommendedSections.some((s) => s.includes("comparison")),
+    show_gallery:
+      recommendedSections.some((s) => s.includes("gallery")) ||
+      recommendedSections.some((s) => s.includes("portfolio")),
+    show_investment:
+      recommendedSections.some((s) => s.includes("investment")) ||
+      recommendedSections.some((s) => s.includes("pricing")),
+    show_faqs: recommendedSections.some((s) => s.includes("faq")),
+    show_service_area:
+      recommendedSections.some((s) => s.includes("area")) ||
+      recommendedSections.some((s) => s.includes("location"))
+  };
+
+  return {
+    show_trustbar: getBoolean(schemaToggles?.show_trustbar, inferred.show_trustbar),
+    show_about: getBoolean(schemaToggles?.show_about, inferred.show_about),
+    show_features: getBoolean(schemaToggles?.show_features, inferred.show_features || true),
+    show_events: getBoolean(schemaToggles?.show_events, inferred.show_events),
+    show_process: getBoolean(schemaToggles?.show_process, inferred.show_process),
+    show_testimonials: getBoolean(schemaToggles?.show_testimonials, inferred.show_testimonials),
+    show_comparison: getBoolean(schemaToggles?.show_comparison, inferred.show_comparison),
+    show_gallery: getBoolean(schemaToggles?.show_gallery, inferred.show_gallery),
+    show_investment: getBoolean(schemaToggles?.show_investment, inferred.show_investment),
+    show_faqs: getBoolean(schemaToggles?.show_faqs, inferred.show_faqs),
+    show_service_area: getBoolean(schemaToggles?.show_service_area, inferred.show_service_area)
+  };
+}
+
+function getBoolean(value, fallback = false) {
+  return typeof value === "boolean" ? value : !!fallback;
+}
+
+/* --------------------------------
+   FACT REGISTRY
+-------------------------------- */
+
+function buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrategy) {
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
+  const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
+  const visualStrategy = isObject(strategy?.visual_strategy) ? strategy.visual_strategy : {};
+  const copyPolicy = normalizedStrategy.copy_policy;
+
+  const facts = {};
+
+  addFact(facts, "business_name", seededAnswers.business_name, {
+    source: "preflight",
+    verified: true,
+    related_sections: ["brand"]
+  });
+
+  addFact(facts, "industry", normalizedStrategy.business_context.category, {
+    source: "preflight",
+    verified: true,
+    related_sections: ["intelligence"]
+  });
+
+  addFact(facts, "target_persona", seededAnswers.audience, {
+    source: "preflight",
+    related_sections: ["intelligence", "hero", "features"]
+  });
+
+  addFact(facts, "tone_of_voice", inferToneOfVoice(strategy, seededAnswers), {
+    source: "inferred",
+    related_sections: ["intelligence", "brand", "hero"]
+  });
+
+  addFact(facts, "primary_offer", seededAnswers.primary_offer, {
+    source: "preflight",
+    related_sections: ["hero", "features"]
+  });
+
+  addFact(facts, "service_area_main", seededAnswers.service_area, {
+    source: "preflight",
+    related_sections: ["service_area", "hero"]
+  });
+
+  addFact(facts, "service_area_list", seededAnswers.service_areas, {
+    source: "preflight",
+    related_sections: ["service_area"]
+  });
+
+  addFact(facts, "primary_conversion", seededAnswers.primary_conversion, {
+    source: "preflight",
+    related_sections: ["settings", "contact"]
+  });
+
+  addFact(facts, "secondary_conversion", seededAnswers.secondary_conversion, {
+    source: "preflight",
+    related_sections: ["settings", "contact"]
+  });
+
+  addFact(facts, "conversion_mode", seededAnswers.conversion_mode, {
+    source: "preflight",
+    related_sections: ["settings", "contact"]
+  });
+
+  addFact(facts, "cta_text", seededAnswers.cta_text, {
+    source: "preflight",
+    related_sections: ["settings", "contact"]
+  });
+
+  addFact(facts, "cta_link", seededAnswers.cta_link, {
+    source: "preflight",
+    related_sections: ["settings", "contact"]
+  });
+
+  addFact(facts, "contact_path", seededAnswers.contact_path, {
+    source: "preflight",
+    related_sections: ["contact"]
+  });
+
+  addFact(facts, "booking_method", seededAnswers.booking_method, {
+    source: "preflight",
+    related_sections: ["contact", "hero"]
+  });
+
+  addFact(facts, "trust_signal", seededAnswers.trust_signal, {
+    source: "preflight",
+    related_sections: ["trustbar", "testimonials", "about"]
+  });
+
+  addFact(facts, "differentiation", seededAnswers.differentiation, {
+    source: "preflight",
+    related_sections: ["hero", "about", "features"]
+  });
+
+  addFact(facts, "website_direction", seededAnswers.website_direction, {
+    source: "preflight",
+    related_sections: ["hero", "about"]
+  });
+
+  addFact(facts, "business_understanding", seededAnswers.business_understanding, {
+    source: "preflight",
+    related_sections: ["hero", "about"]
+  });
+
+  addFact(facts, "opportunity", seededAnswers.opportunity, {
+    source: "preflight",
+    related_sections: ["hero", "about", "faqs"]
+  });
+
+  addFact(facts, "recommended_focus", seededAnswers.recommended_focus, {
+    source: "preflight",
+    related_sections: ["features", "hero", "faqs"]
+  });
+
+  addFact(facts, "recommended_sections", seededAnswers.recommended_sections, {
+    source: "preflight",
+    verified: true,
+    related_sections: ["strategy"]
+  });
+
+  addFact(facts, "faq_angles", seededAnswers.faq_angles, {
+    source: "preflight",
+    related_sections: ["faqs"]
+  });
+
+  addFact(facts, "aeo_angles", seededAnswers.aeo_angles, {
+    source: "preflight",
+    related_sections: ["faqs", "hero"]
+  });
+
+  addFact(facts, "vibe", cleanString(visualStrategy?.recommended_vibe), {
+    source: "preflight",
+    related_sections: ["settings"]
+  });
+
+  addFact(facts, "image_themes", cleanList(normalizedStrategy.visual_strategy.preferred_image_themes), {
+    source: "preflight",
+    related_sections: ["hero", "gallery"]
+  });
+
+  addFact(facts, "google_presence_insight", seededAnswers.google_presence_insight, {
+    source: "preflight",
+    related_sections: ["about", "trustbar"]
+  });
+
+  addFact(facts, "next_step_teaser", seededAnswers.next_step_teaser, {
+    source: "preflight",
+    related_sections: ["hero"]
+  });
+
+  addFact(facts, "review_quotes", [], {
+    source: "missing",
+    requires_client_verification: includesVerificationField(copyPolicy, "review_quotes"),
+    related_sections: ["testimonials"]
+  });
+
+  addFact(facts, "phone", cleanString(napRecommendation?.phone), {
+    source: cleanString(napRecommendation?.phone) ? "preflight" : "missing",
+    requires_client_verification: includesVerificationField(copyPolicy, "phone"),
+    related_sections: ["brand", "contact"]
+  });
+
+  addFact(facts, "address", cleanString(napRecommendation?.address), {
+    source: cleanString(napRecommendation?.address) ? "preflight" : "missing",
+    requires_client_verification: includesVerificationField(copyPolicy, "address"),
+    related_sections: ["brand", "contact"]
+  });
+
+  addFact(facts, "hours", "", {
+    source: "missing",
+    requires_client_verification: includesVerificationField(copyPolicy, "hours"),
+    related_sections: ["contact"]
+  });
+
+  addFact(facts, "pricing", "", {
+    source: "missing",
+    requires_client_verification: includesVerificationField(copyPolicy, "pricing"),
+    related_sections: ["investment", "faqs", "contact"]
+  });
+
+  addFact(facts, "booking_url", derivePossibleBookingUrl(strategy, reconData), {
+    source: derivePossibleBookingUrl(strategy, reconData) ? "preflight" : "missing",
+    requires_client_verification: includesVerificationField(copyPolicy, "booking_url"),
+    related_sections: ["contact", "settings"]
+  });
+
+  addFact(facts, "email", cleanString(reconData?.client_email), {
+    source: cleanString(reconData?.client_email) ? "preflight" : "missing",
+    related_sections: ["brand", "contact"]
+  });
+
+  addFact(facts, "founder_story", "", {
+    source: "missing",
+    related_sections: ["about"]
+  });
+
+  addFact(facts, "years_experience", "", {
+    source: "missing",
+    related_sections: ["about", "trustbar"]
+  });
+
+  addFact(facts, "service_list", inferServiceList(seededAnswers, clientPreview), {
+    source: hasMeaningfulValue(inferServiceList(seededAnswers, clientPreview)) ? "inferred" : "missing",
+    related_sections: ["features"]
+  });
+
+  addFact(facts, "process_summary", "", {
+    source: "missing",
+    related_sections: ["processSteps"]
+  });
+
+  addFact(facts, "surrounding_cities", [], {
+    source: "missing",
+    related_sections: ["service_area"]
+  });
+
+  addFact(facts, "gallery_visual_direction", firstNonEmpty([
+    cleanList(normalizedStrategy.visual_strategy.preferred_image_themes),
+    cleanList(seededAnswers.recommended_focus)
+  ]), {
+    source: "preflight",
+    related_sections: ["gallery", "hero"]
+  });
+
+  return facts;
+}
+
+function addFact(registry, key, value, options = {}) {
+  registry[key] = {
+    value,
+    source: options.source || "missing",
+    confidence:
+      typeof options.confidence === "number"
+        ? options.confidence
+        : inferConfidence(options.source, value),
+    verified: !!options.verified,
+    requires_client_verification: !!options.requires_client_verification,
+    related_sections: asArray(options.related_sections),
+    status: hasMeaningfulValue(value) ? (options.verified ? "verified" : "seeded") : "missing"
+  };
+}
+
+function inferConfidence(source, value) {
+  if (!hasMeaningfulValue(value)) return 0;
+  if (source === "preflight") return 0.85;
+  if (source === "inferred") return 0.65;
+  if (source === "user") return 1;
+  return 0.5;
+}
+
+function includesVerificationField(copyPolicy, name) {
+  return cleanList(copyPolicy?.fields_requiring_verification).includes(name);
+}
+
+function derivePossibleBookingUrl(strategy, reconData) {
+  const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
+  return firstNonEmpty([
+    cleanString(sourceSnapshot?.booking_url),
+    cleanString(reconData?.booking_url),
+    cleanString(strategy?.contact?.booking_url)
+  ]);
+}
+
+function inferToneOfVoice(strategy, seededAnswers) {
+  const vibe = cleanString(
+    strategy?.visual_strategy?.recommended_vibe || seededAnswers?.future_dynamic_vibe_hint
+  ).toLowerCase();
+  const category = cleanString(strategy?.business_context?.category).toLowerCase();
+  const archetype = cleanString(strategy?.business_context?.strategic_archetype).toLowerCase();
+
+  if (vibe.includes("luxury")) return "Confident, polished, and premium";
+  if (vibe.includes("legacy")) return "Reassuring, credible, and professional";
+  if (vibe.includes("solar flare")) return "Bold, energetic, and modern";
+  if (archetype.includes("high_consideration")) return "Trust-building, clear, and expert";
+  if (category) return `${titleCaseWords(category)}-appropriate, clear, and confident`;
+  return "Clear, modern, and trustworthy";
+}
+
+function inferServiceList(seededAnswers, clientPreview) {
+  const focus = cleanList(seededAnswers?.recommended_focus);
+  const faq = cleanList(seededAnswers?.faq_angles);
+  const offer = cleanString(seededAnswers?.primary_offer);
+  const previewFocus = cleanList(clientPreview?.recommended_focus);
+
+  const candidates = uniqueList([...focus, ...previewFocus, ...faq]).filter((item) => {
+    const lower = item.toLowerCase();
+    return !lower.includes("?") && lower.length <= 60;
+  });
+
+  if (candidates.length > 0) return candidates.slice(0, 4);
+  if (offer) return [offer];
+  return [];
+}
+
+/* --------------------------------
+   BUSINESS DRAFT
+-------------------------------- */
+
+function buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry) {
+  const businessName = factValue(factRegistry, "business_name");
+  const recommendedSections = cleanList(seededAnswers.recommended_sections);
+  const serviceAreas = cleanList(seededAnswers.service_areas);
+  const menu = buildMenu(normalizedStrategy.schema_toggles);
+
+  const headline = buildHeroHeadline(seededAnswers, normalizedStrategy);
+  const subtext = buildHeroSubtext(seededAnswers, normalizedStrategy);
+  const heroImageQuery = buildHeroImageQuery(normalizedStrategy, seededAnswers);
+  const galleryImageQuery = buildGalleryImageQuery(normalizedStrategy, seededAnswers);
+
+  const draft = {
+    intelligence: compactObject({
+      industry: factValue(factRegistry, "industry"),
+      target_persona: factValue(factRegistry, "target_persona"),
+      tone_of_voice: factValue(factRegistry, "tone_of_voice")
+    }),
+
+    strategy: compactObject({
+      ...normalizedStrategy.schema_toggles
+    }),
+
+    settings: compactObject({
+      vibe: factValue(factRegistry, "vibe") || "Modern Minimal",
+      menu,
+      cta_text: factValue(factRegistry, "cta_text") || "Get Started",
+      cta_link: normalizeAnchorLink(factValue(factRegistry, "cta_link") || "#contact"),
+      cta_type: inferCtaType(factValue(factRegistry, "cta_link") || "#contact"),
+      secondary_cta_text: buildSecondaryCtaText(normalizedStrategy, seededAnswers),
+      secondary_cta_link: buildSecondaryCtaLink(normalizedStrategy)
+    }),
+
+    brand: compactObject({
+      name: businessName,
+      slug:
+        slugify(cleanString(normalizedStrategy.business_context.slug)) ||
+        slugify(businessName),
+      tagline: buildTagline(seededAnswers),
+      email: factValue(factRegistry, "email"),
+      phone: factValue(factRegistry, "phone"),
+      office_address: factValue(factRegistry, "address"),
+      objection_handle: buildObjectionHandle(normalizedStrategy)
+    }),
+
+    hero: compactObject({
+      headline,
+      subtext,
+      image: compactObject({
+        alt: buildHeroImageAlt(normalizedStrategy, seededAnswers),
+        image_search_query: heroImageQuery
       })
+    }),
+
+    about: compactObject({
+      story_text: buildAboutStory(seededAnswers),
+      founder_note: buildFounderNote(seededAnswers),
+      years_experience: factValue(factRegistry, "years_experience")
+    }),
+
+    features: buildFeatures(seededAnswers, normalizedStrategy),
+
+    contact: compactObject({
+      title: buildContactTitle(normalizedStrategy),
+      text: buildContactText(normalizedStrategy, seededAnswers),
+      cta_text: factValue(factRegistry, "cta_text") || "Get Started",
+      cta_link: normalizeAnchorLink(factValue(factRegistry, "cta_link") || "#contact"),
+      email: factValue(factRegistry, "email"),
+      phone: factValue(factRegistry, "phone"),
+      booking_url: factValue(factRegistry, "booking_url"),
+      office_address: factValue(factRegistry, "address")
+    })
+  };
+
+  if (normalizedStrategy.schema_toggles.show_trustbar) {
+    draft.trustbar = {
+      enabled: true,
+      headline: buildTrustbarHeadline(seededAnswers),
+      items: buildTrustbarItems(normalizedStrategy, seededAnswers)
     };
-  
-    if (normalizedStrategy.schema_toggles.show_trustbar) {
-      draft.trustbar = {
-        enabled: true,
-        headline: buildTrustbarHeadline(seededAnswers),
-        items: buildTrustbarItems(normalizedStrategy, seededAnswers)
-      };
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_process) {
-      draft.processSteps = buildProcessStepsPlaceholder();
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_testimonials) {
-      draft.testimonials = buildTestimonialsPlaceholder(recommendedSections);
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_faqs) {
-      draft.faqs = buildFaqsDraft(normalizedStrategy, seededAnswers);
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_gallery) {
-      draft.gallery = {
-        enabled: true,
-        title: buildGalleryTitle(normalizedStrategy),
-        layout: null,
-        show_titles: false,
-        strategy: {
-          primary_goal: "visual_trust",
-          show_gallery: true
-        },
-        image_source: {
-          provider: "search",
-          image_search_query: galleryImageQuery,
-          filename_pattern: `${slugify(businessName || "client")}-gallery-{index}`,
-          target_folder: slugify(businessName || "client")
-        }
-      };
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_service_area) {
-      draft.service_area = compactObject({
-        main_city: serviceAreas[0] || factValue(factRegistry, "service_area_main"),
-        surrounding_cities: cleanList(factValue(factRegistry, "surrounding_cities")),
-        travel_note: buildTravelNote(normalizedStrategy),
-        cta_text: factValue(factRegistry, "cta_text") || "Check Availability",
-        cta_link: normalizeAnchorLink(factValue(factRegistry, "cta_link") || "#contact"),
-        map_search_query: buildMapSearchQuery(normalizedStrategy, seededAnswers)
-      });
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_investment) {
-      draft.investment = [];
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_events) {
-      draft.events = [];
-    }
-  
-    if (normalizedStrategy.schema_toggles.show_comparison) {
-      draft.comparison = {
-        title: "",
-        items: []
-      };
-    }
-  
-    return draft;
   }
-  
-  function buildMenu(toggles) {
-    const base = [{ label: "Home", path: "#home" }];
-  
-    const conditional = [
-      { key: "show_about", label: "About", path: "#about" },
-      { key: "show_features", label: "Features", path: "#features" },
-      { key: "show_events", label: "Events", path: "#events" },
-      { key: "show_process", label: "Process", path: "#process" },
-      { key: "show_testimonials", label: "Testimonials", path: "#testimonials" },
-      { key: "show_comparison", label: "Comparison", path: "#comparison" },
-      { key: "show_gallery", label: "Gallery", path: "#gallery" },
-      { key: "show_investment", label: "Investment", path: "#investment" },
-      { key: "show_faqs", label: "FAQs", path: "#faqs" },
-      { key: "show_service_area", label: "Service Area", path: "#service-area" }
-    ];
-  
-    for (const item of conditional) {
-      if (toggles?.[item.key]) {
-        base.push({ label: item.label, path: item.path });
+
+  if (normalizedStrategy.schema_toggles.show_process) {
+    draft.processSteps = buildProcessStepsPlaceholder();
+  }
+
+  if (normalizedStrategy.schema_toggles.show_testimonials) {
+    draft.testimonials = buildTestimonialsPlaceholder(recommendedSections);
+  }
+
+  if (normalizedStrategy.schema_toggles.show_faqs) {
+    draft.faqs = buildFaqsDraft(normalizedStrategy, seededAnswers);
+  }
+
+  if (normalizedStrategy.schema_toggles.show_gallery) {
+    draft.gallery = {
+      enabled: true,
+      title: buildGalleryTitle(normalizedStrategy),
+      layout: null,
+      show_titles: false,
+      strategy: {
+        primary_goal: "visual_trust",
+        show_gallery: true
+      },
+      image_source: {
+        provider: "search",
+        image_search_query: galleryImageQuery,
+        filename_pattern: `${slugify(businessName || "client")}-gallery-{index}`,
+        target_folder: slugify(businessName || "client")
       }
+    };
+  }
+
+  if (normalizedStrategy.schema_toggles.show_service_area) {
+    draft.service_area = compactObject({
+      main_city: serviceAreas[0] || factValue(factRegistry, "service_area_main"),
+      surrounding_cities: cleanList(factValue(factRegistry, "surrounding_cities")),
+      travel_note: buildTravelNote(normalizedStrategy),
+      cta_text: factValue(factRegistry, "cta_text") || "Check Availability",
+      cta_link: normalizeAnchorLink(factValue(factRegistry, "cta_link") || "#contact"),
+      map_search_query: buildMapSearchQuery(normalizedStrategy, seededAnswers)
+    });
+  }
+
+  if (normalizedStrategy.schema_toggles.show_investment) {
+    draft.investment = [];
+  }
+
+  if (normalizedStrategy.schema_toggles.show_events) {
+    draft.events = [];
+  }
+
+  if (normalizedStrategy.schema_toggles.show_comparison) {
+    draft.comparison = {
+      title: "",
+      items: []
+    };
+  }
+
+  return draft;
+}
+
+function buildMenu(toggles) {
+  const base = [{ label: "Home", path: "#home" }];
+
+  const conditional = [
+    { key: "show_about", label: "About", path: "#about" },
+    { key: "show_features", label: "Features", path: "#features" },
+    { key: "show_events", label: "Events", path: "#events" },
+    { key: "show_process", label: "Process", path: "#process" },
+    { key: "show_testimonials", label: "Testimonials", path: "#testimonials" },
+    { key: "show_comparison", label: "Comparison", path: "#comparison" },
+    { key: "show_gallery", label: "Gallery", path: "#gallery" },
+    { key: "show_investment", label: "Investment", path: "#investment" },
+    { key: "show_faqs", label: "FAQs", path: "#faqs" },
+    { key: "show_service_area", label: "Service Area", path: "#service-area" }
+  ];
+
+  for (const item of conditional) {
+    if (toggles?.[item.key]) {
+      base.push({ label: item.label, path: item.path });
     }
-  
-    base.push({ label: "Contact", path: "#contact" });
-    return base;
   }
-  
-  function normalizeAnchorLink(value) {
-    const link = cleanString(value);
-    if (!link) return "#contact";
-    if (link.startsWith("http://") || link.startsWith("https://")) return link;
-    return link.startsWith("#") ? link : `#${link.replace(/^#/, "")}`;
+
+  base.push({ label: "Contact", path: "#contact" });
+  return base;
+}
+
+function normalizeAnchorLink(value) {
+  const link = cleanString(value);
+  if (!link) return "#contact";
+  if (link.startsWith("http://") || link.startsWith("https://")) return link;
+  return link.startsWith("#") ? link : `#${link.replace(/^#/, "")}`;
+}
+
+function inferCtaType(link) {
+  const value = cleanString(link);
+  if (value.startsWith("http://") || value.startsWith("https://")) return "external";
+  return "anchor";
+}
+
+function buildSecondaryCtaText(normalizedStrategy, seededAnswers) {
+  if (normalizedStrategy.schema_toggles.show_gallery) return "View Gallery";
+  if (normalizedStrategy.schema_toggles.show_faqs) return "Read FAQs";
+  return cleanString(seededAnswers?.secondary_conversion)
+    ? titleCaseWords(seededAnswers.secondary_conversion.replace(/_/g, " "))
+    : "";
+}
+
+function buildSecondaryCtaLink(normalizedStrategy) {
+  if (normalizedStrategy.schema_toggles.show_gallery) return "#gallery";
+  if (normalizedStrategy.schema_toggles.show_faqs) return "#faqs";
+  return "";
+}
+
+function buildTagline(seededAnswers) {
+  return (
+    cleanString(seededAnswers?.primary_offer) ||
+    cleanString(seededAnswers?.business_understanding) ||
+    ""
+  );
+}
+
+function buildObjectionHandle(normalizedStrategy) {
+  const objection = firstNonEmpty([
+    cleanList(normalizedStrategy?.audience_model?.common_objections)
+  ]);
+
+  if (!objection) return "";
+  return `Built to address common buyer concerns like ${objection}.`;
+}
+
+function buildHeroHeadline(seededAnswers, normalizedStrategy) {
+  const offer = cleanString(seededAnswers?.primary_offer);
+  const audience = cleanString(seededAnswers?.audience);
+  const businessName = cleanString(seededAnswers?.business_name);
+
+  if (offer) return offer;
+  if (audience && businessName) return `${businessName} for ${audience}`;
+  if (businessName) return `A Better Website Direction for ${businessName}`;
+  return `A Clearer, Higher-Converting Presence`;
+}
+
+function buildHeroSubtext(seededAnswers, normalizedStrategy) {
+  const direction = cleanString(seededAnswers?.website_direction);
+  const opportunity = cleanString(seededAnswers?.opportunity);
+  const audience = cleanString(seededAnswers?.audience);
+
+  if (direction) return direction;
+  if (opportunity) return opportunity;
+  if (audience) return `Designed to connect with ${audience} and make the next step feel clear.`;
+  return `We’ll refine the story, proof, and conversion path so the site feels premium and easy to act on.`;
+}
+
+function buildHeroImageAlt(normalizedStrategy, seededAnswers) {
+  const category = cleanString(normalizedStrategy?.business_context?.category);
+  const mainCity = cleanString(seededAnswers?.service_area);
+  const businessName = cleanString(seededAnswers?.business_name);
+
+  return firstNonEmpty([
+    businessName && category ? `${businessName} ${category} hero image` : "",
+    category && mainCity ? `${category} in ${mainCity}` : "",
+    category ? `${category} website hero image` : "",
+    "Business website hero image"
+  ]);
+}
+
+function buildHeroImageQuery(normalizedStrategy, seededAnswers) {
+  const candidates = uniqueList([
+    ...cleanList(normalizedStrategy?.visual_strategy?.preferred_image_themes),
+    cleanString(seededAnswers?.primary_offer),
+    cleanString(normalizedStrategy?.business_context?.category),
+    cleanString(seededAnswers?.future_dynamic_vibe_hint)
+  ]);
+
+  return candidates.find((item) => item.length >= 4) || "professional business lifestyle";
+}
+
+function buildGalleryImageQuery(normalizedStrategy, seededAnswers) {
+  const candidates = uniqueList([
+    cleanString(seededAnswers?.primary_offer),
+    ...cleanList(normalizedStrategy?.visual_strategy?.preferred_image_themes),
+    ...cleanList(seededAnswers?.recommended_focus),
+    cleanString(normalizedStrategy?.business_context?.category)
+  ]);
+
+  return candidates.find((item) => item.length >= 4) || "business portfolio lifestyle";
+}
+
+function buildAboutStory(seededAnswers) {
+  return firstNonEmpty([
+    cleanString(seededAnswers?.business_understanding),
+    cleanString(seededAnswers?.website_direction),
+    cleanString(seededAnswers?.opportunity)
+  ]);
+}
+
+function buildFounderNote(seededAnswers) {
+  const trust = cleanString(seededAnswers?.trust_signal);
+  if (!trust) return "";
+  return `The site should reinforce trust through ${trust}.`;
+}
+
+function buildFeatures(seededAnswers, normalizedStrategy) {
+  const focus = uniqueList([
+    ...cleanList(seededAnswers?.recommended_focus),
+    ...cleanList(normalizedStrategy?.audience_model?.decision_factors),
+    ...cleanList(seededAnswers?.faq_angles)
+  ]).filter((item) => !item.includes("?"));
+
+  if (focus.length === 0 && cleanString(seededAnswers?.primary_offer)) {
+    return [
+      {
+        title: "Core Offer",
+        description: cleanString(seededAnswers.primary_offer),
+        icon_slug: "sparkles"
+      }
+    ];
   }
-  
-  function inferCtaType(link) {
-    const value = cleanString(link);
-    if (value.startsWith("http://") || value.startsWith("https://")) return "external";
-    return "anchor";
+
+  return focus.slice(0, 4).map((item, index) => ({
+    title: featureTitleFromText(item, index),
+    description: featureDescriptionFromText(item, seededAnswers),
+    icon_slug: pickIcon(index)
+  }));
+}
+
+function featureTitleFromText(text, index) {
+  const cleaned = cleanString(text);
+  if (!cleaned) return `Feature ${index + 1}`;
+  if (cleaned.length <= 36) return cleaned;
+  const words = cleaned.split(/\s+/).slice(0, 4);
+  return titleCaseWords(words.join(" "));
+}
+
+function featureDescriptionFromText(text, seededAnswers) {
+  const cleaned = cleanString(text);
+  if (!cleaned) return cleanString(seededAnswers?.website_direction) || "";
+  if (cleaned.length >= 50) return cleaned;
+  return `${cleaned} presented in a way that makes the value clearer to the right buyer.`;
+}
+
+function pickIcon(index) {
+  const icons = ["sparkles", "shield", "star", "check", "briefcase", "clock"];
+  return icons[index % icons.length];
+}
+
+function buildContactTitle(normalizedStrategy) {
+  const mode = cleanString(
+    normalizedStrategy?.conversion_strategy?.primary_conversion ||
+      normalizedStrategy?.conversion_strategy?.conversion_mode
+  ).toLowerCase();
+  if (mode.includes("quote")) return "Request a Quote";
+  if (mode.includes("book")) return "Book the Next Step";
+  if (mode.includes("call")) return "Start the Conversation";
+  return "Take the Next Step";
+}
+
+function buildContactText(normalizedStrategy, seededAnswers) {
+  return firstNonEmpty([
+    cleanString(seededAnswers?.next_step_teaser),
+    cleanString(seededAnswers?.website_direction),
+    "Tell us a little about what you need and we’ll point you in the right direction."
+  ]);
+}
+
+function buildTrustbarHeadline(seededAnswers) {
+  return cleanString(seededAnswers?.trust_signal)
+    ? `Built Around ${titleCaseWords(seededAnswers.trust_signal)}`
+    : "Why Visitors Can Feel Confident";
+}
+
+function buildTrustbarItems(normalizedStrategy, seededAnswers) {
+  const items = uniqueList([
+    ...cleanList(normalizedStrategy?.proof_model?.trust_signals),
+    ...cleanList(normalizedStrategy?.proof_model?.credibility_sources)
+  ]).slice(0, 4);
+
+  if (items.length === 0 && cleanString(seededAnswers?.trust_signal)) {
+    items.push(cleanString(seededAnswers.trust_signal));
   }
-  
-  function buildSecondaryCtaText(normalizedStrategy, seededAnswers) {
-    if (normalizedStrategy.schema_toggles.show_gallery) return "View Gallery";
-    if (normalizedStrategy.schema_toggles.show_faqs) return "Read FAQs";
-    return cleanString(seededAnswers?.secondary_conversion) ? titleCaseWords(seededAnswers.secondary_conversion.replace(/_/g, " ")) : "";
-  }
-  
-  function buildSecondaryCtaLink(normalizedStrategy) {
-    if (normalizedStrategy.schema_toggles.show_gallery) return "#gallery";
-    if (normalizedStrategy.schema_toggles.show_faqs) return "#faqs";
-    return "";
-  }
-  
-  function buildTagline(seededAnswers) {
-    return (
-      cleanString(seededAnswers?.primary_offer) ||
-      cleanString(seededAnswers?.business_understanding) ||
-      ""
-    );
-  }
-  
-  function buildObjectionHandle(normalizedStrategy) {
-    const objection = firstNonEmpty([
-      cleanList(normalizedStrategy?.audience_model?.common_objections)
-    ]);
-  
-    if (!objection) return "";
-    return `Built to address common buyer concerns like ${objection}.`;
-  }
-  
-  function buildHeroHeadline(seededAnswers, normalizedStrategy) {
-    const offer = cleanString(seededAnswers?.primary_offer);
-    const audience = cleanString(seededAnswers?.audience);
-    const businessName = cleanString(seededAnswers?.business_name);
-  
-    if (offer) return offer;
-    if (audience && businessName) return `${businessName} for ${audience}`;
-    if (businessName) return `A Better Website Direction for ${businessName}`;
-    return `A Clearer, Higher-Converting Presence`;
-  }
-  
-  function buildHeroSubtext(seededAnswers, normalizedStrategy) {
-    const direction = cleanString(seededAnswers?.website_direction);
-    const opportunity = cleanString(seededAnswers?.opportunity);
-    const audience = cleanString(seededAnswers?.audience);
-  
-    if (direction) return direction;
-    if (opportunity) return opportunity;
-    if (audience) return `Designed to connect with ${audience} and make the next step feel clear.`;
-    return `We’ll refine the story, proof, and conversion path so the site feels premium and easy to act on.`;
-  }
-  
-  function buildHeroImageAlt(normalizedStrategy, seededAnswers) {
-    const category = cleanString(normalizedStrategy?.business_context?.category);
-    const mainCity = cleanString(seededAnswers?.service_area);
-    const businessName = cleanString(seededAnswers?.business_name);
-  
-    return firstNonEmpty([
-      businessName && category ? `${businessName} ${category} hero image` : "",
-      category && mainCity ? `${category} in ${mainCity}` : "",
-      category ? `${category} website hero image` : "",
-      "Business website hero image"
-    ]);
-  }
-  
-  function buildHeroImageQuery(normalizedStrategy, seededAnswers) {
-    const candidates = uniqueList([
-      ...cleanList(normalizedStrategy?.visual_strategy?.preferred_image_themes),
-      cleanString(seededAnswers?.primary_offer),
-      cleanString(normalizedStrategy?.business_context?.category),
-      cleanString(seededAnswers?.future_dynamic_vibe_hint)
-    ]);
-  
-    return candidates.find((item) => item.length >= 4) || "professional business lifestyle";
-  }
-  
-  function buildGalleryImageQuery(normalizedStrategy, seededAnswers) {
-    const candidates = uniqueList([
-      cleanString(seededAnswers?.primary_offer),
-      ...cleanList(normalizedStrategy?.visual_strategy?.preferred_image_themes),
-      ...cleanList(seededAnswers?.recommended_focus),
-      cleanString(normalizedStrategy?.business_context?.category)
-    ]);
-  
-    return candidates.find((item) => item.length >= 4) || "business portfolio lifestyle";
-  }
-  
-  function buildAboutStory(seededAnswers) {
-    return firstNonEmpty([
-      cleanString(seededAnswers?.business_understanding),
-      cleanString(seededAnswers?.website_direction),
-      cleanString(seededAnswers?.opportunity)
-    ]);
-  }
-  
-  function buildFounderNote(seededAnswers) {
-    const trust = cleanString(seededAnswers?.trust_signal);
-    if (!trust) return "";
-    return `The site should reinforce trust through ${trust}.`;
-  }
-  
-  function buildFeatures(seededAnswers, normalizedStrategy) {
-    const focus = uniqueList([
-      ...cleanList(seededAnswers?.recommended_focus),
-      ...cleanList(normalizedStrategy?.audience_model?.decision_factors),
-      ...cleanList(seededAnswers?.faq_angles)
-    ]).filter((item) => !item.includes("?"));
-  
-    if (focus.length === 0 && cleanString(seededAnswers?.primary_offer)) {
-      return [
-        {
-          title: "Core Offer",
-          description: cleanString(seededAnswers.primary_offer),
-          icon_slug: "sparkles"
-        }
-      ];
-    }
-  
-    return focus.slice(0, 4).map((item, index) => ({
-      title: featureTitleFromText(item, index),
-      description: featureDescriptionFromText(item, seededAnswers),
-      icon_slug: pickIcon(index)
+
+  return items.slice(0, 4).map((label, index) => ({
+    icon: pickIcon(index),
+    label: titleCaseWords(label.replace(/_/g, " ")),
+    sublabel: ""
+  }));
+}
+
+function buildFaqsDraft(normalizedStrategy, seededAnswers) {
+  return uniqueList([
+    ...cleanList(normalizedStrategy?.site_structure?.faq_angles),
+    ...cleanList(seededAnswers?.faq_angles)
+  ])
+    .slice(0, 5)
+    .map((question) => ({
+      question,
+      answer: ""
     }));
+}
+
+function buildGalleryTitle(normalizedStrategy) {
+  const category = cleanString(normalizedStrategy?.business_context?.category);
+  if (category) return `${titleCaseWords(category)} Highlights`;
+  return "Featured Work";
+}
+
+function buildTravelNote(normalizedStrategy) {
+  const model = cleanString(normalizedStrategy?.business_context?.business_model).toLowerCase();
+  if (model.includes("service_area")) {
+    return "Outside these areas? Reach out and we can confirm fit based on your location.";
   }
-  
-  function featureTitleFromText(text, index) {
-    const cleaned = cleanString(text);
-    if (!cleaned) return `Feature ${index + 1}`;
-    if (cleaned.length <= 36) return cleaned;
-    const words = cleaned.split(/\s+/).slice(0, 4);
-    return titleCaseWords(words.join(" "));
-  }
-  
-  function featureDescriptionFromText(text, seededAnswers) {
-    const cleaned = cleanString(text);
-    if (!cleaned) return cleanString(seededAnswers?.website_direction) || "";
-    if (cleaned.length >= 50) return cleaned;
-    return `${cleaned} presented in a way that makes the value clearer to the right buyer.`;
-  }
-  
-  function pickIcon(index) {
-    const icons = ["sparkles", "shield", "star", "check", "briefcase", "clock"];
-    return icons[index % icons.length];
-  }
-  
-  function buildContactTitle(normalizedStrategy) {
-    const mode = cleanString(normalizedStrategy?.conversion_strategy?.primary_conversion || normalizedStrategy?.conversion_strategy?.conversion_mode).toLowerCase();
-    if (mode.includes("quote")) return "Request a Quote";
-    if (mode.includes("book")) return "Book the Next Step";
-    if (mode.includes("call")) return "Start the Conversation";
-    return "Take the Next Step";
-  }
-  
-  function buildContactText(normalizedStrategy, seededAnswers) {
-    return firstNonEmpty([
-      cleanString(seededAnswers?.next_step_teaser),
-      cleanString(seededAnswers?.website_direction),
-      "Tell us a little about what you need and we’ll point you in the right direction."
-    ]);
-  }
-  
-  function buildTrustbarHeadline(seededAnswers) {
-    return cleanString(seededAnswers?.trust_signal)
-      ? `Built Around ${titleCaseWords(seededAnswers.trust_signal)}`
-      : "Why Visitors Can Feel Confident";
-  }
-  
-  function buildTrustbarItems(normalizedStrategy, seededAnswers) {
-    const items = uniqueList([
-      ...cleanList(normalizedStrategy?.proof_model?.trust_signals),
-      ...cleanList(normalizedStrategy?.proof_model?.credibility_sources)
-    ]).slice(0, 4);
-  
-    if (items.length === 0 && cleanString(seededAnswers?.trust_signal)) {
-      items.push(cleanString(seededAnswers.trust_signal));
-    }
-  
-    return items.slice(0, 4).map((label, index) => ({
-      icon: pickIcon(index),
-      label: titleCaseWords(label.replace(/_/g, " ")),
-      sublabel: ""
-    }));
-  }
-  
-  function buildFaqsDraft(normalizedStrategy, seededAnswers) {
-    return uniqueList([
-      ...cleanList(normalizedStrategy?.site_structure?.faq_angles),
-      ...cleanList(seededAnswers?.faq_angles)
-    ])
-      .slice(0, 5)
-      .map((question) => ({
-        question,
-        answer: ""
-      }));
-  }
-  
-  function buildGalleryTitle(normalizedStrategy) {
-    const category = cleanString(normalizedStrategy?.business_context?.category);
-    if (category) return `${titleCaseWords(category)} Highlights`;
-    return "Featured Work";
-  }
-  
-  function buildTravelNote(normalizedStrategy) {
-    const model = cleanString(normalizedStrategy?.business_context?.business_model).toLowerCase();
-    if (model.includes("service_area")) {
-      return "Outside these areas? Reach out and we can confirm fit based on your location.";
-    }
-    return "";
-  }
-  
-  function buildMapSearchQuery(normalizedStrategy, seededAnswers) {
-    const offer = cleanString(seededAnswers?.primary_offer);
-    const area = cleanString(seededAnswers?.service_area);
-    if (offer && area) return `${offer} near ${area}`;
-    return area || "";
-  }
-  
-  function buildProcessStepsPlaceholder() {
+  return "";
+}
+
+function buildMapSearchQuery(normalizedStrategy, seededAnswers) {
+  const offer = cleanString(seededAnswers?.primary_offer);
+  const area = cleanString(seededAnswers?.service_area);
+  if (offer && area) return `${offer} near ${area}`;
+  return area || "";
+}
+
+function buildProcessStepsPlaceholder() {
+  return [];
+}
+
+function buildTestimonialsPlaceholder(recommendedSections) {
+  if (
+    !cleanList(recommendedSections).some(
+      (item) =>
+        item.toLowerCase().includes("testimonial") ||
+        item.toLowerCase().includes("review")
+    )
+  ) {
     return [];
   }
-  
-  function buildTestimonialsPlaceholder(recommendedSections) {
-    if (!cleanList(recommendedSections).some((item) => item.toLowerCase().includes("testimonial") || item.toLowerCase().includes("review"))) {
-      return [];
+  return [];
+}
+
+/* --------------------------------
+   SECTION STATUS
+-------------------------------- */
+
+function computeSectionStatus(strategy, factRegistry, businessDraft) {
+  const requirements = getSectionRequirements(strategy);
+  const status = {};
+
+  for (const [section, config] of Object.entries(requirements)) {
+    const enabled = config.required || !!strategy?.schema_toggles?.[config.toggle_key];
+    const missing_fields = [];
+    const weak_fields = [];
+    const ready_fields = [];
+
+    if (!enabled) {
+      status[section] = {
+        enabled: false,
+        status: "disabled",
+        required_for_preview: false,
+        fields_needed: [],
+        weak_fields: [],
+        ready_fields: []
+      };
+      continue;
     }
-    return [];
-  }
-  
-  /* --------------------------------
-     SECTION STATUS
-  -------------------------------- */
-  
-  function computeSectionStatus(strategy, factRegistry, businessDraft) {
-    const requirements = getSectionRequirements(strategy);
-    const status = {};
-  
-    for (const [section, config] of Object.entries(requirements)) {
-      const enabled = config.required || !!strategy?.schema_toggles?.[config.toggle_key];
-      const missing_fields = [];
-      const weak_fields = [];
-      const ready_fields = [];
-  
-      if (!enabled) {
-        status[section] = {
-          enabled: false,
-          status: "disabled",
-          required_for_preview: false,
-          fields_needed: [],
-          weak_fields: [],
-          ready_fields: []
-        };
+
+    for (const field of config.fields) {
+      const value = readPath(businessDraft, field.path);
+      if (!hasMeaningfulValue(value)) {
+        missing_fields.push(field.path);
         continue;
       }
-  
-      for (const field of config.fields) {
-        const value = readPath(businessDraft, field.path);
-        if (!hasMeaningfulValue(value)) {
-          missing_fields.push(field.path);
-          continue;
-        }
-  
-        if (field.requires_verification && !isFactVerifiedByPath(factRegistry, field.fact_key)) {
-          weak_fields.push(field.path);
-          continue;
-        }
-  
-        ready_fields.push(field.path);
+
+      if (field.requires_verification && !isFactVerifiedByPath(factRegistry, field.fact_key)) {
+        weak_fields.push(field.path);
+        continue;
       }
-  
-      let state = "ready";
-      if (missing_fields.length > 0) state = "missing";
-      else if (weak_fields.length > 0) state = "partial";
-  
-      status[section] = {
-        enabled: true,
-        status: state,
-        required_for_preview: !!config.required_for_preview,
-        fields_needed: missing_fields,
-        weak_fields,
-        ready_fields
-      };
+
+      ready_fields.push(field.path);
     }
-  
-    return status;
-  }
-  
-  function getSectionRequirements(strategy) {
-    const copyPolicy = strategy?.copy_policy || {};
-  
-    return {
-      intelligence: {
-        required: true,
-        required_for_preview: true,
-        toggle_key: null,
-        fields: [
-          { path: "intelligence.industry", fact_key: "industry" },
-          { path: "intelligence.target_persona", fact_key: "target_persona" },
-          { path: "intelligence.tone_of_voice", fact_key: "tone_of_voice" }
-        ]
-      },
-      strategy: {
-        required: true,
-        required_for_preview: true,
-        toggle_key: null,
-        fields: [{ path: "strategy.show_features" }]
-      },
-      settings: {
-        required: true,
-        required_for_preview: true,
-        toggle_key: null,
-        fields: [
-          { path: "settings.vibe", fact_key: "vibe" },
-          { path: "settings.cta_text", fact_key: "cta_text" },
-          { path: "settings.cta_link", fact_key: "cta_link" }
-        ]
-      },
-      brand: {
-        required: true,
-        required_for_preview: true,
-        toggle_key: null,
-        fields: [
-          { path: "brand.name", fact_key: "business_name" },
-          { path: "brand.tagline", fact_key: "primary_offer" },
-          { path: "brand.email", fact_key: "email", requires_verification: false }
-        ]
-      },
-      hero: {
-        required: true,
-        required_for_preview: true,
-        toggle_key: null,
-        fields: [
-          { path: "hero.headline", fact_key: "primary_offer" },
-          { path: "hero.subtext", fact_key: "website_direction" },
-          { path: "hero.image.alt", fact_key: "primary_offer" },
-          { path: "hero.image.image_search_query", fact_key: "image_themes" }
-        ]
-      },
-      about: {
-        required: true,
-        required_for_preview: false,
-        toggle_key: "show_about",
-        fields: [
-          { path: "about.story_text", fact_key: "business_understanding" },
-          { path: "about.founder_note", fact_key: "trust_signal" },
-          { path: "about.years_experience", fact_key: "years_experience", requires_verification: includesVerificationField(copyPolicy, "years_experience") }
-        ]
-      },
-      features: {
-        required: true,
-        required_for_preview: true,
-        toggle_key: "show_features",
-        fields: [
-          { path: "features", fact_key: "service_list" }
-        ]
-      },
-      contact: {
-        required: true,
-        required_for_preview: true,
-        toggle_key: null,
-        fields: [
-          { path: "contact.cta_text", fact_key: "cta_text" },
-          { path: "contact.cta_link", fact_key: "cta_link" }
-        ]
-      },
-      trustbar: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_trustbar",
-        fields: [
-          { path: "trustbar.items", fact_key: "trust_signal" }
-        ]
-      },
-      processSteps: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_process",
-        fields: [
-          { path: "processSteps", fact_key: "process_summary" }
-        ]
-      },
-      testimonials: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_testimonials",
-        fields: [
-          { path: "testimonials", fact_key: "review_quotes", requires_verification: true }
-        ]
-      },
-      faqs: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_faqs",
-        fields: [
-          { path: "faqs", fact_key: "faq_angles" }
-        ]
-      },
-      gallery: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_gallery",
-        fields: [
-          { path: "gallery.image_source.image_search_query", fact_key: "gallery_visual_direction" }
-        ]
-      },
-      service_area: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_service_area",
-        fields: [
-          { path: "service_area.main_city", fact_key: "service_area_main" },
-          { path: "service_area.surrounding_cities", fact_key: "surrounding_cities" }
-        ]
-      },
-      investment: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_investment",
-        fields: [
-          { path: "investment", fact_key: "pricing", requires_verification: true }
-        ]
-      },
-      events: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_events",
-        fields: [
-          { path: "events", fact_key: "events" }
-        ]
-      },
-      comparison: {
-        required: false,
-        required_for_preview: false,
-        toggle_key: "show_comparison",
-        fields: [
-          { path: "comparison.items", fact_key: "comparison" }
-        ]
-      }
+
+    let state = "ready";
+    if (missing_fields.length > 0) state = "missing";
+    else if (weak_fields.length > 0) state = "partial";
+
+    status[section] = {
+      enabled: true,
+      status: state,
+      required_for_preview: !!config.required_for_preview,
+      fields_needed: missing_fields,
+      weak_fields,
+      ready_fields
     };
   }
-  
-  function readPath(obj, path) {
-    const parts = cleanString(path).split(".").filter(Boolean);
-    let current = obj;
-  
-    for (const part of parts) {
-      if (!isObject(current) && !Array.isArray(current)) return undefined;
-      current = current?.[part];
+
+  return status;
+}
+
+function getSectionRequirements(strategy) {
+  const copyPolicy = strategy?.copy_policy || {};
+
+  return {
+    intelligence: {
+      required: true,
+      required_for_preview: true,
+      toggle_key: null,
+      fields: [
+        { path: "intelligence.industry", fact_key: "industry" },
+        { path: "intelligence.target_persona", fact_key: "target_persona" },
+        { path: "intelligence.tone_of_voice", fact_key: "tone_of_voice" }
+      ]
+    },
+    strategy: {
+      required: true,
+      required_for_preview: true,
+      toggle_key: null,
+      fields: [{ path: "strategy.show_features" }]
+    },
+    settings: {
+      required: true,
+      required_for_preview: true,
+      toggle_key: null,
+      fields: [
+        { path: "settings.vibe", fact_key: "vibe" },
+        { path: "settings.cta_text", fact_key: "cta_text" },
+        { path: "settings.cta_link", fact_key: "cta_link" }
+      ]
+    },
+    brand: {
+      required: true,
+      required_for_preview: true,
+      toggle_key: null,
+      fields: [
+        { path: "brand.name", fact_key: "business_name" },
+        { path: "brand.tagline", fact_key: "primary_offer" }
+      ]
+    },
+    hero: {
+      required: true,
+      required_for_preview: true,
+      toggle_key: null,
+      fields: [
+        { path: "hero.headline", fact_key: "primary_offer" },
+        { path: "hero.subtext", fact_key: "website_direction" },
+        { path: "hero.image.alt", fact_key: "primary_offer" },
+        { path: "hero.image.image_search_query", fact_key: "image_themes" }
+      ]
+    },
+    about: {
+      required: true,
+      required_for_preview: false,
+      toggle_key: "show_about",
+      fields: [
+        { path: "about.story_text", fact_key: "business_understanding" },
+        { path: "about.founder_note", fact_key: "trust_signal" },
+        {
+          path: "about.years_experience",
+          fact_key: "years_experience",
+          requires_verification: includesVerificationField(copyPolicy, "years_experience")
+        }
+      ]
+    },
+    features: {
+      required: true,
+      required_for_preview: true,
+      toggle_key: "show_features",
+      fields: [{ path: "features", fact_key: "service_list" }]
+    },
+    contact: {
+      required: true,
+      required_for_preview: true,
+      toggle_key: null,
+      fields: [
+        { path: "contact.cta_text", fact_key: "cta_text" },
+        { path: "contact.cta_link", fact_key: "cta_link" }
+      ]
+    },
+    trustbar: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_trustbar",
+      fields: [{ path: "trustbar.items", fact_key: "trust_signal" }]
+    },
+    processSteps: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_process",
+      fields: [{ path: "processSteps", fact_key: "process_summary" }]
+    },
+    testimonials: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_testimonials",
+      fields: [
+        { path: "testimonials", fact_key: "review_quotes", requires_verification: true }
+      ]
+    },
+    faqs: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_faqs",
+      fields: [{ path: "faqs", fact_key: "faq_angles" }]
+    },
+    gallery: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_gallery",
+      fields: [
+        {
+          path: "gallery.image_source.image_search_query",
+          fact_key: "gallery_visual_direction"
+        }
+      ]
+    },
+    service_area: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_service_area",
+      fields: [
+        { path: "service_area.main_city", fact_key: "service_area_main" },
+        { path: "service_area.surrounding_cities", fact_key: "surrounding_cities" }
+      ]
+    },
+    investment: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_investment",
+      fields: [
+        { path: "investment", fact_key: "pricing", requires_verification: true }
+      ]
+    },
+    events: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_events",
+      fields: [{ path: "events", fact_key: "events" }]
+    },
+    comparison: {
+      required: false,
+      required_for_preview: false,
+      toggle_key: "show_comparison",
+      fields: [{ path: "comparison.items", fact_key: "comparison" }]
     }
-  
-    return current;
+  };
+}
+
+function readPath(obj, path) {
+  const parts = cleanString(path).split(".").filter(Boolean);
+  let current = obj;
+
+  for (const part of parts) {
+    if (!isObject(current) && !Array.isArray(current)) return undefined;
+    current = current?.[part];
   }
-  
-  function factValue(factRegistry, key) {
-    return factRegistry?.[key]?.value;
+
+  return current;
+}
+
+function factValue(factRegistry, key) {
+  return factRegistry?.[key]?.value;
+}
+
+function isFactVerifiedByPath(factRegistry, factKey) {
+  if (!factKey) return false;
+  const fact = factRegistry?.[factKey];
+  return !!fact?.verified || !fact?.requires_client_verification;
+}
+
+/* --------------------------------
+   VERIFICATION QUEUE
+-------------------------------- */
+
+function buildVerificationQueue(strategy, factRegistry, sectionStatus) {
+  const queue = [];
+  const mustVerifyNow = cleanList(strategy?.content_requirements?.must_verify_now);
+  const previewRequired = cleanList(strategy?.content_requirements?.preview_required_fields);
+  const publishRequired = cleanList(strategy?.content_requirements?.publish_required_fields);
+
+  const fieldIntentMap = getFieldIntentMap(strategy);
+
+  for (const fieldKey of Object.keys(fieldIntentMap)) {
+    const fact = factRegistry?.[fieldKey];
+    const config = fieldIntentMap[fieldKey];
+
+    if (!fact) continue;
+
+    const missing = !hasMeaningfulValue(fact.value);
+    const needsClient = !!fact.requires_client_verification;
+    const shouldVerify =
+      needsClient ||
+      config.must_verify_now_aliases.some((alias) => mustVerifyNow.includes(alias)) ||
+      config.preview_aliases.some((alias) => previewRequired.includes(alias)) ||
+      config.publish_aliases.some((alias) => publishRequired.includes(alias));
+
+    if (!missing && !shouldVerify) continue;
+
+    const relatedSections = cleanList(config.related_sections).filter(
+      (section) => sectionStatus?.[section]?.enabled
+    );
+
+    queue.push({
+      field_key: fieldKey,
+      bundle_id: config.bundle_id,
+      priority: computeVerificationPriority(config, missing, shouldVerify, relatedSections),
+      missing,
+      requires_client_verification: needsClient,
+      related_sections: relatedSections,
+      reason: config.reason
+    });
   }
-  
-  function isFactVerifiedByPath(factRegistry, factKey) {
-    if (!factKey) return false;
-    const fact = factRegistry?.[factKey];
-    return !!fact?.verified || !fact?.requires_client_verification;
-  }
-  
-  /* --------------------------------
-     VERIFICATION QUEUE
-  -------------------------------- */
-  
-  function buildVerificationQueue(strategy, factRegistry, sectionStatus) {
-    const queue = [];
-    const mustVerifyNow = cleanList(strategy?.content_requirements?.must_verify_now);
-    const previewRequired = cleanList(strategy?.content_requirements?.preview_required_fields);
-    const publishRequired = cleanList(strategy?.content_requirements?.publish_required_fields);
-  
-    const fieldIntentMap = getFieldIntentMap(strategy);
-  
-    for (const fieldKey of Object.keys(fieldIntentMap)) {
+
+  return queue.sort((a, b) => b.priority - a.priority);
+}
+
+function getFieldIntentMap(strategy) {
+  const showProcess = !!strategy?.schema_toggles?.show_process;
+  const showGallery = !!strategy?.schema_toggles?.show_gallery;
+  const showTestimonials = !!strategy?.schema_toggles?.show_testimonials;
+  const showServiceArea = !!strategy?.schema_toggles?.show_service_area;
+  const showInvestment = !!strategy?.schema_toggles?.show_investment;
+  const showAbout = !!strategy?.schema_toggles?.show_about;
+
+  return {
+    primary_offer: {
+      bundle_id: "positioning",
+      related_sections: ["hero", "features"],
+      must_verify_now_aliases: ["primary_offer"],
+      preview_aliases: ["primary_offer"],
+      publish_aliases: [],
+      reason: "Primary offer shapes hero, features, and messaging."
+    },
+    target_persona: {
+      bundle_id: "positioning",
+      related_sections: ["intelligence", "hero", "features"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "Audience clarity improves positioning and conversion."
+    },
+    differentiation: {
+      bundle_id: "positioning",
+      related_sections: ["hero", "about", "features"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "Differentiation sharpens the page direction."
+    },
+    booking_method: {
+      bundle_id: "conversion",
+      related_sections: ["contact", "hero"],
+      must_verify_now_aliases: ["booking process"],
+      preview_aliases: ["booking_method"],
+      publish_aliases: [],
+      reason: "Booking method defines the conversion path."
+    },
+    pricing: {
+      bundle_id: showInvestment ? "pricing" : "conversion",
+      related_sections: showInvestment ? ["investment", "faqs", "contact"] : ["faqs", "contact"],
+      must_verify_now_aliases: ["pricing structure"],
+      preview_aliases: ["pricing structure"],
+      publish_aliases: ["pricing"],
+      reason: "Pricing expectations affect conversion and qualification."
+    },
+    service_area_main: {
+      bundle_id: "service_area",
+      related_sections: showServiceArea ? ["service_area", "hero"] : ["hero"],
+      must_verify_now_aliases: ["service area specifics"],
+      preview_aliases: ["service_area", "service area specifics"],
+      publish_aliases: [],
+      reason: "Location clarity supports relevance and local intent."
+    },
+    surrounding_cities: {
+      bundle_id: "service_area",
+      related_sections: showServiceArea ? ["service_area"] : [],
+      must_verify_now_aliases: ["service area specifics"],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "Nearby locations improve service area usefulness."
+    },
+    phone: {
+      bundle_id: "contact_details",
+      related_sections: ["brand", "contact"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: ["phone", "public business phone number"],
+      reason: "Contact details are needed for publish-ready accuracy."
+    },
+    email: {
+      bundle_id: "contact_details",
+      related_sections: ["brand", "contact"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "An email gives the site a clear contact path."
+    },
+    address: {
+      bundle_id: "contact_details",
+      related_sections: ["brand", "contact"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: ["address", "business address"],
+      reason: "Address is publish-critical when the business uses one."
+    },
+    hours: {
+      bundle_id: "contact_details",
+      related_sections: ["contact"],
+      must_verify_now_aliases: ["availability for peak seasons"],
+      preview_aliases: ["availability for peak seasons"],
+      publish_aliases: ["hours", "hours of operation"],
+      reason: "Hours or availability set expectations for leads."
+    },
+    booking_url: {
+      bundle_id: "conversion",
+      related_sections: ["contact", "settings"],
+      must_verify_now_aliases: ["booking process"],
+      preview_aliases: [],
+      publish_aliases: ["booking_url"],
+      reason: "A real booking URL should be verified before publish."
+    },
+    review_quotes: {
+      bundle_id: "proof",
+      related_sections: showTestimonials ? ["testimonials", "trustbar"] : ["trustbar"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: ["review_quotes"],
+      reason: "Proof assets improve trust when available."
+    },
+    years_experience: {
+      bundle_id: "proof",
+      related_sections: showAbout ? ["about", "trustbar"] : ["trustbar"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "Experience often strengthens trust."
+    },
+    founder_story: {
+      bundle_id: "brand_story",
+      related_sections: showAbout ? ["about"] : [],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "Founding story improves the about section when enabled."
+    },
+    process_summary: {
+      bundle_id: "process",
+      related_sections: showProcess ? ["processSteps"] : [],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "A clear journey reduces friction for consultative businesses."
+    },
+    gallery_visual_direction: {
+      bundle_id: "visual_direction",
+      related_sections: showGallery ? ["gallery", "hero"] : ["hero"],
+      must_verify_now_aliases: [],
+      preview_aliases: [],
+      publish_aliases: [],
+      reason: "Visual direction helps the gallery and hero feel intentional."
+    }
+  };
+}
+
+function computeVerificationPriority(config, missing, shouldVerify, relatedSections) {
+  let score = 0;
+  if (missing) score += 60;
+  if (shouldVerify) score += 25;
+  score += Math.min(relatedSections.length * 8, 24);
+  return score;
+}
+
+/* --------------------------------
+   QUESTION CANDIDATES / PLANNER
+-------------------------------- */
+
+function buildQuestionCandidates(strategy, factRegistry, sectionStatus, verificationQueue) {
+  const bundleMap = getQuestionBundleMap(strategy, factRegistry, sectionStatus);
+  const candidates = [];
+
+  for (const [bundleId, config] of Object.entries(bundleMap)) {
+    if (!config.enabled) continue;
+
+    const matchingQueue = verificationQueue.filter((item) => item.bundle_id === bundleId);
+    const targetedFields = uniqueList([
+      ...config.target_fields,
+      ...matchingQueue.map((item) => item.field_key)
+    ]).filter(Boolean);
+
+    const missingFields = targetedFields.filter((fieldKey) => {
       const fact = factRegistry?.[fieldKey];
-      const config = fieldIntentMap[fieldKey];
-  
-      if (!fact) continue;
-  
-      const missing = !hasMeaningfulValue(fact.value);
-      const needsClient = !!fact.requires_client_verification;
-      const shouldVerify =
-        needsClient ||
-        config.must_verify_now_aliases.some((alias) => mustVerifyNow.includes(alias)) ||
-        config.preview_aliases.some((alias) => previewRequired.includes(alias)) ||
-        config.publish_aliases.some((alias) => publishRequired.includes(alias));
-  
-      if (!missing && !shouldVerify) continue;
-  
-      const relatedSections = cleanList(config.related_sections).filter((section) => sectionStatus?.[section]?.enabled);
-  
-      queue.push({
-        field_key: fieldKey,
-        bundle_id: config.bundle_id,
-        priority: computeVerificationPriority(config, missing, shouldVerify, relatedSections),
-        missing,
-        requires_client_verification: needsClient,
-        related_sections: relatedSections,
-        reason: config.reason
-      });
+      return !fact || !hasMeaningfulValue(fact.value) || fact.requires_client_verification;
+    });
+
+    if (missingFields.length === 0 && matchingQueue.length === 0) continue;
+
+    const queueImpact = matchingQueue.reduce(
+      (sum, item) => sum + Math.min(item.priority, 40),
+      0
+    );
+
+    const score =
+      config.base_priority +
+      queueImpact +
+      Math.min(config.target_sections.length * 6, 24);
+
+    let adjustedScore = score;
+
+    if (bundleId === "contact_details") {
+      adjustedScore -= 80;
     }
-  
-    return queue.sort((a, b) => b.priority - a.priority);
+
+    candidates.push({
+      bundle_id: bundleId,
+      score: adjustedScore,
+      target_fields: targetedFields,
+      target_sections: config.target_sections,
+      primary_field: targetedFields[0] || null,
+      intent: config.intent,
+      reason: config.reason,
+      tone: config.tone || "consultative"
+    });
   }
-  
-  function getFieldIntentMap(strategy) {
-    const showProcess = !!strategy?.schema_toggles?.show_process;
-    const showGallery = !!strategy?.schema_toggles?.show_gallery;
-    const showTestimonials = !!strategy?.schema_toggles?.show_testimonials;
-    const showServiceArea = !!strategy?.schema_toggles?.show_service_area;
-    const showInvestment = !!strategy?.schema_toggles?.show_investment;
-    const showAbout = !!strategy?.schema_toggles?.show_about;
-  
-    return {
-      primary_offer: {
-        bundle_id: "positioning",
-        related_sections: ["hero", "features"],
-        must_verify_now_aliases: ["primary_offer"],
-        preview_aliases: ["primary_offer"],
-        publish_aliases: [],
-        reason: "Primary offer shapes hero, features, and messaging."
-      },
-      target_persona: {
-        bundle_id: "positioning",
-        related_sections: ["intelligence", "hero", "features"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "Audience clarity improves positioning and conversion."
-      },
-      differentiation: {
-        bundle_id: "positioning",
-        related_sections: ["hero", "about", "features"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "Differentiation sharpens the page direction."
-      },
-      booking_method: {
-        bundle_id: "conversion",
-        related_sections: ["contact", "hero"],
-        must_verify_now_aliases: ["booking process"],
-        preview_aliases: ["booking_method"],
-        publish_aliases: [],
-        reason: "Booking method defines the conversion path."
-      },
-      pricing: {
-        bundle_id: showInvestment ? "pricing" : "conversion",
-        related_sections: showInvestment ? ["investment", "faqs", "contact"] : ["faqs", "contact"],
-        must_verify_now_aliases: ["pricing structure"],
-        preview_aliases: ["pricing structure"],
-        publish_aliases: ["pricing"],
-        reason: "Pricing expectations affect conversion and qualification."
-      },
-      service_area_main: {
-        bundle_id: "service_area",
-        related_sections: showServiceArea ? ["service_area", "hero"] : ["hero"],
-        must_verify_now_aliases: ["service area specifics"],
-        preview_aliases: ["service_area", "service area specifics"],
-        publish_aliases: [],
-        reason: "Location clarity supports relevance and local intent."
-      },
-      surrounding_cities: {
-        bundle_id: "service_area",
-        related_sections: showServiceArea ? ["service_area"] : [],
-        must_verify_now_aliases: ["service area specifics"],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "Nearby locations improve service area usefulness."
-      },
-      phone: {
-        bundle_id: "contact_details",
-        related_sections: ["brand", "contact"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: ["phone", "public business phone number"],
-        reason: "Contact details are needed for publish-ready accuracy."
-      },
-      email: {
-        bundle_id: "contact_details",
-        related_sections: ["brand", "contact"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "An email gives the site a clear contact path."
-      },
-      address: {
-        bundle_id: "contact_details",
-        related_sections: ["brand", "contact"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: ["address", "business address"],
-        reason: "Address is publish-critical when the business uses one."
-      },
-      hours: {
-        bundle_id: "contact_details",
-        related_sections: ["contact"],
-        must_verify_now_aliases: ["availability for peak seasons"],
-        preview_aliases: ["availability for peak seasons"],
-        publish_aliases: ["hours", "hours of operation"],
-        reason: "Hours or availability set expectations for leads."
-      },
-      booking_url: {
-        bundle_id: "conversion",
-        related_sections: ["contact", "settings"],
-        must_verify_now_aliases: ["booking process"],
-        preview_aliases: [],
-        publish_aliases: ["booking_url"],
-        reason: "A real booking URL should be verified before publish."
-      },
-      review_quotes: {
-        bundle_id: "proof",
-        related_sections: showTestimonials ? ["testimonials", "trustbar"] : ["trustbar"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: ["review_quotes"],
-        reason: "Proof assets improve trust when available."
-      },
-      years_experience: {
-        bundle_id: showAbout ? "proof" : "proof",
-        related_sections: showAbout ? ["about", "trustbar"] : ["trustbar"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "Experience often strengthens trust."
-      },
-      founder_story: {
-        bundle_id: "brand_story",
-        related_sections: showAbout ? ["about"] : [],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "Founding story improves the about section when enabled."
-      },
-      process_summary: {
-        bundle_id: "process",
-        related_sections: showProcess ? ["processSteps"] : [],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "A clear journey reduces friction for consultative businesses."
-      },
-      gallery_visual_direction: {
-        bundle_id: "visual_direction",
-        related_sections: showGallery ? ["gallery", "hero"] : ["hero"],
-        must_verify_now_aliases: [],
-        preview_aliases: [],
-        publish_aliases: [],
-        reason: "Visual direction helps the gallery and hero feel intentional."
-      }
-    };
-  }
-  
-  function computeVerificationPriority(config, missing, shouldVerify, relatedSections) {
-    let score = 0;
-    if (missing) score += 60;
-    if (shouldVerify) score += 25;
-    score += Math.min(relatedSections.length * 8, 24);
-    return score;
-  }
-  
-  /* --------------------------------
-     QUESTION CANDIDATES / PLANNER
-  -------------------------------- */
-  
-  function buildQuestionCandidates(strategy, factRegistry, sectionStatus, verificationQueue) {
-    const bundleMap = getQuestionBundleMap(strategy, factRegistry, sectionStatus);
-    const candidates = [];
-  
-    for (const [bundleId, config] of Object.entries(bundleMap)) {
-      if (!config.enabled) continue;
-  
-      const matchingQueue = verificationQueue.filter((item) => item.bundle_id === bundleId);
-      const targetedFields = uniqueList([
-        ...config.target_fields,
-        ...matchingQueue.map((item) => item.field_key)
-      ]).filter(Boolean);
-  
-      const missingFields = targetedFields.filter((fieldKey) => {
-        const fact = factRegistry?.[fieldKey];
-        return !fact || !hasMeaningfulValue(fact.value) || fact.requires_client_verification;
-      });
-  
-      if (missingFields.length === 0 && matchingQueue.length === 0) continue;
-  
-      const score =
-        config.base_priority +
-        matchingQueue.reduce((sum, item) => sum + item.priority, 0) +
-        Math.min(config.target_sections.length * 6, 24);
-  
-      candidates.push({
-        bundle_id: bundleId,
-        score,
-        target_fields: targetedFields,
-        target_sections: config.target_sections,
-        primary_field: targetedFields[0] || null,
-        intent: config.intent,
-        reason: config.reason,
-        tone: config.tone || "consultative"
-      });
+
+  return candidates.sort((a, b) => b.score - a.score);
+}
+
+function getQuestionBundleMap(strategy, factRegistry, sectionStatus) {
+  return {
+    positioning: {
+      enabled: true,
+      base_priority: 220,
+      target_fields: ["primary_offer", "target_persona", "differentiation"],
+      target_sections: ["hero", "features", "about"],
+      intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
+      reason: "This unlocks hero, features, and overall page direction."
+    },
+
+    conversion: {
+      enabled: true,
+      base_priority: 240,
+      target_fields: ["booking_method", "contact_path", "pricing", "booking_url"],
+      target_sections: ["contact", "settings", "hero"],
+      intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
+      reason: "This defines how the site converts visitors."
+    },
+
+    service_area: {
+      enabled:
+        !!strategy?.schema_toggles?.show_service_area ||
+        hasMeaningfulValue(factValue(factRegistry, "service_area_main")),
+      base_priority: 170,
+      target_fields: ["service_area_main", "surrounding_cities"],
+      target_sections: ["service_area", "hero"],
+      intent: "Clarify the primary market and nearby areas served.",
+      reason: "This improves local relevance and targeting."
+    },
+
+    proof: {
+      enabled:
+        !!strategy?.schema_toggles?.show_testimonials ||
+        !!strategy?.schema_toggles?.show_trustbar ||
+        sectionStatus?.about?.enabled,
+      base_priority: 150,
+      target_fields: ["review_quotes", "years_experience", "trust_signal"],
+      target_sections: ["trustbar", "testimonials", "about"],
+      intent: "Clarify why someone should trust the business quickly.",
+      reason: "Proof makes the site feel credible."
+    },
+
+    brand_story: {
+      enabled: !!strategy?.schema_toggles?.show_about,
+      base_priority: 90,
+      target_fields: ["founder_story", "years_experience"],
+      target_sections: ["about"],
+      intent: "Clarify how the business started and what standards or philosophy define it.",
+      reason: "A stronger story improves the about section."
+    },
+
+    process: {
+      enabled: !!strategy?.schema_toggles?.show_process,
+      base_priority: 85,
+      target_fields: ["process_summary"],
+      target_sections: ["processSteps"],
+      intent: "Understand the client journey from first step to outcome.",
+      reason: "A clear process lowers friction for multi-step offers."
+    },
+
+    visual_direction: {
+      enabled: !!strategy?.schema_toggles?.show_gallery,
+      base_priority: 80,
+      target_fields: ["gallery_visual_direction"],
+      target_sections: ["gallery", "hero"],
+      intent: "Clarify what should be shown visually and what feeling the images should create.",
+      reason: "The gallery needs intentional visual direction."
+    },
+
+    contact_details: {
+      enabled: true,
+      base_priority: 15,
+      target_fields: ["phone", "email", "address", "hours"],
+      target_sections: ["brand", "contact"],
+      intent: "Verify the factual contact details needed for publish-readiness.",
+      reason: "These details should be accurate before publish."
+    },
+
+    pricing: {
+      enabled: !!strategy?.schema_toggles?.show_investment,
+      base_priority: 55,
+      target_fields: ["pricing"],
+      target_sections: ["investment", "contact"],
+      intent: "Clarify whether pricing is standardized, estimate-based, or custom.",
+      reason: "Pricing only matters when that section is in play."
     }
-  
-    return candidates.sort((a, b) => b.score - a.score);
+  };
+}
+
+function planNextQuestion(questionCandidates) {
+  if (!Array.isArray(questionCandidates) || questionCandidates.length === 0) return null;
+
+  const sorted = [...questionCandidates].sort((a, b) => b.score - a.score);
+  const top = sorted[0];
+
+  if (top?.bundle_id !== "contact_details") {
+    return top;
   }
-  
-  function getQuestionBundleMap(strategy, factRegistry, sectionStatus) {
-    return {
-      positioning: {
-        enabled: true,
-        base_priority: 120,
-        target_fields: ["primary_offer", "target_persona", "differentiation"],
-        target_sections: ["hero", "features", "about"],
-        intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
-        reason: "This unlocks hero, features, and overall page direction."
-      },
-  
-      conversion: {
-        enabled: true,
-        base_priority: 115,
-        target_fields: ["booking_method", "contact_path", "pricing", "booking_url"],
-        target_sections: ["contact", "settings", "hero"],
-        intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
-        reason: "This defines how the site converts visitors."
-      },
-  
-      service_area: {
-        enabled: !!strategy?.schema_toggles?.show_service_area || hasMeaningfulValue(factValue(factRegistry, "service_area_main")),
-        base_priority: 95,
-        target_fields: ["service_area_main", "surrounding_cities"],
-        target_sections: ["service_area", "hero"],
-        intent: "Clarify the primary market and nearby areas served.",
-        reason: "This improves local relevance and targeting."
-      },
-  
-      proof: {
-        enabled: !!strategy?.schema_toggles?.show_testimonials || !!strategy?.schema_toggles?.show_trustbar || sectionStatus?.about?.enabled,
-        base_priority: 90,
-        target_fields: ["review_quotes", "years_experience", "trust_signal"],
-        target_sections: ["trustbar", "testimonials", "about"],
-        intent: "Clarify why someone should trust the business quickly.",
-        reason: "Proof makes the site feel credible."
-      },
-  
-      brand_story: {
-        enabled: !!strategy?.schema_toggles?.show_about,
-        base_priority: 75,
-        target_fields: ["founder_story", "years_experience"],
-        target_sections: ["about"],
-        intent: "Clarify how the business started and what standards or philosophy define it.",
-        reason: "A stronger story improves the about section."
-      },
-  
-      process: {
-        enabled: !!strategy?.schema_toggles?.show_process,
-        base_priority: 72,
-        target_fields: ["process_summary"],
-        target_sections: ["processSteps"],
-        intent: "Understand the client journey from first step to outcome.",
-        reason: "A clear process lowers friction for multi-step offers."
-      },
-  
-      visual_direction: {
-        enabled: !!strategy?.schema_toggles?.show_gallery,
-        base_priority: 65,
-        target_fields: ["gallery_visual_direction"],
-        target_sections: ["gallery", "hero"],
-        intent: "Clarify what should be shown visually and what feeling the images should create.",
-        reason: "The gallery needs intentional visual direction."
-      },
-  
-      contact_details: {
-        enabled: true,
-        base_priority: 60,
-        target_fields: ["phone", "email", "address", "hours"],
-        target_sections: ["brand", "contact"],
-        intent: "Verify the factual contact details needed for publish-readiness.",
-        reason: "These details should be accurate before publish."
-      },
-  
-      pricing: {
-        enabled: !!strategy?.schema_toggles?.show_investment,
-        base_priority: 55,
-        target_fields: ["pricing"],
-        target_sections: ["investment", "contact"],
-        intent: "Clarify whether pricing is standardized, estimate-based, or custom.",
-        reason: "Pricing only matters when that section is in play."
-      }
-    };
+
+  const preferredOpeningOrder = [
+    "conversion",
+    "positioning",
+    "service_area",
+    "proof",
+    "brand_story",
+    "process",
+    "visual_direction"
+  ];
+
+  for (const bundleId of preferredOpeningOrder) {
+    const candidate = sorted.find((item) => item.bundle_id === bundleId);
+    if (candidate) return candidate;
   }
-  
-  function planNextQuestion(questionCandidates) {
-    if (!Array.isArray(questionCandidates) || questionCandidates.length === 0) return null;
-    return questionCandidates[0];
-  }
-  
-  /* --------------------------------
-     QUESTION RENDERING
-  -------------------------------- */
-  
-  function renderQuestion(questionPlan, blueprint) {
-    if (!questionPlan) return "";
-  
-    const businessName = cleanString(blueprint?.strategy?.business_context?.business_name) || "your business";
-    const category = cleanString(blueprint?.strategy?.business_context?.category);
-    const conversionMode = cleanString(blueprint?.strategy?.conversion_strategy?.conversion_mode || blueprint?.strategy?.conversion_strategy?.primary_conversion);
-  
-    const renderers = {
-      positioning() {
-        return `I reviewed the preflight direction for ${businessName}. To sharpen the page around the right message, who is the ideal fit, what are they usually coming to you for, and what makes your approach the better choice?`;
-      },
-  
-      conversion() {
-        return `When someone is ready to take the next step with ${businessName}, what should happen—do they call, request a quote, fill out a form, book online, or do something else—and is there anything they should know about pricing or availability?`;
-      },
-  
-      service_area() {
-        return `What is the main city or region you want the site to lead with, and what nearby areas should visitors know you also serve?`;
-      },
-  
-      proof() {
-        return `What should make someone feel confident choosing ${businessName} right away—reviews, years of experience, credentials, notable results, guarantees, or something else?`;
-      },
-  
-      brand_story() {
-        return `How did ${businessName} start, and what should the site help people understand about your standards, philosophy, or the way you work?`;
-      },
-  
-      process() {
-        return `When someone decides to work with ${businessName}, what does the journey typically look like—from the first conversation to the outcome you're helping them reach?`;
-      },
-  
-      visual_direction() {
-        return `What kinds of images or examples should the site show most, and what overall vibe should those visuals create for the right visitor?`;
-      },
-  
-      contact_details() {
-        return `To make the site publish-ready, what contact details should we treat as accurate right now—email, phone, address, hours, or anything that should stay private for now?`;
-      },
-  
-      pricing() {
-        return `Do you offer standardized pricing or packages, or is the best way to frame pricing as custom, quote-based, or starting at a certain level?`;
-      }
-    };
-  
-    if (renderers[questionPlan.bundle_id]) {
-      return renderers[questionPlan.bundle_id]();
+
+  return top;
+}
+
+/* --------------------------------
+   QUESTION RENDERING
+-------------------------------- */
+
+function renderQuestion(questionPlan, blueprint) {
+  if (!questionPlan) return "";
+
+  const businessName =
+    cleanString(blueprint?.strategy?.business_context?.business_name) || "your business";
+  const category = cleanString(blueprint?.strategy?.business_context?.category);
+  const conversionMode = cleanString(
+    blueprint?.strategy?.conversion_strategy?.conversion_mode ||
+      blueprint?.strategy?.conversion_strategy?.primary_conversion
+  );
+
+  const renderers = {
+    positioning() {
+      return `I reviewed the preflight direction for ${businessName}. To sharpen the page around the right message, who is the ideal fit, what are they usually coming to you for, and what makes your approach the better choice?`;
+    },
+
+    conversion() {
+      return `When someone is ready to take the next step with ${businessName}, what should happen—do they call, request a quote, fill out a form, book online, or do something else—and is there anything they should know about pricing or availability?`;
+    },
+
+    service_area() {
+      return `What is the main city or region you want the site to lead with, and what nearby areas should visitors know you also serve?`;
+    },
+
+    proof() {
+      return `What should make someone feel confident choosing ${businessName} right away—reviews, years of experience, credentials, notable results, guarantees, or something else?`;
+    },
+
+    brand_story() {
+      return `How did ${businessName} start, and what should the site help people understand about your standards, philosophy, or the way you work?`;
+    },
+
+    process() {
+      return `When someone decides to work with ${businessName}, what does the journey typically look like—from the first conversation to the outcome you're helping them reach?`;
+    },
+
+    visual_direction() {
+      return `What kinds of images or examples should the site show most, and what overall vibe should those visuals create for the right visitor?`;
+    },
+
+    contact_details() {
+      return `To make the site publish-ready, what contact details should we treat as accurate right now—email, phone, address, hours, or anything that should stay private for now?`;
+    },
+
+    pricing() {
+      return `Do you offer standardized pricing or packages, or is the best way to frame pricing as custom, quote-based, or starting at a certain level?`;
     }
-  
-    const categoryLine = category ? ` for ${category}` : "";
-    const conversionLine = conversionMode ? ` and the main next step should support ${conversionMode.replace(/_/g, " ")}` : "";
-    return `I reviewed the preflight direction for ${businessName}${categoryLine}. What feels most important to clarify first so the site reflects the business well${conversionLine}?`;
+  };
+
+  if (renderers[questionPlan.bundle_id]) {
+    return renderers[questionPlan.bundle_id]();
   }
-  
-  function fallbackOpeningMessage(state) {
-    const businessName = cleanString(state?.businessName) || "your business";
-    return `I reviewed the preflight direction for ${businessName}. Let’s verify the most important details so the preview feels premium, accurate, and conversion-ready.`;
-  }
-  
-  /* --------------------------------
-     READINESS
-  -------------------------------- */
-  
-  function evaluateBlueprintReadiness(blueprint) {
-    const sectionStatus = isObject(blueprint?.section_status) ? blueprint.section_status : {};
-    const enabledSections = Object.entries(sectionStatus).filter(([, value]) => value?.enabled);
-    const requiredPreviewSections = enabledSections.filter(([, value]) => value?.required_for_preview);
-  
-    const readyRequiredCount = requiredPreviewSections.filter(([, value]) => value?.status === "ready").length;
-    const totalRequiredCount = requiredPreviewSections.length || 1;
-    const score = Number((readyRequiredCount / totalRequiredCount).toFixed(2));
-  
-    const blockingSections = requiredPreviewSections
-      .filter(([, value]) => value?.status !== "ready")
-      .map(([key]) => key);
-  
-    const queue = Array.isArray(blueprint?.verification_queue) ? blueprint.verification_queue : [];
-    const mustVerifyOpen = queue.filter((item) => item.priority >= 85).map((item) => item.field_key);
-  
-    return {
-      score,
-      can_generate_now: blockingSections.length === 0 && mustVerifyOpen.length === 0,
-      remaining_blocks: blockingSections,
-      satisfied_blocks: requiredPreviewSections
-        .filter(([, value]) => value?.status === "ready")
-        .map(([key]) => key),
-      must_verify_open: mustVerifyOpen
-    };
-  }
+
+  const categoryLine = category ? ` for ${category}` : "";
+  const conversionLine = conversionMode
+    ? ` and the main next step should support ${conversionMode.replace(/_/g, " ")}`
+    : "";
+
+  return `I reviewed the preflight direction for ${businessName}${categoryLine}. What feels most important to clarify first so the site reflects the business well${conversionLine}?`;
+}
+
+function fallbackOpeningMessage(state) {
+  const businessName = cleanString(state?.businessName) || "your business";
+  return `I reviewed the preflight direction for ${businessName}. Let’s verify the most important details so the preview feels premium, accurate, and conversion-ready.`;
+}
+
+/* --------------------------------
+   READINESS
+-------------------------------- */
+
+function evaluateBlueprintReadiness(blueprint) {
+  const sectionStatus = isObject(blueprint?.section_status) ? blueprint.section_status : {};
+  const enabledSections = Object.entries(sectionStatus).filter(([, value]) => value?.enabled);
+  const requiredPreviewSections = enabledSections.filter(([, value]) => value?.required_for_preview);
+
+  const readyRequiredCount = requiredPreviewSections.filter(([, value]) => value?.status === "ready").length;
+  const totalRequiredCount = requiredPreviewSections.length || 1;
+  const score = Number((readyRequiredCount / totalRequiredCount).toFixed(2));
+
+  const blockingSections = requiredPreviewSections
+    .filter(([, value]) => value?.status !== "ready")
+    .map(([key]) => key);
+
+  const queue = Array.isArray(blueprint?.verification_queue) ? blueprint.verification_queue : [];
+  const mustVerifyOpen = queue.filter((item) => item.priority >= 85).map((item) => item.field_key);
+
+  return {
+    score,
+    can_generate_now: blockingSections.length === 0 && mustVerifyOpen.length === 0,
+    remaining_blocks: blockingSections,
+    satisfied_blocks: requiredPreviewSections
+      .filter(([, value]) => value?.status === "ready")
+      .map(([key]) => key),
+    must_verify_open: mustVerifyOpen
+  };
+}
