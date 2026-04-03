@@ -1,32 +1,52 @@
 /**
- * SITEFORGE FACTORY — intake-next-v2.js
+ * SITEFORGE FACTORY — intake-next-v2-1.js
  *
- * V2 Blueprint Intake Engine
+ * Schema-guided, component-first intake engine.
  * ------------------------------------------------------------
- * Purpose:
- * - Accept a user answer + current state.blueprint
- * - Use AI only for answer interpretation and optional copy refinement
- * - Safely update fact_registry
- * - Incrementally patch business_draft
- * - Recompute section_status
- * - Rebuild verification_queue
- * - Re-score bundle candidates
- * - Select the next question using the same bundle-based planner model
- * - Return { ok, message, state }
+ * Responsibilities:
+ * - Accept user answer + current intake state
+ * - Use AI for interpretation and optional copy refinement
+ * - Use code for validation, routing, planning, and draft synchronization
+ * - Treat ALL schema components as first-class runtime objects
+ * - Produce build-useful hero/gallery image strategy
+ * - Avoid repeated-question loops
  *
- * Hard rules:
- * - No regex-based answer extraction
- * - No hard-coded industry logic
- * - AI does not define schema
- * - No full business_draft regeneration
- *
- * Compatibility:
- * - strategy_contract provenance preserved
- * - blueprint shape preserved
- * - compatibility mirrors preserved: answers, verified, verification, current_key, readiness
+ * Output:
+ * { ok, message, state }
  */
 
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
+
+const ALLOWED_ICON_TOKENS = [
+  "zap",
+  "cpu",
+  "layers",
+  "rocket",
+  "leaf",
+  "sprout",
+  "sun",
+  "scissors",
+  "truck",
+  "hammer",
+  "wrench",
+  "trash",
+  "sparkles",
+  "heart",
+  "award",
+  "users",
+  "map",
+  "shield",
+  "star",
+  "check",
+  "coins",
+  "briefcase",
+  "clock",
+  "phone"
+];
+
+/* ========================================================================
+ * Cloudflare Handlers
+ * ====================================================================== */
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -45,13 +65,7 @@ export async function onRequestPost(context) {
     }
 
     if (!userAnswer) {
-      return json(
-        {
-          ok: false,
-          error: "Missing answer"
-        },
-        400
-      );
+      return json({ ok: false, error: "Missing answer" }, 400);
     }
 
     const state = normalizeState(incomingState);
@@ -62,64 +76,48 @@ export async function onRequestPost(context) {
 
     const blueprint = normalizeBlueprint(state.blueprint);
     const currentPlan = isObject(blueprint.question_plan) ? blueprint.question_plan : {};
+    const schemaGuide = compileSchemaGuide(blueprint, state);
+
     const interpretation = await interpretUserAnswer({
       env,
       answer: userAnswer,
       blueprint,
-      strategyContract: state.provenance.strategy_contract
+      state,
+      schemaGuide,
+      currentPlan
     });
 
-    const mutation = applyInterpretationToBlueprint({
+    const routed = routeInterpretationToEvidence({
       blueprint,
+      state,
+      schemaGuide,
       interpretation,
       answer: userAnswer
     });
 
-    const recomputedSectionStatus = computeSectionStatus(
-      blueprint.strategy,
-      mutation.fact_registry,
-      mutation.business_draft
-    );
+    const recomputed = recomputeBlueprint({
+      blueprint: routed.blueprint,
+      state,
+      schemaGuide,
+      previousPlan: currentPlan,
+      lastAudit: routed.audit
+    });
 
-    const verificationQueue = buildVerificationQueue(
-      blueprint.strategy,
-      mutation.fact_registry,
-      recomputedSectionStatus
-    );
-
-    const questionCandidates = buildQuestionCandidates(
-      blueprint.strategy,
-      mutation.fact_registry,
-      recomputedSectionStatus,
-      verificationQueue
-    );
-
-    const questionPlan = planNextQuestion(
-        questionCandidates,
-        currentPlan.bundle_id || "",
-        mutation.fact_registry
-      );
-      
     state.blueprint = {
-      ...blueprint,
-      fact_registry: mutation.fact_registry,
-      business_draft: mutation.business_draft,
-      section_status: recomputedSectionStatus,
-      verification_queue: verificationQueue,
-      question_candidates: questionCandidates,
-      question_plan: questionPlan,
+      ...recomputed.blueprint,
+      schema_guide: schemaGuide,
       last_answer: {
         text: userAnswer,
         bundle_id: cleanString(currentPlan.bundle_id),
         primary_field: cleanString(currentPlan.primary_field),
         timestamp: new Date().toISOString()
       },
-      last_interpretation: mutation.audit
+      last_interpretation: routed.audit
     };
 
     syncCompatibilityMirrors(state);
-
     state.readiness = evaluateBlueprintReadiness(state.blueprint);
+
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "blueprint_verify";
     state.action = state.readiness.can_generate_now ? "complete" : "continue";
     state.current_key = cleanString(state.blueprint.question_plan?.primary_field);
@@ -128,7 +126,7 @@ export async function onRequestPost(context) {
       env,
       blueprint: state.blueprint,
       previousPlan: currentPlan,
-      interpretation: mutation.audit,
+      interpretation: routed.audit,
       businessName: state.businessName
     });
 
@@ -137,13 +135,24 @@ export async function onRequestPost(context) {
       content: assistantMessage
     });
 
+    // Persist asked-question history for future stall detection
+    state.blueprint.question_history = Array.isArray(state.blueprint.question_history)
+      ? state.blueprint.question_history
+      : [];
+    state.blueprint.question_history.push({
+      timestamp: new Date().toISOString(),
+      bundle_id: cleanString(state.blueprint.question_plan?.bundle_id),
+      primary_field: cleanString(state.blueprint.question_plan?.primary_field),
+      message: assistantMessage
+    });
+
     return json({
       ok: true,
       message: assistantMessage,
       state
     });
   } catch (err) {
-    console.error("[intake-next-v2]", err);
+    console.error("[intake-next-v2-1]", err);
     return json(
       {
         ok: false,
@@ -157,28 +166,216 @@ export async function onRequestPost(context) {
 export async function onRequestGet() {
   return json({
     ok: true,
-    endpoint: "intake-next-v2",
+    endpoint: "intake-next-v2-1",
     method: "POST",
-    version: "v2-blueprint-engine"
+    version: "v2.1-component-first-rebuilt"
   });
 }
 
-/* =========================
-   AI Interpretation
-========================= */
+/* ========================================================================
+ * Schema Guide
+ * ====================================================================== */
 
-async function interpretUserAnswer({ env, answer, blueprint, strategyContract }) {
+function compileSchemaGuide(blueprint, state) {
+  const strategyContract = safeObject(state?.provenance?.strategy_contract);
+  const toggles = safeObject(
+    blueprint?.strategy?.schema_toggles ||
+      strategyContract?.schema_toggles
+  );
+
+  return {
+    intelligence: {
+      kind: "section",
+      required: true,
+      ai_priority: "critical",
+      purpose: "Establish foundational context so AI can behave like a web strategist.",
+      evidence_keys: ["industry", "target_persona", "tone_of_voice"],
+      toggle_key: null
+    },
+    strategy: {
+      kind: "section",
+      required: true,
+      ai_priority: "critical",
+      purpose: "Determine which site components should render based on business needs.",
+      evidence_keys: [
+        "show_trustbar",
+        "show_about",
+        "show_features",
+        "show_events",
+        "show_process",
+        "show_testimonials",
+        "show_comparison",
+        "show_gallery",
+        "show_investment",
+        "show_faqs",
+        "show_service_area"
+      ],
+      toggle_key: null
+    },
+    settings: {
+      kind: "section",
+      required: true,
+      ai_priority: "critical",
+      purpose: "Control global UI, vibe, CTA, and navigation behavior.",
+      evidence_keys: ["vibe", "cta_text", "cta_link", "booking_url"],
+      toggle_key: null
+    },
+    brand: {
+      kind: "section",
+      required: true,
+      ai_priority: "critical",
+      purpose: "Define the public-facing identity of the business.",
+      evidence_keys: ["business_name", "tagline", "email", "phone", "address"],
+      toggle_key: null
+    },
+    hero: {
+      kind: "component",
+      required: true,
+      ai_priority: "critical",
+      planner_group: "positioning",
+      purpose: "Immediately communicate the core value proposition.",
+      evidence_keys: [
+        "primary_offer",
+        "target_persona",
+        "differentiation",
+        "booking_method",
+        "hero_headline",
+        "hero_subheadline",
+        "hero_image_alt",
+        "hero_image_query"
+      ],
+      image_priority: true,
+      toggle_key: null
+    },
+    about: {
+      kind: "component",
+      required: false,
+      ai_priority: "recommended",
+      planner_group: "story",
+      purpose: "Build emotional connection and credibility through story.",
+      evidence_keys: ["founder_story", "years_experience", "differentiation", "business_understanding"],
+      toggle_key: "show_about"
+    },
+    trustbar: {
+      kind: "component",
+      required: false,
+      ai_priority: "optional",
+      planner_group: "proof",
+      purpose: "Add quick trust signals near the hero to improve conversion.",
+      evidence_keys: ["trust_signal", "review_quotes", "years_experience"],
+      toggle_key: "show_trustbar"
+    },
+    events: {
+      kind: "component",
+      required: false,
+      ai_priority: "optional",
+      planner_group: "events_strategy",
+      purpose: "Display time-based offerings or upcoming schedule.",
+      evidence_keys: ["events", "booking_url", "booking_method"],
+      toggle_key: "show_events"
+    },
+    service_area: {
+      kind: "component",
+      required: false,
+      ai_priority: "optional",
+      planner_group: "service_area",
+      purpose: "Local SEO and trust section for primary city and nearby areas.",
+      evidence_keys: ["service_area_main", "surrounding_cities", "service_area_list"],
+      toggle_key: "show_service_area"
+    },
+    features: {
+      kind: "component",
+      required: true,
+      ai_priority: "critical",
+      planner_group: "positioning",
+      purpose: "Explain what the business offers and why it matters.",
+      evidence_keys: ["primary_offer", "service_list", "differentiation"],
+      toggle_key: null
+    },
+    processSteps: {
+      kind: "component",
+      required: false,
+      ai_priority: "optional",
+      planner_group: "process",
+      purpose: "Explain the workflow in clear steps to reduce friction.",
+      evidence_keys: ["process_summary", "booking_method"],
+      toggle_key: "show_process"
+    },
+    testimonials: {
+      kind: "component",
+      required: false,
+      ai_priority: "recommended",
+      planner_group: "proof",
+      purpose: "Reduce risk and increase trust with social proof.",
+      evidence_keys: ["review_quotes", "trust_signal"],
+      toggle_key: "show_testimonials"
+    },
+    comparison: {
+      kind: "component",
+      required: false,
+      ai_priority: "optional",
+      planner_group: "comparison_strategy",
+      purpose: "Help buyers decide by comparing the offer to alternatives.",
+      evidence_keys: ["comparison", "differentiation", "trust_signal"],
+      toggle_key: "show_comparison"
+    },
+    investment: {
+      kind: "component",
+      required: false,
+      ai_priority: "optional",
+      planner_group: "pricing_model",
+      purpose: "Clarify pricing expectations and qualify leads.",
+      evidence_keys: ["pricing", "investment"],
+      toggle_key: "show_investment"
+    },
+    faqs: {
+      kind: "component",
+      required: false,
+      ai_priority: "optional",
+      planner_group: "objection_handling",
+      purpose: "Answer objections and increase conversion confidence.",
+      evidence_keys: ["faq_angles", "pricing", "process_summary", "trust_signal"],
+      toggle_key: "show_faqs"
+    },
+    gallery: {
+      kind: "component",
+      required: false,
+      ai_priority: "recommended",
+      planner_group: "gallery_strategy",
+      purpose: "Render a visual gallery using inferred layout, count, and search query.",
+      evidence_keys: ["gallery_visual_direction", "image_themes", "primary_offer", "differentiation"],
+      image_priority: true,
+      toggle_key: "show_gallery"
+    },
+    contact: {
+      kind: "component",
+      required: true,
+      ai_priority: "critical",
+      planner_group: "contact_details",
+      purpose: "Configure the contact section and submission behavior.",
+      evidence_keys: ["booking_method", "contact_path", "phone", "email", "address", "hours", "booking_url"],
+      toggle_key: null
+    },
+    _toggles: toggles
+  };
+}
+
+/* ========================================================================
+ * AI Interpretation
+ * ====================================================================== */
+
+async function interpretUserAnswer({ env, answer, blueprint, state, schemaGuide, currentPlan }) {
   const allowedFactKeys = Object.keys(blueprint.fact_registry || {});
   const allowedTopLevelSections = Object.keys(blueprint.business_draft || {});
   const allowedLeafPaths = collectLeafPaths(blueprint.business_draft);
-  const currentPlan = isObject(blueprint.question_plan) ? blueprint.question_plan : {};
 
   const fallback = {
     ok: true,
-    answered_bundle_id: cleanString(currentPlan.bundle_id),
+    answered_decisions: [cleanString(currentPlan.bundle_id)].filter(Boolean),
     answer_summary: answer,
     confidence: 0,
     fact_updates: [],
+    component_impacts: [],
     draft_patches: [],
     copy_refinements: [],
     unresolved_points: [],
@@ -202,23 +399,29 @@ async function interpretUserAnswer({ env, answer, blueprint, strategyContract })
         role: "user",
         content: JSON.stringify(
           {
-            task: "Interpret the user's answer into safe structured updates for SiteForge Factory intake-next-v2.",
+            task: "Interpret the user's answer into safe evidence updates for SiteForge intake-next-v2-1.",
             answer,
-            current_question_plan: currentPlan,
+            current_bundle_id: cleanString(currentPlan.bundle_id),
+            current_primary_field: cleanString(currentPlan.primary_field),
+            current_target_fields: cleanList(currentPlan.target_fields),
+            interpreter_priority_rule:
+              "Prioritize extracting the current primary field first. Only add off-bundle updates if they are explicit and clearly supported.",
             strategy: blueprint.strategy,
             fact_registry_snapshot: pruneFactRegistryForModel(blueprint.fact_registry),
-            section_status: blueprint.section_status,
-            verification_queue: blueprint.verification_queue,
+            component_states: blueprint.component_states || {},
+            decision_states: blueprint.decision_states || {},
+            schema_guide: schemaGuide,
             business_draft_snapshot: blueprint.business_draft,
             allowed_fact_keys: allowedFactKeys,
             allowed_top_level_sections: allowedTopLevelSections,
             allowed_leaf_paths: allowedLeafPaths,
+            allowed_icon_tokens: ALLOWED_ICON_TOKENS,
             strategy_contract_context: {
-              business_context: safeObject(strategyContract?.business_context),
-              conversion_strategy: safeObject(strategyContract?.conversion_strategy),
-              content_requirements: safeObject(strategyContract?.content_requirements),
-              schema_toggles: safeObject(strategyContract?.schema_toggles),
-              copy_policy: safeObject(strategyContract?.copy_policy)
+              business_context: safeObject(state?.provenance?.strategy_contract?.business_context),
+              conversion_strategy: safeObject(state?.provenance?.strategy_contract?.conversion_strategy),
+              content_requirements: safeObject(state?.provenance?.strategy_contract?.content_requirements),
+              schema_toggles: safeObject(state?.provenance?.strategy_contract?.schema_toggles),
+              copy_policy: safeObject(state?.provenance?.strategy_contract?.copy_policy)
             }
           },
           null,
@@ -247,33 +450,45 @@ async function interpretUserAnswer({ env, answer, blueprint, strategyContract })
     const parsed = safeJsonParse(raw);
     if (!isObject(parsed)) return fallback;
 
-    return sanitizeInterpretation(parsed, {
+    const sanitized = sanitizeInterpretation(parsed, {
       allowedFactKeys,
       allowedTopLevelSections,
       allowedLeafPaths,
-      currentPlan
+      currentPlan,
+      schemaGuide
     });
+
+    return repairInterpretationForActiveTarget(sanitized, currentPlan, answer);
   } catch (err) {
-    console.error("[intake-next-v2:interpret]", err);
+    console.error("[intake-next-v2-1:interpret]", err);
     return fallback;
   }
 }
 
 function buildInterpreterSystemPrompt() {
   return [
-    "You are the interpretation layer for SiteForge Factory intake-next-v2.",
+    "You are the interpretation layer for SiteForge Factory intake-next-v2-1.",
     "You do NOT control schema or system logic.",
     "You may ONLY interpret the user's answer into safe updates for existing fact keys and existing business_draft sections.",
     "Do not invent fields.",
     "Do not invent new schema sections.",
     "Do not hardcode industries.",
-    "Do not use generic filler when the user did not provide enough support.",
-    "Be conservative.",
-    "You may optionally suggest copy refinements, but only under existing business_draft sections and only when clearly supported by the answer.",
+    "Be conservative and faithful to the user's wording.",
+    "",
+    "Highest priority: interpret the answer for the current primary_field first.",
+    "If the user directly answers the current primary_field, you must include a fact_update for that field.",
+    "Do not ignore the current primary_field in favor of adjacent fields.",
+    "Only update fields outside the current bundle if the answer clearly and directly provides them.",
+    "If the answer is about pricing, prefer pricing over primary_offer.",
+    "If the answer is about booking flow, prefer booking_method, booking_url, or contact_path over positioning fields.",
+    "If the answer is about process, prefer process_summary over generic differentiation.",
+    "If the answer is about visuals, prefer hero_image_query or gallery_visual_direction.",
+    "If the answer is partial, still update the primary field with status='partial' rather than leaving it missing.",
+    "If the answer includes feature suggestions that need icon_slug, use only an allowed icon token.",
     "",
     "Return JSON only with this exact shape:",
     "{",
-    '  "answered_bundle_id": "string or null",',
+    '  "answered_decisions": ["string"],',
     '  "answer_summary": "string",',
     '  "confidence": 0.0,',
     '  "fact_updates": [',
@@ -284,6 +499,13 @@ function buildInterpreterSystemPrompt() {
     '      "verified": true,',
     '      "status": "answered|partial|inferred",',
     '      "rationale": "short reason"',
+    "    }",
+    "  ],",
+    '  "component_impacts": [',
+    "    {",
+    '      "component": "string",',
+    '      "confidence_delta": 0.0,',
+    '      "reason": "short reason"',
     "    }",
     "  ],",
     '  "draft_patches": [',
@@ -305,24 +527,12 @@ function buildInterpreterSystemPrompt() {
     "    }",
     "  ],",
     '  "unresolved_points": ["string"],',
-    '  "notes": "string" ',
-    "}",
-    "",
-    "Rules for fact_updates:",
-    "- fact_key must be in allowed_fact_keys.",
-    "- Only update facts clearly supported by the user's answer.",
-    "- Prefer partial over speculative full answers.",
-    "- verified=true when the user directly stated it.",
-    "",
-    "Rules for draft_patches/copy_refinements:",
-    "- section must be one of allowed_top_level_sections.",
-    "- path must either be an allowed leaf path OR a child path under an existing top-level section.",
-    "- Do not regenerate full sections unless the current section is already a compact object and the answer clearly supports the patch.",
-    "- Keep copy natural, premium, and faithful to the answer."
+    '  "notes": "string"',
+    "}"
   ].join("\n");
 }
 
-function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSections, allowedLeafPaths, currentPlan }) {
+function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSections, allowedLeafPaths, currentPlan, schemaGuide }) {
   const cleanFactUpdates = (Array.isArray(parsed.fact_updates) ? parsed.fact_updates : [])
     .filter((item) => isObject(item) && allowedFactKeys.includes(cleanString(item.fact_key)))
     .map((item) => ({
@@ -332,6 +542,14 @@ function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSectio
       verified: item.verified !== false,
       status: sanitizeFactStatus(item.status),
       rationale: cleanString(item.rationale)
+    }));
+
+  const cleanComponentImpacts = (Array.isArray(parsed.component_impacts) ? parsed.component_impacts : [])
+    .filter((item) => isObject(item) && Object.prototype.hasOwnProperty.call(schemaGuide, cleanString(item.component)))
+    .map((item) => ({
+      component: cleanString(item.component),
+      confidence_delta: clampNumber(item.confidence_delta, -1, 1, 0),
+      reason: cleanString(item.reason)
     }));
 
   const cleanDraftPatches = (Array.isArray(parsed.draft_patches) ? parsed.draft_patches : [])
@@ -356,10 +574,11 @@ function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSectio
 
   return {
     ok: true,
-    answered_bundle_id: cleanString(parsed.answered_bundle_id) || cleanString(currentPlan.bundle_id),
+    answered_decisions: normalizeStringArray(parsed.answered_decisions),
     answer_summary: cleanString(parsed.answer_summary),
     confidence: clampNumber(parsed.confidence, 0, 1, 0.5),
     fact_updates: dedupeBy(cleanFactUpdates, "fact_key"),
+    component_impacts: dedupeBy(cleanComponentImpacts, "component"),
     draft_patches: dedupeBy(cleanDraftPatches, "path"),
     copy_refinements: dedupeBy(cleanCopyRefinements, "path"),
     unresolved_points: normalizeStringArray(parsed.unresolved_points),
@@ -367,31 +586,127 @@ function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSectio
   };
 }
 
-function isAllowedDraftPatch(item, allowedTopLevelSections, allowedLeafPaths) {
-  if (!isObject(item)) return false;
-  const section = cleanString(item.section);
-  const path = cleanString(item.path);
-  if (!section || !path) return false;
-  if (!allowedTopLevelSections.includes(section)) return false;
-  if (path.includes("__proto__") || path.includes("constructor") || path.includes("prototype")) return false;
-  if (allowedLeafPaths.includes(path)) return true;
-  return path === section || path.startsWith(`${section}.`);
+function repairInterpretationForActiveTarget(interpretation, currentPlan, answer) {
+  const repaired = deepClone(interpretation);
+  const primaryField = cleanString(currentPlan?.primary_field);
+  const bundleId = cleanString(currentPlan?.bundle_id);
+  const text = cleanString(answer);
+  const lower = text.toLowerCase();
+
+  if (!primaryField) return repaired;
+
+  const alreadyUpdated = (repaired.fact_updates || []).some(
+    (item) => cleanString(item.fact_key) === primaryField
+  );
+  if (alreadyUpdated) return repaired;
+
+  if (bundleId === "conversion" && primaryField === "pricing") {
+    const pricingSignals = [
+      "price",
+      "pricing",
+      "quote",
+      "quoted",
+      "estimate",
+      "flat rate",
+      "starts at",
+      "depends on",
+      "based on",
+      "scope",
+      "size",
+      "complexity"
+    ];
+    if (pricingSignals.some((signal) => lower.includes(signal))) {
+      repaired.fact_updates = repaired.fact_updates || [];
+      repaired.fact_updates.push({
+        fact_key: "pricing",
+        value: text,
+        confidence: 0.72,
+        verified: true,
+        status: "partial",
+        rationale: "User answered the pricing question directly; preserving wording as pricing context."
+      });
+    }
+  }
+
+  if (bundleId === "conversion" && primaryField === "booking_url") {
+    const manualSignals = [
+      "handled manually",
+      "no booking link",
+      "no booking page",
+      "we schedule manually",
+      "call us",
+      "request a quote"
+    ];
+    if (manualSignals.some((signal) => lower.includes(signal))) {
+      repaired.fact_updates = repaired.fact_updates || [];
+      repaired.fact_updates.push({
+        fact_key: "booking_url",
+        value: "manual_followup",
+        confidence: 0.65,
+        verified: true,
+        status: "partial",
+        rationale: "User indicated there is no direct booking URL and the process is handled manually."
+      });
+    }
+  }
+
+  if (bundleId === "process" && primaryField === "process_summary") {
+    if (looksLikeProcessAnswer(lower)) {
+      repaired.fact_updates = repaired.fact_updates || [];
+      repaired.fact_updates.push({
+        fact_key: "process_summary",
+        value: text,
+        confidence: 0.76,
+        verified: true,
+        status: "partial",
+        rationale: "User described a clear service workflow."
+      });
+      repaired.component_impacts = repaired.component_impacts || [];
+      if (!repaired.component_impacts.some((x) => cleanString(x.component) === "processSteps")) {
+        repaired.component_impacts.push({
+          component: "processSteps",
+          confidence_delta: 0.28,
+          reason: "Process evidence detected from client-described workflow."
+        });
+      }
+    }
+  }
+
+  if (bundleId === "gallery_strategy" && (primaryField === "gallery_visual_direction" || primaryField === "hero_image_query")) {
+    if (hasMeaningfulValue(text)) {
+      repaired.fact_updates = repaired.fact_updates || [];
+      repaired.fact_updates.push({
+        fact_key: primaryField,
+        value: text,
+        confidence: 0.68,
+        verified: true,
+        status: "partial",
+        rationale: "User provided visual direction relevant to image strategy."
+      });
+    }
+  }
+
+  return repaired;
 }
 
-/* =========================
-   Apply AI Interpretation
-========================= */
+/* ========================================================================
+ * Evidence Router + Blueprint Mutations
+ * ====================================================================== */
 
-function applyInterpretationToBlueprint({ blueprint, interpretation, answer }) {
-  const factRegistry = deepClone(blueprint.fact_registry || {});
-  const businessDraft = deepClone(blueprint.business_draft || {});
+function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpretation, answer }) {
+  const nextBlueprint = deepClone(blueprint);
+  nextBlueprint.fact_registry = deepClone(blueprint.fact_registry || {});
+  nextBlueprint.business_draft = deepClone(blueprint.business_draft || {});
+  nextBlueprint.evidence_log = Array.isArray(blueprint.evidence_log) ? deepClone(blueprint.evidence_log) : [];
+
   const now = new Date().toISOString();
-
   const updatedFactKeys = [];
   const patchedPaths = [];
 
-  for (const update of interpretation.fact_updates) {
-    const current = isObject(factRegistry[update.fact_key]) ? factRegistry[update.fact_key] : {};
+  for (const update of interpretation.fact_updates || []) {
+    const current = isObject(nextBlueprint.fact_registry[update.fact_key])
+      ? nextBlueprint.fact_registry[update.fact_key]
+      : {};
     const history = Array.isArray(current.history) ? current.history.slice() : [];
 
     history.push({
@@ -400,15 +715,20 @@ function applyInterpretationToBlueprint({ blueprint, interpretation, answer }) {
       previous_value: current.value,
       next_value: deepClone(update.value),
       rationale: cleanString(update.rationale),
-      answer_excerpt: truncate(answer, 300)
+      answer_excerpt: truncate(answer, 400)
     });
 
-    factRegistry[update.fact_key] = {
+    nextBlueprint.fact_registry[update.fact_key] = {
       ...current,
       value: deepClone(update.value),
       source: "user",
       confidence: clampNumber(update.confidence, 0, 1, current.confidence ?? 0.5),
       verified: update.verified !== false,
+      requires_client_verification:
+        typeof current.requires_client_verification === "boolean"
+          ? current.requires_client_verification && update.verified !== true
+          : false,
+      related_sections: Array.isArray(current.related_sections) ? current.related_sections : [],
       status: sanitizeFactStatus(update.status),
       rationale: cleanString(update.rationale),
       updated_at: now,
@@ -418,436 +738,1169 @@ function applyInterpretationToBlueprint({ blueprint, interpretation, answer }) {
     updatedFactKeys.push(update.fact_key);
   }
 
-  for (const patch of interpretation.draft_patches) {
-    setByPath(businessDraft, patch.path, deepClone(patch.value));
+  for (const patch of interpretation.draft_patches || []) {
+    setByPath(nextBlueprint.business_draft, patch.path, deepClone(patch.value));
     patchedPaths.push(patch.path);
   }
 
-  for (const refinement of interpretation.copy_refinements) {
-    const existing = getByPath(businessDraft, refinement.path);
+  for (const refinement of interpretation.copy_refinements || []) {
+    const existing = getByPath(nextBlueprint.business_draft, refinement.path);
     if (shouldApplyCopyRefinement(existing, refinement.value, refinement.confidence)) {
-      setByPath(businessDraft, refinement.path, deepClone(refinement.value));
+      setByPath(nextBlueprint.business_draft, refinement.path, deepClone(refinement.value));
       patchedPaths.push(refinement.path);
     }
   }
 
-  syncDraftFromFacts({
-    businessDraft,
-    factRegistry,
-    strategy: blueprint.strategy
+  nextBlueprint.evidence_log.push({
+    timestamp: now,
+    source: "user",
+    answer_excerpt: truncate(answer, 500),
+    facts_updated: uniqueList(updatedFactKeys),
+    components_impacted: uniqueList((interpretation.component_impacts || []).map((x) => x.component)),
+    confidence: clampNumber(interpretation.confidence, 0, 1, 0),
+    answer_summary: cleanString(interpretation.answer_summary)
   });
 
   return {
-    fact_registry: factRegistry,
-    business_draft: businessDraft,
+    blueprint: nextBlueprint,
     audit: {
       timestamp: now,
-      answered_bundle_id: cleanString(interpretation.answered_bundle_id),
+      answered_decisions: normalizeStringArray(interpretation.answered_decisions),
       answer_summary: cleanString(interpretation.answer_summary),
       interpretation_confidence: clampNumber(interpretation.confidence, 0, 1, 0),
       updated_fact_keys: uniqueList(updatedFactKeys),
       patched_paths: uniqueList(patchedPaths),
+      component_impacts: deepClone(interpretation.component_impacts || []),
       unresolved_points: normalizeStringArray(interpretation.unresolved_points),
       notes: cleanString(interpretation.notes)
     }
   };
 }
 
-function shouldApplyCopyRefinement(existing, nextValue, confidence) {
-  if (!hasMeaningfulValue(nextValue)) return false;
-  if (typeof nextValue !== "string") return true;
-  if (!hasMeaningfulValue(existing)) return true;
-  return confidence >= 0.6;
+/* ========================================================================
+ * Blueprint Recompute
+ * ====================================================================== */
+
+function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastAudit }) {
+  const nextBlueprint = deepClone(blueprint);
+  nextBlueprint.question_history = Array.isArray(nextBlueprint.question_history)
+    ? deepClone(nextBlueprint.question_history)
+    : [];
+
+  nextBlueprint.component_states = computeComponentStates({
+    blueprint: nextBlueprint,
+    schemaGuide,
+    state
+  });
+
+  nextBlueprint.decision_states = computeDecisionStates({
+    blueprint: nextBlueprint,
+    schemaGuide
+  });
+
+  reevaluateStrategyToggles({
+    blueprint: nextBlueprint,
+    schemaGuide,
+    state
+  });
+
+  syncBusinessDraftFromEvidence({
+    blueprint: nextBlueprint,
+    schemaGuide,
+    state
+  });
+
+  nextBlueprint.section_status = computeSectionStatus({
+    blueprint: nextBlueprint,
+    schemaGuide
+  });
+
+  nextBlueprint.verification_queue = buildVerificationQueue({
+    blueprint: nextBlueprint,
+    schemaGuide,
+    state
+  });
+
+  nextBlueprint.question_candidates = buildQuestionCandidates({
+    blueprint: nextBlueprint,
+    schemaGuide,
+    previousPlan,
+    lastAudit
+  });
+
+  nextBlueprint.question_plan = planNextQuestion(
+    nextBlueprint.question_candidates,
+    cleanString(previousPlan?.bundle_id),
+    nextBlueprint.fact_registry
+  );
+
+  return { blueprint: nextBlueprint };
 }
 
-function syncDraftFromFacts({ businessDraft, factRegistry, strategy }) {
-  const fact = (key) => factRegistry?.[key]?.value;
-  const toggles = safeObject(strategy?.schema_toggles);
-
-  safeAssignPathIfExists(businessDraft, "brand.phone", fact("phone"));
-  safeAssignPathIfExists(businessDraft, "brand.email", fact("email"));
-  safeAssignPathIfExists(businessDraft, "brand.office_address", firstNonEmpty([fact("address"), fact("office_address")]));
-  safeAssignPathIfExists(businessDraft, "brand.tagline", fact("tagline"));
-
-  safeAssignPathIfExists(businessDraft, "hero.subtext", firstNonEmpty([fact("primary_offer"), fact("website_direction")]));
-  safeAssignPathIfExists(businessDraft, "hero.headline", fact("hero_headline"));
-  safeAssignPathIfExists(businessDraft, "hero.image.alt", fact("hero_image_alt"));
-  safeAssignPathIfExists(businessDraft, "hero.image.image_search_query", firstNonEmpty([fact("hero_image_query"), fact("gallery_visual_direction")]));
-
-  safeAssignPathIfExists(businessDraft, "about.story_text", firstNonEmpty([fact("founder_story"), fact("business_understanding")]));
-  safeAssignPathIfExists(businessDraft, "about.founder_note", fact("founder_story"));
-  safeAssignPathIfExists(businessDraft, "about.years_experience", stringifyFactValue(fact("years_experience")));
-
-  safeAssignPathIfExists(businessDraft, "settings.cta_text", fact("cta_text"));
-  safeAssignPathIfExists(businessDraft, "settings.cta_link", firstNonEmpty([fact("booking_url"), fact("cta_link"), "#contact"]));
-
-  safeAssignPathIfExists(businessDraft, "contact.subheadline", firstNonEmpty([fact("contact_path"), fact("booking_method")]));
-  safeAssignPathIfExists(businessDraft, "contact.email_recipient", firstNonEmpty([fact("email"), fact("contact_email")]));
-  safeAssignPathIfExists(businessDraft, "contact.phone", fact("phone"));
-  safeAssignPathIfExists(businessDraft, "contact.booking_url", fact("booking_url"));
-  safeAssignPathIfExists(businessDraft, "contact.hours", fact("hours"));
-  safeAssignPathIfExists(businessDraft, "contact.address", firstNonEmpty([fact("address"), fact("office_address")]));
-
-  if (toggles.show_service_area) {
-    safeAssignPathIfExists(businessDraft, "service_area.main_city", firstNonEmpty([fact("service_area_main"), fact("service_area")]));
-    safeAssignPathIfExists(businessDraft, "service_area.surrounding_cities", ensureArrayStrings(fact("surrounding_cities")));
-  }
-
-  if (toggles.show_investment) {
-    safeAssignPathIfExists(businessDraft, "investment.summary", fact("pricing"));
-  }
-
-  if (toggles.show_testimonials) {
-    const quotes = ensureArrayObjects(fact("review_quotes"));
-    if (quotes.length && hasPath(businessDraft, "testimonials.items")) {
-      safeAssignPathIfExists(businessDraft, "testimonials.items", quotes);
-    }
-  }
-
-  if (toggles.show_faqs) {
-    const faqAngles = ensureArrayStrings(fact("faq_angles"));
-    if (faqAngles.length && hasPath(businessDraft, "faqs")) {
-      if (Array.isArray(getByPath(businessDraft, "faqs"))) {
-        safeAssignPathIfExists(
-          businessDraft,
-          "faqs",
-          faqAngles.map((question) => ({
-            question,
-            answer: ""
-          }))
-        );
-      }
-    }
-  }
-}
-
-/* =========================
-   Blueprint Recompute
-========================= */
-
-function computeSectionStatus(strategy, factRegistry, businessDraft) {
-  const sectionMap = getSectionMap();
+function computeComponentStates({ blueprint, schemaGuide, state }) {
   const out = {};
-  const schemaToggles = safeObject(strategy?.schema_toggles);
+  const factRegistry = safeObject(blueprint.fact_registry);
+  const businessDraft = safeObject(blueprint.business_draft);
 
-  for (const [sectionName, config] of Object.entries(sectionMap)) {
-    const enabled = isSectionEnabled(sectionName, config, schemaToggles);
-    const required = !!config.required;
-    const requiredForPreview = !!config.required_for_preview;
-    const fields = Array.isArray(config.fields) ? config.fields : [];
+  for (const [component, guide] of Object.entries(schemaGuide)) {
+    if (component.startsWith("_")) continue;
 
-    let filledCount = 0;
-    let verifiedCount = 0;
-    let total = fields.length;
+    const evidenceKeys = cleanList(guide.evidence_keys);
+    const presentEvidence = evidenceKeys.filter((key) => hasMeaningfulValue(factRegistry?.[key]?.value));
+    const missingEvidence = evidenceKeys.filter((key) => !hasMeaningfulValue(factRegistry?.[key]?.value));
 
-    for (const field of fields) {
-      const draftValue = getByPath(businessDraft, field.path);
-      const factValue = factRegistry?.[field.fact_key]?.value;
-      const factVerified = isFactVerifiedByPath(factRegistry, field.fact_key);
+    const confidenceBase = evidenceKeys.length
+      ? presentEvidence.length / evidenceKeys.length
+      : 0.5;
 
-      const hasValue = hasMeaningfulValue(draftValue) || hasMeaningfulValue(factValue);
-      if (hasValue) filledCount += 1;
-      if (hasValue && factVerified) verifiedCount += 1;
-    }
+    const enabled = evaluateComponentEnabled({
+      component,
+      guide,
+      blueprint,
+      state,
+      confidenceBase
+    });
 
-    const score = total > 0 ? Number((filledCount / total).toFixed(2)) : 1;
-    const verifiedRatio = total > 0 ? Number((verifiedCount / total).toFixed(2)) : 1;
+    const draftReady = evaluateComponentDraftReady(component, businessDraft, presentEvidence, guide);
+    const premiumReady = evaluateComponentPremiumReady(component, businessDraft, factRegistry, guide);
 
-    out[sectionName] = {
+    out[component] = {
       enabled,
-      required,
-      required_for_preview: requiredForPreview,
-      score,
-      verified_ratio: verifiedRatio,
-      filled_fields: filledCount,
-      total_fields: total,
-      status:
-        !enabled ? "disabled" :
-        score >= 0.9 ? "strong" :
-        score >= 0.5 ? "partial" :
-        "weak"
+      confidence: Number(confidenceBase.toFixed(2)),
+      evidence_keys: evidenceKeys,
+      present_evidence: presentEvidence,
+      missing_evidence: missingEvidence,
+      draft_ready: draftReady,
+      premium_ready: premiumReady,
+      why_enabled: enabled ? buildComponentEnableReasons(component, guide, blueprint, factRegistry) : [],
+      why_disabled: enabled ? [] : buildComponentDisableReasons(component, guide, blueprint, factRegistry),
+      planner_priority: computeComponentPlannerPriority(component, guide),
+      ai_priority: cleanString(guide.ai_priority),
+      purpose: cleanString(guide.purpose)
     };
   }
 
   return out;
 }
 
-function buildVerificationQueue(strategy, factRegistry, sectionStatus) {
-  const queue = [];
-  const mustVerifyNow = cleanList(strategy?.content_requirements?.must_verify_now);
-  const previewRequired = cleanList(strategy?.content_requirements?.preview_required_fields);
-  const publishRequired = cleanList(strategy?.content_requirements?.publish_required_fields);
-  const fieldIntentMap = getFieldIntentMap(strategy);
+function evaluateComponentEnabled({ component, guide, blueprint, state, confidenceBase }) {
+  if (guide.required) return true;
 
-  for (const [fieldKey, config] of Object.entries(fieldIntentMap)) {
-    const fact = isObject(factRegistry?.[fieldKey]) ? factRegistry[fieldKey] : null;
-    if (!fact) continue;
+  const toggles = safeObject(
+    blueprint?.strategy?.schema_toggles ||
+      state?.provenance?.strategy_contract?.schema_toggles
+  );
+  const toggleKey = cleanString(guide.toggle_key);
 
-    const missing = !hasMeaningfulValue(fact.value);
-    const partial = cleanString(fact.status) === "partial";
-    const needsClient = !!fact.requires_client_verification;
-    const shouldVerify =
-      needsClient ||
-      config.must_verify_now_aliases.some((alias) => mustVerifyNow.includes(alias)) ||
-      config.preview_aliases.some((alias) => previewRequired.includes(alias)) ||
-      config.publish_aliases.some((alias) => publishRequired.includes(alias));
+  if (toggleKey && typeof toggles[toggleKey] === "boolean") {
+    if (toggles[toggleKey] === true) return true;
+  }
 
-    if (!missing && !partial && !shouldVerify) {
-      continue;
+  const fact = blueprint.fact_registry;
+
+  switch (component) {
+    case "processSteps":
+      return confidenceBase >= 0.35 || looksLikeProcessFact(fact?.process_summary?.value);
+
+    case "gallery":
+      return confidenceBase >= 0.3 || hasMeaningfulValue(fact?.gallery_visual_direction?.value) || hasMeaningfulValue(fact?.image_themes?.value);
+
+    case "faqs":
+      return confidenceBase >= 0.3 || (Array.isArray(fact?.faq_angles?.value) && fact?.faq_angles?.value.length > 0);
+
+    case "investment":
+      return isStandardizedPricing(fact?.pricing?.value);
+
+    case "events":
+      return Array.isArray(fact?.events?.value) && fact?.events?.value.length >= 3;
+
+    case "comparison":
+      return hasMeaningfulValue(fact?.comparison?.value);
+
+    case "service_area":
+      return confidenceBase >= 0.2 || hasMeaningfulValue(fact?.service_area_main?.value);
+
+    default:
+      return !!toggles[toggleKey];
+  }
+}
+
+function buildComponentEnableReasons(component, guide, blueprint, factRegistry) {
+  const reasons = [];
+  if (guide.required) reasons.push("Required by schema.");
+  if (guide.toggle_key && blueprint?.strategy?.schema_toggles?.[guide.toggle_key] === true) {
+    reasons.push(`Enabled by ${guide.toggle_key}.`);
+  }
+  if (component === "processSteps" && looksLikeProcessFact(factRegistry?.process_summary?.value)) {
+    reasons.push("Client described a real service workflow.");
+  }
+  if (component === "gallery" && hasMeaningfulValue(factRegistry?.gallery_visual_direction?.value)) {
+    reasons.push("Visual direction evidence exists.");
+  }
+  if (component === "investment" && isStandardizedPricing(factRegistry?.pricing?.value)) {
+    reasons.push("Pricing appears standardized enough for an investment section.");
+  }
+  return reasons;
+}
+
+function buildComponentDisableReasons(component, guide, blueprint, factRegistry) {
+  const reasons = [];
+  if (guide.toggle_key && blueprint?.strategy?.schema_toggles?.[guide.toggle_key] === false) {
+    reasons.push(`Currently disabled by ${guide.toggle_key}.`);
+  }
+  if (component === "processSteps" && !looksLikeProcessFact(factRegistry?.process_summary?.value)) {
+    reasons.push("No confirmed workflow evidence yet.");
+  }
+  if (component === "gallery" && !hasMeaningfulValue(factRegistry?.gallery_visual_direction?.value)) {
+    reasons.push("No confirmed gallery visual strategy yet.");
+  }
+  return reasons;
+}
+
+function computeComponentPlannerPriority(component, guide) {
+  const base = {
+    critical: 220,
+    recommended: 150,
+    optional: 90
+  }[cleanString(guide.ai_priority)] || 100;
+
+  const componentBoost = {
+    hero: 60,
+    features: 50,
+    processSteps: 42,
+    gallery: 38,
+    faqs: 32,
+    investment: 28,
+    service_area: 30,
+    contact: 20,
+    testimonials: 24,
+    about: 18,
+    events: 16,
+    comparison: 16
+  }[component] || 0;
+
+  return base + componentBoost;
+}
+
+function evaluateComponentDraftReady(component, businessDraft) {
+  if (component === "gallery") {
+    return hasMeaningfulValue(getByPath(businessDraft, "gallery.image_source.image_search_query"));
+  }
+  if (component === "hero") {
+    return hasMeaningfulValue(getByPath(businessDraft, "hero.headline")) &&
+      hasMeaningfulValue(getByPath(businessDraft, "hero.image.image_search_query"));
+  }
+  if (component === "contact") {
+    return hasMeaningfulValue(getByPath(businessDraft, "contact.headline")) &&
+      hasMeaningfulValue(getByPath(businessDraft, "contact.button_text"));
+  }
+  return hasMeaningfulValue(getByPath(businessDraft, component));
+}
+
+function evaluateComponentPremiumReady(component, businessDraft, factRegistry) {
+  switch (component) {
+    case "hero":
+      return hasMeaningfulValue(getByPath(businessDraft, "hero.headline")) &&
+        hasMeaningfulValue(getByPath(businessDraft, "hero.subtext")) &&
+        hasMeaningfulValue(getByPath(businessDraft, "hero.image.alt")) &&
+        hasMeaningfulValue(getByPath(businessDraft, "hero.image.image_search_query"));
+
+    case "gallery":
+      return hasMeaningfulValue(getByPath(businessDraft, "gallery.image_source.image_search_query")) &&
+        hasMeaningfulValue(getByPath(businessDraft, "gallery.computed_layout")) &&
+        typeof getByPath(businessDraft, "gallery.computed_count") === "number";
+
+    case "processSteps":
+      return Array.isArray(getByPath(businessDraft, "processSteps")) &&
+        getByPath(businessDraft, "processSteps").length >= 3;
+
+    case "features":
+      return Array.isArray(getByPath(businessDraft, "features")) &&
+        getByPath(businessDraft, "features").length >= 2;
+
+    default:
+      return false;
+  }
+}
+
+function computeDecisionStates({ blueprint, schemaGuide }) {
+  const out = {};
+  const map = buildDecisionMap(schemaGuide);
+  const componentStates = safeObject(blueprint.component_states);
+  const factRegistry = safeObject(blueprint.fact_registry);
+
+  for (const [decision, config] of Object.entries(map)) {
+    const impactedComponents = config.components.filter((component) => componentStates[component]);
+    const confidence = impactedComponents.length
+      ? impactedComponents.reduce((sum, component) => sum + Number(componentStates[component].confidence || 0), 0) / impactedComponents.length
+      : 0;
+
+    const missingEvidence = uniqueList(
+      impactedComponents.flatMap((component) => componentStates[component].missing_evidence || [])
+    );
+
+    out[decision] = {
+      confidence: Number(confidence.toFixed(2)),
+      impacted_components: impactedComponents,
+      missing_evidence: missingEvidence,
+      next_best_question_reason: cleanString(config.reason),
+      priority: config.priority
+    };
+  }
+
+  if (looksLikeProcessFact(factRegistry?.process_summary?.value)) {
+    out.process = out.process || {};
+    out.process.confidence = Math.max(Number(out.process.confidence || 0), 0.72);
+  }
+
+  if (hasMeaningfulValue(factRegistry?.gallery_visual_direction?.value)) {
+    out.gallery_strategy = out.gallery_strategy || {};
+    out.gallery_strategy.confidence = Math.max(Number(out.gallery_strategy.confidence || 0), 0.68);
+  }
+
+  if (isStandardizedPricing(factRegistry?.pricing?.value)) {
+    out.pricing_model = out.pricing_model || {};
+    out.pricing_model.confidence = Math.max(Number(out.pricing_model.confidence || 0), 0.7);
+  }
+
+  return out;
+}
+
+function buildDecisionMap(schemaGuide) {
+  return {
+    positioning: {
+      components: ["hero", "features"],
+      priority: 220,
+      reason: "Clarify who the offer is for, what it is, and what makes it stand apart."
+    },
+    conversion: {
+      components: ["hero", "contact"],
+      priority: 230,
+      reason: "Clarify how visitors move from interest to action."
+    },
+    proof: {
+      components: ["trustbar", "testimonials", "about"],
+      priority: 190,
+      reason: "Clarify why this business should be trusted quickly."
+    },
+    process: {
+      components: ["processSteps"],
+      priority: 175,
+      reason: "Capture the workflow to reduce friction and strengthen credibility."
+    },
+    service_area: {
+      components: ["service_area"],
+      priority: 170,
+      reason: "Clarify the main market and nearby locations served."
+    },
+    gallery_strategy: {
+      components: ["gallery", "hero"],
+      priority: 165,
+      reason: "Define the visual strategy, search query, layout, and image count."
+    },
+    pricing_model: {
+      components: ["investment", "faqs", "contact"],
+      priority: 155,
+      reason: "Clarify pricing expectations and whether structured investment belongs on the site."
+    },
+    objection_handling: {
+      components: ["faqs"],
+      priority: 145,
+      reason: "Capture the objections and questions visitors need answered."
+    },
+    story: {
+      components: ["about"],
+      priority: 135,
+      reason: "Clarify the founder story, standards, and business philosophy."
+    },
+    events_strategy: {
+      components: ["events"],
+      priority: 110,
+      reason: "Determine whether time-based offerings belong on the site."
+    },
+    comparison_strategy: {
+      components: ["comparison"],
+      priority: 105,
+      reason: "Determine whether comparison helps buyers decide."
+    },
+    contact_details: {
+      components: ["contact", "brand"],
+      priority: 60,
+      reason: "Verify public contact facts needed for publish-readiness."
     }
+  };
+}
 
-    const relatedSections = cleanList(config.related_sections).filter((section) => sectionStatus?.[section]?.enabled);
-    const weakSectionCount = relatedSections.filter((section) => (sectionStatus?.[section]?.score ?? 0) < 0.75).length;
+function reevaluateStrategyToggles({ blueprint, state }) {
+  const toggles = safeObject(blueprint.strategy?.schema_toggles);
+  const fact = safeObject(blueprint.fact_registry);
+  const componentStates = safeObject(blueprint.component_states);
+
+  toggles.show_process = componentStates.processSteps?.enabled === true;
+  toggles.show_gallery = componentStates.gallery?.enabled === true;
+  toggles.show_faqs = componentStates.faqs?.enabled === true || (Array.isArray(fact?.faq_angles?.value) && fact?.faq_angles?.value.length > 0);
+  toggles.show_investment = componentStates.investment?.enabled === true;
+  toggles.show_events = componentStates.events?.enabled === true;
+  toggles.show_comparison = componentStates.comparison?.enabled === true;
+  toggles.show_service_area = componentStates.service_area?.enabled === true;
+  toggles.show_testimonials = componentStates.testimonials?.enabled === true || componentStates.trustbar?.enabled === true;
+
+  blueprint.strategy.schema_toggles = toggles;
+
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_process", toggles.show_process);
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_gallery", toggles.show_gallery);
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_faqs", toggles.show_faqs);
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_investment", toggles.show_investment);
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_events", toggles.show_events);
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_comparison", toggles.show_comparison);
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_service_area", toggles.show_service_area);
+  safeAssignPathIfExists(blueprint.business_draft, "strategy.show_testimonials", toggles.show_testimonials);
+}
+
+function syncBusinessDraftFromEvidence({ blueprint, state }) {
+  const draft = blueprint.business_draft;
+
+  syncHeroDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncAboutDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncProofDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncServiceAreaDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncProcessDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncGalleryDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncFaqDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncInvestmentDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncContactDraftFromEvidence(draft, blueprint.fact_registry, state);
+  syncFeaturesDraftFromEvidence(draft, blueprint.fact_registry, state);
+
+  const fact = (key) => blueprint.fact_registry?.[key]?.value;
+
+  safeAssignPathIfExists(draft, "brand.name", fact("business_name"));
+  safeAssignPathIfExists(draft, "brand.email", fact("email"));
+  safeAssignPathIfExists(draft, "brand.phone", fact("phone"));
+  safeAssignPathIfExists(draft, "brand.office_address", firstNonEmpty([fact("address"), fact("office_address")]));
+  safeAssignPathIfExists(draft, "brand.tagline", firstNonEmpty([fact("tagline"), buildTaglineFromEvidence(blueprint.fact_registry)]));
+
+  safeAssignPathIfExists(draft, "intelligence.industry", fact("industry"));
+  safeAssignPathIfExists(draft, "intelligence.target_persona", fact("target_persona"));
+  safeAssignPathIfExists(draft, "intelligence.tone_of_voice", fact("tone_of_voice"));
+
+  safeAssignPathIfExists(draft, "settings.vibe", firstNonEmpty([fact("vibe"), inferVibe(state)]));
+  safeAssignPathIfExists(draft, "settings.cta_text", firstNonEmpty([fact("cta_text"), "Get Started"]));
+  safeAssignPathIfExists(draft, "settings.cta_link", firstNonEmpty([fact("booking_url"), fact("cta_link"), "#contact"]));
+  safeAssignPathIfExists(
+    draft,
+    "settings.cta_type",
+    hasMeaningfulValue(fact("booking_url")) && fact("booking_url") !== "manual_followup" ? "external" : "anchor"
+  );
+
+  syncMenuFromToggles(draft, blueprint.strategy?.schema_toggles || {});
+}
+
+function syncHeroDraftFromEvidence(draft, factRegistry, state) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const businessName = firstNonEmpty([fact("business_name"), state.businessName, "This business"]);
+  const offer = cleanString(fact("primary_offer"));
+  const persona = cleanString(fact("target_persona"));
+  const differentiation = cleanString(fact("differentiation"));
+  const bookingMethod = cleanString(fact("booking_method"));
+
+  const headline = buildHeroHeadlineFromEvidence({ businessName, offer, differentiation });
+  const subtext = buildHeroSubtextFromEvidence({ offer, persona, differentiation, bookingMethod });
+
+  safeAssignPathIfExists(draft, "hero.headline", headline);
+  safeAssignPathIfExists(draft, "hero.subtext", subtext);
+
+  const heroAlt = firstNonEmpty([
+    fact("hero_image_alt"),
+    `${businessName} delivering ${offer || "premium service"}`
+  ]);
+
+  safeAssignPathIfExists(draft, "hero.image.alt", heroAlt);
+
+  const heroQuery = firstNonEmpty([
+    fact("hero_image_query"),
+    buildHeroImageQuery({ industry: fact("industry"), offer, themes: fact("image_themes"), differentiation })
+  ]);
+
+  safeAssignPathIfExists(draft, "hero.image.image_search_query", heroQuery);
+}
+
+function syncAboutDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+
+  safeAssignPathIfExists(draft, "about.story_text", firstNonEmpty([fact("founder_story"), fact("business_understanding")]));
+  safeAssignPathIfExists(draft, "about.founder_note", firstNonEmpty([fact("founder_story"), fact("differentiation")]));
+  safeAssignPathIfExists(draft, "about.years_experience", stringifyFactValue(fact("years_experience")));
+}
+
+function syncProofDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+
+  const trustSignal = firstNonEmpty([fact("trust_signal"), "Trusted by clients who value quality"]);
+  const years = stringifyFactValue(fact("years_experience"));
+
+  if (hasPath(draft, "trustbar.enabled")) safeAssignPathIfExists(draft, "trustbar.enabled", true);
+
+  if (hasPath(draft, "trustbar.items")) {
+    const items = [
+      { label: trustSignal, icon: "shield" },
+      years ? { label: `${years} of experience`, icon: "award" } : null
+    ].filter(Boolean);
+
+    if (items.length >= 1) {
+      safeAssignPathIfExists(draft, "trustbar.items", items);
+    }
+  }
+
+  if (Array.isArray(getByPath(draft, "testimonials")) && Array.isArray(fact("review_quotes")) && fact("review_quotes").length) {
+    safeAssignPathIfExists(draft, "testimonials", fact("review_quotes"));
+  }
+}
+
+function syncServiceAreaDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const mainCity = firstNonEmpty([fact("service_area_main"), firstArrayItem(fact("service_area_list"))]);
+  const surrounding = ensureArrayStrings(firstNonEmptyArray([fact("surrounding_cities"), fact("service_area_list")])).filter((item) => item !== mainCity);
+
+  safeAssignPathIfExists(draft, "service_area.main_city", mainCity);
+  safeAssignPathIfExists(draft, "service_area.surrounding_cities", surrounding);
+  safeAssignPathIfExists(draft, "service_area.travel_note", buildServiceAreaTravelNote(mainCity, surrounding));
+  safeAssignPathIfExists(draft, "service_area.map_search_query", mainCity ? `${cleanString(fact("primary_offer") || fact("industry") || "service")} near ${mainCity}` : "");
+}
+
+function syncProcessDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const processSummary = cleanString(fact("process_summary"));
+
+  if (!looksLikeProcessFact(processSummary)) return;
+
+  const steps = buildProcessStepsFromSummary(processSummary);
+  if (steps.length >= 3) {
+    safeAssignPathIfExists(draft, "processSteps", steps);
+  }
+}
+
+function syncGalleryDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const industry = cleanString(fact("industry"));
+  const offer = cleanString(fact("primary_offer"));
+  const differentiation = cleanString(fact("differentiation"));
+  const vibe = cleanString(fact("vibe"));
+  const visualDirection = cleanString(fact("gallery_visual_direction"));
+  const themes = ensureArrayStrings(fact("image_themes"));
+
+  const galleryQuery = firstNonEmpty([
+    visualDirection,
+    buildGalleryImageQuery({ industry, offer, differentiation, themes })
+  ]);
+
+  safeAssignPathIfExists(draft, "gallery.enabled", true);
+  safeAssignPathIfExists(draft, "gallery.image_source.image_search_query", galleryQuery);
+
+  const computedLayout = inferGalleryLayout({ vibe, offer, differentiation });
+  const computedCount = inferGalleryCount({ offer, differentiation, visualDirection });
+
+  safeAssignPathIfExists(draft, "gallery.computed_layout", computedLayout);
+  safeAssignPathIfExists(draft, "gallery.computed_count", computedCount);
+
+  if (Array.isArray(getByPath(draft, "gallery.items")) && getByPath(draft, "gallery.items").length === 0) {
+    const items = Array.from({ length: computedCount }).map((_, index) => ({
+      title: buildGalleryItemTitle(index, offer, industry),
+      image_search_query: galleryQuery
+    }));
+    safeAssignPathIfExists(draft, "gallery.items", items);
+  }
+}
+
+function syncFaqDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const faqAngles = ensureArrayStrings(fact("faq_angles"));
+
+  if (Array.isArray(getByPath(draft, "faqs")) && faqAngles.length) {
+    safeAssignPathIfExists(
+      draft,
+      "faqs",
+      faqAngles.slice(0, 6).map((question) => ({
+        question,
+        answer: ""
+      }))
+    );
+  }
+}
+
+function syncInvestmentDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const pricing = cleanString(fact("pricing"));
+
+  if (!Array.isArray(getByPath(draft, "investment"))) return;
+  if (!isStandardizedPricing(pricing)) return;
+
+  safeAssignPathIfExists(draft, "investment", [
+    {
+      tier_name: "Core Service",
+      price: pricing,
+      popular: true,
+      features: ["Pricing guided by the current scope"]
+    }
+  ]);
+}
+
+function syncContactDraftFromEvidence(draft, factRegistry, state) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const businessName = firstNonEmpty([fact("business_name"), state.businessName, "our team"]);
+
+  safeAssignPathIfExists(draft, "contact.headline", `Start a conversation with ${businessName}`);
+  safeAssignPathIfExists(
+    draft,
+    "contact.subheadline",
+    buildContactSubheadline({
+      bookingMethod: fact("booking_method"),
+      pricing: fact("pricing"),
+      contactPath: fact("contact_path")
+    })
+  );
+  safeAssignPathIfExists(draft, "contact.email", fact("email"));
+  safeAssignPathIfExists(draft, "contact.phone", fact("phone"));
+  safeAssignPathIfExists(draft, "contact.email_recipient", firstNonEmpty([fact("email"), getByPath(draft, "brand.email")]));
+  safeAssignPathIfExists(draft, "contact.button_text", firstNonEmpty([fact("cta_text"), "Get in Touch"]));
+  safeAssignPathIfExists(draft, "contact.office_address", firstNonEmpty([fact("address"), fact("office_address")]));
+}
+
+function syncFeaturesDraftFromEvidence(draft, factRegistry) {
+  const fact = (key) => factRegistry?.[key]?.value;
+  const serviceList = ensureArrayStrings(fact("service_list"));
+  const offer = cleanString(fact("primary_offer"));
+  const diff = cleanString(fact("differentiation"));
+
+  if (!Array.isArray(getByPath(draft, "features"))) return;
+  if (getByPath(draft, "features").length > 0) return;
+
+  const baseFeatures = serviceList.length
+    ? serviceList.slice(0, 4).map((item, index) => ({
+        title: titleCase(item),
+        description: offer || diff || item,
+        icon_slug: safeFeatureIcon(ALLOWED_ICON_TOKENS[index] || "check")
+      }))
+    : [
+        {
+          title: "What We Deliver",
+          description: firstNonEmpty([offer, diff, "Premium results tailored to the client."]),
+          icon_slug: safeFeatureIcon("check")
+        }
+      ];
+
+  safeAssignPathIfExists(draft, "features", baseFeatures);
+}
+
+function syncMenuFromToggles(draft, toggles) {
+  if (!Array.isArray(getByPath(draft, "settings.menu"))) return;
+
+  const menu = [{ label: "Home", path: "#home" }];
+
+  if (toggles.show_about) menu.push({ label: "About", path: "#about" });
+  menu.push({ label: "Features", path: "#features" });
+  if (toggles.show_events) menu.push({ label: "Events", path: "#events" });
+  if (toggles.show_process) menu.push({ label: "Process", path: "#process" });
+  if (toggles.show_testimonials) menu.push({ label: "Testimonials", path: "#testimonials" });
+  if (toggles.show_comparison) menu.push({ label: "Comparison", path: "#comparison" });
+  if (toggles.show_gallery) menu.push({ label: "Gallery", path: "#gallery" });
+  if (toggles.show_investment) menu.push({ label: "Investment", path: "#investment" });
+  if (toggles.show_faqs) menu.push({ label: "FAQs", path: "#faqs" });
+  if (toggles.show_service_area) menu.push({ label: "Service Area", path: "#service-area" });
+  menu.push({ label: "Contact", path: "#contact" });
+
+  // enum-safe only
+  const allowed = new Set([
+    "#home",
+    "#about",
+    "#features",
+    "#events",
+    "#process",
+    "#testimonials",
+    "#comparison",
+    "#gallery",
+    "#investment",
+    "#faqs",
+    "#service-area",
+    "#contact"
+  ]);
+
+  const safeMenu = menu.filter((item) => allowed.has(item.path));
+  safeAssignPathIfExists(draft, "settings.menu", safeMenu);
+}
+
+function computeSectionStatus({ blueprint, schemaGuide }) {
+  const out = {};
+  const draft = safeObject(blueprint.business_draft);
+  const components = safeObject(blueprint.component_states);
+
+  for (const [component, guide] of Object.entries(schemaGuide)) {
+    if (component.startsWith("_")) continue;
+    const state = components[component] || {};
+    const sectionValue = getByPath(draft, component);
+    const hasDraft = hasMeaningfulValue(sectionValue);
+    const score = Number(
+      (
+        (Number(state.confidence || 0) * 0.5) +
+        (state.draft_ready ? 0.25 : 0) +
+        (state.premium_ready ? 0.25 : 0)
+      ).toFixed(2)
+    );
+
+    out[component] = {
+      enabled: !!state.enabled,
+      required: !!guide.required,
+      score,
+      draft_ready: !!state.draft_ready,
+      premium_ready: !!state.premium_ready,
+      status:
+        !state.enabled ? "disabled" :
+        score >= 0.9 ? "strong" :
+        score >= 0.55 ? "partial" :
+        "weak",
+      has_draft: hasDraft
+    };
+  }
+
+  return out;
+}
+
+function buildVerificationQueue({ blueprint, state }) {
+  const queue = [];
+  const factRegistry = safeObject(blueprint.fact_registry);
+  const decisionStates = safeObject(blueprint.decision_states);
+  const strategyContract = safeObject(state?.provenance?.strategy_contract);
+  const mustVerifyNow = cleanList(strategyContract?.content_requirements?.must_verify_now);
+  const publishRequired = cleanList(strategyContract?.content_requirements?.publish_required_fields);
+
+  for (const [key, fact] of Object.entries(factRegistry)) {
+    const missing = !hasMeaningfulValue(fact?.value);
+    const partial = cleanString(fact?.status) === "partial";
+    const requiresClient = !!fact?.requires_client_verification;
+    const relatedSections = cleanList(fact?.related_sections);
+
+    const bundleId = inferDecisionForFact(key);
+    const priorityBase = Number(decisionStates?.[bundleId]?.priority || 100);
+
+    const verifyTerms = mustVerifyNow.concat(publishRequired).map((x) => x.toLowerCase());
+    const keyWords = key.toLowerCase().replace(/_/g, " ");
+    const shouldVerifyByContract = verifyTerms.some((term) => keyWords.includes(term) || term.includes(keyWords));
+
+    if (!missing && !partial && !requiresClient && !shouldVerifyByContract) continue;
 
     queue.push({
-      field_key: fieldKey,
-      bundle_id: cleanString(config.bundle_id),
-      priority: computeVerificationPriority({
-        config,
-        missing,
-        partial,
-        shouldVerify,
-        needsClient,
-        weakSectionCount
-      }),
+      field_key: key,
+      bundle_id: bundleId,
+      priority:
+        priorityBase +
+        (missing ? 70 : 0) +
+        (partial ? 35 : 0) +
+        (requiresClient ? 25 : 0) +
+        (shouldVerifyByContract ? 20 : 0),
       missing,
       partial,
-      requires_client_verification: needsClient,
+      requires_client_verification: requiresClient,
       related_sections: relatedSections,
-      reason: cleanString(config.reason)
+      reason: inferVerificationReasonForFact(key)
     });
   }
 
   return queue.sort((a, b) => b.priority - a.priority);
 }
 
-function computeVerificationPriority({ config, missing, partial, shouldVerify, needsClient, weakSectionCount }) {
-  let score = 0;
-  if (missing) score += 120;
-  if (partial) score += 55;
-  if (shouldVerify) score += 35;
-  if (needsClient) score += 30;
-  score += weakSectionCount * 20;
-  score += bundleBaseWeight(cleanString(config.bundle_id));
-  return score;
+function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
+  const candidates = [];
+  const decisionStates = safeObject(blueprint.decision_states);
+  const factRegistry = safeObject(blueprint.fact_registry);
+  const componentStates = safeObject(blueprint.component_states);
+  const questionHistory = Array.isArray(blueprint.question_history) ? blueprint.question_history : [];
+  const decisionTargets = getDecisionTargets();
+
+  for (const [decision, config] of Object.entries(decisionTargets)) {
+    const state = decisionStates[decision] || {};
+    const targetFields = cleanList(config.target_fields).filter((field) => Object.prototype.hasOwnProperty.call(factRegistry, field));
+
+    let unresolvedFields = targetFields.filter((field) => !isFactResolved(factRegistry?.[field]));
+    const relatedComponents = cleanList(config.components).filter(
+      (component) => componentStates[component]?.enabled || componentStates[component]?.required
+    );
+
+    if (!unresolvedFields.length && Number(state.confidence || 0) >= 0.8) continue;
+
+    // planner-side stall / repetition pivot
+    const askedCounts = {};
+    for (const entry of questionHistory) {
+      if (cleanString(entry.bundle_id) === decision) {
+        const field = cleanString(entry.primary_field);
+        if (field) askedCounts[field] = (askedCounts[field] || 0) + 1;
+      }
+    }
+
+    const updatedFactsThisTurn = cleanList(lastAudit?.updated_fact_keys);
+    const stalledFields = unresolvedFields.filter((field) => {
+      const asked = Number(askedCounts[field] || 0);
+      const justUpdated = updatedFactsThisTurn.includes(field);
+      return asked >= 2 && !justUpdated;
+    });
+
+    if (stalledFields.length) {
+      unresolvedFields = unresolvedFields
+        .filter((field) => !stalledFields.includes(field))
+        .concat(stalledFields);
+    }
+
+    let score = Number(config.base_priority || 100);
+    score += unresolvedFields.length * 35;
+    score += relatedComponents.filter((component) => !componentStates[component]?.draft_ready).length * 18;
+    score += relatedComponents.filter((component) => !componentStates[component]?.premium_ready).length * 10;
+    score += Math.round((1 - Number(state.confidence || 0)) * 100);
+
+    if (decision === "contact_details" && coreDecisionsStillWeak(decisionStates)) {
+      score -= 140;
+    }
+
+    if (decision === cleanString(previousPlan?.bundle_id)) {
+      score += 12;
+    }
+
+    if (stalledFields.length && unresolvedFields.length === stalledFields.length) {
+      // if every unresolved field in this decision is stalled, reduce score to encourage a pivot
+      score -= 60;
+    }
+
+    candidates.push({
+      bundle_id: decision,
+      score,
+      target_fields: targetFields,
+      unresolved_fields: unresolvedFields,
+      target_sections: relatedComponents,
+      primary_field: unresolvedFields[0] || targetFields[0] || "",
+      intent: cleanString(config.intent),
+      reason: cleanString(config.reason),
+      tone: "consultative"
+    });
+  }
+
+  return candidates.sort((a, b) => b.score - a.score);
 }
 
-function buildQuestionCandidates(strategy, factRegistry, sectionStatus, verificationQueue) {
-    const grouped = new Map();
-    const fieldIntentMap = getFieldIntentMap(strategy);
-  
-    for (const item of verificationQueue) {
-      const bundleId = cleanString(item.bundle_id);
-      if (!bundleId) continue;
-  
-      if (!grouped.has(bundleId)) {
-        grouped.set(bundleId, {
-          bundle_id: bundleId,
-          score: 0,
-          target_fields: [],
-          target_sections: [],
-          primary_field: "",
-          intent: "",
-          reason: "",
-          tone: "consultative",
-          missing_count: 0,
-          partial_count: 0,
-          verify_count: 0
-        });
-      }
-  
-      const group = grouped.get(bundleId);
-      const config = fieldIntentMap[item.field_key] || {};
-  
-      if (item.missing) group.missing_count += 1;
-      if (item.partial) group.partial_count += 1;
-      if (item.requires_client_verification) group.verify_count += 1;
-  
-      group.target_fields = uniqueList(group.target_fields.concat([item.field_key]));
-      group.target_sections = uniqueList(group.target_sections.concat(item.related_sections || []));
-  
-      if (!group.primary_field) {
-        group.primary_field = cleanString(config.primary_field || item.field_key);
-      }
-      if (!group.intent) group.intent = cleanString(config.bundle_intent);
-      if (!group.reason) group.reason = cleanString(config.bundle_reason);
-    }
-  
-    const strategicBundleHealth = {
-      conversion: bundleCompletion("conversion", grouped, factRegistry),
-      positioning: bundleCompletion("positioning", grouped, factRegistry),
-      service_area: bundleCompletion("service_area", grouped, factRegistry),
-      proof: bundleCompletion("proof", grouped, factRegistry)
-    };
-  
-    const strategicAverage =
-      (
-        strategicBundleHealth.conversion +
-        strategicBundleHealth.positioning +
-        strategicBundleHealth.service_area +
-        strategicBundleHealth.proof
-      ) / 4;
-  
-    const candidates = Array.from(grouped.values())
-      .map((candidate) => {
-        const weakSections = candidate.target_sections.filter(
-          (section) => (sectionStatus?.[section]?.score ?? 0) < 0.75
-        );
-  
-        const missingFields = candidate.target_fields.filter(
-          (field) => !hasMeaningfulValue(factRegistry?.[field]?.value)
-        );
-  
-        const partialFields = candidate.target_fields.filter(
-          (field) => cleanString(factRegistry?.[field]?.status) === "partial"
-        );
-  
-        let score = 0;
-  
-        // Base strategic weight matters more than raw field count
-        score += bundlePlannerWeight(candidate.bundle_id);
-  
-        // Missing still matters, but not enough to let contact_details hijack the flow
-        score += missingFields.length * 45;
-        score += partialFields.length * 18;
-        score += weakSections.length * 16;
-  
-        // Penalize contact details until strategic bundles are reasonably developed
-        if (candidate.bundle_id === "contact_details") {
-          if (strategicAverage < 0.6) {
-            score -= 260;
-          } else if (strategicAverage < 0.8) {
-            score -= 140;
-          }
-        }
-  
-        // Favor early strategic bundles explicitly
-        if (candidate.bundle_id === "conversion") score += 110;
-        if (candidate.bundle_id === "positioning") score += 95;
-        if (candidate.bundle_id === "service_area") score += 75;
-        if (candidate.bundle_id === "proof") score += 60;
-  
-        return {
-          ...candidate,
-          score,
-          target_fields: candidate.target_fields,
-          target_sections: candidate.target_sections
-        };
-      })
-      .sort((a, b) => b.score - a.score);
-  
-    return candidates;
-  }
-  
-  function bundleCompletion(bundleId, grouped, factRegistry) {
-    const candidate = grouped.get(bundleId);
-    if (!candidate || !Array.isArray(candidate.target_fields) || !candidate.target_fields.length) {
-      return 0;
-    }
-  
-    const filled = candidate.target_fields.filter((field) =>
-      hasMeaningfulValue(factRegistry?.[field]?.value)
-    ).length;
-  
-    return filled / candidate.target_fields.length;
-  }
-  
-  function bundlePlannerWeight(bundleId) {
-    switch (bundleId) {
-      case "conversion":
-        return 220;
-      case "positioning":
-        return 205;
-      case "service_area":
-        return 180;
-      case "proof":
-        return 165;
-      case "brand_story":
-        return 110;
-      case "contact_details":
-        return 40;
-      default:
-        return 80;
-    }
-  }
+function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {}) {
+  const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
+  if (!candidates.length) return null;
 
-  function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {}) {
-    const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
-    if (!candidates.length) {
-      return null;
-    }
-  
-    const best = candidates[0];
-    const targetFields = cleanList(best.target_fields);
-  
-    const isFieldResolved = (fieldKey) => {
-      const fact = factRegistry?.[fieldKey];
-      if (!fact) return false;
-  
-      const hasValue = hasMeaningfulValue(fact.value);
-      const status = cleanString(fact.status);
-  
-      return hasValue && (fact.verified === true || status === "answered" || status === "inferred");
-    };
-  
-    const unresolvedFields = targetFields.filter((fieldKey) => !isFieldResolved(fieldKey));
-    const resolvedFields = targetFields.filter((fieldKey) => isFieldResolved(fieldKey));
-  
-    const nextPrimaryField =
-      unresolvedFields[0] ||
-      cleanString(best.primary_field) ||
-      targetFields[0] ||
-      "";
-  
-    return {
-      bundle_id: cleanString(best.bundle_id),
-      score: Number(best.score || 0),
-      target_fields: targetFields,
-      target_sections: cleanList(best.target_sections),
-      primary_field: nextPrimaryField,
-      resolved_fields: resolvedFields,
-      unresolved_fields: unresolvedFields,
-      intent: cleanString(best.intent),
-      reason: cleanString(best.reason),
-      tone: cleanString(best.tone) || "consultative",
-      previous_bundle_id: cleanString(previousBundleId)
-    };
-  }
+  const best = candidates[0];
+  const targetFields = cleanList(best.target_fields);
+  const unresolvedFields = targetFields.filter((fieldKey) => !isFactResolved(factRegistry?.[fieldKey]));
+  const resolvedFields = targetFields.filter((fieldKey) => isFactResolved(factRegistry?.[fieldKey]));
 
-function evaluateBlueprintReadiness(blueprint) {
-  const sectionStatus = safeObject(blueprint?.section_status);
-  const requiredSections = ["intelligence", "strategy", "settings", "brand", "hero", "features", "contact"];
-  const satisfiedBlocks = [];
-  const remainingBlocks = [];
-
-  for (const section of requiredSections) {
-    const entry = sectionStatus?.[section];
-    if (entry?.enabled !== false && (entry?.score ?? 0) >= 0.5) {
-      satisfiedBlocks.push(section);
-    } else {
-      remainingBlocks.push(section);
-    }
-  }
-
-  const mustVerifyOpen = (Array.isArray(blueprint?.verification_queue) ? blueprint.verification_queue : [])
-    .filter((item) => item.missing || item.requires_client_verification || item.partial)
-    .map((item) => cleanString(item.field_key))
-    .filter(Boolean);
-
-  const score = Number((satisfiedBlocks.length / requiredSections.length).toFixed(2));
+  const nextPrimaryField =
+    unresolvedFields[0] ||
+    cleanString(best.primary_field) ||
+    targetFields[0] ||
+    "";
 
   return {
-    score,
-    can_generate_now: remainingBlocks.length === 0 && mustVerifyOpen.length === 0,
-    remaining_blocks: remainingBlocks,
-    satisfied_blocks: satisfiedBlocks,
-    must_verify_open: mustVerifyOpen
+    bundle_id: cleanString(best.bundle_id),
+    score: Number(best.score || 0),
+    target_fields: targetFields,
+    target_sections: cleanList(best.target_sections),
+    primary_field: nextPrimaryField,
+    resolved_fields: resolvedFields,
+    unresolved_fields: unresolvedFields,
+    intent: cleanString(best.intent),
+    reason: cleanString(best.reason),
+    tone: cleanString(best.tone) || "consultative",
+    previous_bundle_id: cleanString(previousBundleId)
   };
 }
 
-/* =========================
-   Compatibility Mirrors
-========================= */
+function evaluateBlueprintReadiness(blueprint) {
+  const componentStates = safeObject(blueprint.component_states);
+  const factRegistry = safeObject(blueprint.fact_registry);
+
+  const minimumViable = {
+    brand_name: hasMeaningfulValue(getByPath(blueprint.business_draft, "brand.name")),
+    hero_headline: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.headline")),
+    hero_subtext: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.subtext")),
+    features: Array.isArray(getByPath(blueprint.business_draft, "features")) && getByPath(blueprint.business_draft, "features").length >= 1,
+    contact_button: hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.button_text")),
+    contact_path: hasMeaningfulValue(factRegistry?.booking_method?.value) ||
+      hasMeaningfulValue(factRegistry?.contact_path?.value) ||
+      hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link"))
+  };
+
+  const premiumSignals = {
+    proof: componentStates.trustbar?.enabled || componentStates.testimonials?.enabled,
+    visuals: componentStates.gallery?.premium_ready || componentStates.hero?.premium_ready,
+    process: componentStates.processSteps?.enabled ? componentStates.processSteps?.draft_ready : true,
+    story: componentStates.about?.enabled ? componentStates.about?.draft_ready : true,
+    geo: componentStates.service_area?.enabled ? componentStates.service_area?.draft_ready : true
+  };
+
+  const minimumViablePassed = Object.values(minimumViable).every(Boolean);
+  const premiumReadyPassed =
+    minimumViablePassed &&
+    Object.values(premiumSignals).every(Boolean);
+
+  return {
+    minimum_viable_preview: minimumViablePassed,
+    premium_ready_preview: premiumReadyPassed,
+    can_generate_now: minimumViablePassed,
+    score: Number(
+      (
+        (Object.values(minimumViable).filter(Boolean).length / Object.values(minimumViable).length) * 0.6 +
+        (Object.values(premiumSignals).filter(Boolean).length / Object.values(premiumSignals).length) * 0.4
+      ).toFixed(2)
+    ),
+    minimum_viable_detail: minimumViable,
+    premium_ready_detail: premiumSignals
+  };
+}
+
+/* ========================================================================
+ * Question Rendering
+ * ====================================================================== */
+
+async function renderNextQuestion({ env, blueprint, previousPlan, interpretation, businessName }) {
+  const plan = blueprint.question_plan;
+  if (!plan) {
+    return "Excellent — we now have enough verified clarity to move into final assembly.";
+  }
+
+  const factRegistry = isObject(blueprint?.fact_registry) ? blueprint.fact_registry : {};
+  const planTargetFields = Array.isArray(plan.target_fields) ? plan.target_fields : [];
+  const isFieldResolvedLocal = (fieldKey) => isFactResolved(factRegistry?.[fieldKey]);
+
+  let adjustedPlan = { ...plan };
+
+  if (cleanString(plan.primary_field) && isFieldResolvedLocal(plan.primary_field)) {
+    const nextUnresolvedField = planTargetFields.find((fieldKey) => !isFieldResolvedLocal(fieldKey));
+    if (nextUnresolvedField) {
+      adjustedPlan.primary_field = nextUnresolvedField;
+    }
+  }
+
+  const fallback = buildDeterministicQuestion(adjustedPlan, blueprint, businessName);
+
+  if (!env?.OPENAI_API_KEY) {
+    return fallback;
+  }
+
+  const bundleScopedHints = {
+    conversion: "Ask only about the next step, booking flow, pricing expectations, booking link, or availability expectations.",
+    positioning: "Ask only about audience, offer, differentiation, or visual fit.",
+    service_area: "Ask only about the primary market and nearby cities or regions served.",
+    proof: "Ask only about trust signals, outcomes, reviews, experience, or credibility.",
+    process: "Ask only about the typical workflow from inquiry to completion.",
+    gallery_strategy: "Ask only about the visual direction, image style, hero image fit, or gallery needs.",
+    pricing_model: "Ask only about pricing tiers, standard packages, or how pricing is structured.",
+    objection_handling: "Ask only about the questions or objections clients need answered before booking.",
+    story: "Ask only about founder story, standards, philosophy, or why the business was built this way.",
+    events_strategy: "Ask only about time-based offerings, schedules, sessions, or recurring events.",
+    comparison_strategy: "Ask only about alternatives buyers compare against and why this option is better.",
+    contact_details: "Ask only about factual public contact details like phone, email, address, hours, or booking link."
+  };
+
+  const bundleSpecificUnresolvedPoints = normalizeStringArray(interpretation?.unresolved_points).filter((point) =>
+    unresolvedPointMatchesBundle(point, adjustedPlan.bundle_id)
+  );
+
+  try {
+    const payload = {
+      model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
+      temperature: 0.35,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: [
+            "You write the next intake question for SiteForge Factory.",
+            "Style: consultative, expert-level, natural, concise, premium.",
+            "Do not mention schema, JSON, fields, or technical internals.",
+            "Ask exactly one strong next question.",
+            "Do not repeat what was just answered.",
+            "Do not hardcode industries.",
+            "Stay strictly inside the requested decision scope.",
+            "Do not combine multiple decisions into one question.",
+            "If the current primary field is already answered, move naturally to the next unresolved field in the same decision.",
+            "If unresolved points exist, only use the ones that belong to the next decision.",
+            "Make it feel like a sharp strategist at a premium agency.",
+            'Return JSON only: { "message": "..." }'
+          ].join("\n")
+        },
+        {
+          role: "user",
+          content: JSON.stringify(
+            {
+              business_name: cleanString(businessName),
+              previous_bundle_id: cleanString(previousPlan?.bundle_id),
+              next_bundle_id: cleanString(adjustedPlan.bundle_id),
+              primary_field: cleanString(adjustedPlan.primary_field),
+              target_fields: cleanList(adjustedPlan.target_fields),
+              intent: cleanString(adjustedPlan.intent),
+              reason: cleanString(adjustedPlan.reason),
+              bundle_scope_rule:
+                bundleScopedHints[cleanString(adjustedPlan.bundle_id)] ||
+                "Ask only within the selected decision.",
+              already_resolved_fields: cleanList(planTargetFields.filter((fieldKey) => isFieldResolvedLocal(fieldKey))),
+              unresolved_fields: cleanList(planTargetFields.filter((fieldKey) => !isFieldResolvedLocal(fieldKey))),
+              updated_fact_keys: cleanList(interpretation?.updated_fact_keys),
+              answer_summary: cleanString(interpretation?.answer_summary),
+              unresolved_points: bundleSpecificUnresolvedPoints
+            },
+            null,
+            2
+          )
+        }
+      ]
+    };
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) return fallback;
+
+    const data = await response.json();
+    const raw = data?.choices?.[0]?.message?.content;
+    const parsed = safeJsonParse(raw);
+    const message = cleanString(parsed?.message);
+
+    if (!message) return fallback;
+    if (isOverloadedQuestion(message, adjustedPlan.bundle_id)) return fallback;
+    if (looksLikeRepeatedQuestion(message, interpretation?.answer_summary, adjustedPlan.bundle_id)) return fallback;
+
+    return message;
+  } catch (err) {
+    console.error("[intake-next-v2-1:render-question]", err);
+    return fallback;
+  }
+}
+
+function buildDeterministicQuestion(plan, blueprint, businessName) {
+  const name =
+    cleanString(businessName) ||
+    cleanString(getByPath(blueprint, "business_draft.brand.name")) ||
+    "your business";
+
+  const bundleId = cleanString(plan?.bundle_id);
+  const primaryField = cleanString(plan?.primary_field);
+
+  if (bundleId === "conversion") {
+    switch (primaryField) {
+      case "pricing":
+        return `When someone requests a quote from ${name}, how do you typically price the work — is it based on scope, size, complexity, or something else?`;
+      case "booking_url":
+        return `After someone requests a quote from ${name}, do you send them to a booking page or scheduling link, or is everything handled manually?`;
+      case "booking_method":
+        return `When someone is ready to take the next step with ${name}, what should happen — do they call, request a quote, fill out a form, book online, or something else?`;
+      case "contact_path":
+        return `What is the preferred path for a serious prospect to contact ${name} — form, phone call, text, email, or something else?`;
+      default:
+        return `When someone is ready to take the next step with ${name}, what should happen, and is there anything they should understand about pricing, timing, or availability?`;
+    }
+  }
+
+  if (bundleId === "positioning") {
+    switch (primaryField) {
+      case "target_persona":
+        return `Who is the best-fit customer for ${name}, and what do they care most about when choosing someone like you?`;
+      case "primary_offer":
+        return `What exactly do you want a new visitor to understand about what ${name} offers right away?`;
+      case "differentiation":
+        return `What makes ${name} meaningfully different from the other options someone might be comparing you against?`;
+      case "gallery_visual_direction":
+      case "hero_image_query":
+        return `What should the visuals for ${name} make someone feel immediately, and what kinds of scenes or details best represent the work?`;
+      default:
+        return `If a strong-fit visitor lands on ${name}, what should they immediately understand about who it is for, what you offer, and what makes it different?`;
+    }
+  }
+
+  if (bundleId === "service_area") {
+    switch (primaryField) {
+      case "surrounding_cities":
+        return `Besides your main area, which nearby cities, neighborhoods, or regions should we represent for ${name}?`;
+      case "service_area_main":
+        return `What is the primary city or market ${name} should be centered around on the site?`;
+      default:
+        return `What is the primary market you want this site to speak to, and are there nearby cities or regions you also want represented?`;
+    }
+  }
+
+  if (bundleId === "proof") {
+    switch (primaryField) {
+      case "review_quotes":
+        return `What kinds of things do clients consistently say after working with ${name}, or do you have any review language we should reflect?`;
+      case "years_experience":
+        return `How long have you been doing this work, and how should that experience come through on the site?`;
+      case "trust_signal":
+        return `What are the strongest trust signals we can lean on for ${name} — experience, reviews, outcomes, photos, reputation, or something else?`;
+      default:
+        return `What are the strongest proof points we can use to help someone trust ${name} quickly?`;
+    }
+  }
+
+  if (bundleId === "process") {
+    return `What does working with ${name} usually look like from the first inquiry through completion?`;
+  }
+
+  if (bundleId === "gallery_strategy") {
+    switch (primaryField) {
+      case "gallery_visual_direction":
+        return `What kinds of scenes, details, or outcomes should the gallery for ${name} emphasize so the site feels like the right fit?`;
+      case "hero_image_query":
+        return `What should the hero image for ${name} communicate at a glance — the type of work, the setting, the customer, or the result?`;
+      default:
+        return `What visual direction should the site for ${name} take so it feels premium and true to the business?`;
+    }
+  }
+
+  if (bundleId === "pricing_model") {
+    return `Do you offer standardized packages or tiers, or is pricing usually customized from quote to quote?`;
+  }
+
+  if (bundleId === "objection_handling") {
+    return `What are the main questions or objections people usually have before they feel ready to move forward with ${name}?`;
+  }
+
+  if (bundleId === "story") {
+    return `What is the story behind ${name}, and what standards, philosophy, or perspective should come through in the about section?`;
+  }
+
+  if (bundleId === "events_strategy") {
+    return `Do you have recurring sessions, classes, tours, or any other time-based offerings we should show on the site?`;
+  }
+
+  if (bundleId === "comparison_strategy") {
+    return `What alternatives are buyers usually comparing ${name} against, and what tends to make them choose you?`;
+  }
+
+  if (bundleId === "contact_details") {
+    switch (primaryField) {
+      case "phone":
+        return `What is the best public phone number to show for ${name}?`;
+      case "email":
+        return `What email address should serious prospects use to reach ${name}?`;
+      case "address":
+        return `What address should we show publicly for ${name}, if any?`;
+      case "hours":
+        return `What hours or availability should people expect when contacting ${name}?`;
+      default:
+        return `What contact details should we treat as the accurate public version for the site?`;
+    }
+  }
+
+  return `What is the next important thing a serious prospect should understand about ${name} before deciding to contact or book?`;
+}
+
+/* ========================================================================
+ * Compatibility Mirrors
+ * ====================================================================== */
 
 function syncCompatibilityMirrors(state) {
   const blueprint = normalizeBlueprint(state.blueprint);
@@ -879,699 +1932,9 @@ function syncCompatibilityMirrors(state) {
   state.current_key = cleanString(blueprint.question_plan?.primary_field);
 }
 
-/* =========================
-   Question Rendering
-========================= */
-
-async function renderNextQuestion({ env, blueprint, previousPlan, interpretation, businessName }) {
-    const plan = blueprint.question_plan;
-    if (!plan) {
-      return "Excellent — we now have enough verified clarity to move into final assembly.";
-    }
-  
-    const factRegistry = isObject(blueprint?.fact_registry) ? blueprint.fact_registry : {};
-    const planTargetFields = Array.isArray(plan.target_fields) ? plan.target_fields : [];
-  
-    const isFieldResolved = (fieldKey) => {
-      const fact = factRegistry?.[fieldKey];
-      if (!fact) return false;
-  
-      const hasValue = hasMeaningfulValue(fact.value);
-      const status = cleanString(fact.status);
-  
-      return hasValue && (fact.verified === true || status === "answered" || status === "inferred");
-    };
-  
-    let adjustedPlan = { ...plan };
-  
-    if (cleanString(plan.primary_field) && isFieldResolved(plan.primary_field)) {
-      const nextUnresolvedField = planTargetFields.find((fieldKey) => !isFieldResolved(fieldKey));
-      if (nextUnresolvedField) {
-        adjustedPlan.primary_field = nextUnresolvedField;
-      }
-    }
-  
-    const fallback = buildDeterministicQuestion(adjustedPlan, blueprint, businessName);
-  
-    if (!env?.OPENAI_API_KEY) {
-      return fallback;
-    }
-  
-    const bundleScopedHints = {
-      conversion:
-        "Ask only about the next step, booking flow, pricing expectations, or availability expectations.",
-      positioning:
-        "Ask only about audience, offer, or differentiation.",
-      service_area:
-        "Ask only about the primary market and nearby cities or regions served.",
-      proof:
-        "Ask only about trust signals, outcomes, reviews, reputation, or credibility.",
-      brand_story:
-        "Ask only about founder story, standards, philosophy, or why the business was built this way.",
-      contact_details:
-        "Ask only about factual public contact details like phone, email, address, hours, or booking link."
-    };
-  
-    const bundleSpecificUnresolvedPoints = normalizeStringArray(interpretation?.unresolved_points).filter((point) =>
-      unresolvedPointMatchesBundle(point, adjustedPlan.bundle_id)
-    );
-  
-    try {
-      const payload = {
-        model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
-        temperature: 0.35,
-        response_format: { type: "json_object" },
-        messages: [
-          {
-            role: "system",
-            content: [
-              "You write the next intake question for SiteForge Factory.",
-              "Style: consultative, expert-level, natural, concise, premium.",
-              "Do not mention schema, JSON, fields, or technical internals.",
-              "Ask exactly one strong next question.",
-              "Do not repeat what was just answered.",
-              "Do not hardcode industries.",
-              "Stay strictly inside the requested bundle scope.",
-              "Do not combine multiple bundles into one question.",
-              "If the current primary field is already answered, move naturally to the next unresolved field in the same bundle.",
-              "If unresolved points exist, only use the ones that belong to the next bundle.",
-              'Return JSON only: { "message": "..." }'
-            ].join("\n")
-          },
-          {
-            role: "user",
-            content: JSON.stringify(
-              {
-                business_name: cleanString(businessName),
-                previous_bundle_id: cleanString(previousPlan?.bundle_id),
-                next_bundle_id: cleanString(adjustedPlan.bundle_id),
-                primary_field: cleanString(adjustedPlan.primary_field),
-                target_fields: cleanList(adjustedPlan.target_fields),
-                intent: cleanString(adjustedPlan.intent),
-                reason: cleanString(adjustedPlan.reason),
-                bundle_scope_rule:
-                  bundleScopedHints[cleanString(adjustedPlan.bundle_id)] ||
-                  "Ask only within the selected bundle.",
-                already_resolved_fields: cleanList(planTargetFields.filter((fieldKey) => isFieldResolved(fieldKey))),
-                unresolved_fields: cleanList(planTargetFields.filter((fieldKey) => !isFieldResolved(fieldKey))),
-                updated_fact_keys: cleanList(interpretation?.updated_fact_keys),
-                answer_summary: cleanString(interpretation?.answer_summary),
-                unresolved_points: bundleSpecificUnresolvedPoints
-              },
-              null,
-              2
-            )
-          }
-        ]
-      };
-  
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify(payload)
-      });
-  
-      if (!response.ok) return fallback;
-  
-      const data = await response.json();
-      const raw = data?.choices?.[0]?.message?.content;
-      const parsed = safeJsonParse(raw);
-      const message = cleanString(parsed?.message);
-  
-      if (!message) return fallback;
-  
-      if (isOverloadedQuestion(message, adjustedPlan.bundle_id)) {
-        return fallback;
-      }
-  
-      if (looksLikeRepeatedQuestion(message, interpretation?.answer_summary, adjustedPlan.bundle_id)) {
-        return fallback;
-      }
-  
-      return message;
-    } catch (err) {
-      console.error("[intake-next-v2:render-question]", err);
-      return fallback;
-    }
-  }
-
-  function buildDeterministicQuestion(plan, blueprint, businessName) {
-    const name =
-      cleanString(businessName) ||
-      cleanString(getByPath(blueprint, "business_draft.brand.name")) ||
-      "your business";
-  
-    const bundleId = cleanString(plan?.bundle_id);
-    const primaryField = cleanString(plan?.primary_field);
-  
-    if (bundleId === "conversion") {
-      switch (primaryField) {
-        case "pricing":
-          return `When someone requests a quote from ${name}, how do you typically price the work — is it based on scope, size, complexity, or something else?`;
-  
-        case "booking_url":
-          return `After someone requests a quote from ${name}, do you send them to a booking page or scheduling link, or is everything handled manually?`;
-  
-        case "booking_method":
-          return `When someone is ready to take the next step with ${name}, what should happen — do they call, request a quote, fill out a form, book online, or something else?`;
-  
-        case "contact_path":
-          return `What is the preferred path for a serious prospect to contact ${name} — form, phone call, text, email, or something else?`;
-  
-        default:
-          return `When someone is ready to take the next step with ${name}, what should happen, and is there anything they should understand about pricing, timing, or availability?`;
-      }
-    }
-  
-    if (bundleId === "positioning") {
-      switch (primaryField) {
-        case "target_persona":
-          return `Who is the best-fit customer for ${name}, and what do they care most about when choosing someone like you?`;
-  
-        case "primary_offer":
-          return `What exactly do you want a new visitor to understand about what ${name} offers right away?`;
-  
-        case "differentiation":
-          return `What makes ${name} meaningfully different from the other options someone might be comparing you against?`;
-  
-        case "gallery_visual_direction":
-          return `What kinds of work, settings, or details should the visuals for ${name} emphasize so the site feels like the right fit?`;
-  
-        default:
-          return `If a strong-fit visitor lands on ${name}, what should they immediately understand about who it is for, what you offer, and what makes it different?`;
-      }
-    }
-  
-    if (bundleId === "service_area") {
-      switch (primaryField) {
-        case "surrounding_cities":
-          return `Besides your main area, which nearby cities, neighborhoods, or regions should we represent for ${name}?`;
-  
-        case "service_area_main":
-          return `What is the primary city or market ${name} should be centered around on the site?`;
-  
-        default:
-          return `What is the primary market you want this site to speak to, and are there nearby cities or regions you also want represented?`;
-      }
-    }
-  
-    if (bundleId === "proof") {
-      switch (primaryField) {
-        case "review_quotes":
-          return `What kinds of things do clients consistently say after working with ${name}, or do you have any review language we should reflect?`;
-  
-        case "years_experience":
-          return `How long have you been doing this work, and how should that experience come through on the site?`;
-  
-        case "trust_signal":
-          return `What are the strongest trust signals we can lean on for ${name} — experience, reviews, outcomes, photos, reputation, or something else?`;
-  
-        default:
-          return `What are the strongest proof points we can use to help someone trust ${name} quickly?`;
-      }
-    }
-  
-    if (bundleId === "brand_story") {
-      return `What is the story behind ${name}, and what standards, philosophy, or perspective should come through in the about section?`;
-    }
-  
-    if (bundleId === "contact_details") {
-      switch (primaryField) {
-        case "phone":
-          return `What is the best public phone number to show for ${name}?`;
-  
-        case "email":
-          return `What email address should serious prospects use to reach ${name}?`;
-  
-        case "address":
-          return `What address should we show publicly for ${name}, if any?`;
-  
-        case "hours":
-          return `What hours or availability should people expect when contacting ${name}?`;
-  
-        default:
-          return `What contact details should we treat as the accurate public version for the site?`;
-      }
-    }
-  
-    return `What is the next important thing a serious prospect should understand about ${name} before deciding to contact or book?`;
-  }
-
-/* =========================
-   Field Intent + Section Map
-========================= */
-
-function getFieldIntentMap(strategy) {
-  const toggles = safeObject(strategy?.schema_toggles);
-  const showProcess = !!toggles.show_process;
-  const showGallery = !!toggles.show_gallery;
-  const showTestimonials = !!toggles.show_testimonials;
-  const showServiceArea = !!toggles.show_service_area;
-  const showInvestment = !!toggles.show_investment;
-  const showAbout = !!toggles.show_about;
-  const showFaqs = !!toggles.show_faqs;
-  const showEvents = !!toggles.show_events;
-  const showComparison = !!toggles.show_comparison;
-
-  const map = {
-    primary_offer: {
-      bundle_id: "positioning",
-      primary_field: "primary_offer",
-      related_sections: ["hero", "features"],
-      must_verify_now_aliases: ["primary_offer"],
-      preview_aliases: ["primary_offer"],
-      publish_aliases: [],
-      reason: "Primary offer shapes hero, features, and page direction.",
-      bundle_intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
-      bundle_reason: "This unlocks hero, features, and overall page direction."
-    },
-    target_persona: {
-      bundle_id: "positioning",
-      primary_field: "primary_offer",
-      related_sections: ["intelligence", "hero", "features"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Audience clarity improves positioning and conversion.",
-      bundle_intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
-      bundle_reason: "This unlocks hero, features, and overall page direction."
-    },
-    differentiation: {
-      bundle_id: "positioning",
-      primary_field: "primary_offer",
-      related_sections: ["hero", "about", "features"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Differentiation sharpens the page direction.",
-      bundle_intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
-      bundle_reason: "This unlocks hero, features, and overall page direction."
-    },
-    booking_method: {
-      bundle_id: "conversion",
-      primary_field: "booking_method",
-      related_sections: ["contact", "settings", "hero"],
-      must_verify_now_aliases: ["booking process"],
-      preview_aliases: ["booking_method"],
-      publish_aliases: [],
-      reason: "Booking method defines the site conversion flow.",
-      bundle_intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
-      bundle_reason: "This defines how the site converts visitors."
-    },
-    contact_path: {
-      bundle_id: "conversion",
-      primary_field: "booking_method",
-      related_sections: ["contact", "settings"],
-      must_verify_now_aliases: [],
-      preview_aliases: ["contact_path"],
-      publish_aliases: [],
-      reason: "Contact path clarifies the desired visitor action.",
-      bundle_intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
-      bundle_reason: "This defines how the site converts visitors."
-    },
-    pricing: {
-      bundle_id: "conversion",
-      primary_field: "booking_method",
-      related_sections: showInvestment ? ["investment", "contact", "hero"] : ["contact", "hero"],
-      must_verify_now_aliases: ["pricing structure", "pricing"],
-      preview_aliases: ["pricing"],
-      publish_aliases: [],
-      reason: "Pricing context helps the site set expectations.",
-      bundle_intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
-      bundle_reason: "This defines how the site converts visitors."
-    },
-    booking_url: {
-      bundle_id: "conversion",
-      primary_field: "booking_method",
-      related_sections: ["contact", "settings"],
-      must_verify_now_aliases: ["booking process"],
-      preview_aliases: ["booking_url"],
-      publish_aliases: ["booking_url"],
-      reason: "Booking URL determines whether CTA can send visitors externally.",
-      bundle_intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
-      bundle_reason: "This defines how the site converts visitors."
-    },
-    service_area_main: {
-      bundle_id: "service_area",
-      primary_field: "service_area_main",
-      related_sections: showServiceArea ? ["service_area", "hero"] : ["hero"],
-      must_verify_now_aliases: ["service area specifics", "service_area"],
-      preview_aliases: ["service_area"],
-      publish_aliases: [],
-      reason: "Primary market improves local relevance and targeting.",
-      bundle_intent: "Clarify the primary market and nearby areas served.",
-      bundle_reason: "This improves local relevance and targeting."
-    },
-    surrounding_cities: {
-      bundle_id: "service_area",
-      primary_field: "service_area_main",
-      related_sections: showServiceArea ? ["service_area", "hero"] : ["hero"],
-      must_verify_now_aliases: ["service area specifics"],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Surrounding markets improve geo coverage and SEO targeting.",
-      bundle_intent: "Clarify the primary market and nearby areas served.",
-      bundle_reason: "This improves local relevance and targeting."
-    },
-    review_quotes: {
-      bundle_id: "proof",
-      primary_field: "review_quotes",
-      related_sections: showTestimonials ? ["trustbar", "testimonials", "about"] : ["trustbar", "about"],
-      must_verify_now_aliases: [],
-      preview_aliases: ["review_quotes"],
-      publish_aliases: [],
-      reason: "Reviews make the site feel credible quickly.",
-      bundle_intent: "Clarify why someone should trust the business quickly.",
-      bundle_reason: "Proof makes the site feel credible."
-    },
-    years_experience: {
-      bundle_id: showAbout ? "proof" : "brand_story",
-      primary_field: showAbout ? "review_quotes" : "founder_story",
-      related_sections: showAbout ? ["about", "trustbar"] : ["about"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Experience strengthens trust and about depth.",
-      bundle_intent: showAbout
-        ? "Clarify why someone should trust the business quickly."
-        : "Clarify how the business started and what standards or philosophy define it.",
-      bundle_reason: showAbout
-        ? "Proof makes the site feel credible."
-        : "A stronger story improves the about section."
-    },
-    trust_signal: {
-      bundle_id: "proof",
-      primary_field: "review_quotes",
-      related_sections: ["trustbar", "testimonials", "about"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Trust signals help visitors believe the offer quickly.",
-      bundle_intent: "Clarify why someone should trust the business quickly.",
-      bundle_reason: "Proof makes the site feel credible."
-    },
-    founder_story: {
-      bundle_id: "brand_story",
-      primary_field: "founder_story",
-      related_sections: showAbout ? ["about"] : [],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Founder story deepens the about section.",
-      bundle_intent: "Clarify how the business started and what standards or philosophy define it.",
-      bundle_reason: "A stronger story improves the about section."
-    },
-    phone: {
-      bundle_id: "contact_details",
-      primary_field: "phone",
-      related_sections: ["brand", "contact"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: ["phone", "public business phone number"],
-      reason: "Phone must be accurate for publish-readiness.",
-      bundle_intent: "Verify the factual contact details needed for publish-readiness.",
-      bundle_reason: "These details should be accurate before publish."
-    },
-    email: {
-      bundle_id: "contact_details",
-      primary_field: "phone",
-      related_sections: ["brand", "contact"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: ["email"],
-      reason: "Email recipient must be accurate for the contact section.",
-      bundle_intent: "Verify the factual contact details needed for publish-readiness.",
-      bundle_reason: "These details should be accurate before publish."
-    },
-    address: {
-      bundle_id: "contact_details",
-      primary_field: "phone",
-      related_sections: ["brand", "contact"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: ["business address", "address"],
-      reason: "Address may be needed for publish-readiness.",
-      bundle_intent: "Verify the factual contact details needed for publish-readiness.",
-      bundle_reason: "These details should be accurate before publish."
-    },
-    hours: {
-      bundle_id: "contact_details",
-      primary_field: "phone",
-      related_sections: ["contact"],
-      must_verify_now_aliases: ["availability for peak seasons"],
-      preview_aliases: [],
-      publish_aliases: ["hours", "hours of operation"],
-      reason: "Hours clarify availability and publish-readiness.",
-      bundle_intent: "Verify the factual contact details needed for publish-readiness.",
-      bundle_reason: "These details should be accurate before publish."
-    }
-  };
-
-  if (showFaqs) {
-    map.faq_angles = {
-      bundle_id: "proof",
-      primary_field: "review_quotes",
-      related_sections: ["faqs"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "FAQ substance helps address objections.",
-      bundle_intent: "Clarify why someone should trust the business quickly.",
-      bundle_reason: "Proof and objection handling make the site feel credible."
-    };
-  }
-
-  if (showGallery) {
-    map.gallery_visual_direction = {
-      bundle_id: "positioning",
-      primary_field: "primary_offer",
-      related_sections: ["gallery", "hero"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: ["photos"],
-      reason: "Visual direction improves image sourcing and overall page fit.",
-      bundle_intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
-      bundle_reason: "This sharpens the visual direction of the page."
-    };
-  }
-
-  if (showEvents) {
-    map.events = {
-      bundle_id: "conversion",
-      primary_field: "booking_method",
-      related_sections: ["events"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Events define time-based conversion flow.",
-      bundle_intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
-      bundle_reason: "This defines how the site converts visitors."
-    };
-  }
-
-  if (showComparison) {
-    map.comparison = {
-      bundle_id: "positioning",
-      primary_field: "primary_offer",
-      related_sections: ["comparison"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Comparison content clarifies why this option wins.",
-      bundle_intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
-      bundle_reason: "This sharpens positioning against alternatives."
-    };
-  }
-
-  return map;
-}
-
-function getSectionMap() {
-  return {
-    intelligence: {
-      required: true,
-      required_for_preview: true,
-      fields: [
-        { path: "intelligence.industry", fact_key: "category" },
-        { path: "intelligence.target_persona", fact_key: "target_persona" },
-        { path: "intelligence.tone_of_voice", fact_key: "tone_of_voice" }
-      ]
-    },
-    strategy: {
-      required: true,
-      required_for_preview: true,
-      fields: [
-        { path: "strategy.show_about", fact_key: "show_about" },
-        { path: "strategy.show_features", fact_key: "show_features" },
-        { path: "strategy.show_testimonials", fact_key: "show_testimonials" }
-      ]
-    },
-    settings: {
-      required: true,
-      required_for_preview: true,
-      fields: [
-        { path: "settings.vibe", fact_key: "vibe" },
-        { path: "settings.cta_text", fact_key: "cta_text" },
-        { path: "settings.cta_link", fact_key: "cta_link" },
-        { path: "settings.cta_type", fact_key: "cta_type" }
-      ]
-    },
-    brand: {
-      required: true,
-      required_for_preview: true,
-      fields: [
-        { path: "brand.name", fact_key: "business_name" },
-        { path: "brand.tagline", fact_key: "tagline" },
-        { path: "brand.email", fact_key: "email" }
-      ]
-    },
-    hero: {
-      required: true,
-      required_for_preview: true,
-      fields: [
-        { path: "hero.headline", fact_key: "hero_headline" },
-        { path: "hero.subtext", fact_key: "primary_offer" },
-        { path: "hero.image.alt", fact_key: "hero_image_alt" }
-      ]
-    },
-    about: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_about",
-      fields: [
-        { path: "about.story_text", fact_key: "founder_story" },
-        { path: "about.founder_note", fact_key: "founder_story" },
-        { path: "about.years_experience", fact_key: "years_experience" }
-      ]
-    },
-    features: {
-      required: true,
-      required_for_preview: true,
-      fields: [
-        { path: "features", fact_key: "primary_offer" }
-      ]
-    },
-    trustbar: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_trustbar",
-      fields: [
-        { path: "trustbar", fact_key: "trust_signal" }
-      ]
-    },
-    testimonials: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_testimonials",
-      fields: [
-        { path: "testimonials.items", fact_key: "review_quotes" }
-      ]
-    },
-    process: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_process",
-      fields: [
-        { path: "processSteps", fact_key: "process_summary" }
-      ]
-    },
-    faqs: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_faqs",
-      fields: [
-        { path: "faqs", fact_key: "faq_angles" }
-      ]
-    },
-    gallery: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_gallery",
-      fields: [
-        { path: "gallery.image_source.image_search_query", fact_key: "gallery_visual_direction" }
-      ]
-    },
-    service_area: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_service_area",
-      fields: [
-        { path: "service_area.main_city", fact_key: "service_area_main" },
-        { path: "service_area.surrounding_cities", fact_key: "surrounding_cities" }
-      ]
-    },
-    investment: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_investment",
-      fields: [
-        { path: "investment", fact_key: "pricing" }
-      ]
-    },
-    events: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_events",
-      fields: [
-        { path: "events", fact_key: "events" }
-      ]
-    },
-    comparison: {
-      required: false,
-      required_for_preview: false,
-      toggle_key: "show_comparison",
-      fields: [
-        { path: "comparison.items", fact_key: "comparison" }
-      ]
-    },
-    contact: {
-      required: true,
-      required_for_preview: true,
-      fields: [
-        { path: "contact.email_recipient", fact_key: "email" },
-        { path: "contact.button_text", fact_key: "cta_text" },
-        { path: "contact.subheadline", fact_key: "contact_path" }
-      ]
-    }
-  };
-}
-
-function isSectionEnabled(sectionName, config, schemaToggles) {
-  if (!config.toggle_key) return true;
-  return !!schemaToggles?.[config.toggle_key];
-}
-
-function isFactVerifiedByPath(factRegistry, factKey) {
-  if (!factKey) return false;
-  const fact = factRegistry?.[factKey];
-  return !!fact?.verified || !fact?.requires_client_verification;
-}
-
-function bundleBaseWeight(bundleId) {
-  switch (bundleId) {
-    case "conversion":
-      return 90;
-    case "positioning":
-      return 80;
-    case "service_area":
-      return 70;
-    case "proof":
-      return 60;
-    case "brand_story":
-      return 35;
-    case "contact_details":
-      return 15;
-    default:
-      return 20;
-  }
-}
-
-/* =========================
-   Normalization
-========================= */
+/* ========================================================================
+ * Normalization
+ * ====================================================================== */
 
 function normalizeState(state) {
   const next = isObject(state) ? state : {};
@@ -1600,7 +1963,6 @@ function normalizeState(state) {
 
 function normalizeBlueprint(blueprint) {
   const next = isObject(blueprint) ? blueprint : {};
-
   next.strategy = isObject(next.strategy) ? next.strategy : {};
   next.fact_registry = normalizeFactRegistry(next.fact_registry);
   next.business_draft = isObject(next.business_draft) ? next.business_draft : {};
@@ -1608,7 +1970,10 @@ function normalizeBlueprint(blueprint) {
   next.verification_queue = Array.isArray(next.verification_queue) ? next.verification_queue : [];
   next.question_candidates = Array.isArray(next.question_candidates) ? next.question_candidates : [];
   next.question_plan = isObject(next.question_plan) ? next.question_plan : {};
-
+  next.component_states = isObject(next.component_states) ? next.component_states : {};
+  next.decision_states = isObject(next.decision_states) ? next.decision_states : {};
+  next.evidence_log = Array.isArray(next.evidence_log) ? next.evidence_log : [];
+  next.question_history = Array.isArray(next.question_history) ? next.question_history : [];
   return next;
 }
 
@@ -1644,51 +2009,9 @@ function normalizeFactRegistry(input) {
   return out;
 }
 
-/* =========================
-   Utility
-========================= */
-function unresolvedPointMatchesBundle(point, bundleId) {
-    const text = cleanString(point).toLowerCase();
-    const bundle = cleanString(bundleId);
-  
-    if (!text || !bundle) return false;
-  
-    const keywords = {
-      conversion: ["book", "booking", "quote", "pricing", "availability", "call", "form", "schedule", "timing"],
-      positioning: ["audience", "offer", "different", "difference", "position", "persona", "fit"],
-      service_area: ["city", "cities", "area", "areas", "region", "regions", "neighborhood", "neighborhoods", "service area"],
-      proof: ["review", "reviews", "trust", "result", "results", "experience", "testimonial", "credibility", "reputation"],
-      brand_story: ["story", "founder", "philosophy", "standards", "started", "background"],
-      contact_details: ["phone", "email", "address", "hours", "contact", "booking url", "booking link"]
-    };
-  
-    return (keywords[bundle] || []).some((word) => text.includes(word));
-  }
-  
-  function looksLikeRepeatedQuestion(message, answerSummary, bundleId) {
-    const question = cleanString(message).toLowerCase();
-    const answer = cleanString(answerSummary).toLowerCase();
-    const bundle = cleanString(bundleId);
-  
-    if (!question || !answer || !bundle) return false;
-  
-    const repeatedSignals = {
-      conversion: ["call", "request a quote", "fill out a form", "book online", "next step"],
-      positioning: ["who it is for", "what you offer", "different"],
-      service_area: ["what areas", "which cities", "where do you serve"],
-      proof: ["why trust", "reviews", "results", "experience"],
-      brand_story: ["story behind", "why you started", "philosophy"],
-      contact_details: ["phone", "email", "address", "hours"]
-    };
-  
-    const bundlePhrases = repeatedSignals[bundle] || [];
-    const matchedInQuestion = bundlePhrases.some((phrase) => question.includes(phrase));
-    const matchedInAnswer = bundlePhrases.some((phrase) => answer.includes(phrase));
-  
-    return matchedInQuestion && matchedInAnswer;
-  }
-
-
+/* ========================================================================
+ * Utility
+ * ====================================================================== */
 
 async function readJson(request) {
   const raw = await request.text();
@@ -1720,36 +2043,8 @@ function cleanList(value) {
 
 function normalizeStringArray(value) {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => (typeof item === "string" ? item.trim() : ""))
-    .filter(Boolean);
+  return value.map((item) => cleanString(item)).filter(Boolean);
 }
-
-function isOverloadedQuestion(message, bundleId) {
-    const text = cleanString(message).toLowerCase();
-    if (!text) return false;
-  
-    const bundleKeywords = {
-      conversion: ["book", "booking", "quote", "pricing", "availability", "call", "form", "next step"],
-      positioning: ["audience", "customer", "offer", "different", "difference", "stand out", "ideal fit"],
-      service_area: ["city", "cities", "area", "areas", "region", "regions", "neighborhood", "neighborhoods", "serve"],
-      proof: ["review", "reviews", "trust", "results", "experience", "credibility", "reputation", "testimonial"],
-      brand_story: ["story", "founder", "why", "philosophy", "standards", "started"],
-      contact_details: ["phone", "email", "address", "hours", "contact", "booking link"]
-    };
-  
-    const activeBundles = Object.entries(bundleKeywords)
-      .map(([key, words]) => ({
-        key,
-        matched: words.some((word) => text.includes(word))
-      }))
-      .filter((entry) => entry.matched)
-      .map((entry) => entry.key);
-  
-    if (activeBundles.length <= 1) return false;
-  
-    return !activeBundles.every((key) => key === bundleId);
-  }
 
 function isObject(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -1795,9 +2090,7 @@ function safeJsonParse(value) {
 }
 
 function uniqueList(values) {
-  return Array.from(
-    new Set((Array.isArray(values) ? values : []).map((item) => cleanString(item)).filter(Boolean))
-  );
+  return Array.from(new Set((Array.isArray(values) ? values : []).map((item) => cleanString(item)).filter(Boolean)));
 }
 
 function deepClone(value) {
@@ -1823,6 +2116,18 @@ function firstNonEmpty(values) {
     if (hasMeaningfulValue(value)) return value;
   }
   return "";
+}
+
+function firstArrayItem(value) {
+  if (Array.isArray(value) && value.length) return value[0];
+  return "";
+}
+
+function firstNonEmptyArray(values) {
+  for (const value of Array.isArray(values) ? values : []) {
+    if (Array.isArray(value) && value.length) return value;
+  }
+  return [];
 }
 
 function collectLeafPaths(obj, base = "") {
@@ -1859,7 +2164,6 @@ function getByPath(obj, path) {
     if (!isObject(current) && !Array.isArray(current)) return undefined;
     current = current?.[part];
   }
-
   return current;
 }
 
@@ -1897,6 +2201,17 @@ function safeAssignPathIfExists(obj, path, value) {
   setByPath(obj, path, deepClone(value));
 }
 
+function isAllowedDraftPatch(item, allowedTopLevelSections, allowedLeafPaths) {
+  if (!isObject(item)) return false;
+  const section = cleanString(item.section);
+  const path = cleanString(item.path);
+  if (!section || !path) return false;
+  if (!allowedTopLevelSections.includes(section)) return false;
+  if (path.includes("__proto__") || path.includes("constructor") || path.includes("prototype")) return false;
+  if (allowedLeafPaths.includes(path)) return true;
+  return path === section || path.startsWith(`${section}.`);
+}
+
 function pruneFactRegistryForModel(factRegistry) {
   const out = {};
   for (const [key, value] of Object.entries(factRegistry || {})) {
@@ -1911,36 +2226,20 @@ function pruneFactRegistryForModel(factRegistry) {
 }
 
 function normalizeModelValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => normalizeModelValue(item));
-  }
-
+  if (Array.isArray(value)) return value.map((item) => normalizeModelValue(item));
   if (isObject(value)) {
     const out = {};
-    for (const [key, item] of Object.entries(value)) {
-      out[key] = normalizeModelValue(item);
-    }
+    for (const [key, item] of Object.entries(value)) out[key] = normalizeModelValue(item);
     return out;
   }
-
   if (typeof value === "string") return value.trim();
   return value;
 }
 
 function ensureArrayStrings(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => cleanString(item)).filter(Boolean);
-  }
+  if (Array.isArray(value)) return value.map((item) => cleanString(item)).filter(Boolean);
   if (cleanString(value)) return [cleanString(value)];
   return [];
-}
-
-function ensureArrayObjects(value) {
-  if (!Array.isArray(value)) return [];
-  return value.filter((item) => isObject(item) || hasMeaningfulValue(item)).map((item) => {
-    if (isObject(item)) return item;
-    return { quote: cleanString(item) };
-  });
 }
 
 function stringifyFactValue(value) {
@@ -1948,3 +2247,444 @@ function stringifyFactValue(value) {
   return cleanString(value);
 }
 
+function isFactResolved(fact) {
+  if (!fact) return false;
+  const hasValue = hasMeaningfulValue(fact.value);
+  const status = cleanString(fact.status);
+  return hasValue && (fact.verified === true || status === "answered" || status === "inferred");
+}
+
+function shouldApplyCopyRefinement(existing, nextValue, confidence) {
+  if (!hasMeaningfulValue(nextValue)) return false;
+  if (typeof nextValue !== "string") return true;
+  if (!hasMeaningfulValue(existing)) return true;
+  return confidence >= 0.6;
+}
+
+function inferDecisionForFact(key) {
+  const map = {
+    primary_offer: "positioning",
+    target_persona: "positioning",
+    differentiation: "positioning",
+    hero_image_query: "gallery_strategy",
+    gallery_visual_direction: "gallery_strategy",
+    booking_method: "conversion",
+    pricing: "conversion",
+    booking_url: "conversion",
+    contact_path: "conversion",
+    review_quotes: "proof",
+    trust_signal: "proof",
+    years_experience: "proof",
+    process_summary: "process",
+    service_area_main: "service_area",
+    surrounding_cities: "service_area",
+    faq_angles: "objection_handling",
+    founder_story: "story",
+    phone: "contact_details",
+    email: "contact_details",
+    address: "contact_details",
+    hours: "contact_details",
+    comparison: "comparison_strategy",
+    events: "events_strategy",
+    investment: "pricing_model"
+  };
+  return map[key] || "positioning";
+}
+
+function inferVerificationReasonForFact(key) {
+  const reasons = {
+    pricing: "Pricing context helps the site set expectations.",
+    booking_url: "Booking URL determines whether CTA can send visitors externally.",
+    review_quotes: "Reviews make the site feel credible quickly.",
+    process_summary: "Process clarity can reduce friction and improve trust.",
+    gallery_visual_direction: "Visual strategy improves hero and gallery quality.",
+    phone: "Phone should be accurate for publish-readiness.",
+    email: "Email should be accurate for contact routing.",
+    address: "Address may be needed for publish-readiness.",
+    hours: "Hours clarify availability and publish-readiness."
+  };
+  return reasons[key] || "This fact still needs verification or refinement.";
+}
+
+function getDecisionTargets() {
+  return {
+    conversion: {
+      components: ["hero", "contact"],
+      target_fields: ["booking_method", "pricing", "booking_url", "contact_path"],
+      base_priority: 240,
+      intent: "Clarify how visitors move from interest to action, including booking flow and pricing expectations.",
+      reason: "This defines how the site converts visitors."
+    },
+    positioning: {
+      components: ["hero", "features"],
+      target_fields: ["target_persona", "primary_offer", "differentiation"],
+      base_priority: 225,
+      intent: "Clarify who the site is for, what the offer is, and what makes it stand apart.",
+      reason: "This sharpens the page message and fit."
+    },
+    service_area: {
+      components: ["service_area"],
+      target_fields: ["service_area_main", "surrounding_cities"],
+      base_priority: 180,
+      intent: "Clarify the primary market and nearby areas served.",
+      reason: "This improves local relevance and targeting."
+    },
+    proof: {
+      components: ["trustbar", "testimonials", "about"],
+      target_fields: ["review_quotes", "trust_signal", "years_experience"],
+      base_priority: 175,
+      intent: "Clarify why someone should trust the business quickly.",
+      reason: "Proof makes the site feel credible."
+    },
+    process: {
+      components: ["processSteps"],
+      target_fields: ["process_summary"],
+      base_priority: 165,
+      intent: "Capture the workflow from inquiry to completion.",
+      reason: "Process reduces friction and increases trust."
+    },
+    gallery_strategy: {
+      components: ["gallery", "hero"],
+      target_fields: ["gallery_visual_direction", "hero_image_query"],
+      base_priority: 155,
+      intent: "Clarify the visual story the hero and gallery need to tell.",
+      reason: "This improves image search query, layout, and count decisions."
+    },
+    pricing_model: {
+      components: ["investment", "faqs", "contact"],
+      target_fields: ["pricing", "investment"],
+      base_priority: 145,
+      intent: "Determine whether pricing is standardized enough for a dedicated investment section.",
+      reason: "This clarifies pricing expectations and package fit."
+    },
+    objection_handling: {
+      components: ["faqs"],
+      target_fields: ["faq_angles"],
+      base_priority: 135,
+      intent: "Capture objections and the questions people need answered.",
+      reason: "This helps FAQ quality and conversion confidence."
+    },
+    story: {
+      components: ["about"],
+      target_fields: ["founder_story"],
+      base_priority: 120,
+      intent: "Clarify the founder story, philosophy, and standards behind the business.",
+      reason: "This strengthens the about section."
+    },
+    events_strategy: {
+      components: ["events"],
+      target_fields: ["events"],
+      base_priority: 90,
+      intent: "Determine whether time-based offerings belong on the site.",
+      reason: "This supports schedule-oriented businesses."
+    },
+    comparison_strategy: {
+      components: ["comparison"],
+      target_fields: ["comparison"],
+      base_priority: 85,
+      intent: "Determine whether comparing against alternatives helps buyers decide.",
+      reason: "This helps buyers distinguish the offer."
+    },
+    contact_details: {
+      components: ["contact", "brand"],
+      target_fields: ["phone", "email", "address", "hours"],
+      base_priority: 60,
+      intent: "Verify the factual contact details needed for publish-readiness.",
+      reason: "These details should be accurate before publish."
+    }
+  };
+}
+
+function coreDecisionsStillWeak(decisionStates) {
+  const core = ["conversion", "positioning", "service_area", "proof"];
+  const avg = core.reduce((sum, key) => sum + Number(decisionStates?.[key]?.confidence || 0), 0) / core.length;
+  return avg < 0.7;
+}
+
+function looksLikeProcessFact(value) {
+  const text = cleanString(value).toLowerCase();
+  if (!text) return false;
+  return looksLikeProcessAnswer(text);
+}
+
+function looksLikeProcessAnswer(textLower) {
+  const signals = [
+    "first",
+    "then",
+    "after",
+    "finally",
+    "quote",
+    "scope",
+    "schedule",
+    "walkthrough",
+    "complete",
+    "finish",
+    "follow up"
+  ];
+  let count = 0;
+  for (const signal of signals) {
+    if (textLower.includes(signal)) count += 1;
+  }
+  return count >= 3;
+}
+
+function isStandardizedPricing(value) {
+  const text = cleanString(value).toLowerCase();
+  if (!text) return false;
+  const signals = ["package", "tier", "starting at", "from $", "flat rate", "standard", "basic", "premium"];
+  return signals.some((signal) => text.includes(signal));
+}
+
+function buildTaglineFromEvidence(factRegistry) {
+  const offer = cleanString(factRegistry?.primary_offer?.value);
+  const diff = cleanString(factRegistry?.differentiation?.value);
+  return firstNonEmpty([offer, diff]);
+}
+
+function buildHeroHeadlineFromEvidence({ businessName, offer, differentiation }) {
+  if (cleanString(offer)) return truncate(offer, 90);
+  if (cleanString(differentiation)) return truncate(differentiation, 90);
+  return `${businessName} built for quality and trust`;
+}
+
+function buildHeroSubtextFromEvidence({ offer, persona, differentiation, bookingMethod }) {
+  const parts = [offer, persona, differentiation].map(cleanString).filter(Boolean);
+  let text = parts.slice(0, 2).join(" ");
+  if (bookingMethod) {
+    text = `${text} Reach out to ${bookingMethod}.`.trim();
+  }
+  return truncate(text || "Built to help the right clients feel confident taking the next step.", 220);
+}
+
+function buildHeroImageQuery({ industry, offer, themes, differentiation }) {
+  const base = firstNonEmpty([
+    cleanString(industry),
+    cleanString(offer),
+    cleanString(differentiation),
+    ensureArrayStrings(themes).join(" ")
+  ]);
+
+  return truncate(compactVisualQuery(base, ["professional", "service", "premium", "realistic"]), 80);
+}
+
+function buildGalleryImageQuery({ industry, offer, differentiation, themes }) {
+  const base = firstNonEmpty([
+    cleanString(offer),
+    cleanString(industry),
+    cleanString(differentiation),
+    ensureArrayStrings(themes).join(" ")
+  ]);
+
+  return truncate(compactVisualQuery(base, ["detail", "results", "quality", "realistic"]), 100);
+}
+
+function compactVisualQuery(base, boosters = []) {
+  const text = cleanString(base);
+  if (!text) return boosters.join(" ");
+  const words = text
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter(Boolean);
+
+  return uniqueList(words.concat(boosters)).slice(0, 8).join(" ");
+}
+
+function inferGalleryLayout({ vibe, offer, differentiation }) {
+  const text = `${cleanString(vibe)} ${cleanString(offer)} ${cleanString(differentiation)}`.toLowerCase();
+
+  if (text.includes("luxury") || text.includes("high-end") || text.includes("premium")) return "bento";
+  if (text.includes("portfolio") || text.includes("creative") || text.includes("visual")) return "masonry";
+  return "grid";
+}
+
+function inferGalleryCount({ offer, differentiation, visualDirection }) {
+  const text = `${cleanString(offer)} ${cleanString(differentiation)} ${cleanString(visualDirection)}`.toLowerCase();
+  if (text.includes("detailed") || text.includes("before-and-after") || text.includes("portfolio")) return 8;
+  if (text.includes("premium") || text.includes("high-end")) return 6;
+  return 5;
+}
+
+function buildGalleryItemTitle(index, offer, industry) {
+  const base = firstNonEmpty([cleanString(offer), cleanString(industry), "Work Example"]);
+  return `${truncate(titleCase(base), 40)} ${index + 1}`;
+}
+
+function buildServiceAreaTravelNote(mainCity, surrounding) {
+  if (mainCity && surrounding.length) {
+    return `Outside ${mainCity} and the nearby areas listed here, custom travel quotes are available when the fit is right.`;
+  }
+  if (mainCity) {
+    return `If your project is outside ${mainCity}, reach out and we can discuss travel options.`;
+  }
+  return "If your project is outside the listed areas, reach out and we can discuss travel options.";
+}
+
+function buildContactSubheadline({ bookingMethod, pricing, contactPath }) {
+  if (cleanString(pricing)) {
+    return "Reach out to get the right next step and a quote based on your scope.";
+  }
+  if (cleanString(bookingMethod)) {
+    return "Use the preferred contact path and we’ll guide you through the next step.";
+  }
+  if (cleanString(contactPath)) {
+    return "The easiest way to get started is through the contact section below.";
+  }
+  return "Tell us what you need and we’ll point you toward the right next step.";
+}
+
+function buildProcessStepsFromSummary(summary) {
+  const text = cleanString(summary);
+  if (!text) return [];
+
+  const lower = text.toLowerCase();
+  const steps = [];
+
+  if (lower.includes("quote") || lower.includes("estimate") || lower.includes("inquiry")) {
+    steps.push({
+      title: "Start with the Right Scope",
+      description: "The process begins with a clear understanding of the work, priorities, and project details."
+    });
+  }
+  if (lower.includes("confirm") || lower.includes("scope") || lower.includes("review")) {
+    steps.push({
+      title: "Confirm the Details",
+      description: "Once the scope is clear, the plan is confirmed so expectations feel aligned before work begins."
+    });
+  }
+  if (lower.includes("schedule") || lower.includes("calendar")) {
+    steps.push({
+      title: "Schedule the Work",
+      description: "A time is set that matches the project needs and keeps the process moving smoothly."
+    });
+  }
+  if (lower.includes("complete") || lower.includes("finish") || lower.includes("clean")) {
+    steps.push({
+      title: "Deliver the Work Carefully",
+      description: "The service is completed with attention to detail, quality, and the overall client experience."
+    });
+  }
+  if (lower.includes("walkthrough") || lower.includes("final")) {
+    steps.push({
+      title: "Review the Final Result",
+      description: "A final review helps make sure the outcome feels complete and the client leaves confident."
+    });
+  }
+
+  if (steps.length < 3) {
+    return [
+      {
+        title: "Start with a Clear Conversation",
+        description: "The process starts by understanding the scope, goals, and what success looks like."
+      },
+      {
+        title: "Align on the Right Plan",
+        description: "The next step is confirming the best approach so expectations feel clear before work begins."
+      },
+      {
+        title: "Deliver with Care",
+        description: "The work is completed with attention to detail, communication, and the final result."
+      }
+    ];
+  }
+
+  return steps.slice(0, 5);
+}
+
+function inferVibe(state) {
+  return cleanString(state?.provenance?.strategy_contract?.visual_strategy?.recommended_vibe) || "Modern Minimal";
+}
+
+function titleCase(text) {
+  return cleanString(text)
+    .split(/\s+/)
+    .map((word) => word ? `${word[0].toUpperCase()}${word.slice(1)}` : "")
+    .join(" ");
+}
+
+function safeFeatureIcon(icon) {
+  const cleaned = cleanString(icon);
+  return ALLOWED_ICON_TOKENS.includes(cleaned) ? cleaned : "check";
+}
+
+function isOverloadedQuestion(message, bundleId) {
+  const text = cleanString(message).toLowerCase();
+  if (!text) return false;
+
+  const bundleKeywords = {
+    conversion: ["book", "booking", "quote", "pricing", "availability", "call", "form", "next step"],
+    positioning: ["audience", "customer", "offer", "different", "difference", "stand out", "ideal fit"],
+    service_area: ["city", "cities", "area", "areas", "region", "regions", "neighborhood", "neighborhoods", "serve"],
+    proof: ["review", "reviews", "trust", "results", "experience", "credibility", "reputation", "testimonial"],
+    process: ["process", "workflow", "steps", "inquiry", "completion", "walkthrough"],
+    gallery_strategy: ["visual", "images", "gallery", "hero image", "look", "feel"],
+    pricing_model: ["tier", "package", "pricing model", "investment"],
+    objection_handling: ["questions", "objections", "hesitations", "concerns"],
+    story: ["story", "founder", "why", "philosophy", "standards", "started"],
+    events_strategy: ["classes", "sessions", "schedule", "events", "workshops", "tours"],
+    comparison_strategy: ["compare", "alternatives", "other options"],
+    contact_details: ["phone", "email", "address", "hours", "contact", "booking link"]
+  };
+
+  const activeBundles = Object.entries(bundleKeywords)
+    .map(([key, words]) => ({
+      key,
+      matched: words.some((word) => text.includes(word))
+    }))
+    .filter((entry) => entry.matched)
+    .map((entry) => entry.key);
+
+  if (activeBundles.length <= 1) return false;
+  return !activeBundles.every((key) => key === bundleId);
+}
+
+function unresolvedPointMatchesBundle(point, bundleId) {
+  const text = cleanString(point).toLowerCase();
+  const bundle = cleanString(bundleId);
+  if (!text || !bundle) return false;
+
+  const keywords = {
+    conversion: ["book", "booking", "quote", "pricing", "availability", "call", "form", "schedule", "timing"],
+    positioning: ["audience", "offer", "different", "difference", "position", "persona", "fit"],
+    service_area: ["city", "cities", "area", "areas", "region", "regions", "neighborhood", "neighborhoods", "service area"],
+    proof: ["review", "reviews", "trust", "result", "results", "experience", "testimonial", "credibility", "reputation"],
+    process: ["process", "workflow", "steps", "walkthrough", "scope", "completion"],
+    gallery_strategy: ["visual", "gallery", "hero image", "layout", "image", "photos"],
+    pricing_model: ["pricing", "package", "tier", "investment"],
+    objection_handling: ["questions", "objections", "concerns", "hesitations"],
+    story: ["story", "founder", "philosophy", "standards", "started", "background"],
+    events_strategy: ["events", "schedule", "classes", "sessions", "tours", "workshops"],
+    comparison_strategy: ["compare", "alternatives", "difference"],
+    contact_details: ["phone", "email", "address", "hours", "contact", "booking url", "booking link"]
+  };
+
+  return (keywords[bundle] || []).some((word) => text.includes(word));
+}
+
+function looksLikeRepeatedQuestion(message, answerSummary, bundleId) {
+  const question = cleanString(message).toLowerCase();
+  const answer = cleanString(answerSummary).toLowerCase();
+  const bundle = cleanString(bundleId);
+  if (!question || !answer || !bundle) return false;
+
+  const repeatedSignals = {
+    conversion: ["call", "request a quote", "fill out a form", "book online", "next step"],
+    positioning: ["who it is for", "what you offer", "different"],
+    service_area: ["what areas", "which cities", "where do you serve"],
+    proof: ["why trust", "reviews", "results", "experience"],
+    process: ["workflow", "steps", "inquiry to completion"],
+    gallery_strategy: ["visual direction", "hero image", "gallery"],
+    pricing_model: ["packages", "tiers", "pricing model"],
+    objection_handling: ["questions", "objections"],
+    story: ["story behind", "why you started", "philosophy"],
+    events_strategy: ["classes", "sessions", "schedule"],
+    comparison_strategy: ["alternatives", "compare"],
+    contact_details: ["phone", "email", "address", "hours"]
+  };
+
+  const bundlePhrases = repeatedSignals[bundle] || [];
+  const matchedInQuestion = bundlePhrases.some((phrase) => question.includes(phrase));
+  const matchedInAnswer = bundlePhrases.some((phrase) => answer.includes(phrase));
+
+  return matchedInQuestion && matchedInAnswer;
+}
