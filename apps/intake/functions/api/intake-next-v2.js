@@ -94,8 +94,12 @@ export async function onRequestPost(context) {
       verificationQueue
     );
 
-    const questionPlan = planNextQuestion(questionCandidates, currentPlan.bundle_id || "");
-
+    const questionPlan = planNextQuestion(
+        questionCandidates,
+        currentPlan.bundle_id || "",
+        mutation.fact_registry
+      );
+      
     state.blueprint = {
       ...blueprint,
       fact_registry: mutation.fact_registry,
@@ -767,26 +771,48 @@ function buildQuestionCandidates(strategy, factRegistry, sectionStatus, verifica
     }
   }
 
-function planNextQuestion(questionCandidates, previousBundleId) {
-  const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
-  if (!candidates.length) {
-    return null;
+  function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {}) {
+    const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
+    if (!candidates.length) {
+      return null;
+    }
+  
+    const best = candidates[0];
+    const targetFields = cleanList(best.target_fields);
+  
+    const isFieldResolved = (fieldKey) => {
+      const fact = factRegistry?.[fieldKey];
+      if (!fact) return false;
+  
+      const hasValue = hasMeaningfulValue(fact.value);
+      const status = cleanString(fact.status);
+  
+      return hasValue && (fact.verified === true || status === "answered" || status === "inferred");
+    };
+  
+    const unresolvedFields = targetFields.filter((fieldKey) => !isFieldResolved(fieldKey));
+    const resolvedFields = targetFields.filter((fieldKey) => isFieldResolved(fieldKey));
+  
+    const nextPrimaryField =
+      unresolvedFields[0] ||
+      cleanString(best.primary_field) ||
+      targetFields[0] ||
+      "";
+  
+    return {
+      bundle_id: cleanString(best.bundle_id),
+      score: Number(best.score || 0),
+      target_fields: targetFields,
+      target_sections: cleanList(best.target_sections),
+      primary_field: nextPrimaryField,
+      resolved_fields: resolvedFields,
+      unresolved_fields: unresolvedFields,
+      intent: cleanString(best.intent),
+      reason: cleanString(best.reason),
+      tone: cleanString(best.tone) || "consultative",
+      previous_bundle_id: cleanString(previousBundleId)
+    };
   }
-
-  const best = candidates[0];
-
-  return {
-    bundle_id: cleanString(best.bundle_id),
-    score: Number(best.score || 0),
-    target_fields: cleanList(best.target_fields),
-    target_sections: cleanList(best.target_sections),
-    primary_field: cleanString(best.primary_field),
-    intent: cleanString(best.intent),
-    reason: cleanString(best.reason),
-    tone: cleanString(best.tone) || "consultative",
-    previous_bundle_id: cleanString(previousBundleId)
-  };
-}
 
 function evaluateBlueprintReadiness(blueprint) {
   const sectionStatus = safeObject(blueprint?.section_status);
@@ -1093,7 +1119,7 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
   
     return `What is the next important thing a serious prospect should understand about ${name} before deciding to contact or book?`;
   }
-  
+
 /* =========================
    Field Intent + Section Map
 ========================= */
