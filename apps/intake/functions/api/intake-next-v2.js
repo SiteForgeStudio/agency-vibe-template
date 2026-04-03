@@ -863,7 +863,29 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
       return "Excellent — we now have enough verified clarity to move into final assembly.";
     }
   
-    const fallback = buildDeterministicQuestion(plan, blueprint, businessName);
+    const factRegistry = isObject(blueprint?.fact_registry) ? blueprint.fact_registry : {};
+    const planTargetFields = Array.isArray(plan.target_fields) ? plan.target_fields : [];
+  
+    const isFieldResolved = (fieldKey) => {
+      const fact = factRegistry?.[fieldKey];
+      if (!fact) return false;
+  
+      const hasValue = hasMeaningfulValue(fact.value);
+      const status = cleanString(fact.status);
+  
+      return hasValue && (fact.verified === true || status === "answered" || status === "inferred");
+    };
+  
+    let adjustedPlan = { ...plan };
+  
+    if (cleanString(plan.primary_field) && isFieldResolved(plan.primary_field)) {
+      const nextUnresolvedField = planTargetFields.find((fieldKey) => !isFieldResolved(fieldKey));
+      if (nextUnresolvedField) {
+        adjustedPlan.primary_field = nextUnresolvedField;
+      }
+    }
+  
+    const fallback = buildDeterministicQuestion(adjustedPlan, blueprint, businessName);
   
     if (!env?.OPENAI_API_KEY) {
       return fallback;
@@ -884,6 +906,10 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
         "Ask only about factual public contact details like phone, email, address, hours, or booking link."
     };
   
+    const bundleSpecificUnresolvedPoints = normalizeStringArray(interpretation?.unresolved_points).filter((point) =>
+      unresolvedPointMatchesBundle(point, adjustedPlan.bundle_id)
+    );
+  
     try {
       const payload = {
         model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
@@ -901,6 +927,7 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
               "Do not hardcode industries.",
               "Stay strictly inside the requested bundle scope.",
               "Do not combine multiple bundles into one question.",
+              "If the current primary field is already answered, move naturally to the next unresolved field in the same bundle.",
               "If unresolved points exist, only use the ones that belong to the next bundle.",
               'Return JSON only: { "message": "..." }'
             ].join("\n")
@@ -911,14 +938,19 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
               {
                 business_name: cleanString(businessName),
                 previous_bundle_id: cleanString(previousPlan?.bundle_id),
-                next_bundle_id: cleanString(plan.bundle_id),
-                primary_field: cleanString(plan.primary_field),
-                intent: cleanString(plan.intent),
-                reason: cleanString(plan.reason),
-                bundle_scope_rule: bundleScopedHints[cleanString(plan.bundle_id)] || "Ask only within the selected bundle.",
+                next_bundle_id: cleanString(adjustedPlan.bundle_id),
+                primary_field: cleanString(adjustedPlan.primary_field),
+                target_fields: cleanList(adjustedPlan.target_fields),
+                intent: cleanString(adjustedPlan.intent),
+                reason: cleanString(adjustedPlan.reason),
+                bundle_scope_rule:
+                  bundleScopedHints[cleanString(adjustedPlan.bundle_id)] ||
+                  "Ask only within the selected bundle.",
+                already_resolved_fields: cleanList(planTargetFields.filter((fieldKey) => isFieldResolved(fieldKey))),
+                unresolved_fields: cleanList(planTargetFields.filter((fieldKey) => !isFieldResolved(fieldKey))),
                 updated_fact_keys: cleanList(interpretation?.updated_fact_keys),
                 answer_summary: cleanString(interpretation?.answer_summary),
-                unresolved_points: normalizeStringArray(interpretation?.unresolved_points)
+                unresolved_points: bundleSpecificUnresolvedPoints
               },
               null,
               2
@@ -945,8 +977,11 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
   
       if (!message) return fallback;
   
-      // Guard against overloaded multi-bundle questions.
-      if (isOverloadedQuestion(message, plan.bundle_id)) {
+      if (isOverloadedQuestion(message, adjustedPlan.bundle_id)) {
+        return fallback;
+      }
+  
+      if (looksLikeRepeatedQuestion(message, interpretation?.answer_summary, adjustedPlan.bundle_id)) {
         return fallback;
       }
   
@@ -1505,6 +1540,48 @@ function normalizeFactRegistry(input) {
 /* =========================
    Utility
 ========================= */
+function unresolvedPointMatchesBundle(point, bundleId) {
+    const text = cleanString(point).toLowerCase();
+    const bundle = cleanString(bundleId);
+  
+    if (!text || !bundle) return false;
+  
+    const keywords = {
+      conversion: ["book", "booking", "quote", "pricing", "availability", "call", "form", "schedule", "timing"],
+      positioning: ["audience", "offer", "different", "difference", "position", "persona", "fit"],
+      service_area: ["city", "cities", "area", "areas", "region", "regions", "neighborhood", "neighborhoods", "service area"],
+      proof: ["review", "reviews", "trust", "result", "results", "experience", "testimonial", "credibility", "reputation"],
+      brand_story: ["story", "founder", "philosophy", "standards", "started", "background"],
+      contact_details: ["phone", "email", "address", "hours", "contact", "booking url", "booking link"]
+    };
+  
+    return (keywords[bundle] || []).some((word) => text.includes(word));
+  }
+  
+  function looksLikeRepeatedQuestion(message, answerSummary, bundleId) {
+    const question = cleanString(message).toLowerCase();
+    const answer = cleanString(answerSummary).toLowerCase();
+    const bundle = cleanString(bundleId);
+  
+    if (!question || !answer || !bundle) return false;
+  
+    const repeatedSignals = {
+      conversion: ["call", "request a quote", "fill out a form", "book online", "next step"],
+      positioning: ["who it is for", "what you offer", "different"],
+      service_area: ["what areas", "which cities", "where do you serve"],
+      proof: ["why trust", "reviews", "results", "experience"],
+      brand_story: ["story behind", "why you started", "philosophy"],
+      contact_details: ["phone", "email", "address", "hours"]
+    };
+  
+    const bundlePhrases = repeatedSignals[bundle] || [];
+    const matchedInQuestion = bundlePhrases.some((phrase) => question.includes(phrase));
+    const matchedInAnswer = bundlePhrases.some((phrase) => answer.includes(phrase));
+  
+    return matchedInQuestion && matchedInAnswer;
+  }
+
+
 
 async function readJson(request) {
   const raw = await request.text();
