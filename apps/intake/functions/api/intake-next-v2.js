@@ -992,27 +992,108 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
     }
   }
 
-function buildDeterministicQuestion(plan, blueprint, businessName) {
-  const name = cleanString(businessName) || cleanString(getByPath(blueprint.business_draft, "brand.name")) || "your business";
-
-  switch (cleanString(plan.bundle_id)) {
-    case "conversion":
-      return `When someone is ready to take the next step with ${name}, what should happen — do they call, request a quote, fill out a form, book online, or something else — and is there anything they should understand about pricing, timing, or availability?`;
-    case "positioning":
-      return `If a strong-fit visitor lands on ${name}, what should they immediately understand about who it is for, what you offer, and what makes it meaningfully different?`;
-    case "service_area":
-      return `What is the primary market you want this site to speak to, and are there nearby cities or regions you also want represented?`;
-    case "proof":
-      return `What are the strongest proof points we can use to help someone trust ${name} quickly — for example experience, client feedback, outcomes, reputation, or anything else that matters?`;
-    case "brand_story":
-      return `What is the story behind ${name}, and what standards, philosophy, or personal perspective should come through in the about section?`;
-    case "contact_details":
-      return `What contact details should we treat as the accurate public version for the site — phone, email, address, hours, and anything else people should know before reaching out?`;
-    default:
-      return `What is the next important thing a serious prospect should understand about ${name} before deciding to contact or book?`;
+  function buildDeterministicQuestion(plan, blueprint, businessName) {
+    const name =
+      cleanString(businessName) ||
+      cleanString(getByPath(blueprint, "business_draft.brand.name")) ||
+      "your business";
+  
+    const bundleId = cleanString(plan?.bundle_id);
+    const primaryField = cleanString(plan?.primary_field);
+  
+    if (bundleId === "conversion") {
+      switch (primaryField) {
+        case "pricing":
+          return `When someone requests a quote from ${name}, how do you typically price the work — is it based on scope, size, complexity, or something else?`;
+  
+        case "booking_url":
+          return `After someone requests a quote from ${name}, do you send them to a booking page or scheduling link, or is everything handled manually?`;
+  
+        case "booking_method":
+          return `When someone is ready to take the next step with ${name}, what should happen — do they call, request a quote, fill out a form, book online, or something else?`;
+  
+        case "contact_path":
+          return `What is the preferred path for a serious prospect to contact ${name} — form, phone call, text, email, or something else?`;
+  
+        default:
+          return `When someone is ready to take the next step with ${name}, what should happen, and is there anything they should understand about pricing, timing, or availability?`;
+      }
+    }
+  
+    if (bundleId === "positioning") {
+      switch (primaryField) {
+        case "target_persona":
+          return `Who is the best-fit customer for ${name}, and what do they care most about when choosing someone like you?`;
+  
+        case "primary_offer":
+          return `What exactly do you want a new visitor to understand about what ${name} offers right away?`;
+  
+        case "differentiation":
+          return `What makes ${name} meaningfully different from the other options someone might be comparing you against?`;
+  
+        case "gallery_visual_direction":
+          return `What kinds of work, settings, or details should the visuals for ${name} emphasize so the site feels like the right fit?`;
+  
+        default:
+          return `If a strong-fit visitor lands on ${name}, what should they immediately understand about who it is for, what you offer, and what makes it different?`;
+      }
+    }
+  
+    if (bundleId === "service_area") {
+      switch (primaryField) {
+        case "surrounding_cities":
+          return `Besides your main area, which nearby cities, neighborhoods, or regions should we represent for ${name}?`;
+  
+        case "service_area_main":
+          return `What is the primary city or market ${name} should be centered around on the site?`;
+  
+        default:
+          return `What is the primary market you want this site to speak to, and are there nearby cities or regions you also want represented?`;
+      }
+    }
+  
+    if (bundleId === "proof") {
+      switch (primaryField) {
+        case "review_quotes":
+          return `What kinds of things do clients consistently say after working with ${name}, or do you have any review language we should reflect?`;
+  
+        case "years_experience":
+          return `How long have you been doing this work, and how should that experience come through on the site?`;
+  
+        case "trust_signal":
+          return `What are the strongest trust signals we can lean on for ${name} — experience, reviews, outcomes, photos, reputation, or something else?`;
+  
+        default:
+          return `What are the strongest proof points we can use to help someone trust ${name} quickly?`;
+      }
+    }
+  
+    if (bundleId === "brand_story") {
+      return `What is the story behind ${name}, and what standards, philosophy, or perspective should come through in the about section?`;
+    }
+  
+    if (bundleId === "contact_details") {
+      switch (primaryField) {
+        case "phone":
+          return `What is the best public phone number to show for ${name}?`;
+  
+        case "email":
+          return `What email address should serious prospects use to reach ${name}?`;
+  
+        case "address":
+          return `What address should we show publicly for ${name}, if any?`;
+  
+        case "hours":
+          return `What hours or availability should people expect when contacting ${name}?`;
+  
+        default:
+          return `What contact details should we treat as the accurate public version for the site?`;
+      }
+    }
+  
+    return `What is the next important thing a serious prospect should understand about ${name} before deciding to contact or book?`;
   }
-}
-
+  
 /* =========================
    Field Intent + Section Map
 ========================= */
