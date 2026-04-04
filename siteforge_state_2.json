@@ -1,0 +1,2879 @@
+{
+  "slug": "summit-ridge-window-cleaning-v3-smoke",
+  "businessName": "Summit Ridge Window Cleaning v3 smoke",
+  "clientEmail": "",
+  "phase": "blueprint_verify",
+  "answers": {
+    "business_name": "Summit Ridge Window Cleaning",
+    "category": "service",
+    "primary_offer": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+    "audience": "people actively looking for a trustworthy provider",
+    "service_area": "Boulder, Colorado",
+    "service_areas": [
+      "Boulder, Colorado"
+    ],
+    "trust_signal": "customer testimonials",
+    "contact_path": "contact",
+    "booking_method": "request quote",
+    "cta_text": "Request Quote",
+    "cta_link": "#contact",
+    "primary_conversion": "request_quote",
+    "secondary_conversion": "call_now",
+    "conversion_mode": "request_quote",
+    "differentiation": "quality of service",
+    "website_direction": "We can create a streamlined site that highlights your unique offerings, builds trust through testimonials, and simplifies the booking process.",
+    "business_understanding": "Summit Ridge Window Cleaning specializes in high-end residential services, making it a strong candidate for a focused, high-conversion website.",
+    "opportunity": "By clearly showcasing your expertise in large home window cleaning and glass restoration, you can attract more discerning clients who value quality.",
+    "recommended_focus": [
+      "trust-building elements",
+      "visual portfolio",
+      "clear service descriptions",
+      "easy contact options",
+      "What is the process for window cleaning?",
+      "How do you ensure streak-free results?"
+    ],
+    "recommended_sections": [
+      "Hero",
+      "Service Overview",
+      "Gallery",
+      "Testimonials",
+      "FAQ",
+      "Contact"
+    ],
+    "faq_angles": [
+      "What is the process for window cleaning?",
+      "How do you ensure streak-free results?",
+      "What areas do you service?"
+    ],
+    "aeo_angles": [
+      "high-end window cleaning in Boulder",
+      "glass restoration services Boulder",
+      "best window cleaners for large homes"
+    ],
+    "future_dynamic_vibe_hint": "boulder, colorado local business",
+    "google_presence_insight": "not_found",
+    "next_step_teaser": "In the next phase, we will refine your service positioning and enhance the booking flow to maximize conversions.",
+    "industry": "Window Cleaning Service",
+    "target_persona": "people actively looking for a trustworthy provider",
+    "tone_of_voice": "Trust-building, clear, and expert",
+    "service_area_main": "Boulder, Colorado",
+    "service_area_list": [
+      "Boulder, Colorado"
+    ],
+    "vibe": "Modern Minimal",
+    "image_themes": [
+      "Window Cleaning Service",
+      "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+      "Boulder, Colorado",
+      "realistic lifestyle imagery"
+    ],
+    "review_quotes": [],
+    "phone": "",
+    "address": "",
+    "hours": "",
+    "pricing": "",
+    "booking_url": "",
+    "email": "",
+    "founder_story": "",
+    "years_experience": "",
+    "service_list": [
+      "trust-building elements",
+      "visual portfolio",
+      "clear service descriptions",
+      "easy contact options"
+    ],
+    "process_summary": "",
+    "surrounding_cities": [],
+    "gallery_visual_direction": "Window Cleaning Service"
+  },
+  "ghostwritten": {},
+  "verified": {
+    "business_name": true,
+    "industry": true,
+    "target_persona": false,
+    "tone_of_voice": false,
+    "primary_offer": false,
+    "service_area_main": false,
+    "service_area_list": false,
+    "primary_conversion": false,
+    "secondary_conversion": false,
+    "conversion_mode": false,
+    "cta_text": false,
+    "cta_link": false,
+    "contact_path": false,
+    "booking_method": true,
+    "trust_signal": false,
+    "differentiation": false,
+    "website_direction": false,
+    "business_understanding": false,
+    "opportunity": false,
+    "recommended_focus": false,
+    "recommended_sections": true,
+    "faq_angles": false,
+    "aeo_angles": false,
+    "vibe": false,
+    "image_themes": false,
+    "google_presence_insight": false,
+    "next_step_teaser": false,
+    "review_quotes": false,
+    "phone": false,
+    "address": false,
+    "hours": false,
+    "pricing": false,
+    "booking_url": false,
+    "email": false,
+    "founder_story": false,
+    "years_experience": false,
+    "service_list": false,
+    "process_summary": false,
+    "surrounding_cities": false,
+    "gallery_visual_direction": false
+  },
+  "verification": {
+    "queue_complete": false,
+    "verified_count": 4,
+    "remaining_keys": [
+      "pricing",
+      "booking_url",
+      "review_quotes",
+      "years_experience",
+      "process_summary",
+      "surrounding_cities",
+      "founder_story",
+      "phone",
+      "address",
+      "hours",
+      "email"
+    ],
+    "last_updated": "2026-04-03T22:11:13.460Z"
+  },
+  "conversation": [
+    {
+      "role": "assistant",
+      "content": "When someone is ready to take the next step with Summit Ridge Window Cleaning, what should happen—do they call, request a quote, fill out a form, book online, or do something else—and is there anything they should know about pricing or availability?"
+    },
+    {
+      "role": "user",
+      "content": "We mainly serve homeowners in Boulder and nearby upscale neighborhoods who care about spotless results, reliability, and professionalism. Many have large homes with expansive glass and want someone they can trust on the property."
+    },
+    {
+      "role": "assistant",
+      "content": "When someone requests a quote from Summit Ridge Window Cleaning v3 smoke, how do you typically price the work — is it based on scope, size, complexity, or something else?"
+    }
+  ],
+  "meta": {
+    "category": "service",
+    "intake_version": "v2-blueprint",
+    "seeded": {
+      "business_name": true,
+      "category": true,
+      "primary_offer": true,
+      "audience": true,
+      "service_area": true,
+      "service_areas": true,
+      "trust_signal": true,
+      "contact_path": true,
+      "booking_method": true,
+      "cta_text": true,
+      "cta_link": true,
+      "primary_conversion": true,
+      "secondary_conversion": true,
+      "conversion_mode": true,
+      "differentiation": true,
+      "website_direction": true,
+      "business_understanding": true,
+      "opportunity": true,
+      "recommended_focus": true,
+      "recommended_sections": true,
+      "faq_angles": true,
+      "aeo_angles": true,
+      "future_dynamic_vibe_hint": true,
+      "google_presence_insight": true,
+      "next_step_teaser": true
+    },
+    "inferred": {
+      "tone_of_voice": true,
+      "service_list": true
+    },
+    "verified": {
+      "business_name": true,
+      "industry": true,
+      "target_persona": false,
+      "tone_of_voice": false,
+      "primary_offer": false,
+      "service_area_main": false,
+      "service_area_list": false,
+      "primary_conversion": false,
+      "secondary_conversion": false,
+      "conversion_mode": false,
+      "cta_text": false,
+      "cta_link": false,
+      "contact_path": false,
+      "booking_method": true,
+      "trust_signal": false,
+      "differentiation": false,
+      "website_direction": false,
+      "business_understanding": false,
+      "opportunity": false,
+      "recommended_focus": false,
+      "recommended_sections": true,
+      "faq_angles": false,
+      "aeo_angles": false,
+      "vibe": false,
+      "image_themes": false,
+      "google_presence_insight": false,
+      "next_step_teaser": false,
+      "review_quotes": false,
+      "phone": false,
+      "address": false,
+      "hours": false,
+      "pricing": false,
+      "booking_url": false,
+      "email": false,
+      "founder_story": false,
+      "years_experience": false,
+      "service_list": false,
+      "process_summary": false,
+      "surrounding_cities": false,
+      "gallery_visual_direction": false
+    }
+  },
+  "provenance": {
+    "strategy_contract": {
+      "business_context": {
+        "slug": "summit-ridge-window-cleaning",
+        "business_name": "Summit Ridge Window Cleaning",
+        "category": "Window Cleaning Service",
+        "secondary_categories": [],
+        "business_model": "service_area",
+        "service_area": [
+          "Boulder, Colorado"
+        ],
+        "strategic_archetype": "high_consideration_home_service",
+        "vertical_complexity": "medium",
+        "one_page_fit": "excellent_fit",
+        "confidence": 0.85
+      },
+      "conversion_strategy": {
+        "primary_conversion": "request_quote",
+        "secondary_conversion": "call_now",
+        "conversion_mode": "request_quote",
+        "cta_text": "Request Quote",
+        "cta_type": "anchor",
+        "cta_destination": "contact"
+      },
+      "audience_model": {
+        "primary_persona": "people actively looking for a trustworthy provider",
+        "secondary_persona": "",
+        "decision_factors": [
+          "quality of service",
+          "reputation",
+          "pricing",
+          "availability",
+          "specialization in large homes"
+        ],
+        "common_objections": [
+          "cost concerns",
+          "trustworthiness",
+          "availability during peak seasons"
+        ],
+        "red_flags_customers_avoid": [
+          "lack of clear pricing",
+          "poor online reviews",
+          "unclear service offerings"
+        ]
+      },
+      "proof_model": {
+        "trust_signals": [
+          "customer testimonials",
+          "before-and-after photos",
+          "years of experience",
+          "local referrals"
+        ],
+        "credibility_sources": [
+          "customer_reviews",
+          "photo_gallery",
+          "future_google_business_profile",
+          "local_service_area_relevance"
+        ]
+      },
+      "site_structure": {
+        "recommended_sections": [
+          "Hero",
+          "Service Overview",
+          "Gallery",
+          "Testimonials",
+          "FAQ",
+          "Contact"
+        ],
+        "faq_angles": [
+          "What is the process for window cleaning?",
+          "How do you ensure streak-free results?",
+          "What areas do you service?"
+        ],
+        "aeo_angles": [
+          "high-end window cleaning in Boulder",
+          "glass restoration services Boulder",
+          "best window cleaners for large homes"
+        ],
+        "future_dynamic_vibe_hint": "boulder, colorado local business"
+      },
+      "visual_strategy": {
+        "recommended_vibe": "Modern Minimal",
+        "vibe_source": "ai_inferred",
+        "vibe_confidence": 0.85,
+        "vibe_reasoning": [
+          "Window Cleaning Service",
+          "high_consideration_home_service",
+          "service_area",
+          "resolved to current schema-supported vibe: Modern Minimal"
+        ]
+      },
+      "asset_policy": {
+        "preview_asset_mode": "inspirational_images",
+        "allow_ai_generated_images": true,
+        "allow_stock_images": true,
+        "client_assets_required_for_preview": false,
+        "replace_assets_before_publish": true,
+        "preferred_image_themes": [
+          "Window Cleaning Service",
+          "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+          "Boulder, Colorado",
+          "realistic lifestyle imagery"
+        ]
+      },
+      "copy_policy": {
+        "allow_ai_inferred_copy": true,
+        "allow_ai_assisted_copy": true,
+        "require_client_verification_for_facts": true,
+        "fields_ai_can_draft": [
+          "hero_headline",
+          "hero_subheadline",
+          "about_blurb",
+          "service_descriptions",
+          "faq_answers",
+          "cta_text"
+        ],
+        "fields_requiring_verification": [
+          "phone",
+          "address",
+          "booking_url",
+          "hours",
+          "pricing",
+          "certifications",
+          "review_quotes",
+          "departure_location"
+        ]
+      },
+      "content_requirements": {
+        "must_verify_now": [
+          "service area specifics",
+          "pricing structure",
+          "booking process",
+          "availability for peak seasons"
+        ],
+        "must_collect_paid_phase": [
+          "high-quality photos of previous work",
+          "detailed service descriptions",
+          "customer testimonials",
+          "founder bio"
+        ],
+        "nice_to_have_assets": [
+          "video testimonials",
+          "seasonal promotions",
+          "partnerships with local businesses"
+        ],
+        "preview_required_fields": [
+          "primary_offer",
+          "booking_method",
+          "service_area",
+          "service area specifics",
+          "pricing structure",
+          "booking process",
+          "availability for peak seasons"
+        ],
+        "publish_required_fields": [
+          "phone",
+          "booking_url",
+          "hours",
+          "public business phone number",
+          "business address",
+          "hours of operation",
+          "description",
+          "photos"
+        ]
+      },
+      "schema_toggles": {
+        "show_trustbar": true,
+        "show_about": true,
+        "show_features": true,
+        "show_events": false,
+        "show_process": false,
+        "show_testimonials": true,
+        "show_comparison": false,
+        "show_gallery": true,
+        "show_investment": false,
+        "show_faqs": true,
+        "show_service_area": true
+      },
+      "source_snapshot": {
+        "client_preview": {
+          "summary": "Summit Ridge Window Cleaning specializes in high-end residential services, making it a strong candidate for a focused, high-conversion website.",
+          "opportunity": "By clearly showcasing your expertise in large home window cleaning and glass restoration, you can attract more discerning clients who value quality.",
+          "sales_preview": "We can create a streamlined site that highlights your unique offerings, builds trust through testimonials, and simplifies the booking process.",
+          "recommended_focus": [
+            "trust-building elements",
+            "visual portfolio",
+            "clear service descriptions",
+            "easy contact options"
+          ],
+          "next_step_teaser": "In the next phase, we will refine your service positioning and enhance the booking flow to maximize conversions."
+        },
+        "gbp_status": "not_found",
+        "recommended_gbp_category": "Window Cleaning Service",
+        "nap_recommendation": {
+          "name": "Summit Ridge Window Cleaning",
+          "phone": "",
+          "address": "",
+          "service_area": [
+            "Boulder, Colorado"
+          ]
+        },
+        "primary_offer_hint": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results."
+      }
+    },
+    "recon_snapshot": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning-v3-smoke",
+      "preflight_status": "recon_complete",
+      "paid_status": "paid",
+      "paid_unlocked": true,
+      "intake_status": "started",
+      "build_status": "not_started",
+      "input_business_name": "Summit Ridge Window Cleaning v3 smoke",
+      "canonical_business_name": "",
+      "client_email": "",
+      "city_or_service_area_input": "Boulder, Colorado",
+      "description_input": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+      "optional_website_or_social": "",
+      "entity_profile_json": "{\"primary_category\":\"Window Cleaning Service\",\"secondary_categories\":[],\"business_model\":\"service_area\",\"service_area\":[\"Boulder, Colorado\"],\"strategic_archetype\":\"high_consideration_home_service\",\"vertical_complexity\":\"medium\",\"one_page_fit\":\"excellent_fit\",\"confidence\":0.85}",
+      "buyer_intelligence_json": "{\"decision_factors\":[\"quality of service\",\"reputation\",\"pricing\",\"availability\",\"specialization in large homes\"],\"common_objections\":[\"cost concerns\",\"trustworthiness\",\"availability during peak seasons\"],\"trust_markers\":[\"customer testimonials\",\"before-and-after photos\",\"years of experience\",\"local referrals\"],\"red_flags_customers_avoid\":[\"lack of clear pricing\",\"poor online reviews\",\"unclear service offerings\"]}",
+      "preflight_strategy_json": "{\"internal_strategy\":{\"primary_conversion\":\"request_quote\",\"secondary_conversion\":\"call_now\",\"recommended_sections\":[\"Hero\",\"Service Overview\",\"Gallery\",\"Testimonials\",\"FAQ\",\"Contact\"],\"faq_angles\":[\"What is the process for window cleaning?\",\"How do you ensure streak-free results?\",\"What areas do you service?\"],\"aeo_angles\":[\"high-end window cleaning in Boulder\",\"glass restoration services Boulder\",\"best window cleaners for large homes\"],\"must_verify_now\":[\"service area specifics\",\"pricing structure\",\"booking process\",\"availability for peak seasons\"],\"must_collect_paid_phase\":[\"high-quality photos of previous work\",\"detailed service descriptions\",\"customer testimonials\",\"founder bio\"],\"nice_to_have_assets\":[\"video testimonials\",\"seasonal promotions\",\"partnerships with local businesses\"]},\"client_preview\":{\"summary\":\"Summit Ridge Window Cleaning specializes in high-end residential services, making it a strong candidate for a focused, high-conversion website.\",\"opportunity\":\"By clearly showcasing your expertise in large home window cleaning and glass restoration, you can attract more discerning clients who value quality.\",\"sales_preview\":\"We can create a streamlined site that highlights your unique offerings, builds trust through testimonials, and simplifies the booking process.\",\"recommended_focus\":[\"trust-building elements\",\"visual portfolio\",\"clear service descriptions\",\"easy contact options\"],\"next_step_teaser\":\"In the next phase, we will refine your service positioning and enhance the booking flow to maximize conversions.\"}}",
+      "gbp_audit_json": "{\"gbp_status\":\"not_found\",\"listing_found\":false,\"listing_confidence\":0,\"recommended_primary_category\":\"Window Cleaning Service\",\"recommended_secondary_categories\":[\"Cleaning Service\",\"Home Improvement\"],\"recommended_business_model\":\"service_area\",\"nap_recommendation\":{\"name\":\"Summit Ridge Window Cleaning\",\"phone\":\"\",\"address\":\"\",\"service_area\":[\"Boulder, Colorado\"]},\"required_inputs_for_setup\":[\"public business phone number\",\"business address\",\"hours of operation\",\"description\",\"photos\"],\"improvement_opportunities\":[\"Ensure NAP consistency across platforms\",\"Add high-quality photos of completed work\",\"Encourage customer reviews for credibility\"],\"notes\":\"Focus on showcasing high-end residential work to attract the target market in Boulder.\"}",
+      "paid_intake_json": "{\"session_id\":\"4db01128-c1bb-4ee0-b13b-ed405eeaa39f\",\"strategy_contract\":{\"business_context\":{\"slug\":\"summit-ridge-window-cleaning\",\"business_name\":\"Summit Ridge Window Cleaning\",\"category\":\"Window Cleaning Service\",\"secondary_categories\":[],\"business_model\":\"service_area\",\"service_area\":[\"Boulder, Colorado\"],\"strategic_archetype\":\"high_consideration_home_service\",\"vertical_complexity\":\"medium\",\"one_page_fit\":\"excellent_fit\",\"confidence\":0.85},\"conversion_strategy\":{\"primary_conversion\":\"request_quote\",\"secondary_conversion\":\"call_now\",\"conversion_mode\":\"request_quote\",\"cta_text\":\"Request Quote\",\"cta_type\":\"anchor\",\"cta_destination\":\"contact\"},\"audience_model\":{\"primary_persona\":\"people actively looking for a trustworthy provider\",\"secondary_persona\":\"\",\"decision_factors\":[\"quality of service\",\"reputation\",\"pricing\",\"availability\",\"specialization in large homes\"],\"common_objections\":[\"cost concerns\",\"trustworthiness\",\"availability during peak seasons\"],\"red_flags_customers_avoid\":[\"lack of clear pricing\",\"poor online reviews\",\"unclear service offerings\"]},\"proof_model\":{\"trust_signals\":[\"customer testimonials\",\"before-and-after photos\",\"years of experience\",\"local referrals\"],\"credibility_sources\":[\"customer_reviews\",\"photo_gallery\",\"future_google_business_profile\",\"local_service_area_relevance\"]},\"site_structure\":{\"recommended_sections\":[\"Hero\",\"Service Overview\",\"Gallery\",\"Testimonials\",\"FAQ\",\"Contact\"],\"faq_angles\":[\"What is the process for window cleaning?\",\"How do you ensure streak-free results?\",\"What areas do you service?\"],\"aeo_angles\":[\"high-end window cleaning in Boulder\",\"glass restoration services Boulder\",\"best window cleaners for large homes\"],\"future_dynamic_vibe_hint\":\"boulder, colorado local business\"},\"visual_strategy\":{\"recommended_vibe\":\"Modern Minimal\",\"vibe_source\":\"ai_inferred\",\"vibe_confidence\":0.85,\"vibe_reasoning\":[\"Window Cleaning Service\",\"high_consideration_home_service\",\"service_area\",\"resolved to current schema-supported vibe: Modern Minimal\"]},\"asset_policy\":{\"preview_asset_mode\":\"inspirational_images\",\"allow_ai_generated_images\":true,\"allow_stock_images\":true,\"client_assets_required_for_preview\":false,\"replace_assets_before_publish\":true,\"preferred_image_themes\":[\"Window Cleaning Service\",\"High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.\",\"Boulder, Colorado\",\"realistic lifestyle imagery\"]},\"copy_policy\":{\"allow_ai_inferred_copy\":true,\"allow_ai_assisted_copy\":true,\"require_client_verification_for_facts\":true,\"fields_ai_can_draft\":[\"hero_headline\",\"hero_subheadline\",\"about_blurb\",\"service_descriptions\",\"faq_answers\",\"cta_text\"],\"fields_requiring_verification\":[\"phone\",\"address\",\"booking_url\",\"hours\",\"pricing\",\"certifications\",\"review_quotes\",\"departure_location\"]},\"content_requirements\":{\"must_verify_now\":[\"service area specifics\",\"pricing structure\",\"booking process\",\"availability for peak seasons\"],\"must_collect_paid_phase\":[\"high-quality photos of previous work\",\"detailed service descriptions\",\"customer testimonials\",\"founder bio\"],\"nice_to_have_assets\":[\"video testimonials\",\"seasonal promotions\",\"partnerships with local businesses\"],\"preview_required_fields\":[\"primary_offer\",\"booking_method\",\"service_area\",\"service area specifics\",\"pricing structure\",\"booking process\",\"availability for peak seasons\"],\"publish_required_fields\":[\"phone\",\"booking_url\",\"hours\",\"public business phone number\",\"business address\",\"hours of operation\",\"description\",\"photos\"]},\"schema_toggles\":{\"show_trustbar\":true,\"show_about\":true,\"show_features\":true,\"show_events\":false,\"show_process\":false,\"show_testimonials\":true,\"show_comparison\":false,\"show_gallery\":true,\"show_investment\":false,\"show_faqs\":true,\"show_service_area\":true},\"source_snapshot\":{\"client_preview\":{\"summary\":\"Summit Ridge Window Cleaning specializes in high-end residential services, making it a strong candidate for a focused, high-conversion website.\",\"opportunity\":\"By clearly showcasing your expertise in large home window cleaning and glass restoration, you can attract more discerning clients who value quality.\",\"sales_preview\":\"We can create a streamlined site that highlights your unique offerings, builds trust through testimonials, and simplifies the booking process.\",\"recommended_focus\":[\"trust-building elements\",\"visual portfolio\",\"clear service descriptions\",\"easy contact options\"],\"next_step_teaser\":\"In the next phase, we will refine your service positioning and enhance the booking flow to maximize conversions.\"},\"gbp_status\":\"not_found\",\"recommended_gbp_category\":\"Window Cleaning Service\",\"nap_recommendation\":{\"name\":\"Summit Ridge Window Cleaning\",\"phone\":\"\",\"address\":\"\",\"service_area\":[\"Boulder, Colorado\"]},\"primary_offer_hint\":\"High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.\"}},\"seeded_at\":\"2026-03-24T15:29:38.254Z\"}",
+      "updated_at": "2026-03-24T15:29:41.989Z",
+      "last_error": "",
+      "code": 200
+    }
+  },
+  "blueprint": {
+    "strategy": {
+      "business_context": {
+        "slug": "summit-ridge-window-cleaning",
+        "business_name": "Summit Ridge Window Cleaning",
+        "category": "Window Cleaning Service",
+        "normalized_category": "service",
+        "business_model": "service_area",
+        "strategic_archetype": "high_consideration_home_service",
+        "service_area": [
+          "Boulder, Colorado"
+        ]
+      },
+      "conversion_strategy": {
+        "primary_conversion": "request_quote",
+        "secondary_conversion": "call_now",
+        "conversion_mode": "request_quote",
+        "cta_text": "Request Quote",
+        "cta_type": "anchor",
+        "cta_destination": "contact"
+      },
+      "audience_model": {
+        "primary_persona": "people actively looking for a trustworthy provider",
+        "secondary_persona": "",
+        "decision_factors": [
+          "quality of service",
+          "reputation",
+          "pricing",
+          "availability",
+          "specialization in large homes"
+        ],
+        "common_objections": [
+          "cost concerns",
+          "trustworthiness",
+          "availability during peak seasons"
+        ]
+      },
+      "proof_model": {
+        "trust_signals": [
+          "customer testimonials",
+          "before-and-after photos",
+          "years of experience",
+          "local referrals"
+        ],
+        "credibility_sources": [
+          "customer_reviews",
+          "photo_gallery",
+          "future_google_business_profile",
+          "local_service_area_relevance"
+        ]
+      },
+      "site_structure": {
+        "recommended_sections": [
+          "Hero",
+          "Service Overview",
+          "Gallery",
+          "Testimonials",
+          "FAQ",
+          "Contact"
+        ],
+        "faq_angles": [
+          "What is the process for window cleaning?",
+          "How do you ensure streak-free results?",
+          "What areas do you service?"
+        ],
+        "aeo_angles": [
+          "high-end window cleaning in Boulder",
+          "glass restoration services Boulder",
+          "best window cleaners for large homes"
+        ],
+        "future_dynamic_vibe_hint": "boulder, colorado local business"
+      },
+      "visual_strategy": {
+        "recommended_vibe": "Modern Minimal",
+        "preferred_image_themes": [
+          "Window Cleaning Service",
+          "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+          "Boulder, Colorado",
+          "realistic lifestyle imagery"
+        ]
+      },
+      "copy_policy": {
+        "allow_ai_inferred_copy": true,
+        "allow_ai_assisted_copy": true,
+        "require_client_verification_for_facts": true,
+        "fields_ai_can_draft": [
+          "hero_headline",
+          "hero_subheadline",
+          "about_blurb",
+          "service_descriptions",
+          "faq_answers",
+          "cta_text"
+        ],
+        "fields_requiring_verification": [
+          "phone",
+          "address",
+          "booking_url",
+          "hours",
+          "pricing",
+          "certifications",
+          "review_quotes",
+          "departure_location"
+        ]
+      },
+      "content_requirements": {
+        "must_verify_now": [
+          "service area specifics",
+          "pricing structure",
+          "booking process",
+          "availability for peak seasons"
+        ],
+        "must_collect_paid_phase": [
+          "high-quality photos of previous work",
+          "detailed service descriptions",
+          "customer testimonials",
+          "founder bio"
+        ],
+        "preview_required_fields": [
+          "primary_offer",
+          "booking_method",
+          "service_area",
+          "service area specifics",
+          "pricing structure",
+          "booking process",
+          "availability for peak seasons"
+        ],
+        "publish_required_fields": [
+          "phone",
+          "booking_url",
+          "hours",
+          "public business phone number",
+          "business address",
+          "hours of operation",
+          "description",
+          "photos"
+        ]
+      },
+      "schema_toggles": {
+        "show_trustbar": true,
+        "show_about": true,
+        "show_features": true,
+        "show_events": false,
+        "show_process": true,
+        "show_testimonials": true,
+        "show_comparison": false,
+        "show_gallery": true,
+        "show_investment": false,
+        "show_faqs": true,
+        "show_service_area": true
+      }
+    },
+    "fact_registry": {
+      "business_name": {
+        "value": "Summit Ridge Window Cleaning",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": true,
+        "requires_client_verification": false,
+        "related_sections": [
+          "brand"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "industry": {
+        "value": "Window Cleaning Service",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": true,
+        "requires_client_verification": false,
+        "related_sections": [
+          "intelligence"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "target_persona": {
+        "value": "people actively looking for a trustworthy provider",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "intelligence",
+          "hero",
+          "features"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "tone_of_voice": {
+        "value": "Trust-building, clear, and expert",
+        "source": "inferred",
+        "confidence": 0.65,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "intelligence",
+          "brand",
+          "hero"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "primary_offer": {
+        "value": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "hero",
+          "features"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "service_area_main": {
+        "value": "Boulder, Colorado",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "service_area",
+          "hero"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "service_area_list": {
+        "value": [
+          "Boulder, Colorado"
+        ],
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "service_area"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "primary_conversion": {
+        "value": "request_quote",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "settings",
+          "contact"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "secondary_conversion": {
+        "value": "call_now",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "settings",
+          "contact"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "conversion_mode": {
+        "value": "request_quote",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "settings",
+          "contact"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "cta_text": {
+        "value": "Request Quote",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "settings",
+          "contact"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "cta_link": {
+        "value": "#contact",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "settings",
+          "contact"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "contact_path": {
+        "value": "contact",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "contact"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "booking_method": {
+        "value": "request quote",
+        "source": "user",
+        "confidence": 0.9,
+        "verified": true,
+        "requires_client_verification": false,
+        "related_sections": [
+          "contact",
+          "hero"
+        ],
+        "status": "answered",
+        "rationale": "User did not specify a different booking method, so existing 'request quote' booking method remains confirmed.",
+        "history": [
+          {
+            "timestamp": "2026-04-03T22:11:13.460Z",
+            "source": "user",
+            "previous_value": "request quote",
+            "next_value": "request quote",
+            "rationale": "User did not specify a different booking method, so existing 'request quote' booking method remains confirmed.",
+            "answer_excerpt": "We mainly serve homeowners in Boulder and nearby upscale neighborhoods who care about spotless results, reliability, and professionalism. Many have large homes with expansive glass and want someone they can trust on the property."
+          }
+        ],
+        "updated_at": "2026-04-03T22:11:13.460Z"
+      },
+      "trust_signal": {
+        "value": "customer testimonials",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "trustbar",
+          "testimonials",
+          "about"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "differentiation": {
+        "value": "quality of service",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "hero",
+          "about",
+          "features"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "website_direction": {
+        "value": "We can create a streamlined site that highlights your unique offerings, builds trust through testimonials, and simplifies the booking process.",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "hero",
+          "about"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "business_understanding": {
+        "value": "Summit Ridge Window Cleaning specializes in high-end residential services, making it a strong candidate for a focused, high-conversion website.",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "hero",
+          "about"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "opportunity": {
+        "value": "By clearly showcasing your expertise in large home window cleaning and glass restoration, you can attract more discerning clients who value quality.",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "hero",
+          "about",
+          "faqs"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "recommended_focus": {
+        "value": [
+          "trust-building elements",
+          "visual portfolio",
+          "clear service descriptions",
+          "easy contact options",
+          "What is the process for window cleaning?",
+          "How do you ensure streak-free results?"
+        ],
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "features",
+          "hero",
+          "faqs"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "recommended_sections": {
+        "value": [
+          "Hero",
+          "Service Overview",
+          "Gallery",
+          "Testimonials",
+          "FAQ",
+          "Contact"
+        ],
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": true,
+        "requires_client_verification": false,
+        "related_sections": [
+          "strategy"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "faq_angles": {
+        "value": [
+          "What is the process for window cleaning?",
+          "How do you ensure streak-free results?",
+          "What areas do you service?"
+        ],
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "faqs"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "aeo_angles": {
+        "value": [
+          "high-end window cleaning in Boulder",
+          "glass restoration services Boulder",
+          "best window cleaners for large homes"
+        ],
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "faqs",
+          "hero"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "vibe": {
+        "value": "Modern Minimal",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "settings"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "image_themes": {
+        "value": [
+          "Window Cleaning Service",
+          "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+          "Boulder, Colorado",
+          "realistic lifestyle imagery"
+        ],
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "hero",
+          "gallery"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "google_presence_insight": {
+        "value": "not_found",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "about",
+          "trustbar"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "next_step_teaser": {
+        "value": "In the next phase, we will refine your service positioning and enhance the booking flow to maximize conversions.",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "hero"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "review_quotes": {
+        "value": [],
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "testimonials"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "phone": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "brand",
+          "contact"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "address": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "brand",
+          "contact"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "hours": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "contact"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "pricing": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "investment",
+          "faqs",
+          "contact"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "booking_url": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "contact",
+          "settings"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "email": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "brand",
+          "contact"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "founder_story": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "about"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "years_experience": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "about",
+          "trustbar"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "service_list": {
+        "value": [
+          "trust-building elements",
+          "visual portfolio",
+          "clear service descriptions",
+          "easy contact options"
+        ],
+        "source": "inferred",
+        "confidence": 0.65,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "features"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      },
+      "process_summary": {
+        "value": "",
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "processSteps"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "surrounding_cities": {
+        "value": [],
+        "source": "missing",
+        "confidence": 0,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "service_area"
+        ],
+        "status": "missing",
+        "rationale": "",
+        "history": []
+      },
+      "gallery_visual_direction": {
+        "value": "Window Cleaning Service",
+        "source": "preflight",
+        "confidence": 0.85,
+        "verified": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "gallery",
+          "hero"
+        ],
+        "status": "answered",
+        "rationale": "",
+        "history": []
+      }
+    },
+    "business_draft": {
+      "intelligence": {
+        "industry": "Window Cleaning Service",
+        "target_persona": "people actively looking for a trustworthy provider",
+        "tone_of_voice": "Trust-building, clear, and expert"
+      },
+      "strategy": {
+        "show_trustbar": true,
+        "show_about": true,
+        "show_features": true,
+        "show_events": false,
+        "show_process": true,
+        "show_testimonials": true,
+        "show_comparison": false,
+        "show_gallery": true,
+        "show_investment": false,
+        "show_faqs": true,
+        "show_service_area": true
+      },
+      "settings": {
+        "vibe": "Modern Minimal",
+        "menu": [
+          {
+            "label": "Home",
+            "path": "#home"
+          },
+          {
+            "label": "About",
+            "path": "#about"
+          },
+          {
+            "label": "Features",
+            "path": "#features"
+          },
+          {
+            "label": "Process",
+            "path": "#process"
+          },
+          {
+            "label": "Testimonials",
+            "path": "#testimonials"
+          },
+          {
+            "label": "Gallery",
+            "path": "#gallery"
+          },
+          {
+            "label": "FAQs",
+            "path": "#faqs"
+          },
+          {
+            "label": "Service Area",
+            "path": "#service-area"
+          },
+          {
+            "label": "Contact",
+            "path": "#contact"
+          }
+        ],
+        "cta_text": "Request Quote",
+        "cta_link": "#contact",
+        "cta_type": "anchor",
+        "secondary_cta_text": "View Gallery",
+        "secondary_cta_link": "#gallery"
+      },
+      "brand": {
+        "name": "Summit Ridge Window Cleaning",
+        "slug": "summit-ridge-window-cleaning",
+        "tagline": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+        "objection_handle": "Built to address common buyer concerns like cost concerns."
+      },
+      "hero": {
+        "headline": "High-end residential window cleaning specializing in large homes, glass restoration, and …",
+        "subtext": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. people actively looking for a trustworthy provider Reach out to request quote.",
+        "image": {
+          "alt": "Summit Ridge Window Cleaning delivering High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+          "image_search_query": "Window Cleaning Service professional service premium realistic"
+        }
+      },
+      "about": {
+        "story_text": "Summit Ridge Window Cleaning specializes in high-end residential services, making it a strong candidate for a focused, high-conversion website.",
+        "founder_note": "quality of service"
+      },
+      "features": [
+        {
+          "title": "trust-building elements",
+          "description": "trust-building elements presented in a way that makes the value clearer to the right buyer.",
+          "icon_slug": "sparkles"
+        },
+        {
+          "title": "visual portfolio",
+          "description": "visual portfolio presented in a way that makes the value clearer to the right buyer.",
+          "icon_slug": "shield"
+        },
+        {
+          "title": "clear service descriptions",
+          "description": "clear service descriptions presented in a way that makes the value clearer to the right buyer.",
+          "icon_slug": "star"
+        },
+        {
+          "title": "easy contact options",
+          "description": "easy contact options presented in a way that makes the value clearer to the right buyer.",
+          "icon_slug": "check"
+        }
+      ],
+      "contact": {
+        "title": "Request a Quote",
+        "text": "In the next phase, we will refine your service positioning and enhance the booking flow to maximize conversions.",
+        "cta_text": "Request Quote",
+        "cta_link": "#contact"
+      },
+      "trustbar": {
+        "enabled": true,
+        "headline": "Built Around Customer Testimonials",
+        "items": [
+          {
+            "label": "customer testimonials",
+            "icon": "shield"
+          }
+        ]
+      },
+      "testimonials": [],
+      "faqs": [
+        {
+          "question": "What is the process for window cleaning?",
+          "answer": ""
+        },
+        {
+          "question": "How do you ensure streak-free results?",
+          "answer": ""
+        },
+        {
+          "question": "What areas do you service?",
+          "answer": ""
+        }
+      ],
+      "gallery": {
+        "enabled": true,
+        "title": "Window Cleaning Service Highlights",
+        "layout": null,
+        "show_titles": false,
+        "strategy": {
+          "primary_goal": "visual_trust",
+          "show_gallery": true
+        },
+        "image_source": {
+          "provider": "search",
+          "image_search_query": "Window Cleaning Service",
+          "filename_pattern": "summit-ridge-window-cleaning-gallery-{index}",
+          "target_folder": "summit-ridge-window-cleaning"
+        }
+      },
+      "service_area": {
+        "main_city": "Boulder, Colorado",
+        "travel_note": "If your project is outside Boulder, Colorado, reach out and we can discuss travel options.",
+        "cta_text": "Request Quote",
+        "cta_link": "#contact",
+        "map_search_query": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results. near Boulder, Colorado"
+      }
+    },
+    "section_status": {
+      "intelligence": {
+        "enabled": true,
+        "required": true,
+        "score": 0.75,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "partial",
+        "has_draft": true
+      },
+      "strategy": {
+        "enabled": true,
+        "required": true,
+        "score": 0.25,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": true
+      },
+      "settings": {
+        "enabled": true,
+        "required": true,
+        "score": 0.63,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "partial",
+        "has_draft": true
+      },
+      "brand": {
+        "enabled": true,
+        "required": true,
+        "score": 0.35,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": true
+      },
+      "hero": {
+        "enabled": true,
+        "required": true,
+        "score": 0.75,
+        "draft_ready": true,
+        "premium_ready": true,
+        "status": "partial",
+        "has_draft": true
+      },
+      "about": {
+        "enabled": true,
+        "required": false,
+        "score": 0.5,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": true
+      },
+      "trustbar": {
+        "enabled": true,
+        "required": false,
+        "score": 0.42,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": true
+      },
+      "events": {
+        "enabled": false,
+        "required": false,
+        "score": 0.17,
+        "draft_ready": false,
+        "premium_ready": false,
+        "status": "disabled",
+        "has_draft": false
+      },
+      "service_area": {
+        "enabled": true,
+        "required": false,
+        "score": 0.58,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "partial",
+        "has_draft": true
+      },
+      "features": {
+        "enabled": true,
+        "required": true,
+        "score": 1,
+        "draft_ready": true,
+        "premium_ready": true,
+        "status": "strong",
+        "has_draft": true
+      },
+      "processSteps": {
+        "enabled": true,
+        "required": false,
+        "score": 0.25,
+        "draft_ready": false,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": false
+      },
+      "testimonials": {
+        "enabled": true,
+        "required": false,
+        "score": 0.25,
+        "draft_ready": false,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": false
+      },
+      "comparison": {
+        "enabled": false,
+        "required": false,
+        "score": 0.34,
+        "draft_ready": false,
+        "premium_ready": false,
+        "status": "disabled",
+        "has_draft": false
+      },
+      "investment": {
+        "enabled": false,
+        "required": false,
+        "score": 0,
+        "draft_ready": false,
+        "premium_ready": false,
+        "status": "disabled",
+        "has_draft": false
+      },
+      "faqs": {
+        "enabled": true,
+        "required": false,
+        "score": 0.5,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": true
+      },
+      "gallery": {
+        "enabled": true,
+        "required": false,
+        "score": 0.75,
+        "draft_ready": true,
+        "premium_ready": false,
+        "status": "partial",
+        "has_draft": true
+      },
+      "contact": {
+        "enabled": true,
+        "required": true,
+        "score": 0.14,
+        "draft_ready": false,
+        "premium_ready": false,
+        "status": "weak",
+        "has_draft": true
+      }
+    },
+    "verification_queue": [
+      {
+        "field_key": "pricing",
+        "bundle_id": "conversion",
+        "priority": 345,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "investment",
+          "faqs",
+          "contact"
+        ],
+        "reason": "Pricing context helps the site set expectations."
+      },
+      {
+        "field_key": "booking_url",
+        "bundle_id": "conversion",
+        "priority": 325,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "contact",
+          "settings"
+        ],
+        "reason": "Booking URL determines whether CTA can send visitors externally."
+      },
+      {
+        "field_key": "review_quotes",
+        "bundle_id": "proof",
+        "priority": 285,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "testimonials"
+        ],
+        "reason": "Reviews make the site feel credible quickly."
+      },
+      {
+        "field_key": "years_experience",
+        "bundle_id": "proof",
+        "priority": 260,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "about",
+          "trustbar"
+        ],
+        "reason": "This fact still needs verification or refinement."
+      },
+      {
+        "field_key": "process_summary",
+        "bundle_id": "process",
+        "priority": 245,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "processSteps"
+        ],
+        "reason": "Process clarity can reduce friction and improve trust."
+      },
+      {
+        "field_key": "surrounding_cities",
+        "bundle_id": "service_area",
+        "priority": 240,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "service_area"
+        ],
+        "reason": "This fact still needs verification or refinement."
+      },
+      {
+        "field_key": "founder_story",
+        "bundle_id": "story",
+        "priority": 205,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "about"
+        ],
+        "reason": "This fact still needs verification or refinement."
+      },
+      {
+        "field_key": "phone",
+        "bundle_id": "contact_details",
+        "priority": 175,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "brand",
+          "contact"
+        ],
+        "reason": "Phone should be accurate for publish-readiness."
+      },
+      {
+        "field_key": "address",
+        "bundle_id": "contact_details",
+        "priority": 175,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "brand",
+          "contact"
+        ],
+        "reason": "Address may be needed for publish-readiness."
+      },
+      {
+        "field_key": "hours",
+        "bundle_id": "contact_details",
+        "priority": 175,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": true,
+        "related_sections": [
+          "contact"
+        ],
+        "reason": "Hours clarify availability and publish-readiness."
+      },
+      {
+        "field_key": "email",
+        "bundle_id": "contact_details",
+        "priority": 130,
+        "missing": true,
+        "partial": false,
+        "requires_client_verification": false,
+        "related_sections": [
+          "brand",
+          "contact"
+        ],
+        "reason": "Email should be accurate for contact routing."
+      }
+    ],
+    "question_candidates": [
+      {
+        "bundle_id": "conversion",
+        "score": 410,
+        "target_fields": [
+          "booking_method",
+          "pricing",
+          "booking_url",
+          "contact_path"
+        ],
+        "unresolved_fields": [
+          "pricing",
+          "booking_url"
+        ],
+        "target_sections": [
+          "hero",
+          "contact"
+        ],
+        "primary_field": "pricing",
+        "intent": "Clarify how visitors move from interest to action, including booking flow and pricing expectations.",
+        "reason": "This defines how the site converts visitors.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "proof",
+        "score": 349,
+        "target_fields": [
+          "review_quotes",
+          "trust_signal",
+          "years_experience"
+        ],
+        "unresolved_fields": [
+          "review_quotes",
+          "years_experience"
+        ],
+        "target_sections": [
+          "trustbar",
+          "testimonials",
+          "about"
+        ],
+        "primary_field": "review_quotes",
+        "intent": "Clarify why someone should trust the business quickly.",
+        "reason": "Proof makes the site feel credible.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "pricing_model",
+        "score": 292,
+        "target_fields": [
+          "pricing"
+        ],
+        "unresolved_fields": [
+          "pricing"
+        ],
+        "target_sections": [
+          "faqs",
+          "contact"
+        ],
+        "primary_field": "pricing",
+        "intent": "Determine whether pricing is standardized enough for a dedicated investment section.",
+        "reason": "This clarifies pricing expectations and package fit.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "process",
+        "score": 278,
+        "target_fields": [
+          "process_summary"
+        ],
+        "unresolved_fields": [
+          "process_summary"
+        ],
+        "target_sections": [
+          "processSteps"
+        ],
+        "primary_field": "process_summary",
+        "intent": "Capture the workflow from inquiry to completion.",
+        "reason": "Process reduces friction and increases trust.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "service_area",
+        "score": 258,
+        "target_fields": [
+          "service_area_main",
+          "surrounding_cities"
+        ],
+        "unresolved_fields": [
+          "surrounding_cities"
+        ],
+        "target_sections": [
+          "service_area"
+        ],
+        "primary_field": "surrounding_cities",
+        "intent": "Clarify the primary market and nearby areas served.",
+        "reason": "This improves local relevance and targeting.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "positioning",
+        "score": 250,
+        "target_fields": [
+          "target_persona",
+          "primary_offer",
+          "differentiation"
+        ],
+        "unresolved_fields": [],
+        "target_sections": [
+          "hero",
+          "features"
+        ],
+        "primary_field": "target_persona",
+        "intent": "Clarify who the site is for, what the offer is, and what makes it stand apart.",
+        "reason": "This sharpens the page message and fit.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "story",
+        "score": 215,
+        "target_fields": [
+          "founder_story"
+        ],
+        "unresolved_fields": [
+          "founder_story"
+        ],
+        "target_sections": [
+          "about"
+        ],
+        "primary_field": "founder_story",
+        "intent": "Clarify the founder story, philosophy, and standards behind the business.",
+        "reason": "This strengthens the about section.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "objection_handling",
+        "score": 195,
+        "target_fields": [
+          "faq_angles"
+        ],
+        "unresolved_fields": [],
+        "target_sections": [
+          "faqs"
+        ],
+        "primary_field": "faq_angles",
+        "intent": "Capture objections and the questions people need answered.",
+        "reason": "This helps FAQ quality and conversion confidence.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "gallery_strategy",
+        "score": 190,
+        "target_fields": [
+          "gallery_visual_direction"
+        ],
+        "unresolved_fields": [],
+        "target_sections": [
+          "gallery",
+          "hero"
+        ],
+        "primary_field": "gallery_visual_direction",
+        "intent": "Clarify the visual story the hero and gallery need to tell.",
+        "reason": "This improves image search query, layout, and count decisions.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "contact_details",
+        "score": 174,
+        "target_fields": [
+          "phone",
+          "email",
+          "address",
+          "hours"
+        ],
+        "unresolved_fields": [
+          "phone",
+          "email",
+          "address",
+          "hours"
+        ],
+        "target_sections": [
+          "contact",
+          "brand"
+        ],
+        "primary_field": "phone",
+        "intent": "Verify the factual contact details needed for publish-readiness.",
+        "reason": "These details should be accurate before publish.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "events_strategy",
+        "score": 157,
+        "target_fields": [],
+        "unresolved_fields": [],
+        "target_sections": [],
+        "primary_field": "",
+        "intent": "Determine whether time-based offerings belong on the site.",
+        "reason": "This supports schedule-oriented businesses.",
+        "tone": "consultative"
+      },
+      {
+        "bundle_id": "comparison_strategy",
+        "score": 118,
+        "target_fields": [],
+        "unresolved_fields": [],
+        "target_sections": [],
+        "primary_field": "",
+        "intent": "Determine whether comparing against alternatives helps buyers decide.",
+        "reason": "This helps buyers distinguish the offer.",
+        "tone": "consultative"
+      }
+    ],
+    "question_plan": {
+      "bundle_id": "conversion",
+      "score": 410,
+      "target_fields": [
+        "booking_method",
+        "pricing",
+        "booking_url",
+        "contact_path"
+      ],
+      "target_sections": [
+        "hero",
+        "contact"
+      ],
+      "primary_field": "pricing",
+      "resolved_fields": [
+        "booking_method",
+        "contact_path"
+      ],
+      "unresolved_fields": [
+        "pricing",
+        "booking_url"
+      ],
+      "intent": "Clarify how visitors move from interest to action, including booking flow and pricing expectations.",
+      "reason": "This defines how the site converts visitors.",
+      "tone": "consultative",
+      "previous_bundle_id": "conversion"
+    },
+    "component_states": {
+      "intelligence": {
+        "enabled": true,
+        "confidence": 1,
+        "evidence_keys": [
+          "industry",
+          "target_persona",
+          "tone_of_voice"
+        ],
+        "present_evidence": [
+          "industry",
+          "target_persona",
+          "tone_of_voice"
+        ],
+        "missing_evidence": [],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Required by schema."
+        ],
+        "why_disabled": [],
+        "planner_priority": 220,
+        "ai_priority": "critical",
+        "purpose": "Establish foundational context so AI can behave like a web strategist."
+      },
+      "strategy": {
+        "enabled": true,
+        "confidence": 0,
+        "evidence_keys": [
+          "show_trustbar",
+          "show_about",
+          "show_features",
+          "show_events",
+          "show_process",
+          "show_testimonials",
+          "show_comparison",
+          "show_gallery",
+          "show_investment",
+          "show_faqs",
+          "show_service_area"
+        ],
+        "present_evidence": [],
+        "missing_evidence": [
+          "show_trustbar",
+          "show_about",
+          "show_features",
+          "show_events",
+          "show_process",
+          "show_testimonials",
+          "show_comparison",
+          "show_gallery",
+          "show_investment",
+          "show_faqs",
+          "show_service_area"
+        ],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Required by schema."
+        ],
+        "why_disabled": [],
+        "planner_priority": 220,
+        "ai_priority": "critical",
+        "purpose": "Determine which site components should render based on business needs."
+      },
+      "settings": {
+        "enabled": true,
+        "confidence": 0.75,
+        "evidence_keys": [
+          "vibe",
+          "cta_text",
+          "cta_link",
+          "booking_url"
+        ],
+        "present_evidence": [
+          "vibe",
+          "cta_text",
+          "cta_link"
+        ],
+        "missing_evidence": [
+          "booking_url"
+        ],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Required by schema."
+        ],
+        "why_disabled": [],
+        "planner_priority": 220,
+        "ai_priority": "critical",
+        "purpose": "Control global UI, vibe, CTA, and navigation behavior."
+      },
+      "brand": {
+        "enabled": true,
+        "confidence": 0.2,
+        "evidence_keys": [
+          "business_name",
+          "tagline",
+          "email",
+          "phone",
+          "address"
+        ],
+        "present_evidence": [
+          "business_name"
+        ],
+        "missing_evidence": [
+          "tagline",
+          "email",
+          "phone",
+          "address"
+        ],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Required by schema."
+        ],
+        "why_disabled": [],
+        "planner_priority": 220,
+        "ai_priority": "critical",
+        "purpose": "Define the public-facing identity of the business."
+      },
+      "hero": {
+        "enabled": true,
+        "confidence": 0.5,
+        "evidence_keys": [
+          "primary_offer",
+          "target_persona",
+          "differentiation",
+          "booking_method",
+          "hero_headline",
+          "hero_subheadline",
+          "hero_image_alt",
+          "hero_image_query"
+        ],
+        "present_evidence": [
+          "primary_offer",
+          "target_persona",
+          "differentiation",
+          "booking_method"
+        ],
+        "missing_evidence": [
+          "hero_headline",
+          "hero_subheadline",
+          "hero_image_alt",
+          "hero_image_query"
+        ],
+        "draft_ready": true,
+        "premium_ready": true,
+        "why_enabled": [
+          "Required by schema."
+        ],
+        "why_disabled": [],
+        "planner_priority": 280,
+        "ai_priority": "critical",
+        "purpose": "Immediately communicate the core value proposition."
+      },
+      "about": {
+        "enabled": true,
+        "confidence": 0.5,
+        "evidence_keys": [
+          "founder_story",
+          "years_experience",
+          "differentiation",
+          "business_understanding"
+        ],
+        "present_evidence": [
+          "differentiation",
+          "business_understanding"
+        ],
+        "missing_evidence": [
+          "founder_story",
+          "years_experience"
+        ],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Enabled by show_about."
+        ],
+        "why_disabled": [],
+        "planner_priority": 168,
+        "ai_priority": "recommended",
+        "purpose": "Build emotional connection and credibility through story."
+      },
+      "trustbar": {
+        "enabled": true,
+        "confidence": 0.33,
+        "evidence_keys": [
+          "trust_signal",
+          "review_quotes",
+          "years_experience"
+        ],
+        "present_evidence": [
+          "trust_signal"
+        ],
+        "missing_evidence": [
+          "review_quotes",
+          "years_experience"
+        ],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Enabled by show_trustbar."
+        ],
+        "why_disabled": [],
+        "planner_priority": 90,
+        "ai_priority": "optional",
+        "purpose": "Add quick trust signals near the hero to improve conversion."
+      },
+      "events": {
+        "enabled": false,
+        "confidence": 0.33,
+        "evidence_keys": [
+          "events",
+          "booking_url",
+          "booking_method"
+        ],
+        "present_evidence": [
+          "booking_method"
+        ],
+        "missing_evidence": [
+          "events",
+          "booking_url"
+        ],
+        "draft_ready": false,
+        "premium_ready": false,
+        "why_enabled": [],
+        "why_disabled": [
+          "Currently disabled by show_events."
+        ],
+        "planner_priority": 106,
+        "ai_priority": "optional",
+        "purpose": "Display time-based offerings or upcoming schedule."
+      },
+      "service_area": {
+        "enabled": true,
+        "confidence": 0.67,
+        "evidence_keys": [
+          "service_area_main",
+          "surrounding_cities",
+          "service_area_list"
+        ],
+        "present_evidence": [
+          "service_area_main",
+          "service_area_list"
+        ],
+        "missing_evidence": [
+          "surrounding_cities"
+        ],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Enabled by show_service_area."
+        ],
+        "why_disabled": [],
+        "planner_priority": 120,
+        "ai_priority": "optional",
+        "purpose": "Local SEO and trust section for primary city and nearby areas."
+      },
+      "features": {
+        "enabled": true,
+        "confidence": 1,
+        "evidence_keys": [
+          "primary_offer",
+          "service_list",
+          "differentiation"
+        ],
+        "present_evidence": [
+          "primary_offer",
+          "service_list",
+          "differentiation"
+        ],
+        "missing_evidence": [],
+        "draft_ready": true,
+        "premium_ready": true,
+        "why_enabled": [
+          "Required by schema."
+        ],
+        "why_disabled": [],
+        "planner_priority": 270,
+        "ai_priority": "critical",
+        "purpose": "Explain what the business offers and why it matters."
+      },
+      "processSteps": {
+        "enabled": true,
+        "confidence": 0.5,
+        "evidence_keys": [
+          "process_summary",
+          "booking_method"
+        ],
+        "present_evidence": [
+          "booking_method"
+        ],
+        "missing_evidence": [
+          "process_summary"
+        ],
+        "draft_ready": false,
+        "premium_ready": false,
+        "why_enabled": [],
+        "why_disabled": [],
+        "planner_priority": 132,
+        "ai_priority": "optional",
+        "purpose": "Explain the workflow in clear steps to reduce friction."
+      },
+      "testimonials": {
+        "enabled": true,
+        "confidence": 0.5,
+        "evidence_keys": [
+          "review_quotes",
+          "trust_signal"
+        ],
+        "present_evidence": [
+          "trust_signal"
+        ],
+        "missing_evidence": [
+          "review_quotes"
+        ],
+        "draft_ready": false,
+        "premium_ready": false,
+        "why_enabled": [
+          "Enabled by show_testimonials."
+        ],
+        "why_disabled": [],
+        "planner_priority": 174,
+        "ai_priority": "recommended",
+        "purpose": "Reduce risk and increase trust with social proof."
+      },
+      "comparison": {
+        "enabled": false,
+        "confidence": 0.67,
+        "evidence_keys": [
+          "comparison",
+          "differentiation",
+          "trust_signal"
+        ],
+        "present_evidence": [
+          "differentiation",
+          "trust_signal"
+        ],
+        "missing_evidence": [
+          "comparison"
+        ],
+        "draft_ready": false,
+        "premium_ready": false,
+        "why_enabled": [],
+        "why_disabled": [
+          "Currently disabled by show_comparison."
+        ],
+        "planner_priority": 106,
+        "ai_priority": "optional",
+        "purpose": "Help buyers decide by comparing the offer to alternatives."
+      },
+      "investment": {
+        "enabled": false,
+        "confidence": 0,
+        "evidence_keys": [
+          "pricing",
+          "investment"
+        ],
+        "present_evidence": [],
+        "missing_evidence": [
+          "pricing",
+          "investment"
+        ],
+        "draft_ready": false,
+        "premium_ready": false,
+        "why_enabled": [],
+        "why_disabled": [
+          "Currently disabled by show_investment."
+        ],
+        "planner_priority": 118,
+        "ai_priority": "optional",
+        "purpose": "Clarify pricing expectations and qualify leads."
+      },
+      "faqs": {
+        "enabled": true,
+        "confidence": 0.5,
+        "evidence_keys": [
+          "faq_angles",
+          "pricing",
+          "process_summary",
+          "trust_signal"
+        ],
+        "present_evidence": [
+          "faq_angles",
+          "trust_signal"
+        ],
+        "missing_evidence": [
+          "pricing",
+          "process_summary"
+        ],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Enabled by show_faqs."
+        ],
+        "why_disabled": [],
+        "planner_priority": 122,
+        "ai_priority": "optional",
+        "purpose": "Answer objections and increase conversion confidence."
+      },
+      "gallery": {
+        "enabled": true,
+        "confidence": 1,
+        "evidence_keys": [
+          "gallery_visual_direction",
+          "image_themes",
+          "primary_offer",
+          "differentiation"
+        ],
+        "present_evidence": [
+          "gallery_visual_direction",
+          "image_themes",
+          "primary_offer",
+          "differentiation"
+        ],
+        "missing_evidence": [],
+        "draft_ready": true,
+        "premium_ready": false,
+        "why_enabled": [
+          "Enabled by show_gallery.",
+          "Visual direction evidence exists."
+        ],
+        "why_disabled": [],
+        "planner_priority": 188,
+        "ai_priority": "recommended",
+        "purpose": "Render a visual gallery using inferred layout, count, and search query."
+      },
+      "contact": {
+        "enabled": true,
+        "confidence": 0.29,
+        "evidence_keys": [
+          "booking_method",
+          "contact_path",
+          "phone",
+          "email",
+          "address",
+          "hours",
+          "booking_url"
+        ],
+        "present_evidence": [
+          "booking_method",
+          "contact_path"
+        ],
+        "missing_evidence": [
+          "phone",
+          "email",
+          "address",
+          "hours",
+          "booking_url"
+        ],
+        "draft_ready": false,
+        "premium_ready": false,
+        "why_enabled": [
+          "Required by schema."
+        ],
+        "why_disabled": [],
+        "planner_priority": 240,
+        "ai_priority": "critical",
+        "purpose": "Configure the contact section and submission behavior."
+      }
+    },
+    "decision_states": {
+      "positioning": {
+        "confidence": 0.75,
+        "impacted_components": [
+          "hero",
+          "features"
+        ],
+        "missing_evidence": [
+          "hero_headline",
+          "hero_subheadline",
+          "hero_image_alt",
+          "hero_image_query"
+        ],
+        "next_best_question_reason": "Clarify who the offer is for, what it is, and what makes it stand apart.",
+        "priority": 220
+      },
+      "conversion": {
+        "confidence": 0.4,
+        "impacted_components": [
+          "hero",
+          "contact"
+        ],
+        "missing_evidence": [
+          "hero_headline",
+          "hero_subheadline",
+          "hero_image_alt",
+          "hero_image_query",
+          "phone",
+          "email",
+          "address",
+          "hours",
+          "booking_url"
+        ],
+        "next_best_question_reason": "Clarify how visitors move from interest to action.",
+        "priority": 230
+      },
+      "proof": {
+        "confidence": 0.44,
+        "impacted_components": [
+          "trustbar",
+          "testimonials",
+          "about"
+        ],
+        "missing_evidence": [
+          "review_quotes",
+          "years_experience",
+          "founder_story"
+        ],
+        "next_best_question_reason": "Clarify why this business should be trusted quickly.",
+        "priority": 190
+      },
+      "process": {
+        "confidence": 0.5,
+        "impacted_components": [
+          "processSteps"
+        ],
+        "missing_evidence": [
+          "process_summary"
+        ],
+        "next_best_question_reason": "Capture the workflow to reduce friction and strengthen credibility.",
+        "priority": 175
+      },
+      "service_area": {
+        "confidence": 0.67,
+        "impacted_components": [
+          "service_area"
+        ],
+        "missing_evidence": [
+          "surrounding_cities"
+        ],
+        "next_best_question_reason": "Clarify the main market and nearby locations served.",
+        "priority": 170
+      },
+      "gallery_strategy": {
+        "confidence": 0.75,
+        "impacted_components": [
+          "gallery",
+          "hero"
+        ],
+        "missing_evidence": [
+          "hero_headline",
+          "hero_subheadline",
+          "hero_image_alt",
+          "hero_image_query"
+        ],
+        "next_best_question_reason": "Define the visual strategy, search query, layout, and image count.",
+        "priority": 165
+      },
+      "pricing_model": {
+        "confidence": 0.26,
+        "impacted_components": [
+          "investment",
+          "faqs",
+          "contact"
+        ],
+        "missing_evidence": [
+          "pricing",
+          "investment",
+          "process_summary",
+          "phone",
+          "email",
+          "address",
+          "hours",
+          "booking_url"
+        ],
+        "next_best_question_reason": "Clarify pricing expectations and whether structured investment belongs on the site.",
+        "priority": 155
+      },
+      "objection_handling": {
+        "confidence": 0.5,
+        "impacted_components": [
+          "faqs"
+        ],
+        "missing_evidence": [
+          "pricing",
+          "process_summary"
+        ],
+        "next_best_question_reason": "Capture the objections and questions visitors need answered.",
+        "priority": 145
+      },
+      "story": {
+        "confidence": 0.5,
+        "impacted_components": [
+          "about"
+        ],
+        "missing_evidence": [
+          "founder_story",
+          "years_experience"
+        ],
+        "next_best_question_reason": "Clarify the founder story, standards, and business philosophy.",
+        "priority": 135
+      },
+      "events_strategy": {
+        "confidence": 0.33,
+        "impacted_components": [
+          "events"
+        ],
+        "missing_evidence": [
+          "events",
+          "booking_url"
+        ],
+        "next_best_question_reason": "Determine whether time-based offerings belong on the site.",
+        "priority": 110
+      },
+      "comparison_strategy": {
+        "confidence": 0.67,
+        "impacted_components": [
+          "comparison"
+        ],
+        "missing_evidence": [
+          "comparison"
+        ],
+        "next_best_question_reason": "Determine whether comparison helps buyers decide.",
+        "priority": 105
+      },
+      "contact_details": {
+        "confidence": 0.24,
+        "impacted_components": [
+          "contact",
+          "brand"
+        ],
+        "missing_evidence": [
+          "phone",
+          "email",
+          "address",
+          "hours",
+          "booking_url",
+          "tagline"
+        ],
+        "next_best_question_reason": "Verify public contact facts needed for publish-readiness.",
+        "priority": 60
+      }
+    },
+    "evidence_log": [
+      {
+        "timestamp": "2026-04-03T22:11:13.460Z",
+        "source": "user",
+        "answer_excerpt": "We mainly serve homeowners in Boulder and nearby upscale neighborhoods who care about spotless results, reliability, and professionalism. Many have large homes with expansive glass and want someone they can trust on the property.",
+        "facts_updated": [
+          "booking_method"
+        ],
+        "components_impacted": [
+          "contact"
+        ],
+        "confidence": 0.9,
+        "answer_summary": "User describes target customers as homeowners in Boulder and nearby upscale neighborhoods who value spotless results, reliability, and professionalism, but does not specify booking method details."
+      }
+    ],
+    "question_history": [
+      {
+        "timestamp": "2026-04-03T22:11:15.747Z",
+        "bundle_id": "conversion",
+        "primary_field": "pricing",
+        "message": "When someone requests a quote from Summit Ridge Window Cleaning v3 smoke, how do you typically price the work — is it based on scope, size, complexity, or something else?"
+      }
+    ],
+    "schema_guide": {
+      "intelligence": {
+        "kind": "section",
+        "required": true,
+        "ai_priority": "critical",
+        "purpose": "Establish foundational context so AI can behave like a web strategist.",
+        "evidence_keys": [
+          "industry",
+          "target_persona",
+          "tone_of_voice"
+        ],
+        "toggle_key": null
+      },
+      "strategy": {
+        "kind": "section",
+        "required": true,
+        "ai_priority": "critical",
+        "purpose": "Determine which site components should render based on business needs.",
+        "evidence_keys": [
+          "show_trustbar",
+          "show_about",
+          "show_features",
+          "show_events",
+          "show_process",
+          "show_testimonials",
+          "show_comparison",
+          "show_gallery",
+          "show_investment",
+          "show_faqs",
+          "show_service_area"
+        ],
+        "toggle_key": null
+      },
+      "settings": {
+        "kind": "section",
+        "required": true,
+        "ai_priority": "critical",
+        "purpose": "Control global UI, vibe, CTA, and navigation behavior.",
+        "evidence_keys": [
+          "vibe",
+          "cta_text",
+          "cta_link",
+          "booking_url"
+        ],
+        "toggle_key": null
+      },
+      "brand": {
+        "kind": "section",
+        "required": true,
+        "ai_priority": "critical",
+        "purpose": "Define the public-facing identity of the business.",
+        "evidence_keys": [
+          "business_name",
+          "tagline",
+          "email",
+          "phone",
+          "address"
+        ],
+        "toggle_key": null
+      },
+      "hero": {
+        "kind": "component",
+        "required": true,
+        "ai_priority": "critical",
+        "planner_group": "positioning",
+        "purpose": "Immediately communicate the core value proposition.",
+        "evidence_keys": [
+          "primary_offer",
+          "target_persona",
+          "differentiation",
+          "booking_method",
+          "hero_headline",
+          "hero_subheadline",
+          "hero_image_alt",
+          "hero_image_query"
+        ],
+        "image_priority": true,
+        "toggle_key": null
+      },
+      "about": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "recommended",
+        "planner_group": "story",
+        "purpose": "Build emotional connection and credibility through story.",
+        "evidence_keys": [
+          "founder_story",
+          "years_experience",
+          "differentiation",
+          "business_understanding"
+        ],
+        "toggle_key": "show_about"
+      },
+      "trustbar": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "optional",
+        "planner_group": "proof",
+        "purpose": "Add quick trust signals near the hero to improve conversion.",
+        "evidence_keys": [
+          "trust_signal",
+          "review_quotes",
+          "years_experience"
+        ],
+        "toggle_key": "show_trustbar"
+      },
+      "events": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "optional",
+        "planner_group": "events_strategy",
+        "purpose": "Display time-based offerings or upcoming schedule.",
+        "evidence_keys": [
+          "events",
+          "booking_url",
+          "booking_method"
+        ],
+        "toggle_key": "show_events"
+      },
+      "service_area": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "optional",
+        "planner_group": "service_area",
+        "purpose": "Local SEO and trust section for primary city and nearby areas.",
+        "evidence_keys": [
+          "service_area_main",
+          "surrounding_cities",
+          "service_area_list"
+        ],
+        "toggle_key": "show_service_area"
+      },
+      "features": {
+        "kind": "component",
+        "required": true,
+        "ai_priority": "critical",
+        "planner_group": "positioning",
+        "purpose": "Explain what the business offers and why it matters.",
+        "evidence_keys": [
+          "primary_offer",
+          "service_list",
+          "differentiation"
+        ],
+        "toggle_key": null
+      },
+      "processSteps": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "optional",
+        "planner_group": "process",
+        "purpose": "Explain the workflow in clear steps to reduce friction.",
+        "evidence_keys": [
+          "process_summary",
+          "booking_method"
+        ],
+        "toggle_key": "show_process"
+      },
+      "testimonials": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "recommended",
+        "planner_group": "proof",
+        "purpose": "Reduce risk and increase trust with social proof.",
+        "evidence_keys": [
+          "review_quotes",
+          "trust_signal"
+        ],
+        "toggle_key": "show_testimonials"
+      },
+      "comparison": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "optional",
+        "planner_group": "comparison_strategy",
+        "purpose": "Help buyers decide by comparing the offer to alternatives.",
+        "evidence_keys": [
+          "comparison",
+          "differentiation",
+          "trust_signal"
+        ],
+        "toggle_key": "show_comparison"
+      },
+      "investment": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "optional",
+        "planner_group": "pricing_model",
+        "purpose": "Clarify pricing expectations and qualify leads.",
+        "evidence_keys": [
+          "pricing",
+          "investment"
+        ],
+        "toggle_key": "show_investment"
+      },
+      "faqs": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "optional",
+        "planner_group": "objection_handling",
+        "purpose": "Answer objections and increase conversion confidence.",
+        "evidence_keys": [
+          "faq_angles",
+          "pricing",
+          "process_summary",
+          "trust_signal"
+        ],
+        "toggle_key": "show_faqs"
+      },
+      "gallery": {
+        "kind": "component",
+        "required": false,
+        "ai_priority": "recommended",
+        "planner_group": "gallery_strategy",
+        "purpose": "Render a visual gallery using inferred layout, count, and search query.",
+        "evidence_keys": [
+          "gallery_visual_direction",
+          "image_themes",
+          "primary_offer",
+          "differentiation"
+        ],
+        "image_priority": true,
+        "toggle_key": "show_gallery"
+      },
+      "contact": {
+        "kind": "component",
+        "required": true,
+        "ai_priority": "critical",
+        "planner_group": "contact_details",
+        "purpose": "Configure the contact section and submission behavior.",
+        "evidence_keys": [
+          "booking_method",
+          "contact_path",
+          "phone",
+          "email",
+          "address",
+          "hours",
+          "booking_url"
+        ],
+        "toggle_key": null
+      },
+      "_toggles": {
+        "show_trustbar": true,
+        "show_about": true,
+        "show_features": true,
+        "show_events": false,
+        "show_process": false,
+        "show_testimonials": true,
+        "show_comparison": false,
+        "show_gallery": true,
+        "show_investment": false,
+        "show_faqs": true,
+        "show_service_area": true
+      }
+    },
+    "last_answer": {
+      "text": "We mainly serve homeowners in Boulder and nearby upscale neighborhoods who care about spotless results, reliability, and professionalism. Many have large homes with expansive glass and want someone they can trust on the property.",
+      "bundle_id": "conversion",
+      "primary_field": "booking_method",
+      "timestamp": "2026-04-03T22:11:13.460Z"
+    },
+    "last_interpretation": {
+      "timestamp": "2026-04-03T22:11:13.460Z",
+      "answered_decisions": [
+        "booking_method"
+      ],
+      "answer_summary": "User describes target customers as homeowners in Boulder and nearby upscale neighborhoods who value spotless results, reliability, and professionalism, but does not specify booking method details.",
+      "interpretation_confidence": 0.9,
+      "updated_fact_keys": [
+        "booking_method"
+      ],
+      "patched_paths": [],
+      "component_impacts": [
+        {
+          "component": "contact",
+          "confidence_delta": 0.1,
+          "reason": "Clarifies target audience but no direct booking method update; contact section remains important."
+        }
+      ],
+      "unresolved_points": [
+        "pricing",
+        "booking_url",
+        "contact_path"
+      ],
+      "notes": "User's answer focuses on target audience and their values, which does not provide explicit updates for booking method or related fields beyond confirming existing booking method as 'request quote'. No pricing or booking URL details provided."
+    }
+  },
+  "readiness": {
+    "minimum_viable_preview": false,
+    "premium_ready_preview": false,
+    "can_generate_now": false,
+    "score": 0.82,
+    "minimum_viable_detail": {
+      "brand_name": true,
+      "hero_headline": true,
+      "hero_subtext": true,
+      "features": true,
+      "contact_button": false,
+      "contact_path": true
+    },
+    "premium_ready_detail": {
+      "proof": true,
+      "visuals": true,
+      "process": false,
+      "story": true,
+      "geo": true
+    }
+  },
+  "current_key": "pricing",
+  "action": "continue"
+}

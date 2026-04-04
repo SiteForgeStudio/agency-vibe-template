@@ -298,7 +298,7 @@ function compileSchemaGuide(blueprint, state) {
       ai_priority: "optional",
       planner_group: "process",
       purpose: "Explain the workflow in clear steps to reduce friction.",
-      evidence_keys: ["process_summary", "booking_method"],
+      evidence_keys: ["process_summary"],
       toggle_key: "show_process"
     },
     testimonials: {
@@ -900,9 +900,9 @@ function evaluateComponentEnabled({ component, guide, blueprint, state, confiden
 
   switch (component) {
     case "processSteps":
-      return confidenceBase >= 0.35 || looksLikeProcessFact(fact?.process_summary?.value);
-
-    case "gallery":
+      return looksLikeProcessFact(fact?.process_summary?.value);
+    
+      case "gallery":
       return confidenceBase >= 0.3 || hasMeaningfulValue(fact?.gallery_visual_direction?.value) || hasMeaningfulValue(fact?.image_themes?.value);
 
     case "faqs":
@@ -1007,8 +1007,13 @@ function evaluateComponentPremiumReady(component, businessDraft, factRegistry) {
 
     case "gallery":
       return hasMeaningfulValue(getByPath(businessDraft, "gallery.image_source.image_search_query")) &&
-        hasMeaningfulValue(getByPath(businessDraft, "gallery.computed_layout")) &&
-        typeof getByPath(businessDraft, "gallery.computed_count") === "number";
+      hasMeaningfulValue(
+        firstNonEmpty([
+          getByPath(businessDraft, "gallery.computed_layout"),
+          getByPath(businessDraft, "gallery.layout")
+        ])
+      ) &&
+      typeof getByPath(businessDraft, "gallery.computed_count") === "number";
 
     case "processSteps":
       return Array.isArray(getByPath(businessDraft, "processSteps")) &&
@@ -1279,7 +1284,7 @@ function syncProcessDraftFromEvidence(draft, factRegistry) {
   }
 }
 
-function syncGalleryDraftFromEvidence(draft, factRegistry) {
+function syncGalleryDraftFromEvidence(draft, factRegistry, state) {
   const fact = (key) => factRegistry?.[key]?.value;
   const industry = cleanString(fact("industry"));
   const offer = cleanString(fact("primary_offer"));
@@ -1293,22 +1298,25 @@ function syncGalleryDraftFromEvidence(draft, factRegistry) {
     buildGalleryImageQuery({ industry, offer, differentiation, themes })
   ]);
 
-  safeAssignPathIfExists(draft, "gallery.enabled", true);
-  safeAssignPathIfExists(draft, "gallery.image_source.image_search_query", galleryQuery);
-
   const computedLayout = inferGalleryLayout({ vibe, offer, differentiation });
   const computedCount = inferGalleryCount({ offer, differentiation, visualDirection });
 
-  safeAssignPathIfExists(draft, "gallery.computed_layout", computedLayout);
-  safeAssignPathIfExists(draft, "gallery.computed_count", computedCount);
+  // Real live draft shape
+  safeAssignPathIfExists(draft, "gallery.enabled", true);
+  safeAssignPathIfExists(draft, "gallery.title", firstNonEmpty([
+    `${cleanString(industry) || "Gallery"} Highlights`,
+    "Gallery Highlights"
+  ]));
+  safeAssignPathIfExists(draft, "gallery.image_source.image_search_query", galleryQuery);
 
-  if (Array.isArray(getByPath(draft, "gallery.items")) && getByPath(draft, "gallery.items").length === 0) {
-    const items = Array.from({ length: computedCount }).map((_, index) => ({
-      title: buildGalleryItemTitle(index, offer, industry),
-      image_search_query: galleryQuery
-    }));
-    safeAssignPathIfExists(draft, "gallery.items", items);
-  }
+  // If live draft still uses layout:null, fill it directly
+  safeAssignPathIfExists(draft, "gallery.layout", computedLayout);
+
+  // Since your current draft shape may not have computed_* fields yet,
+  // create them directly under gallery so downstream build can use them.
+  draft.gallery = isObject(draft.gallery) ? draft.gallery : {};
+  draft.gallery.computed_layout = computedLayout;
+  draft.gallery.computed_count = computedCount;
 }
 
 function syncFaqDraftFromEvidence(draft, factRegistry) {
@@ -1348,21 +1356,24 @@ function syncContactDraftFromEvidence(draft, factRegistry, state) {
   const fact = (key) => factRegistry?.[key]?.value;
   const businessName = firstNonEmpty([fact("business_name"), state.businessName, "our team"]);
 
-  safeAssignPathIfExists(draft, "contact.headline", `Start a conversation with ${businessName}`);
+  // Real live draft shape
+  safeAssignPathIfExists(draft, "contact.title", firstNonEmpty([
+    fact("cta_text"),
+    "Request a Quote"
+  ]));
+
   safeAssignPathIfExists(
     draft,
-    "contact.subheadline",
+    "contact.text",
     buildContactSubheadline({
       bookingMethod: fact("booking_method"),
       pricing: fact("pricing"),
       contactPath: fact("contact_path")
     })
   );
-  safeAssignPathIfExists(draft, "contact.email", fact("email"));
-  safeAssignPathIfExists(draft, "contact.phone", fact("phone"));
-  safeAssignPathIfExists(draft, "contact.email_recipient", firstNonEmpty([fact("email"), getByPath(draft, "brand.email")]));
-  safeAssignPathIfExists(draft, "contact.button_text", firstNonEmpty([fact("cta_text"), "Get in Touch"]));
-  safeAssignPathIfExists(draft, "contact.office_address", firstNonEmpty([fact("address"), fact("office_address")]));
+
+  safeAssignPathIfExists(draft, "contact.cta_text", firstNonEmpty([fact("cta_text"), "Get in Touch"]));
+  safeAssignPathIfExists(draft, "contact.cta_link", firstNonEmpty([fact("booking_url"), fact("cta_link"), "#contact"]));
 }
 
 function syncFeaturesDraftFromEvidence(draft, factRegistry) {
@@ -1622,10 +1633,18 @@ function evaluateBlueprintReadiness(blueprint) {
     hero_headline: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.headline")),
     hero_subtext: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.subtext")),
     features: Array.isArray(getByPath(blueprint.business_draft, "features")) && getByPath(blueprint.business_draft, "features").length >= 1,
-    contact_button: hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.button_text")),
-    contact_path: hasMeaningfulValue(factRegistry?.booking_method?.value) ||
+ 
+    contact_button:
+    hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.button_text")) ||
+    hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_text")),
+ 
+
+    contact_path:
+      hasMeaningfulValue(factRegistry?.booking_method?.value) ||
       hasMeaningfulValue(factRegistry?.contact_path?.value) ||
-      hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link"))
+      hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link")) ||
+      hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link")),
+
   };
 
   const premiumSignals = {
