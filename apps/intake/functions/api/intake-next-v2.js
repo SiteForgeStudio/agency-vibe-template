@@ -2706,4 +2706,4 @@ function looksLikeRepeatedQuestion(message, answerSummary, bundleId) {
   const matchedInAnswer = bundlePhrases.some((phrase) => answer.includes(phrase));
 
   return matchedInQuestion && matchedInAnswer;
-}
+} 
