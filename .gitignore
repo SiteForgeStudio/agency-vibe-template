@@ -33,3 +33,5 @@ src/assets/generated/
 *.xml
 submit.response.json
 success/
+
+/scripts/intake-runner/intake-logs/

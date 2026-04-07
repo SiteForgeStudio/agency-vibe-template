@@ -628,27 +628,31 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
     }
   }
 
-  if (bundleId === "conversion" && primaryField === "booking_url") {
-    const manualSignals = [
-      "handled manually",
-      "no booking link",
-      "no booking page",
-      "we schedule manually",
-      "call us",
-      "request a quote"
-    ];
-    if (manualSignals.some((signal) => lower.includes(signal))) {
-      repaired.fact_updates = repaired.fact_updates || [];
-      repaired.fact_updates.push({
-        fact_key: "booking_url",
-        value: "manual_followup",
-        confidence: 0.65,
-        verified: true,
-        status: "partial",
-        rationale: "User indicated there is no direct booking URL and the process is handled manually."
-      });
-    }
+ if (bundleId === "conversion" && primaryField === "booking_url") {
+  const manualSignals = [
+    "manual",
+    "handled manually",
+    "no booking",
+    "no booking link",
+    "no booking page",
+    "we schedule manually",
+    "call",
+    "request a quote"
+  ];
+
+  if (manualSignals.some((signal) => lower.includes(signal))) {
+    repaired.fact_updates = repaired.fact_updates || [];
+
+    repaired.fact_updates.push({
+      fact_key: "booking_url",
+      value: null,
+      confidence: 0.9,
+      verified: true,
+      status: "answered",
+      rationale: "Booking is handled manually; no booking URL exists."
+    });
   }
+}
 
   if (bundleId === "process" && primaryField === "process_summary") {
     if (looksLikeProcessAnswer(lower)) {
@@ -736,6 +740,32 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
     };
 
     updatedFactKeys.push(update.fact_key);
+  }
+
+  // ==========================
+  // FORCE RESOLUTION: booking_url when manual booking
+  // ==========================
+  const bookingMethod = nextBlueprint.fact_registry?.booking_method?.value;
+
+  if (
+    typeof bookingMethod === "string" &&
+    ["call", "manual", "phone"].includes(bookingMethod.toLowerCase())
+  ) {
+    const current = nextBlueprint.fact_registry?.booking_url || {};
+
+    nextBlueprint.fact_registry.booking_url = {
+      ...current,
+      value: null,
+      status: "answered",
+      confidence: 1,
+      verified: true,
+      rationale: "Resolved automatically: manual booking flow does not require URL.",
+      updated_at: now
+    };
+
+    if (!updatedFactKeys.includes("booking_url")) {
+      updatedFactKeys.push("booking_url");
+    }
   }
 
   for (const patch of interpretation.draft_patches || []) {
@@ -1598,20 +1628,72 @@ function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {
   const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
   if (!candidates.length) return null;
 
-  const best = candidates[0];
-  const targetFields = cleanList(best.target_fields);
-  const unresolvedFields = targetFields.filter((fieldKey) => !isFactResolved(factRegistry?.[fieldKey]));
-  const resolvedFields = targetFields.filter((fieldKey) => isFactResolved(factRegistry?.[fieldKey]));
+  // ==========================
+  // 🔥 HELPER: detect manual booking
+  // ==========================
+  const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
+  const manualBooking = ["call", "manual", "phone"].includes(bookingMethod);
 
-  const nextPrimaryField =
+  // ==========================
+  // 🔥 FILTER + SCORE ADJUST
+  // ==========================
+  const adjusted = candidates.map((candidate) => {
+    let score = Number(candidate.score || 0);
+
+    // Penalize repeating same bundle
+    if (cleanString(candidate.bundle_id) === cleanString(previousBundleId)) {
+      score -= 40;
+    }
+
+    return {
+      ...candidate,
+      adjusted_score: score
+    };
+  });
+
+  // Sort by adjusted score
+  adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
+
+  const best = adjusted[0];
+  const targetFields = cleanList(best.target_fields);
+
+  // ==========================
+  // 🔥 FILTER UNRESOLVABLE FIELDS
+  // ==========================
+  const unresolvedFields = targetFields.filter((fieldKey) => {
+    // Skip booking_url if manual booking
+    if (fieldKey === "booking_url" && manualBooking) {
+      return false;
+    }
+
+    return !isFactResolved(factRegistry?.[fieldKey]);
+  });
+
+  const resolvedFields = targetFields.filter((fieldKey) =>
+    isFactResolved(factRegistry?.[fieldKey])
+  );
+
+  // ==========================
+  // 🔥 SELECT NEXT FIELD (SMART)
+  // ==========================
+  let nextPrimaryField =
     unresolvedFields[0] ||
     cleanString(best.primary_field) ||
     targetFields[0] ||
     "";
 
+  // Safety: avoid repeating same field forever
+  if (
+    cleanString(best.bundle_id) === cleanString(previousBundleId) &&
+    unresolvedFields.length === 0
+  ) {
+    // force move forward
+    nextPrimaryField = "";
+  }
+
   return {
     bundle_id: cleanString(best.bundle_id),
-    score: Number(best.score || 0),
+    score: Number(best.adjusted_score || 0),
     target_fields: targetFields,
     target_sections: cleanList(best.target_sections),
     primary_field: nextPrimaryField,
@@ -1628,50 +1710,103 @@ function evaluateBlueprintReadiness(blueprint) {
   const componentStates = safeObject(blueprint.component_states);
   const factRegistry = safeObject(blueprint.fact_registry);
 
+  // ==========================
+  // 🔥 CONVERSION RESOLUTION (NEW)
+  // ==========================
+  const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
+  const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
+
+  const contactPathResolved =
+    hasMeaningfulValue(factRegistry?.contact_path?.value) ||
+    hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link")) ||
+    hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link"));
+
+  const manualBooking =
+    ["call", "manual", "phone"].includes(bookingMethod);
+
+  const conversionResolved =
+    hasMeaningfulValue(bookingMethod) &&
+    (bookingUrlResolved || manualBooking) &&
+    contactPathResolved;
+
+  // ==========================
+  // MINIMUM VIABLE
+  // ==========================
   const minimumViable = {
     brand_name: hasMeaningfulValue(getByPath(blueprint.business_draft, "brand.name")),
     hero_headline: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.headline")),
     hero_subtext: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.subtext")),
-    features: Array.isArray(getByPath(blueprint.business_draft, "features")) && getByPath(blueprint.business_draft, "features").length >= 1,
- 
+    features:
+      Array.isArray(getByPath(blueprint.business_draft, "features")) &&
+      getByPath(blueprint.business_draft, "features").length >= 1,
+
     contact_button:
-    hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.button_text")) ||
-    hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_text")),
- 
+      hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.button_text")) ||
+      hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_text")),
 
-    contact_path:
-      hasMeaningfulValue(factRegistry?.booking_method?.value) ||
-      hasMeaningfulValue(factRegistry?.contact_path?.value) ||
-      hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link")) ||
-      hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link")),
-
+    // 🔥 REPLACED LOGIC
+    conversion: conversionResolved
   };
 
+  // ==========================
+  // PREMIUM SIGNALS
+  // ==========================
   const premiumSignals = {
     proof: componentStates.trustbar?.enabled || componentStates.testimonials?.enabled,
     visuals: componentStates.gallery?.premium_ready || componentStates.hero?.premium_ready,
-    process: componentStates.processSteps?.enabled ? componentStates.processSteps?.draft_ready : true,
-    story: componentStates.about?.enabled ? componentStates.about?.draft_ready : true,
-    geo: componentStates.service_area?.enabled ? componentStates.service_area?.draft_ready : true
+    process: componentStates.processSteps?.enabled
+      ? componentStates.processSteps?.draft_ready
+      : true,
+    story: componentStates.about?.enabled
+      ? componentStates.about?.draft_ready
+      : true,
+    geo: componentStates.service_area?.enabled
+      ? componentStates.service_area?.draft_ready
+      : true
   };
 
+  // ==========================
+  // FINAL EVALUATION
+  // ==========================
   const minimumViablePassed = Object.values(minimumViable).every(Boolean);
+
   const premiumReadyPassed =
     minimumViablePassed &&
     Object.values(premiumSignals).every(Boolean);
 
+  // ==========================
+  // SCORE (unchanged logic, but now accurate)
+  // ==========================
+  const minimumScore =
+    Object.values(minimumViable).filter(Boolean).length /
+    Object.values(minimumViable).length;
+
+  const premiumScore =
+    Object.values(premiumSignals).filter(Boolean).length /
+    Object.values(premiumSignals).length;
+
   return {
     minimum_viable_preview: minimumViablePassed,
     premium_ready_preview: premiumReadyPassed,
-    can_generate_now: minimumViablePassed,
+
+    // 🔥 CRITICAL CHANGE
+    can_generate_now: minimumViablePassed && conversionResolved,
+
     score: Number(
-      (
-        (Object.values(minimumViable).filter(Boolean).length / Object.values(minimumViable).length) * 0.6 +
-        (Object.values(premiumSignals).filter(Boolean).length / Object.values(premiumSignals).length) * 0.4
-      ).toFixed(2)
+      ((minimumScore * 0.6) + (premiumScore * 0.4)).toFixed(2)
     ),
+
     minimum_viable_detail: minimumViable,
-    premium_ready_detail: premiumSignals
+    premium_ready_detail: premiumSignals,
+
+    // 🔥 DEBUG (optional but VERY useful)
+    conversion_debug: {
+      bookingMethod,
+      bookingUrlResolved,
+      manualBooking,
+      contactPathResolved,
+      conversionResolved
+    }
   };
 }
 
