@@ -710,6 +710,19 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   // ==========================
   // 🔥 FACT STABILITY HELPER (NEW)
   // ==========================
+
+  function isFactComplete(fact) {
+    if (!fact) return false;
+
+    const hasValue = hasMeaningfulValue(fact.value);
+    const isAnswered = fact.status === "answered";
+    const isStrong = (fact.confidence || 0) >= 0.7;
+
+    return hasValue && (isAnswered || isStrong);
+  }
+
+
+
   function shouldUpdateFact(existing, incoming) {
     if (!existing) return true;
 
@@ -911,9 +924,12 @@ function computeComponentStates({ blueprint, schemaGuide, state }) {
     if (component.startsWith("_")) continue;
 
     const evidenceKeys = cleanList(guide.evidence_keys);
-    const presentEvidence = evidenceKeys.filter((key) => hasMeaningfulValue(factRegistry?.[key]?.value));
-    const missingEvidence = evidenceKeys.filter((key) => !hasMeaningfulValue(factRegistry?.[key]?.value));
-
+    const presentEvidence = evidenceKeys.filter((key) =>
+      isFactComplete(factRegistry?.[key])
+    ); 
+    const missingEvidence = evidenceKeys.filter((key) =>
+      !isFactComplete(factRegistry?.[key])
+    );
     const confidenceBase = evidenceKeys.length
       ? presentEvidence.length / evidenceKeys.length
       : 0.5;
@@ -999,7 +1015,7 @@ function buildComponentEnableReasons(component, guide, blueprint, factRegistry) 
   if (component === "processSteps" && looksLikeProcessFact(factRegistry?.process_summary?.value)) {
     reasons.push("Client described a real service workflow.");
   }
-  if (component === "gallery" && hasMeaningfulValue(factRegistry?.gallery_visual_direction?.value)) {
+  if (component === "gallery" && isFactComplete(factRegistry?.gallery_visual_direction)) {
     reasons.push("Visual direction evidence exists.");
   }
   if (component === "investment" && isStandardizedPricing(factRegistry?.pricing?.value)) {
@@ -1016,7 +1032,7 @@ function buildComponentDisableReasons(component, guide, blueprint, factRegistry)
   if (component === "processSteps" && !looksLikeProcessFact(factRegistry?.process_summary?.value)) {
     reasons.push("No confirmed workflow evidence yet.");
   }
-  if (component === "gallery" && !hasMeaningfulValue(factRegistry?.gallery_visual_direction?.value)) {
+  if (component === "gallery" && !isFactComplete(factRegistry?.gallery_visual_direction)) {
     reasons.push("No confirmed gallery visual strategy yet.");
   }
   return reasons;
@@ -1123,7 +1139,7 @@ function computeDecisionStates({ blueprint, schemaGuide }) {
     out.process.confidence = Math.max(Number(out.process.confidence || 0), 0.72);
   }
 
-  if (hasMeaningfulValue(factRegistry?.gallery_visual_direction?.value)) {
+  if (isFactComplete(factRegistry?.gallery_visual_direction)) {
     out.gallery_strategy = out.gallery_strategy || {};
     out.gallery_strategy.confidence = Math.max(Number(out.gallery_strategy.confidence || 0), 0.68);
   }
@@ -1666,7 +1682,7 @@ function isPricingComplete(factRegistry) {
 
   const value = cleanString(pricing.value).toLowerCase();
 
-  // If pricing clearly indicates custom / quote-based → done
+  // 🔥 Explicit pricing signals
   if (
     value.includes("quote") ||
     value.includes("custom") ||
@@ -1677,217 +1693,66 @@ function isPricingComplete(factRegistry) {
     return true;
   }
 
+  // 🔥 NEW: implicit pricing signals (CRITICAL)
+  if (
+    value.includes("size") ||
+    value.includes("complexity") ||
+    value.includes("scope") ||
+    value.includes("windows") ||
+    value.includes("home")
+  ) {
+    return true;
+  }
+
   return false;
 }
 
-function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {}) {
-  const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
-  if (!candidates.length) return null;
+function planNextQuestion(candidates, previousBundleId, factRegistry) {
+  if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
-  // ==========================
-  // 🔥 DETECT BOOKING MODE
-  // ==========================
-  const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
-  const manualBooking = ["call", "manual", "phone"].includes(bookingMethod);
+  const adjusted = candidates.map((candidate) => {
+    let score = Number(candidate.score || 0);
+    const bundleId = cleanString(candidate.bundle_id);
+    const targetFields = cleanList(candidate.target_fields);
 
-function isConversionComplete(factRegistry) {
-  const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
-
-  const manual = ["call", "manual", "phone", "request_quote", "call_for_quote"]
-    .includes(bookingMethod);
-
-  const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
-
-  const contactPathResolved =
-    hasMeaningfulValue(factRegistry?.contact_path?.value);
-
-  return (
-    hasMeaningfulValue(bookingMethod) &&
-    (manual || bookingUrlResolved)
-  );
-}
-
-function isPositioningComplete(factRegistry) {
-  return (
-    hasMeaningfulValue(factRegistry?.target_persona?.value) &&
-    hasMeaningfulValue(factRegistry?.differentiation?.value) &&
-    hasMeaningfulValue(factRegistry?.primary_offer?.value)
-  );
-}
-
-function isProofComplete(factRegistry) {
-  const reviews =
-    Array.isArray(factRegistry?.review_quotes?.value) &&
-    factRegistry.review_quotes.value.length >= 1;
-
-  const experience = hasMeaningfulValue(factRegistry?.years_experience?.value);
-  const trust = hasMeaningfulValue(factRegistry?.trust_signal?.value);
-
-  return reviews || experience || trust;
-}
-
-function isProcessComplete(factRegistry) {
-  return hasMeaningfulValue(factRegistry?.process_summary?.value);
-}
-
-function isContactComplete(factRegistry) {
-  const phone = hasMeaningfulValue(factRegistry?.phone?.value);
-  const email = hasMeaningfulValue(factRegistry?.email?.value);
-
-  // At least one solid contact path
-  return phone || email;
-}
-
-function isServiceAreaComplete(factRegistry) {
-  const main = hasMeaningfulValue(factRegistry?.service_area_main?.value);
-  const surrounding =
-    Array.isArray(factRegistry?.surrounding_cities?.value) &&
-    factRegistry.surrounding_cities.value.length >= 1;
-
-  return main || surrounding;
-}
-
-  // ==========================
-  // 🔥 DETECT CONVERSION COMPLETION (NEW)
-  // ==========================
-  function isConversionComplete() {
-    const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
-
-    return (
-      bookingMethod &&
-      (manualBooking || bookingUrlResolved)
+    // 🔥 UNIVERSAL COMPLETION CHECK
+    const allComplete = targetFields.every(
+      (f) => isFactComplete(factRegistry?.[f])
     );
-  }
 
-  //  SEM const conversionComplete = isConversionComplete();
+    if (allComplete) {
+      score -= 100;
+    }
 
-// ==========================
-// 🔥 SCORE ADJUSTMENT (FIXED)
-// ==========================
+    // 🔁 prevent loops
+    if (bundleId === cleanString(previousBundleId)) {
+      score -= 40;
+    }
 
-// Precompute completion states
-const conversionComplete = isConversionComplete(factRegistry);
-const pricingComplete = isPricingComplete(factRegistry);
-const positioningComplete = isPositioningComplete(factRegistry);
-const proofComplete = isProofComplete(factRegistry);
-const processComplete = isProcessComplete(factRegistry);
-const contactComplete = isContactComplete(factRegistry);
-const serviceAreaComplete = isServiceAreaComplete(factRegistry);
+    return { ...candidate, adjusted_score: score };
+  });
 
-// Adjust scores
-const adjusted = candidates.map((candidate) => {
-  let score = Number(candidate.score || 0);
-  const bundleId = cleanString(candidate.bundle_id);
-
-  // ==========================
-  // 🔥 HARD BLOCK COMPLETED BUNDLES
-  // ==========================
-
-  if (bundleId === "conversion" && conversionComplete && pricingComplete) {
-    score -= 100;
-  }
-
-  if (bundleId === "positioning" && positioningComplete) {
-    score -= 100;
-  }
-
-  if (bundleId === "proof" && proofComplete) {
-    score -= 100;
-  }
-
-  if (bundleId === "process" && processComplete) {
-    score -= 100;
-  }
-
-  if (bundleId === "contact_details" && contactComplete) {
-    score -= 100;
-  }
-
-  if (bundleId === "service_area" && serviceAreaComplete) {
-    score -= 100;
-  }
-
-  // ==========================
-  // 🔁 PREVENT REPETITION
-  // ==========================
-
-  if (bundleId === cleanString(previousBundleId)) {
-    score -= 40;
-  }
-
-  // ==========================
-  // 🧠 OPTIONAL: PRIORITIZE EARLY BUNDLES (nice-to-have)
-  // ==========================
-
-  if (!conversionComplete && bundleId === "conversion") {
-    score += 20;
-  }
-
-  return {
-    ...candidate,
-    adjusted_score: score
-  };
-});
-
-// Sort by adjusted score
-adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
-
-
+  adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
 
   const best = adjusted[0];
   const targetFields = cleanList(best.target_fields);
 
-  // ==========================
-  // 🔥 FILTER UNRESOLVABLE FIELDS
-  // ==========================
-  const unresolvedFields = targetFields.filter((fieldKey) => {
-    // Skip booking_url if manual booking
-    if (fieldKey === "booking_url" && manualBooking) {
-      return false;
-    }
-
-    return !isFactResolved(factRegistry?.[fieldKey]);
-  });
-
-  const resolvedFields = targetFields.filter((fieldKey) =>
-    isFactResolved(factRegistry?.[fieldKey])
+  const unresolvedFields = targetFields.filter(
+    (f) => !isFactComplete(factRegistry?.[f])
   );
 
-  // ==========================
-  // 🔥 SMART FIELD SELECTION
-  // ==========================
   let nextPrimaryField =
     unresolvedFields[0] ||
-    targetFields.find((f) => !isFactResolved(factRegistry?.[f])) ||
+    targetFields.find((f) => !isFactComplete(factRegistry?.[f])) ||
     cleanString(best.primary_field) ||
-    targetFields[0] ||
     null;
 
-  // 🔥 HARD GUARD: never allow empty primary field
-  if (!nextPrimaryField) {
-    return null;
-  }
-
-  // 🔥 FINAL SAFETY: avoid dead loops
-  if (
-    cleanString(best.bundle_id) === cleanString(previousBundleId) &&
-    unresolvedFields.length === 0
-  ) {
-    nextPrimaryField = "";
-  }
+  if (!nextPrimaryField) return null;
 
   return {
-    bundle_id: cleanString(best.bundle_id),
-    score: Number(best.adjusted_score || 0),
-    target_fields: targetFields,
-    target_sections: cleanList(best.target_sections),
+    ...best,
     primary_field: nextPrimaryField,
-    resolved_fields: resolvedFields,
-    unresolved_fields: unresolvedFields,
-    intent: cleanString(best.intent),
-    reason: cleanString(best.reason),
-    tone: cleanString(best.tone) || "consultative",
-    previous_bundle_id: cleanString(previousBundleId)
+    unresolved_count: unresolvedFields.length
   };
 }
 
@@ -1903,7 +1768,7 @@ function evaluateBlueprintReadiness(blueprint) {
   const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
 
   const contactPathResolved =
-    hasMeaningfulValue(factRegistry?.contact_path?.value) ||
+    isFactComplete(factRegistry?.contact_path) ||
     hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link")) ||
     hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link"));
 
@@ -1918,27 +1783,27 @@ function evaluateBlueprintReadiness(blueprint) {
   // 🔥 STRONG GATING SIGNALS (NEW)
   // ==========================
   const hasPositioning =
-    hasMeaningfulValue(factRegistry?.target_persona?.value) &&
-    hasMeaningfulValue(factRegistry?.differentiation?.value);
+   isFactComplete(factRegistry?.target_persona) &&
+    isFactComplete(factRegistry?.differentiation);
 
   const hasProof =
     (
       Array.isArray(factRegistry?.review_quotes?.value) &&
       factRegistry.review_quotes.value.length > 0
     ) ||
-    hasMeaningfulValue(factRegistry?.years_experience?.value);
+   isFactComplete(factRegistry?.years_experience);
 
   // 🔥 NEW
   const hasServiceArea =
-    hasMeaningfulValue(factRegistry?.service_area_main?.value) ||
+    isFactComplete(factRegistry?.service_area_main) ||
     (
       Array.isArray(factRegistry?.surrounding_cities?.value) &&
       factRegistry.surrounding_cities.value.length > 0
     );
 
   const hasContact =
-    hasMeaningfulValue(factRegistry?.phone?.value) ||
-    hasMeaningfulValue(factRegistry?.email?.value);
+    isFactComplete(factRegistry?.phone) ||
+    isFactComplete(factRegistry?.email);
 
   // 🔥 FIXED
   const canGenerate =
