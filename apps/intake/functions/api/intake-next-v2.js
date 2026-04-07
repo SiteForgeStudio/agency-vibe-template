@@ -532,6 +532,16 @@ function buildInterpreterSystemPrompt() {
   ].join("\n");
 }
 
+  function isFactComplete(fact) {
+    if (!fact) return false;
+
+    const hasValue = hasMeaningfulValue(fact.value);
+    const isAnswered = fact.status === "answered";
+    const isStrong = (fact.confidence || 0) >= 0.7;
+
+    return hasValue && (isAnswered || isStrong);
+  }
+
 function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSections, allowedLeafPaths, currentPlan, schemaGuide }) {
   const cleanFactUpdates = (Array.isArray(parsed.fact_updates) ? parsed.fact_updates : [])
     .filter((item) => isObject(item) && allowedFactKeys.includes(cleanString(item.fact_key)))
@@ -711,15 +721,7 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   // 🔥 FACT STABILITY HELPER (NEW)
   // ==========================
 
-  function isFactComplete(fact) {
-    if (!fact) return false;
 
-    const hasValue = hasMeaningfulValue(fact.value);
-    const isAnswered = fact.status === "answered";
-    const isStrong = (fact.confidence || 0) >= 0.7;
-
-    return hasValue && (isAnswered || isStrong);
-  }
 
 
 
