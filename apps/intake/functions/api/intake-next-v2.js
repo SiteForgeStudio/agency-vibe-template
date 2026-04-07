@@ -707,43 +707,75 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   const updatedFactKeys = [];
   const patchedPaths = [];
 
-  for (const update of interpretation.fact_updates || []) {
-    const current = isObject(nextBlueprint.fact_registry[update.fact_key])
-      ? nextBlueprint.fact_registry[update.fact_key]
-      : {};
-    const history = Array.isArray(current.history) ? current.history.slice() : [];
+  // ==========================
+  // 🔥 FACT STABILITY HELPER (NEW)
+  // ==========================
+  function shouldUpdateFact(existing, incoming) {
+    if (!existing) return true;
 
-    history.push({
-      timestamp: now,
-      source: "user",
-      previous_value: current.value,
-      next_value: deepClone(update.value),
-      rationale: cleanString(update.rationale),
-      answer_excerpt: truncate(answer, 400)
-    });
+    // Do not downgrade strong answers
+    if (existing.status === "answered" && incoming.status !== "answered") {
+      return false;
+    }
 
-    nextBlueprint.fact_registry[update.fact_key] = {
-      ...current,
-      value: deepClone(update.value),
-      source: "user",
-      confidence: clampNumber(update.confidence, 0, 1, current.confidence ?? 0.5),
-      verified: update.verified !== false,
-      requires_client_verification:
-        typeof current.requires_client_verification === "boolean"
-          ? current.requires_client_verification && update.verified !== true
-          : false,
-      related_sections: Array.isArray(current.related_sections) ? current.related_sections : [],
-      status: sanitizeFactStatus(update.status),
-      rationale: cleanString(update.rationale),
-      updated_at: now,
-      history
-    };
+    // Do not overwrite high confidence with weaker
+    if (
+      typeof existing.confidence === "number" &&
+      typeof incoming.confidence === "number" &&
+      existing.confidence >= 0.85 &&
+      incoming.confidence < existing.confidence
+    ) {
+      return false;
+    }
 
-    updatedFactKeys.push(update.fact_key);
+    return true;
   }
 
- // ==========================
-  // FORCE RESOLUTION: booking_url when manual booking (FIXED)
+  for (const update of interpretation.fact_updates || []) {
+    const existing = isObject(nextBlueprint.fact_registry[update.fact_key])
+      ? nextBlueprint.fact_registry[update.fact_key]
+      : null;
+
+    const newFact = {
+      value: deepClone(update.value),
+      source: "user",
+      confidence: clampNumber(update.confidence, 0, 1, existing?.confidence ?? 0.5),
+      verified: update.verified !== false,
+      requires_client_verification:
+        typeof existing?.requires_client_verification === "boolean"
+          ? existing.requires_client_verification && update.verified !== true
+          : false,
+      related_sections: Array.isArray(existing?.related_sections) ? existing.related_sections : [],
+      status: sanitizeFactStatus(update.status),
+      rationale: cleanString(update.rationale),
+      updated_at: now
+    };
+
+    // 🔥 APPLY ONLY IF VALID UPDATE
+    if (shouldUpdateFact(existing, newFact)) {
+      const history = Array.isArray(existing?.history) ? existing.history.slice() : [];
+
+      history.push({
+        timestamp: now,
+        source: "user",
+        previous_value: existing?.value,
+        next_value: deepClone(update.value),
+        rationale: cleanString(update.rationale),
+        answer_excerpt: truncate(answer, 400)
+      });
+
+      nextBlueprint.fact_registry[update.fact_key] = {
+        ...existing,
+        ...newFact,
+        history
+      };
+
+      updatedFactKeys.push(update.fact_key);
+    }
+  }
+
+  // ==========================
+  // FORCE RESOLUTION: booking_url when manual booking (SAFE)
   // ==========================
   const bookingMethod = nextBlueprint.fact_registry?.booking_method?.value;
   const currentBookingUrl = nextBlueprint.fact_registry?.booking_url;
@@ -754,7 +786,7 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
 
   if (
     typeof bookingMethod === "string" &&
-    ["call", "manual", "phone"].includes(bookingMethod.toLowerCase()) &&
+    ["call", "manual", "phone", "request_quote", "call_for_quote"].includes(bookingMethod.toLowerCase()) &&
     !bookingUrlAlreadyResolved
   ) {
     nextBlueprint.fact_registry.booking_url = {
@@ -1658,12 +1690,21 @@ function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {
   const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
   const manualBooking = ["call", "manual", "phone"].includes(bookingMethod);
 
-  function isConversionComplete(factRegistry) {
+function isConversionComplete(factRegistry) {
   const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
-  const manual = ["call", "manual", "phone"].includes(bookingMethod);
-  const bookingResolved = factRegistry?.booking_url?.status === "answered";
 
-  return bookingMethod && (manual || bookingResolved);
+  const manual = ["call", "manual", "phone", "request_quote", "call_for_quote"]
+    .includes(bookingMethod);
+
+  const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
+
+  const contactPathResolved =
+    hasMeaningfulValue(factRegistry?.contact_path?.value);
+
+  return (
+    hasMeaningfulValue(bookingMethod) &&
+    (manual || bookingUrlResolved)
+  );
 }
 
 function isPositioningComplete(factRegistry) {
