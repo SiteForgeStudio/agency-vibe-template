@@ -1637,22 +1637,6 @@ function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {
   const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
   const manualBooking = ["call", "manual", "phone"].includes(bookingMethod);
 
-  function isConversionComplete(factRegistry) {
-  const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
-  const manual = ["call", "manual", "phone"].includes(bookingMethod);
-  const bookingResolved = factRegistry?.booking_url?.status === "answered";
-
-  return bookingMethod && (manual || bookingResolved);
-}
-
-function isPositioningComplete(factRegistry) {
-  return (
-    hasMeaningfulValue(factRegistry?.target_persona?.value) &&
-    hasMeaningfulValue(factRegistry?.differentiation?.value) &&
-    hasMeaningfulValue(factRegistry?.primary_offer?.value)
-  );
-}
-
   // ==========================
   // 🔥 DETECT CONVERSION COMPLETION (NEW)
   // ==========================
@@ -1671,28 +1655,24 @@ function isPositioningComplete(factRegistry) {
   // 🔥 SCORE ADJUSTMENT
   // ==========================
   const adjusted = candidates.map((candidate) => {
-  let score = Number(candidate.score || 0);
-  const bundleId = cleanString(candidate.bundle_id);
+    let score = Number(candidate.score || 0);
+    const bundleId = cleanString(candidate.bundle_id);
 
-  // 🔥 BLOCK completed bundles
-  if (bundleId === "conversion" && isConversionComplete(factRegistry)) {
-    score -= 100;
-  }
+    // ❌ HARD BLOCK: don't revisit completed conversion
+    if (bundleId === "conversion" && conversionComplete) {
+      score -= 100;
+    }
 
-  if (bundleId === "positioning" && isPositioningComplete(factRegistry)) {
-    score -= 100;
-  }
+    // ❌ Penalize repeating same bundle
+    if (bundleId === cleanString(previousBundleId)) {
+      score -= 40;
+    }
 
-  // 🔥 prevent repetition
-  if (bundleId === cleanString(previousBundleId)) {
-    score -= 40;
-  }
-
-  return {
-    ...candidate,
-    adjusted_score: score
-  };
-});
+    return {
+      ...candidate,
+      adjusted_score: score
+    };
+  });
 
   // Sort by adjusted score
   adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
@@ -1721,15 +1701,9 @@ function isPositioningComplete(factRegistry) {
   // ==========================
   let nextPrimaryField =
     unresolvedFields[0] ||
-    targetFields.find((f) => !isFactResolved(factRegistry?.[f])) ||
     cleanString(best.primary_field) ||
     targetFields[0] ||
-    null;
-
-  // 🔥 HARD GUARD: never allow empty primary field
-  if (!nextPrimaryField) {
-    return null;
-  }
+    "";
 
   // 🔥 FINAL SAFETY: avoid dead loops
   if (
@@ -1759,7 +1733,7 @@ function evaluateBlueprintReadiness(blueprint) {
   const factRegistry = safeObject(blueprint.fact_registry);
 
   // ==========================
-  // 🔥 CONVERSION RESOLUTION
+  // 🔥 CONVERSION RESOLUTION (NEW)
   // ==========================
   const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
   const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
@@ -1769,7 +1743,8 @@ function evaluateBlueprintReadiness(blueprint) {
     hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link")) ||
     hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link"));
 
-  const manualBooking = ["call", "manual", "phone"].includes(bookingMethod);
+  const manualBooking =
+    ["call", "manual", "phone"].includes(bookingMethod);
 
   const conversionResolved =
     hasMeaningfulValue(bookingMethod) &&
@@ -1777,40 +1752,12 @@ function evaluateBlueprintReadiness(blueprint) {
     contactPathResolved;
 
   // ==========================
-  // 🔥 STRONG GATING SIGNALS (NEW)
-  // ==========================
-  const hasPositioning =
-    hasMeaningfulValue(factRegistry?.target_persona?.value) &&
-    hasMeaningfulValue(factRegistry?.differentiation?.value);
-
-  const hasProof =
-    hasMeaningfulValue(factRegistry?.review_quotes?.value) ||
-    hasMeaningfulValue(factRegistry?.years_experience?.value);
-
-  const hasContact =
-    hasMeaningfulValue(factRegistry?.phone?.value) ||
-    hasMeaningfulValue(factRegistry?.email?.value);
-
-  const canGenerate =
-    conversionResolved &&
-    hasPositioning &&
-    hasProof &&
-    hasContact;
-
-  // ==========================
   // MINIMUM VIABLE
   // ==========================
   const minimumViable = {
     brand_name: hasMeaningfulValue(getByPath(blueprint.business_draft, "brand.name")),
-
-    hero_headline: hasMeaningfulValue(
-      getByPath(blueprint.business_draft, "hero.headline")
-    ),
-
-    hero_subtext: hasMeaningfulValue(
-      getByPath(blueprint.business_draft, "hero.subtext")
-    ),
-
+    hero_headline: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.headline")),
+    hero_subtext: hasMeaningfulValue(getByPath(blueprint.business_draft, "hero.subtext")),
     features:
       Array.isArray(getByPath(blueprint.business_draft, "features")) &&
       getByPath(blueprint.business_draft, "features").length >= 1,
@@ -1819,30 +1766,29 @@ function evaluateBlueprintReadiness(blueprint) {
       hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.button_text")) ||
       hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_text")),
 
-    // 🔥 conversion must also pass strong gating
-    conversion: conversionResolved && hasContact
+    // 🔥 REPLACED LOGIC
+    conversion:
+    conversionResolved &&
+    (
+      hasMeaningfulValue(factRegistry?.phone?.value) ||
+      hasMeaningfulValue(factRegistry?.email?.value) ||
+      hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link"))
+    )
+
   };
 
   // ==========================
   // PREMIUM SIGNALS
   // ==========================
   const premiumSignals = {
-    proof:
-      componentStates.trustbar?.enabled ||
-      componentStates.testimonials?.enabled,
-
-    visuals:
-      componentStates.gallery?.premium_ready ||
-      componentStates.hero?.premium_ready,
-
+    proof: componentStates.trustbar?.enabled || componentStates.testimonials?.enabled,
+    visuals: componentStates.gallery?.premium_ready || componentStates.hero?.premium_ready,
     process: componentStates.processSteps?.enabled
       ? componentStates.processSteps?.draft_ready
       : true,
-
     story: componentStates.about?.enabled
       ? componentStates.about?.draft_ready
       : true,
-
     geo: componentStates.service_area?.enabled
       ? componentStates.service_area?.draft_ready
       : true
@@ -1858,7 +1804,7 @@ function evaluateBlueprintReadiness(blueprint) {
     Object.values(premiumSignals).every(Boolean);
 
   // ==========================
-  // SCORE
+  // SCORE (unchanged logic, but now accurate)
   // ==========================
   const minimumScore =
     Object.values(minimumViable).filter(Boolean).length /
@@ -1872,8 +1818,8 @@ function evaluateBlueprintReadiness(blueprint) {
     minimum_viable_preview: minimumViablePassed,
     premium_ready_preview: premiumReadyPassed,
 
-    // 🔥 TRUE readiness (fixed)
-    can_generate_now: canGenerate,
+    // 🔥 CRITICAL CHANGE
+    can_generate_now: minimumViablePassed && conversionResolved,
 
     score: Number(
       ((minimumScore * 0.6) + (premiumScore * 0.4)).toFixed(2)
@@ -1882,16 +1828,13 @@ function evaluateBlueprintReadiness(blueprint) {
     minimum_viable_detail: minimumViable,
     premium_ready_detail: premiumSignals,
 
+    // 🔥 DEBUG (optional but VERY useful)
     conversion_debug: {
       bookingMethod,
       bookingUrlResolved,
       manualBooking,
       contactPathResolved,
-      conversionResolved,
-      hasPositioning,
-      hasProof,
-      hasContact,
-      canGenerate
+      conversionResolved
     }
   };
 }
@@ -2489,14 +2432,9 @@ function stringifyFactValue(value) {
 
 function isFactResolved(fact) {
   if (!fact) return false;
-
+  const hasValue = hasMeaningfulValue(fact.value);
   const status = cleanString(fact.status);
-  const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;
-
-  return (
-    status === "answered" ||
-    (status === "inferred" && confidence >= 0.7)
-  );
+  return hasValue && (fact.verified === true || status === "answered" || status === "inferred");
 }
 
 function shouldApplyCopyRefinement(existing, nextValue, confidence) {

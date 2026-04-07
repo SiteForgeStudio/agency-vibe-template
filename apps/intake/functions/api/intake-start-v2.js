@@ -56,6 +56,17 @@ export async function onRequestPost(context) {
 
     // 2) BUILD BLUEPRINT
     const blueprint = buildBlueprintFromPreflight(strategy, reconData, seededAnswers);
+    // ==========================
+    // 🔥 HYDRATE FACTS FROM PREFLIGHT (PATCH 5)
+    // ==========================
+    const inferredFacts = hydrateFactsFromStrategyContract(strategy);
+
+    blueprint.fact_registry = {
+      ...blueprint.fact_registry,
+      ...Object.fromEntries(
+        Object.entries(inferredFacts).filter(([_, v]) => v !== undefined)
+      )
+    };
 
     // 3) INITIALIZE STATE
     const initialState = {
@@ -140,6 +151,38 @@ export async function onRequestPost(context) {
 /* --------------------------------
    RESPONSE HELPERS
 -------------------------------- */
+
+function buildInferredFact(value) {
+  if (!value) return undefined;
+
+  return {
+    value,
+    status: "inferred",
+    confidence: 0.8,
+    verified: false,
+    source: "preflight"
+  };
+}
+
+function hydrateFactsFromStrategyContract(strategy) {
+  if (!strategy) return {};
+
+  const business = strategy.business_context || {};
+  const audience = strategy.audience_model || {};
+  const conversion = strategy.conversion_strategy || {};
+
+  return {
+    target_persona: buildInferredFact(audience?.primary_audience),
+
+    primary_offer: buildInferredFact(business?.primary_offer),
+
+    differentiation: buildInferredFact(business?.differentiation),
+
+    service_area_main: buildInferredFact(business?.location),
+
+    booking_method: buildInferredFact(conversion?.primary_conversion)
+  };
+}
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
