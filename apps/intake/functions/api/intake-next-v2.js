@@ -742,19 +742,22 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
     updatedFactKeys.push(update.fact_key);
   }
 
-  // ==========================
-  // FORCE RESOLUTION: booking_url when manual booking
+ // ==========================
+  // FORCE RESOLUTION: booking_url when manual booking (FIXED)
   // ==========================
   const bookingMethod = nextBlueprint.fact_registry?.booking_method?.value;
+  const currentBookingUrl = nextBlueprint.fact_registry?.booking_url;
+
+  const bookingUrlAlreadyResolved =
+    currentBookingUrl &&
+    currentBookingUrl.status === "answered";
 
   if (
     typeof bookingMethod === "string" &&
-    ["call", "manual", "phone"].includes(bookingMethod.toLowerCase())
+    ["call", "manual", "phone"].includes(bookingMethod.toLowerCase()) &&
+    !bookingUrlAlreadyResolved
   ) {
-    const current = nextBlueprint.fact_registry?.booking_url || {};
-
     nextBlueprint.fact_registry.booking_url = {
-      ...current,
       value: null,
       status: "answered",
       confidence: 1,
@@ -1629,19 +1632,39 @@ function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {
   if (!candidates.length) return null;
 
   // ==========================
-  // 🔥 HELPER: detect manual booking
+  // 🔥 DETECT BOOKING MODE
   // ==========================
   const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
   const manualBooking = ["call", "manual", "phone"].includes(bookingMethod);
 
   // ==========================
-  // 🔥 FILTER + SCORE ADJUST
+  // 🔥 DETECT CONVERSION COMPLETION (NEW)
+  // ==========================
+  function isConversionComplete() {
+    const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
+
+    return (
+      bookingMethod &&
+      (manualBooking || bookingUrlResolved)
+    );
+  }
+
+  const conversionComplete = isConversionComplete();
+
+  // ==========================
+  // 🔥 SCORE ADJUSTMENT
   // ==========================
   const adjusted = candidates.map((candidate) => {
     let score = Number(candidate.score || 0);
+    const bundleId = cleanString(candidate.bundle_id);
 
-    // Penalize repeating same bundle
-    if (cleanString(candidate.bundle_id) === cleanString(previousBundleId)) {
+    // ❌ HARD BLOCK: don't revisit completed conversion
+    if (bundleId === "conversion" && conversionComplete) {
+      score -= 100;
+    }
+
+    // ❌ Penalize repeating same bundle
+    if (bundleId === cleanString(previousBundleId)) {
       score -= 40;
     }
 
@@ -1674,7 +1697,7 @@ function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {
   );
 
   // ==========================
-  // 🔥 SELECT NEXT FIELD (SMART)
+  // 🔥 SMART FIELD SELECTION
   // ==========================
   let nextPrimaryField =
     unresolvedFields[0] ||
@@ -1682,12 +1705,11 @@ function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {
     targetFields[0] ||
     "";
 
-  // Safety: avoid repeating same field forever
+  // 🔥 FINAL SAFETY: avoid dead loops
   if (
     cleanString(best.bundle_id) === cleanString(previousBundleId) &&
     unresolvedFields.length === 0
   ) {
-    // force move forward
     nextPrimaryField = "";
   }
 
@@ -1745,7 +1767,14 @@ function evaluateBlueprintReadiness(blueprint) {
       hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_text")),
 
     // 🔥 REPLACED LOGIC
-    conversion: conversionResolved
+    conversion:
+    conversionResolved &&
+    (
+      hasMeaningfulValue(factRegistry?.phone?.value) ||
+      hasMeaningfulValue(factRegistry?.email?.value) ||
+      hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link"))
+    )
+
   };
 
   // ==========================
