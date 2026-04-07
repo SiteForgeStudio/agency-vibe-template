@@ -1653,6 +1653,38 @@ function isPositioningComplete(factRegistry) {
   );
 }
 
+function isProofComplete(factRegistry) {
+  const reviews =
+    Array.isArray(factRegistry?.review_quotes?.value) &&
+    factRegistry.review_quotes.value.length >= 1;
+
+  const experience = hasMeaningfulValue(factRegistry?.years_experience?.value);
+  const trust = hasMeaningfulValue(factRegistry?.trust_signal?.value);
+
+  return reviews || experience || trust;
+}
+
+function isProcessComplete(factRegistry) {
+  return hasMeaningfulValue(factRegistry?.process_summary?.value);
+}
+
+function isContactComplete(factRegistry) {
+  const phone = hasMeaningfulValue(factRegistry?.phone?.value);
+  const email = hasMeaningfulValue(factRegistry?.email?.value);
+
+  // At least one solid contact path
+  return phone || email;
+}
+
+function isServiceAreaComplete(factRegistry) {
+  const main = hasMeaningfulValue(factRegistry?.service_area_main?.value);
+  const surrounding =
+    Array.isArray(factRegistry?.surrounding_cities?.value) &&
+    factRegistry.surrounding_cities.value.length >= 1;
+
+  return main || surrounding;
+}
+
   // ==========================
   // 🔥 DETECT CONVERSION COMPLETION (NEW)
   // ==========================
@@ -1665,27 +1697,68 @@ function isPositioningComplete(factRegistry) {
     );
   }
 
-  const conversionComplete = isConversionComplete();
+  //  SEM const conversionComplete = isConversionComplete();
 
-  // ==========================
-  // 🔥 SCORE ADJUSTMENT
-  // ==========================
-  const adjusted = candidates.map((candidate) => {
+// ==========================
+// 🔥 SCORE ADJUSTMENT (FIXED)
+// ==========================
+
+// Precompute completion states
+const conversionComplete = isConversionComplete(factRegistry);
+const pricingComplete = isPricingComplete(factRegistry);
+const positioningComplete = isPositioningComplete(factRegistry);
+const proofComplete = isProofComplete(factRegistry);
+const processComplete = isProcessComplete(factRegistry);
+const contactComplete = isContactComplete(factRegistry);
+const serviceAreaComplete = isServiceAreaComplete(factRegistry);
+
+// Adjust scores
+const adjusted = candidates.map((candidate) => {
   let score = Number(candidate.score || 0);
   const bundleId = cleanString(candidate.bundle_id);
 
-  // 🔥 BLOCK completed bundles
-  if (bundleId === "conversion" && isConversionComplete(factRegistry)) {
+  // ==========================
+  // 🔥 HARD BLOCK COMPLETED BUNDLES
+  // ==========================
+
+  if (bundleId === "conversion" && conversionComplete && pricingComplete) {
     score -= 100;
   }
 
-  if (bundleId === "positioning" && isPositioningComplete(factRegistry)) {
+  if (bundleId === "positioning" && positioningComplete) {
     score -= 100;
   }
 
-  // 🔥 prevent repetition
+  if (bundleId === "proof" && proofComplete) {
+    score -= 100;
+  }
+
+  if (bundleId === "process" && processComplete) {
+    score -= 100;
+  }
+
+  if (bundleId === "contact_details" && contactComplete) {
+    score -= 100;
+  }
+
+  if (bundleId === "service_area" && serviceAreaComplete) {
+    score -= 100;
+  }
+
+  // ==========================
+  // 🔁 PREVENT REPETITION
+  // ==========================
+
   if (bundleId === cleanString(previousBundleId)) {
     score -= 40;
+  }
+
+  // ==========================
+  // 🧠 OPTIONAL: PRIORITIZE EARLY BUNDLES (nice-to-have)
+  // ==========================
+
+  if (!conversionComplete && bundleId === "conversion") {
+    score += 20;
   }
 
   return {
@@ -1694,8 +1767,10 @@ function isPositioningComplete(factRegistry) {
   };
 });
 
-  // Sort by adjusted score
-  adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
+// Sort by adjusted score
+adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
+
+
 
   const best = adjusted[0];
   const targetFields = cleanList(best.target_fields);
@@ -1761,7 +1836,8 @@ function evaluateBlueprintReadiness(blueprint) {
   // ==========================
   // 🔥 CONVERSION RESOLUTION
   // ==========================
-  const bookingMethod = cleanString(factRegistry?.booking_method?.value).toLowerCase();
+  const bookingMethodRaw = cleanString(factRegistry?.booking_method?.value);
+  const bookingMethod = bookingMethodRaw ? bookingMethodRaw.toLowerCase() : "";
   const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
 
   const contactPathResolved =
@@ -1784,18 +1860,31 @@ function evaluateBlueprintReadiness(blueprint) {
     hasMeaningfulValue(factRegistry?.differentiation?.value);
 
   const hasProof =
-    hasMeaningfulValue(factRegistry?.review_quotes?.value) ||
+    (
+      Array.isArray(factRegistry?.review_quotes?.value) &&
+      factRegistry.review_quotes.value.length > 0
+    ) ||
     hasMeaningfulValue(factRegistry?.years_experience?.value);
+
+  // 🔥 NEW
+  const hasServiceArea =
+    hasMeaningfulValue(factRegistry?.service_area_main?.value) ||
+    (
+      Array.isArray(factRegistry?.surrounding_cities?.value) &&
+      factRegistry.surrounding_cities.value.length > 0
+    );
 
   const hasContact =
     hasMeaningfulValue(factRegistry?.phone?.value) ||
     hasMeaningfulValue(factRegistry?.email?.value);
 
+  // 🔥 FIXED
   const canGenerate =
     conversionResolved &&
     hasPositioning &&
     hasProof &&
-    hasContact;
+    hasContact &&
+    hasServiceArea;
 
   // ==========================
   // MINIMUM VIABLE
@@ -1820,7 +1909,8 @@ function evaluateBlueprintReadiness(blueprint) {
       hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_text")),
 
     // 🔥 conversion must also pass strong gating
-    conversion: conversionResolved && hasContact
+    // 🔥 CLEANED
+    conversion: conversionResolved
   };
 
   // ==========================

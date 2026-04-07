@@ -137,11 +137,40 @@ function getScriptedAnswer() {
 // DEBUG OUTPUT
 // ==========================
 function printDebug(prevState, newState, data) {
+
+    // ==========================
+  // 🔥 PREFLIGHT HYDRATION DEBUG
+  // ==========================
+  console.log("\n🧠 PREFLIGHT FACTS (Hydration Check):");
+
+  const facts = newState.blueprint?.fact_registry || {};
+
+  const debugKeys = [
+    "target_persona",
+    "primary_offer",
+    "differentiation",
+    "booking_method"
+  ];
+
+  debugKeys.forEach((key) => {
+    const fact = facts[key];
+
+    if (!fact) {
+      console.log(`✖ ${key}: undefined`);
+    } else {
+      console.log(`✔ ${key}:`, {
+        value: fact.value,
+        status: fact.status,
+        confidence: fact.confidence
+      });
+    }
+  });
   const bp = newState.blueprint;
 
   console.log("\n📊 STATE SNAPSHOT:");
 
   console.log("→ Bundle:", bp.question_plan?.bundle_id);
+  console.log("→ Previous Bundle:", prevState.blueprint?.question_plan?.bundle_id);
   console.log("→ Primary Field:", bp.question_plan?.primary_field);
   console.log("→ Targets:", bp.question_plan?.target_fields);
 
