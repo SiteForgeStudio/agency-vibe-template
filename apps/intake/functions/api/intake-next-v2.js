@@ -1627,6 +1627,27 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
   return candidates.sort((a, b) => b.score - a.score);
 }
 
+function isPricingComplete(factRegistry) {
+  const pricing = factRegistry?.pricing;
+
+  if (!pricing || !hasMeaningfulValue(pricing.value)) return false;
+
+  const value = cleanString(pricing.value).toLowerCase();
+
+  // If pricing clearly indicates custom / quote-based → done
+  if (
+    value.includes("quote") ||
+    value.includes("custom") ||
+    value.includes("based on") ||
+    value.includes("depends") ||
+    value.includes("estimate")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 function planNextQuestion(questionCandidates, previousBundleId, factRegistry = {}) {
   const candidates = Array.isArray(questionCandidates) ? questionCandidates : [];
   if (!candidates.length) return null;
