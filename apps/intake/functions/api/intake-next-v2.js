@@ -556,6 +556,14 @@ function buildInterpreterSystemPrompt() {
     if (manual) return true;
   }
 
+if (fieldKey === "contact_path") {
+  const bookingMethod = factRegistry?.booking_method?.value;
+
+  if (hasMeaningfulValue(bookingMethod)) {
+    return true;
+  }
+}
+
   return isFactComplete(fact);
 }
 
@@ -834,6 +842,44 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
       updatedFactKeys.push("booking_url");
     }
   }
+
+
+
+// ==========================
+// 🔥 AUTO RESOLVE: contact_path (FIXED)
+// ==========================
+const bookingMethodValue = nextBlueprint.fact_registry?.booking_method?.value;
+const currentContactPath = nextBlueprint.fact_registry?.contact_path;
+
+const contactPathAlreadyResolved =
+  currentContactPath &&
+  currentContactPath.status === "answered";
+
+if (
+  typeof bookingMethodValue === "string" &&
+  bookingMethodValue.trim().length > 0 &&
+  !contactPathAlreadyResolved
+) {
+  const normalizedMethod = bookingMethodValue.toLowerCase();
+
+  nextBlueprint.fact_registry.contact_path = {
+    value: normalizedMethod,
+    status: "answered",
+    confidence: 0.9,
+    verified: true,
+    rationale: "Derived from booking method",
+    updated_at: now
+  };
+
+  if (!updatedFactKeys.includes("contact_path")) {
+    updatedFactKeys.push("contact_path");
+  }
+}
+
+
+
+
+
 
   for (const patch of interpretation.draft_patches || []) {
     setByPath(nextBlueprint.business_draft, patch.path, deepClone(patch.value));
