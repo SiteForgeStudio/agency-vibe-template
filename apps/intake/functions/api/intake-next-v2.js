@@ -968,11 +968,12 @@ function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastA
     lastAudit
   });
 
-  nextBlueprint.question_plan = planNextQuestion(
-    nextBlueprint.question_candidates,
-    cleanString(previousPlan?.bundle_id),
-    nextBlueprint.fact_registry
-  );
+const nextQuestionPlan = planNextQuestion(
+  blueprint.question_candidates,
+  blueprint.question_plan?.bundle_id,
+  blueprint.question_plan?.primary_field,
+  blueprint.fact_registry
+);
 
   return { blueprint: nextBlueprint };
 }
@@ -1769,7 +1770,7 @@ function isPricingComplete(factRegistry) {
   return false;
 }
 
-function planNextQuestion(candidates, previousBundleId, factRegistry) {
+function planNextQuestion(candidates, previousBundleId, previousPrimaryField, factRegistry) {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
   const adjusted = candidates.map((candidate) => {
@@ -1803,15 +1804,19 @@ function planNextQuestion(candidates, previousBundleId, factRegistry) {
     (f) => !isFieldSatisfied(f, factRegistry)
   );
 
-  const lastPrimaryField = state?.blueprint?.question_plan?.primary_field;
+  const lastPrimaryField = cleanString(previousPrimaryField);
 
-  // Prefer unresolved fields that are NOT the last asked
   let nextPrimaryField =
     unresolvedFields.find((f) => f !== lastPrimaryField) ||
     unresolvedFields[0] ||
     targetFields.find((f) => !isFieldSatisfied(f, factRegistry)) ||
     cleanString(best.primary_field) ||
     null;
+
+  // Prevent repetition
+  if (nextPrimaryField === lastPrimaryField) {
+    nextPrimaryField = null;
+  }
 
   // Safety: if still same as last, force move on
   if (nextPrimaryField === lastPrimaryField) {
