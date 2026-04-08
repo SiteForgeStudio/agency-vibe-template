@@ -811,6 +811,32 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
     }
   }
 
+  // ==========================
+// 🔥 FACT INTEGRITY CHECK (SYSTEM-LEVEL FIX)
+// ==========================
+const expectedField = state?.blueprint?.question_plan?.primary_field;
+
+if (expectedField) {
+  const expectedFact = nextBlueprint.fact_registry?.[expectedField];
+
+  const wasUpdated = updatedFactKeys.includes(expectedField);
+
+  if (!wasUpdated && hasMeaningfulValue(answer)) {
+    nextBlueprint.fact_registry[expectedField] = {
+      value: cleanString(answer),
+      status: "answered",
+      confidence: 0.75,
+      verified: true,
+      rationale: "Captured from answer (expected field enforcement)",
+      updated_at: now
+    };
+
+    if (!updatedFactKeys.includes(expectedField)) {
+      updatedFactKeys.push(expectedField);
+    }
+  }
+}
+
 // ==========================
 // 🔥 SAFETY: Ensure pricing gets captured (CRITICAL)
 // ==========================
