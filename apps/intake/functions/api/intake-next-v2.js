@@ -542,6 +542,23 @@ function buildInterpreterSystemPrompt() {
     return hasValue && (isAnswered || isStrong);
   }
 
+
+  function isFieldSatisfied(fieldKey, factRegistry) {
+  const fact = factRegistry?.[fieldKey];
+
+  // 🔥 SPECIAL CASE: booking_url not required for manual flows
+  if (fieldKey === "booking_url") {
+    const bookingMethod = factRegistry?.booking_method?.value;
+
+    const manual = ["call", "manual", "phone", "request_quote", "call_for_quote"]
+      .includes(cleanString(bookingMethod).toLowerCase());
+
+    if (manual) return true;
+  }
+
+  return isFactComplete(fact);
+}
+
 function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSections, allowedLeafPaths, currentPlan, schemaGuide }) {
   const cleanFactUpdates = (Array.isArray(parsed.fact_updates) ? parsed.fact_updates : [])
     .filter((item) => isObject(item) && allowedFactKeys.includes(cleanString(item.fact_key)))
@@ -1740,12 +1757,12 @@ function planNextQuestion(candidates, previousBundleId, factRegistry) {
   const targetFields = cleanList(best.target_fields);
 
   const unresolvedFields = targetFields.filter(
-    (f) => !isFactComplete(factRegistry?.[f])
+    (f) => !isFieldSatisfied(f, factRegistry)
   );
 
   let nextPrimaryField =
     unresolvedFields[0] ||
-    targetFields.find((f) => !isFactComplete(factRegistry?.[f])) ||
+    targetFields.find((f) => !isFieldSatisfied(f, factRegistry)) ||
     cleanString(best.primary_field) ||
     null;
 
@@ -1887,6 +1904,14 @@ function evaluateBlueprintReadiness(blueprint) {
     Object.values(premiumSignals).filter(Boolean).length /
     Object.values(premiumSignals).length;
 
+    const rawScore =
+      (minimumScore * 0.6) +
+      (premiumScore * 0.4);
+
+    const finalScore = canGenerate
+      ? rawScore
+      : Math.min(rawScore, 0.92);
+
   return {
     minimum_viable_preview: minimumViablePassed,
     premium_ready_preview: premiumReadyPassed,
@@ -1894,9 +1919,7 @@ function evaluateBlueprintReadiness(blueprint) {
     // 🔥 TRUE readiness (fixed)
     can_generate_now: canGenerate,
 
-    score: Number(
-      ((minimumScore * 0.6) + (premiumScore * 0.4)).toFixed(2)
-    ),
+   score: Number(finalScore.toFixed(2)),
 
     minimum_viable_detail: minimumViable,
     premium_ready_detail: premiumSignals,
