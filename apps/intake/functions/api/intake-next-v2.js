@@ -811,6 +811,32 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
     }
   }
 
+// ==========================
+// 🔥 SAFETY: Ensure pricing gets captured (CRITICAL)
+// ==========================
+const hasPricing = nextBlueprint.fact_registry?.pricing?.value;
+
+const answerText = cleanString(answer).toLowerCase();
+
+// If pricing not captured but answer clearly contains pricing signal
+if (
+  !hasMeaningfulValue(hasPricing) &&
+  answerText.length > 3
+) {
+  nextBlueprint.fact_registry.pricing = {
+    value: answerText,
+    status: "answered",
+    confidence: 0.8,
+    verified: true,
+    rationale: "Fallback capture from user answer (pricing inference)",
+    updated_at: now
+  };
+
+  if (!updatedFactKeys.includes("pricing")) {
+    updatedFactKeys.push("pricing");
+  }
+}
+
   // ==========================
   // FORCE RESOLUTION: booking_url when manual booking (SAFE)
   // ==========================
