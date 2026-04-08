@@ -535,11 +535,8 @@ function buildInterpreterSystemPrompt() {
   function isFactComplete(fact) {
     if (!fact) return false;
 
-    const hasValue = hasMeaningfulValue(fact.value);
-    const isAnswered = fact.status === "answered";
-    const isStrong = (fact.confidence || 0) >= 0.7;
-
-    return hasValue && (isAnswered || isStrong);
+    // 🔥 ONLY requirement: usable value
+    return hasMeaningfulValue(fact.value);
   }
 
 
@@ -1806,12 +1803,20 @@ function planNextQuestion(candidates, previousBundleId, factRegistry) {
     (f) => !isFieldSatisfied(f, factRegistry)
   );
 
+  const lastPrimaryField = state?.blueprint?.question_plan?.primary_field;
+
+  // Prefer unresolved fields that are NOT the last asked
   let nextPrimaryField =
+    unresolvedFields.find((f) => f !== lastPrimaryField) ||
     unresolvedFields[0] ||
     targetFields.find((f) => !isFieldSatisfied(f, factRegistry)) ||
     cleanString(best.primary_field) ||
     null;
 
+  // Safety: if still same as last, force move on
+  if (nextPrimaryField === lastPrimaryField) {
+    nextPrimaryField = null;
+  }
   if (!nextPrimaryField) return null;
 
   return {
