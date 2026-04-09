@@ -738,6 +738,7 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   const now = new Date().toISOString();
   const updatedFactKeys = [];
   const patchedPaths = [];
+  const expectedField = cleanString(state?.blueprint?.question_plan?.primary_field);
 
   // ==========================
   // 🔥 FACT STABILITY HELPER (NEW)
@@ -768,7 +769,16 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
     return true;
   }
 
-  for (const update of interpretation.fact_updates || []) {
+  const factUpdates = Array.isArray(interpretation?.fact_updates) ? interpretation.fact_updates : [];
+  const prioritizedFactUpdates = expectedField
+    ? factUpdates.slice().sort((a, b) => {
+        const aIsExpected = cleanString(a?.fact_key) === expectedField ? 1 : 0;
+        const bIsExpected = cleanString(b?.fact_key) === expectedField ? 1 : 0;
+        return bIsExpected - aIsExpected;
+      })
+    : factUpdates;
+
+  for (const update of prioritizedFactUpdates) {
     const existing = isObject(nextBlueprint.fact_registry[update.fact_key])
       ? nextBlueprint.fact_registry[update.fact_key]
       : null;
@@ -812,13 +822,9 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   }
 
   // ==========================
-// 🔥 FACT INTEGRITY CHECK (SYSTEM-LEVEL FIX)
-// ==========================
-const expectedField = state?.blueprint?.question_plan?.primary_field;
-
-if (expectedField) {
-  const expectedFact = nextBlueprint.fact_registry?.[expectedField];
-
+  // Active-field integrity check: ensure the asked slot always gets captured.
+  // ==========================
+  if (expectedField) {
   const wasUpdated = updatedFactKeys.includes(expectedField);
 
   if (!wasUpdated && hasMeaningfulValue(answer)) {
@@ -835,7 +841,7 @@ if (expectedField) {
       updatedFactKeys.push(expectedField);
     }
   }
-}
+  }
 
 // ==========================
 // 🔥 SAFETY: Ensure pricing gets captured (CRITICAL)
@@ -964,7 +970,9 @@ if (
       patched_paths: uniqueList(patchedPaths),
       component_impacts: deepClone(interpretation.component_impacts || []),
       unresolved_points: normalizeStringArray(interpretation.unresolved_points),
-      notes: cleanString(interpretation.notes)
+      notes: cleanString(interpretation.notes),
+      expected_primary_field: expectedField,
+      primary_field_updated: !!(expectedField && updatedFactKeys.includes(expectedField))
     }
   };
 }
@@ -1026,6 +1034,8 @@ const nextQuestionPlan = planNextQuestion(
   blueprint.question_plan?.primary_field,
   blueprint.fact_registry
 );
+
+  nextBlueprint.question_plan = nextQuestionPlan ? deepClone(nextQuestionPlan) : null;
 
   return { blueprint: nextBlueprint };
 }

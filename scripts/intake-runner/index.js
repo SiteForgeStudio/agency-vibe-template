@@ -169,10 +169,15 @@ function printDebug(prevState, newState, data) {
 
   console.log("\n📊 STATE SNAPSHOT:");
 
+  const lastAudit = newState.blueprint?.last_interpretation || {};
+
   console.log("→ Bundle:", bp.question_plan?.bundle_id);
   console.log("→ Previous Bundle:", prevState.blueprint?.question_plan?.bundle_id);
   console.log("→ Primary Field:", bp.question_plan?.primary_field);
   console.log("→ Targets:", bp.question_plan?.target_fields);
+  console.log("→ Expected Primary:", lastAudit.expected_primary_field);
+  console.log("→ Primary Updated:", lastAudit.primary_field_updated);
+  console.log("→ Updated Fact Keys:", lastAudit.updated_fact_keys);
 
   // ==========================
   // FACT CHANGES
