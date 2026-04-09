@@ -1736,7 +1736,7 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
     const state = decisionStates[decision] || {};
     const targetFields = cleanList(config.target_fields).filter((field) => Object.prototype.hasOwnProperty.call(factRegistry, field));
 
-    let unresolvedFields = targetFields.filter((field) => !isFactResolved(factRegistry?.[field]));
+    let unresolvedFields = targetFields.filter((field) => !isFieldSatisfied(field, factRegistry));
     const relatedComponents = cleanList(config.components).filter(
       (component) => componentStates[component]?.enabled || componentStates[component]?.required
     );
@@ -1839,14 +1839,13 @@ function planNextQuestion(candidates, previousBundleId, previousPrimaryField, fa
     let score = Number(candidate.score || 0);
     const bundleId = cleanString(candidate.bundle_id);
     const targetFields = cleanList(candidate.target_fields);
+    const unresolvedFields = targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
 
-    // 🔥 UNIVERSAL COMPLETION CHECK
-    const allComplete = targetFields.every(
-      (f) => isFactComplete(factRegistry?.[f])
-    );
+    const allComplete = unresolvedFields.length === 0;
 
     if (allComplete) {
-      score -= 100;
+      // Fully resolved decisions should not be selected again.
+      score -= 1000;
     }
 
     // 🔁 prevent loops
@@ -1854,25 +1853,24 @@ function planNextQuestion(candidates, previousBundleId, previousPrimaryField, fa
       score -= 40;
     }
 
-    return { ...candidate, adjusted_score: score };
+    return { ...candidate, adjusted_score: score, unresolved_fields_runtime: unresolvedFields };
   });
 
   adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
 
-  const best = adjusted[0];
-  const targetFields = cleanList(best.target_fields);
+  const best = adjusted.find((candidate) => (candidate.unresolved_fields_runtime || []).length > 0);
+  if (!best) return null;
 
-  const unresolvedFields = targetFields.filter(
-    (f) => !isFieldSatisfied(f, factRegistry)
-  );
+  const targetFields = cleanList(best.target_fields);
+  const unresolvedFields = Array.isArray(best.unresolved_fields_runtime)
+    ? best.unresolved_fields_runtime
+    : targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
 
   const lastPrimaryField = cleanString(previousPrimaryField);
 
   let nextPrimaryField =
     unresolvedFields.find((f) => f !== lastPrimaryField) ||
     unresolvedFields[0] ||
-    targetFields.find((f) => !isFieldSatisfied(f, factRegistry)) ||
-    cleanString(best.primary_field) ||
     null;
 
   // Prevent repetition
