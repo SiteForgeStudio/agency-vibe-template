@@ -82,7 +82,7 @@ async function loop() {
 
     console.log("🧠 AI:", question);
 
-    if (!state?.blueprint?.question_plan) {
+    if (state?.action === "complete" || state?.readiness?.can_generate_now || !state?.blueprint?.question_plan) {
       console.log("\n✅ Intake complete.");
       saveSession();
       process.exit(0);

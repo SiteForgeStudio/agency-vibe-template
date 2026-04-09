@@ -120,6 +120,9 @@ export async function onRequestPost(context) {
 
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "blueprint_verify";
     state.action = state.readiness.can_generate_now ? "complete" : "continue";
+    if (state.action === "complete") {
+      state.blueprint.question_plan = null;
+    }
     state.current_key = cleanString(state.blueprint.question_plan?.primary_field);
 
     let assistantMessage = "";
@@ -1781,7 +1784,8 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
     }
 
     if (decision === cleanString(previousPlan?.bundle_id)) {
-      score += 12;
+      // Favor finishing the current decision before hopping bundles.
+      score += 45;
     }
 
     if (stalledFields.length && unresolvedFields.length === stalledFields.length) {
@@ -1853,9 +1857,9 @@ function planNextQuestion(candidates, previousBundleId, previousPrimaryField, fa
       score -= 1000;
     }
 
-    // 🔁 prevent loops
-    if (bundleId === cleanString(previousBundleId)) {
-      score -= 40;
+    // Keep same-bundle continuity when unresolved fields still exist.
+    if (bundleId === cleanString(previousBundleId) && unresolvedFields.length > 0) {
+      score += 20;
     }
 
     return { ...candidate, adjusted_score: score, unresolved_fields_runtime: unresolvedFields };
