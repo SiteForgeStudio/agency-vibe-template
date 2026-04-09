@@ -122,13 +122,18 @@ export async function onRequestPost(context) {
     state.action = state.readiness.can_generate_now ? "complete" : "continue";
     state.current_key = cleanString(state.blueprint.question_plan?.primary_field);
 
-    const assistantMessage = await renderNextQuestion({
-      env,
-      blueprint: state.blueprint,
-      previousPlan: currentPlan,
-      interpretation: routed.audit,
-      businessName: state.businessName
-    });
+    let assistantMessage = "";
+    if (state.action === "complete") {
+      assistantMessage = buildCompletionMessage(state.businessName, state.readiness);
+    } else {
+      assistantMessage = await renderNextQuestion({
+        env,
+        blueprint: state.blueprint,
+        previousPlan: currentPlan,
+        interpretation: routed.audit,
+        businessName: state.businessName
+      });
+    }
 
     state.conversation.push({
       role: "assistant",
@@ -2060,7 +2065,11 @@ function evaluateBlueprintReadiness(blueprint) {
 
 async function renderNextQuestion({ env, blueprint, previousPlan, interpretation, businessName }) {
   const plan = blueprint.question_plan;
-  if (!plan) {
+  const hasPlan =
+    isObject(plan) &&
+    (hasMeaningfulValue(plan.primary_field) || cleanList(plan.target_fields).length > 0 || hasMeaningfulValue(plan.bundle_id));
+
+  if (!hasPlan) {
     return "Excellent — we now have enough verified clarity to move into final assembly.";
   }
 
@@ -2367,7 +2376,7 @@ function normalizeBlueprint(blueprint) {
   next.section_status = isObject(next.section_status) ? next.section_status : {};
   next.verification_queue = Array.isArray(next.verification_queue) ? next.verification_queue : [];
   next.question_candidates = Array.isArray(next.question_candidates) ? next.question_candidates : [];
-  next.question_plan = isObject(next.question_plan) ? next.question_plan : {};
+  next.question_plan = isObject(next.question_plan) ? next.question_plan : null;
   next.component_states = isObject(next.component_states) ? next.component_states : {};
   next.decision_states = isObject(next.decision_states) ? next.decision_states : {};
   next.evidence_log = Array.isArray(next.evidence_log) ? next.evidence_log : [];
@@ -2405,6 +2414,13 @@ function normalizeFactRegistry(input) {
   }
 
   return out;
+}
+
+function buildCompletionMessage(businessName, readiness) {
+  const name = cleanString(businessName) || "your business";
+  const score = clampNumber(readiness?.score, 0, 1, 1);
+  const percentage = Math.round(score * 100);
+  return `Excellent — we now have enough verified clarity for ${name}. Intake is complete (${percentage}% readiness), and we can move into final assembly.`;
 }
 
 /* ========================================================================
