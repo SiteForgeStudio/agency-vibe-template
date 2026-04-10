@@ -852,14 +852,13 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   }
 
 // ==========================
-// 🔥 SAFETY: Ensure pricing gets captured (CRITICAL)
+// Pricing fallback (only when active slot is pricing — manifest: no unrelated inference)
 // ==========================
 const hasPricing = nextBlueprint.fact_registry?.pricing?.value;
-
 const answerText = cleanString(answer).toLowerCase();
 
-// If pricing not captured but answer clearly contains pricing signal
 if (
+  expectedField === "pricing" &&
   !hasMeaningfulValue(hasPricing) &&
   answerText.length > 3
 ) {
@@ -980,7 +979,10 @@ if (
       unresolved_points: normalizeStringArray(interpretation.unresolved_points),
       notes: cleanString(interpretation.notes),
       expected_primary_field: expectedField,
-      primary_field_updated: !!(expectedField && updatedFactKeys.includes(expectedField))
+      primary_field_updated: !!(expectedField && updatedFactKeys.includes(expectedField)),
+      secondary_updated_keys: uniqueList(
+        updatedFactKeys.filter((k) => cleanString(k) && cleanString(k) !== expectedField)
+      )
     }
   };
 }
@@ -1738,6 +1740,10 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
   const factRegistry = safeObject(blueprint.fact_registry);
   const componentStates = safeObject(blueprint.component_states);
   const questionHistory = Array.isArray(blueprint.question_history) ? blueprint.question_history : [];
+  const askedTurns = questionHistory.length;
+  const conversionUnresolvedCount = cleanList(getDecisionTargets()?.conversion?.target_fields)
+    .filter((field) => Object.prototype.hasOwnProperty.call(factRegistry, field))
+    .filter((field) => !isFieldSatisfied(field, factRegistry)).length;
   const decisionTargets = getDecisionTargets();
 
   for (const [decision, config] of Object.entries(decisionTargets)) {
@@ -1781,6 +1787,16 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
 
     if (decision === "contact_details" && coreDecisionsStillWeak(decisionStates)) {
       score -= 140;
+    }
+
+    // Strong early anchor: keep focus on conversion until core path is captured.
+    if (askedTurns < 4 && conversionUnresolvedCount > 0 && decision !== "conversion") {
+      score -= 130;
+    }
+
+    if (decision === "service_area" && coreDecisionsStillWeak(decisionStates)) {
+      // Delay geo details until higher-priority strategic slots stabilize.
+      score -= 90;
     }
 
     if (decision === cleanString(previousPlan?.bundle_id)) {
@@ -1844,6 +1860,36 @@ function isPricingComplete(factRegistry) {
 function planNextQuestion(candidates, previousBundleId, previousPrimaryField, factRegistry) {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
+  const lastPrimary = cleanString(previousPrimaryField);
+
+  // Manifest: progression depends only on satisfying the active primary_field first.
+  if (lastPrimary && !isFieldSatisfied(lastPrimary, factRegistry)) {
+    const stickyCandidates = candidates
+      .map((candidate) => {
+        const targetFields = cleanList(candidate.target_fields);
+        if (!targetFields.includes(lastPrimary)) return null;
+        const unresolvedFields = targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
+        if (!unresolvedFields.includes(lastPrimary)) return null;
+        let score = Number(candidate.score || 0);
+        const bundleId = cleanString(candidate.bundle_id);
+        if (bundleId === cleanString(previousBundleId) && unresolvedFields.length > 0) {
+          score += 20;
+        }
+        return { ...candidate, adjusted_score: score, unresolved_fields_runtime: unresolvedFields };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.adjusted_score - a.adjusted_score);
+
+    const sticky = stickyCandidates[0];
+    if (sticky) {
+      return {
+        ...sticky,
+        primary_field: lastPrimary,
+        unresolved_count: sticky.unresolved_fields_runtime.length
+      };
+    }
+  }
+
   const adjusted = candidates.map((candidate) => {
     let score = Number(candidate.score || 0);
     const bundleId = cleanString(candidate.bundle_id);
@@ -1853,11 +1899,9 @@ function planNextQuestion(candidates, previousBundleId, previousPrimaryField, fa
     const allComplete = unresolvedFields.length === 0;
 
     if (allComplete) {
-      // Fully resolved decisions should not be selected again.
       score -= 1000;
     }
 
-    // Keep same-bundle continuity when unresolved fields still exist.
     if (bundleId === cleanString(previousBundleId) && unresolvedFields.length > 0) {
       score += 20;
     }
@@ -1875,22 +1919,7 @@ function planNextQuestion(candidates, previousBundleId, previousPrimaryField, fa
     ? best.unresolved_fields_runtime
     : targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
 
-  const lastPrimaryField = cleanString(previousPrimaryField);
-
-  let nextPrimaryField =
-    unresolvedFields.find((f) => f !== lastPrimaryField) ||
-    unresolvedFields[0] ||
-    null;
-
-  // Prevent repetition
-  if (nextPrimaryField === lastPrimaryField) {
-    nextPrimaryField = null;
-  }
-
-  // Safety: if still same as last, force move on
-  if (nextPrimaryField === lastPrimaryField) {
-    nextPrimaryField = null;
-  }
+  const nextPrimaryField = unresolvedFields[0] || null;
   if (!nextPrimaryField) return null;
 
   return {

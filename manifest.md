@@ -244,6 +244,16 @@ Output:
 
 ---
 
+# **🔐 PRIMARY FIELD CONTRACT (NON-NEGOTIABLE)**
+
+* Every turn **MUST** update the active `primary_field`.
+* If interpretation does not produce it, the **system enforces** it (capture from the user answer for that slot).
+* **Progression** (advancement to the next planned field / bundle) depends **only** on satisfaction of this active field—not on other extracted facts.
+* **Secondary facts** are allowed in the same turn (multi-fact answers are welcome) but are **ignored for progression**; they enrich `fact_registry` without changing turn ownership until the planner advances.
+* **Planner stickiness:** the engine does not advance to the next `primary_field` until the **current** active field is satisfied (`isFieldSatisfied` / contract rules). Secondary captures alone must not skip ahead.
+
+---
+
 # **🧠 ANSWER INTERPRETATION (NO REGEX)**
 
 ## **AI Extraction Contract:**

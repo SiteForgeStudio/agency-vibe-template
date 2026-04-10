@@ -178,6 +178,7 @@ function printDebug(prevState, newState, data) {
   console.log("→ Expected Primary:", lastAudit.expected_primary_field);
   console.log("→ Primary Updated:", lastAudit.primary_field_updated);
   console.log("→ Updated Fact Keys:", lastAudit.updated_fact_keys);
+  console.log("→ Secondary (non-progression) Keys:", lastAudit.secondary_updated_keys);
 
   // ==========================
   // FACT CHANGES
