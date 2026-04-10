@@ -547,6 +547,71 @@ function buildInterpreterSystemPrompt() {
     return hasMeaningfulValue(fact.value);
   }
 
+  /** Phone / quote-by-phone style flows do not need an external booking URL. */
+  function isManualBookingMethodValue(bookingMethodRaw) {
+    const m = cleanString(bookingMethodRaw).toLowerCase().replace(/\s+/g, "_");
+    if (!m) return false;
+    const exact = [
+      "call",
+      "manual",
+      "phone",
+      "request_quote",
+      "call_for_quote",
+      "call_to_get_quote",
+      "phone_call",
+      "quote_by_phone"
+    ];
+    if (exact.includes(m)) return true;
+    if (m.includes("phone") && (m.includes("call") || m.includes("quote"))) return true;
+    if (m.includes("call") && m.includes("quote")) return true;
+    return false;
+  }
+
+  function extractHttpUrlFromText(text) {
+    const s = cleanString(text);
+    const m = s.match(/https?:\/\/[^\s)\]]+/i) || s.match(/\bwww\.[^\s)\]]+/i);
+    return m ? m[0] : "";
+  }
+
+  function isPlausibleBookingUrlString(value) {
+    if (!hasMeaningfulValue(value) || typeof value !== "string") return false;
+    const s = value.trim();
+    if (extractHttpUrlFromText(s)) return true;
+    return /^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}([/?#][^\s]*)?$/i.test(s);
+  }
+
+  function describesManualBookingNoUrl(lower) {
+    const signals = [
+      "manual",
+      "handled manually",
+      "no booking",
+      "no booking link",
+      "no booking page",
+      "we schedule manually",
+      "no url",
+      "not online",
+      "call only",
+      "phone only",
+      "request a quote",
+      "don't have a link",
+      "do not have a link"
+    ];
+    return signals.some((sig) => lower.includes(sig));
+  }
+
+  function isAcceptableBookingUrlFactUpdate(update, rawAnswer) {
+    const v = update?.value;
+    if (v == null && cleanString(update?.status) === "answered") return true;
+    if (typeof v === "string") {
+      const lower = v.toLowerCase();
+      if (isPlausibleBookingUrlString(v)) return true;
+      if (describesManualBookingNoUrl(lower)) return true;
+    }
+    const fromUser = cleanString(rawAnswer).toLowerCase();
+    if (fromUser && describesManualBookingNoUrl(fromUser)) return true;
+    if (typeof v === "string" && extractHttpUrlFromText(v)) return true;
+    return false;
+  }
 
   function isFieldSatisfied(fieldKey, factRegistry) {
   const fact = factRegistry?.[fieldKey];
@@ -555,10 +620,7 @@ function buildInterpreterSystemPrompt() {
   if (fieldKey === "booking_url") {
     const bookingMethod = factRegistry?.booking_method?.value;
 
-    const manual = ["call", "manual", "phone", "request_quote", "call_for_quote"]
-      .includes(cleanString(bookingMethod).toLowerCase());
-
-    if (manual) return true;
+    if (isManualBookingMethodValue(bookingMethod)) return true;
   }
 
 if (fieldKey === "contact_path") {
@@ -668,31 +730,43 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
     }
   }
 
- if (bundleId === "conversion" && primaryField === "booking_url") {
-  const manualSignals = [
-    "manual",
-    "handled manually",
-    "no booking",
-    "no booking link",
-    "no booking page",
-    "we schedule manually",
-    "call",
-    "request a quote"
-  ];
+  if (bundleId === "conversion" && primaryField === "booking_url") {
+    const url = extractHttpUrlFromText(text);
+    if (url) {
+      repaired.fact_updates = repaired.fact_updates || [];
+      repaired.fact_updates.push({
+        fact_key: "booking_url",
+        value: url,
+        confidence: 0.88,
+        verified: true,
+        status: "answered",
+        rationale: "User provided a scheduling or booking link."
+      });
+    } else {
+      const manualSignals = [
+        "manual",
+        "handled manually",
+        "no booking",
+        "no booking link",
+        "no booking page",
+        "we schedule manually",
+        "request a quote"
+      ];
 
-  if (manualSignals.some((signal) => lower.includes(signal))) {
-    repaired.fact_updates = repaired.fact_updates || [];
+      if (manualSignals.some((signal) => lower.includes(signal))) {
+        repaired.fact_updates = repaired.fact_updates || [];
 
-    repaired.fact_updates.push({
-      fact_key: "booking_url",
-      value: null,
-      confidence: 0.9,
-      verified: true,
-      status: "answered",
-      rationale: "Booking is handled manually; no booking URL exists."
-    });
+        repaired.fact_updates.push({
+          fact_key: "booking_url",
+          value: null,
+          confidence: 0.9,
+          verified: true,
+          status: "answered",
+          rationale: "Booking is handled manually; no booking URL exists."
+        });
+      }
+    }
   }
-}
 
   if (bundleId === "process" && primaryField === "process_summary") {
     if (looksLikeProcessAnswer(lower)) {
@@ -787,6 +861,10 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
     : factUpdates;
 
   for (const update of prioritizedFactUpdates) {
+    if (cleanString(update.fact_key) === "booking_url" && !isAcceptableBookingUrlFactUpdate(update, answer)) {
+      continue;
+    }
+
     const existing = isObject(nextBlueprint.fact_registry[update.fact_key])
       ? nextBlueprint.fact_registry[update.fact_key]
       : null;
@@ -831,24 +909,52 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
 
   // ==========================
   // Active-field integrity check: ensure the asked slot always gets captured.
+  // booking_url: never store arbitrary text as a URL; URLs / manual-no-URL only.
   // ==========================
   if (expectedField) {
-  const wasUpdated = updatedFactKeys.includes(expectedField);
+    const wasUpdated = updatedFactKeys.includes(expectedField);
 
-  if (!wasUpdated && hasMeaningfulValue(answer)) {
-    nextBlueprint.fact_registry[expectedField] = {
-      value: cleanString(answer),
-      status: "answered",
-      confidence: 0.75,
-      verified: true,
-      rationale: "Captured from answer (expected field enforcement)",
-      updated_at: now
-    };
+    if (!wasUpdated && hasMeaningfulValue(answer)) {
+      if (expectedField === "booking_url") {
+        const lower = cleanString(answer).toLowerCase();
+        const url = extractHttpUrlFromText(answer);
+        if (url) {
+          nextBlueprint.fact_registry.booking_url = {
+            value: url,
+            status: "answered",
+            confidence: 0.85,
+            verified: true,
+            rationale: "Captured URL from answer (expected field enforcement)",
+            updated_at: now
+          };
+          if (!updatedFactKeys.includes("booking_url")) updatedFactKeys.push("booking_url");
+        } else if (describesManualBookingNoUrl(lower)) {
+          nextBlueprint.fact_registry.booking_url = {
+            value: null,
+            status: "answered",
+            confidence: 0.88,
+            verified: true,
+            rationale: "Manual booking — no public scheduling URL (expected field enforcement)",
+            updated_at: now
+          };
+          if (!updatedFactKeys.includes("booking_url")) updatedFactKeys.push("booking_url");
+        }
+        // else: leave unresolved — do not mark "complexity" etc. as a booking URL
+      } else {
+        nextBlueprint.fact_registry[expectedField] = {
+          value: cleanString(answer),
+          status: "answered",
+          confidence: 0.75,
+          verified: true,
+          rationale: "Captured from answer (expected field enforcement)",
+          updated_at: now
+        };
 
-    if (!updatedFactKeys.includes(expectedField)) {
-      updatedFactKeys.push(expectedField);
+        if (!updatedFactKeys.includes(expectedField)) {
+          updatedFactKeys.push(expectedField);
+        }
+      }
     }
-  }
   }
 
 // ==========================
@@ -887,8 +993,9 @@ if (
     currentBookingUrl.status === "answered";
 
   if (
+    cleanString(expectedField) !== "booking_url" &&
     typeof bookingMethod === "string" &&
-    ["call", "manual", "phone", "request_quote", "call_for_quote"].includes(bookingMethod.toLowerCase()) &&
+    isManualBookingMethodValue(bookingMethod) &&
     !bookingUrlAlreadyResolved
   ) {
     nextBlueprint.fact_registry.booking_url = {
@@ -1945,7 +2052,7 @@ function evaluateBlueprintReadiness(blueprint) {
     hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link")) ||
     hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link"));
 
-  const manualBooking = ["call", "manual", "phone"].includes(bookingMethod);
+  const manualBooking = isManualBookingMethodValue(bookingMethodRaw);
 
   const conversionResolved =
     hasMeaningfulValue(bookingMethod) &&
