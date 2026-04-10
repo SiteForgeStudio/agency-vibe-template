@@ -640,6 +640,8 @@ function buildInterpreterSystemPrompt() {
   function describesManualBookingNoUrl(lower) {
     const signals = [
       "manual",
+      "manually",
+      "manuall",
       "handled manually",
       "no booking",
       "no booking link",
@@ -674,13 +676,17 @@ function buildInterpreterSystemPrompt() {
   function isFieldSatisfied(fieldKey, factRegistry) {
   const fact = factRegistry?.[fieldKey];
 
-  // booking_url: satisfied = real URL OR explicit no-URL (answered + null/sentinel/manual phrasing)
+  // booking_url: satisfied = real URL OR explicit no-URL (answered/partial + null/sentinel/manual phrasing)
   if (fieldKey === "booking_url") {
     const bookingMethod = factRegistry?.booking_method?.value;
 
     if (isManualBookingMethodValue(bookingMethod)) return true;
 
-    if (fact && cleanString(fact.status) === "answered") {
+    const st = fact ? cleanString(fact.status) : "";
+    const statusAllowsValue =
+      st === "answered" || st === "partial" || (st === "inferred" && clampNumber(fact.confidence, 0, 1, 0) >= 0.7);
+
+    if (fact && statusAllowsValue) {
       const v = fact.value;
       if (v == null) return true;
       if (typeof v === "string") {
@@ -1218,10 +1224,10 @@ function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastA
   });
 
 const nextQuestionPlan = planNextQuestion(
-  blueprint.question_candidates,
-  blueprint.question_plan?.bundle_id,
-  blueprint.question_plan?.primary_field,
-  blueprint.fact_registry
+  nextBlueprint.question_candidates,
+  nextBlueprint.question_plan?.bundle_id,
+  nextBlueprint.question_plan?.primary_field,
+  nextBlueprint.fact_registry
 );
 
   nextBlueprint.question_plan = nextQuestionPlan ? deepClone(nextQuestionPlan) : null;
@@ -3045,6 +3051,7 @@ function isBookingUrlNoLinkSentinel(value) {
   const s = cleanString(value).toLowerCase();
   return (
     s === "manual" ||
+    s === "manually" ||
     s === "none" ||
     s === "n/a" ||
     s === "na" ||
