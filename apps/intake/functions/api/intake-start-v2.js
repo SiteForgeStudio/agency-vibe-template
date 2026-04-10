@@ -53,6 +53,7 @@ export async function onRequestPost(context) {
 
     const strategy = safeStrategy(reconData);
     const seededAnswers = buildSeededAnswers(strategy, reconData);
+    const preflight_intelligence = buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers);
 
     // 2) BUILD BLUEPRINT
     const blueprint = buildBlueprintFromPreflight(strategy, reconData, seededAnswers);
@@ -105,6 +106,9 @@ export async function onRequestPost(context) {
         strategy_contract: strategy,
         recon_snapshot: reconData
       },
+
+      /** Handoff slice for PREFLIGHT_OUTPUT_SPEC_V1 → intake bridge (question framing, validation tone). */
+      preflight_intelligence: preflight_intelligence,
 
       // new controller state
       blueprint,
@@ -337,6 +341,40 @@ function normalizeCategory(value) {
 /* --------------------------------
    STRATEGY EXTRACTION (COMPATIBILITY)
 -------------------------------- */
+
+/**
+ * Normalized strategic payload for intake (validation, not re-discovery).
+ * Maps spec fields + competitive_intelligence from strategy_contract or recon root.
+ * @see docs/PREFLIGHT_OUTPUT_SPEC_V1.md
+ */
+function buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers) {
+  const strategyObj = isObject(strategy) ? strategy : {};
+  const recon = isObject(reconData) ? reconData : {};
+  const seeded = isObject(seededAnswers) ? seededAnswers : {};
+  const ci = isObject(strategyObj.competitive_intelligence)
+    ? strategyObj.competitive_intelligence
+    : isObject(recon.competitive_intelligence)
+      ? recon.competitive_intelligence
+      : {};
+
+  return compactObject({
+    positioning: firstNonEmpty([
+      cleanString(ci.differentiation_hypothesis),
+      cleanString(seeded.business_understanding),
+      cleanString(strategyObj.business_context?.differentiation)
+    ]),
+    opportunity: cleanString(seeded.opportunity),
+    website_direction: cleanString(seeded.website_direction),
+    winning_angle: cleanString(ci.winning_local_angle),
+    buyer_factors: cleanList(ci.buyer_comparison_factors),
+    weaknesses: cleanList(ci.competitor_weaknesses),
+    differentiation_hypothesis: cleanString(ci.differentiation_hypothesis),
+    local_alternatives: cleanList(ci.local_alternatives),
+    recommended_focus: cleanList(seeded.recommended_focus),
+    google_presence_insight: cleanString(seeded.google_presence_insight),
+    spec_version: "PREFLIGHT_OUTPUT_SPEC_V1"
+  });
+}
 
 function buildSeededAnswers(strategy, reconData) {
   const businessContext = isObject(strategy?.business_context) ? strategy.business_context : {};

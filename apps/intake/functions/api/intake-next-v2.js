@@ -118,6 +118,23 @@ export async function onRequestPost(context) {
     syncCompatibilityMirrors(state);
     state.readiness = evaluateBlueprintReadiness(state.blueprint);
 
+    const combinedAnswerForReinforcement =
+      `${userAnswer} ${cleanString(routed.audit?.answer_summary)}`.trim();
+    const reinforcementEval = evaluatePositiveReinforcement({
+      combinedAnswer: combinedAnswerForReinforcement,
+      preflightIntelligence: state.preflight_intelligence,
+      lastTurnReinforcementSource: cleanString(state.meta?.last_turn_reinforcement_source)
+    });
+    state.reinforcement = reinforcementEval
+      ? {
+          type: reinforcementEval.type,
+          message: reinforcementEval.message,
+          source: reinforcementEval.source
+        }
+      : null;
+    state.meta = isObject(state.meta) ? state.meta : {};
+    state.meta.last_turn_reinforcement_source = reinforcementEval ? reinforcementEval.source : null;
+
     state.phase = state.readiness.can_generate_now ? "intake_complete" : "blueprint_verify";
     state.action = state.readiness.can_generate_now ? "complete" : "continue";
     if (state.action === "complete") {
@@ -130,7 +147,8 @@ export async function onRequestPost(context) {
       fallback_triggered: false,
       llm_available: !!env?.OPENAI_API_KEY,
       question_source: "intake_complete",
-      fallback_reason: null
+      fallback_reason: null,
+      preflight_bridge_framing: null
     };
 
     if (state.action === "complete") {
@@ -141,16 +159,20 @@ export async function onRequestPost(context) {
         blueprint: state.blueprint,
         previousPlan: currentPlan,
         interpretation: routed.audit,
-        businessName: state.businessName
+        businessName: state.businessName,
+        preflightIntelligence: state.preflight_intelligence
       });
       assistantMessage = rendered.message;
       questionRenderMeta = {
         fallback_triggered: rendered.fallback_triggered,
         llm_available: rendered.llm_available,
         question_source: rendered.question_source,
-        fallback_reason: rendered.fallback_reason ?? null
+        fallback_reason: rendered.fallback_reason ?? null,
+        preflight_bridge_framing: rendered.preflight_bridge_framing ?? null
       };
     }
+
+    assistantMessage = appendReinforcementToAssistantMessage(state.reinforcement, assistantMessage);
 
     state.conversation.push({
       role: "assistant",
@@ -171,7 +193,11 @@ export async function onRequestPost(context) {
       fallback_triggered: questionRenderMeta.fallback_triggered,
       llm_available: questionRenderMeta.llm_available,
       question_source: questionRenderMeta.question_source,
-      fallback_reason: questionRenderMeta.fallback_reason
+      fallback_reason: questionRenderMeta.fallback_reason,
+      preflight_bridge_framing: questionRenderMeta.preflight_bridge_framing ?? null,
+      reinforcement_triggered: !!state.reinforcement,
+      reinforcement_type: state.reinforcement ? "alignment" : null,
+      reinforcement_source: state.reinforcement?.source ?? null
     };
 
     // Persist asked-question history for future stall detection
@@ -2230,6 +2256,180 @@ function evaluateBlueprintReadiness(blueprint) {
   };
 }
 
+/** v1: token overlap only — deterministic, no LLM (post-interpretation reinforcement). */
+const REINFORCEMENT_STOPWORDS = new Set([
+  "that",
+  "this",
+  "with",
+  "from",
+  "they",
+  "have",
+  "been",
+  "were",
+  "your",
+  "their",
+  "there",
+  "what",
+  "when",
+  "where",
+  "which",
+  "would",
+  "could",
+  "about",
+  "into",
+  "just",
+  "also",
+  "very",
+  "some",
+  "than",
+  "then",
+  "them",
+  "such",
+  "each",
+  "other",
+  "more",
+  "most",
+  "many",
+  "much",
+  "well",
+  "only",
+  "even",
+  "like",
+  "make",
+  "does",
+  "done",
+  "being",
+  "over",
+  "after",
+  "before"
+]);
+
+const REINFORCEMENT_OVERLAP_THRESHOLD = 0.38;
+
+function reinforcementTokensFromAnswer(answerText) {
+  return new Set(
+    cleanString(answerText)
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((w) => w.length >= 4 && !REINFORCEMENT_STOPWORDS.has(w))
+  );
+}
+
+function significantTokensFromInsight(insightText) {
+  return cleanString(insightText)
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length >= 4 && !REINFORCEMENT_STOPWORDS.has(w));
+}
+
+function reinforcementOverlapRatio(answerText, insightText) {
+  const answerTok = reinforcementTokensFromAnswer(answerText);
+  const insightToks = significantTokensFromInsight(insightText);
+  if (insightToks.length === 0) return 0;
+  let hit = 0;
+  for (const w of insightToks) {
+    if (answerTok.has(w)) hit += 1;
+  }
+  return hit / insightToks.length;
+}
+
+/**
+ * Positive alignment only; does not affect planning or primary_field.
+ * @returns {{ type: string, message: string, source: string } | null}
+ */
+function evaluatePositiveReinforcement({
+  combinedAnswer,
+  preflightIntelligence,
+  lastTurnReinforcementSource
+}) {
+  const text = cleanString(combinedAnswer);
+  const pi = isObject(preflightIntelligence) ? preflightIntelligence : null;
+  if (!text || !pi) return null;
+
+  const candidates = [];
+  const wa = cleanString(pi.winning_angle);
+  if (wa) candidates.push({ source: "winning_local_angle", text: wa });
+  const hyp = cleanString(pi.differentiation_hypothesis);
+  if (hyp) candidates.push({ source: "differentiation_hypothesis", text: hyp });
+  for (const line of cleanList(pi.buyer_factors)) {
+    const b = cleanString(line);
+    if (b) candidates.push({ source: "buyer_comparison_factors", text: b });
+  }
+
+  const messages = {
+    winning_local_angle: "That actually lines up well with what makes you stand out locally.",
+    differentiation_hypothesis: "That fits the positioning we're seeing for you.",
+    buyer_comparison_factors: "That matches how buyers in your space often weigh their options."
+  };
+
+  for (const c of candidates) {
+    if (cleanString(c.source) === cleanString(lastTurnReinforcementSource)) continue;
+    if (reinforcementOverlapRatio(text, c.text) < REINFORCEMENT_OVERLAP_THRESHOLD) continue;
+    return {
+      type: "positive_alignment",
+      message: messages[c.source],
+      source: c.source
+    };
+  }
+  return null;
+}
+
+function appendReinforcementToAssistantMessage(reinforcement, assistantMessage) {
+  const base = cleanString(assistantMessage);
+  const note = cleanString(reinforcement?.message);
+  if (!note) return base;
+  if (!base) return note;
+  return `${note}\n\n${base}`;
+}
+
+/**
+ * Preflight → intake bridge: one short framing note for the LLM (same primary_field only).
+ * @see docs/PREFLIGHT_OUTPUT_SPEC_V1.md
+ */
+function buildPreflightBridgeFraming(bundleId, primaryField, pi) {
+  if (!isObject(pi)) return "";
+  const pf = cleanString(primaryField);
+  const b = cleanString(bundleId);
+  const angle = cleanString(pi.winning_angle);
+  const hyp = cleanString(pi.differentiation_hypothesis);
+  const pos = cleanString(pi.positioning);
+  const opp = cleanString(pi.opportunity);
+  const buyers = cleanList(pi.buyer_factors);
+  const weak = cleanList(pi.weaknesses);
+  const alts = cleanList(pi.local_alternatives);
+  const focus = cleanList(pi.recommended_focus);
+
+  if (pf === "target_persona" && angle) {
+    return `Strategic note (validate, do not lecture): research suggests a strong fit when positioned as: ${truncate(angle, 320)} Ask whether that matches who they usually serve best.`;
+  }
+  if (pf === "differentiation" && hyp) {
+    return `Lead with this hypothesis in one clause: ${truncate(hyp, 320)} Ask if they agree or how they'd sharpen it.`;
+  }
+  if (pf === "primary_offer" && pos) {
+    return `Ground the question in this understanding: ${truncate(pos, 280)}`;
+  }
+  if (pf === "booking_method" && opp) {
+    return `Conversion context (stay on booking channel only; no pricing): ${truncate(opp, 260)}`;
+  }
+  if ((pf === "faq_angles" || b === "objection_handling") && buyers.length) {
+    return `Buyers in this space often weigh: ${buyers.slice(0, 4).join("; ")}. Ask what objections or questions come up before someone books (stay on FAQ angle only).`;
+  }
+  if ((pf === "review_quotes" || pf === "trust_signal") && weak.length) {
+    return `Market gaps to contrast against (trust topic only): ${weak.slice(0, 3).join("; ")}. Ask for proof or language that addresses that gap.`;
+  }
+  if (pf === "process_summary" && cleanString(pi.website_direction)) {
+    return `Site flow intent from research: ${truncate(cleanString(pi.website_direction), 240)} — ask for the real-world process that supports that journey.`;
+  }
+  if (pf === "comparison" && (weak.length || alts.length || focus.length)) {
+    const parts = [];
+    if (alts.length) parts.push(`Alternatives buyers consider: ${alts.slice(0, 3).join("; ")}`);
+    if (weak.length) parts.push(`Common gaps in those options: ${weak.slice(0, 3).join("; ")}`);
+    if (focus.length) parts.push(`Strategic emphasis to test: ${focus.slice(0, 3).join("; ")}`);
+    return `${parts.join(" ")} Ask how they want to be positioned versus those alternatives (comparison topic only).`;
+  }
+  return "";
+}
+
 /** LLM user-payload hint: one primary_field only (manifest: renderer contract). */
 function getPrimaryFieldScopedHint(bundleId, primaryField) {
   const pf = cleanString(primaryField);
@@ -2306,13 +2506,14 @@ function violatesPrimaryFieldQuestionScope(message, primaryField) {
  * When fallback_triggered is true, explains why deterministic copy won (LLM path only).
  * @typedef {"scope_violation"|"parse_error"|"empty_response"|"repetition"|"api_error"|"timeout"|null} FallbackReason
  */
-function packQuestionRender(message, { fallback_triggered, llm_available, question_source, fallback_reason = null }) {
+function packQuestionRender(message, { fallback_triggered, llm_available, question_source, fallback_reason = null, preflight_bridge_framing = null }) {
   const out = {
     message: cleanString(message),
     fallback_triggered: !!fallback_triggered,
     llm_available: !!llm_available,
     question_source: cleanString(question_source) || "deterministic",
-    fallback_reason: null
+    fallback_reason: null,
+    preflight_bridge_framing: cleanString(preflight_bridge_framing) || null
   };
   if (out.fallback_triggered) {
     out.fallback_reason = cleanString(fallback_reason) || null;
@@ -2330,7 +2531,14 @@ function classifyQuestionRenderFetchError(err) {
   return "api_error";
 }
 
-async function renderNextQuestion({ env, blueprint, previousPlan, interpretation, businessName }) {
+async function renderNextQuestion({
+  env,
+  blueprint,
+  previousPlan,
+  interpretation,
+  businessName,
+  preflightIntelligence
+}) {
   const llmConfigured = !!env?.OPENAI_API_KEY;
   const plan = blueprint.question_plan;
   const hasPlan =
@@ -2361,19 +2569,30 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
 
   const fallback = buildDeterministicQuestion(adjustedPlan, blueprint, businessName);
 
+  const primaryFieldScopedHint = getPrimaryFieldScopedHint(
+    cleanString(adjustedPlan.bundle_id),
+    cleanString(adjustedPlan.primary_field)
+  );
+  const bridgeFraming = buildPreflightBridgeFraming(
+    cleanString(adjustedPlan.bundle_id),
+    cleanString(adjustedPlan.primary_field),
+    preflightIntelligence
+  );
+  const bridgeMeta = { preflight_bridge_framing: bridgeFraming || null };
+
   if (!llmConfigured) {
     return packQuestionRender(fallback, {
       fallback_triggered: false,
       llm_available: false,
       question_source: "deterministic",
-      fallback_reason: null
+      fallback_reason: null,
+      ...bridgeMeta
     });
   }
 
-  const primaryFieldScopedHint = getPrimaryFieldScopedHint(
-    cleanString(adjustedPlan.bundle_id),
-    cleanString(adjustedPlan.primary_field)
-  );
+  const instructionWithBridge = bridgeFraming
+    ? `${primaryFieldScopedHint}\n\nPreflight bridge (single topic — primary_field only):\n${bridgeFraming}`
+    : primaryFieldScopedHint;
 
   const bundleSpecificUnresolvedPoints = normalizeStringArray(interpretation?.unresolved_points).filter((point) =>
     unresolvedPointMatchesBundle(point, adjustedPlan.bundle_id)
@@ -2394,6 +2613,7 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
             "CRITICAL: The question must address EXACTLY ONE topic: the value of primary_field in the user message.",
             "Do NOT ask about pricing, availability, reviews, service area, or other topics unless primary_field names that topic.",
             "Do NOT combine multiple fields into one question (one sentence, one decision).",
+            "If a preflight bridge note is present, weave it in naturally as validation — still only one topic matching primary_field.",
             "Do not repeat what was just answered.",
             "Do not hardcode industries.",
             "Make it feel like a sharp strategist at a premium agency.",
@@ -2408,7 +2628,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
               previous_bundle_id: cleanString(previousPlan?.bundle_id),
               next_bundle_id: cleanString(adjustedPlan.bundle_id),
               primary_field: cleanString(adjustedPlan.primary_field),
-              primary_field_only_instruction: primaryFieldScopedHint,
+              primary_field_only_instruction: instructionWithBridge,
+              preflight_bridge_framing: bridgeFraming || null,
               target_fields: cleanList(adjustedPlan.target_fields),
               intent: cleanString(adjustedPlan.intent),
               reason: cleanString(adjustedPlan.reason),
@@ -2439,7 +2660,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
-        fallback_reason: "api_error"
+        fallback_reason: "api_error",
+        ...bridgeMeta
       });
     }
 
@@ -2462,7 +2684,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
-        fallback_reason: emptyOrParseReason
+        fallback_reason: emptyOrParseReason,
+        ...bridgeMeta
       });
     }
     if (isOverloadedQuestion(message, adjustedPlan.bundle_id)) {
@@ -2470,7 +2693,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
-        fallback_reason: "scope_violation"
+        fallback_reason: "scope_violation",
+        ...bridgeMeta
       });
     }
     if (looksLikeRepeatedQuestion(message, interpretation?.answer_summary, adjustedPlan.bundle_id)) {
@@ -2478,7 +2702,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
-        fallback_reason: "repetition"
+        fallback_reason: "repetition",
+        ...bridgeMeta
       });
     }
     if (violatesPrimaryFieldQuestionScope(message, cleanString(adjustedPlan.primary_field))) {
@@ -2486,7 +2711,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
-        fallback_reason: "scope_violation"
+        fallback_reason: "scope_violation",
+        ...bridgeMeta
       });
     }
 
@@ -2494,7 +2720,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
       fallback_triggered: false,
       llm_available: true,
       question_source: "llm",
-      fallback_reason: null
+      fallback_reason: null,
+      ...bridgeMeta
     });
   } catch (err) {
     console.error("[intake-next-v2-1:render-question]", err);
@@ -2502,7 +2729,8 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
       fallback_triggered: true,
       llm_available: true,
       question_source: "deterministic",
-      fallback_reason: classifyQuestionRenderFetchError(err)
+      fallback_reason: classifyQuestionRenderFetchError(err),
+      ...bridgeMeta
     });
   }
 }
@@ -2684,6 +2912,11 @@ function normalizeState(state) {
   next.blueprint = normalizeBlueprint(next.blueprint);
   next.readiness = isObject(next.readiness) ? next.readiness : {};
   next.turn_debug = isObject(next.turn_debug) ? next.turn_debug : {};
+  next.preflight_intelligence = isObject(next.preflight_intelligence) ? next.preflight_intelligence : {};
+  next.reinforcement = isObject(next.reinforcement) ? next.reinforcement : null;
+  if (next.meta) {
+    next.meta.last_turn_reinforcement_source = cleanString(next.meta.last_turn_reinforcement_source) || null;
+  }
 
   return next;
 }
