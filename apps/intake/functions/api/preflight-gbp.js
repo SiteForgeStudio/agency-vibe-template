@@ -28,6 +28,20 @@ function json(data, status = 200) {
   
     return JSON.parse(raw.slice(start, end + 1));
   }
+
+  /** If the model ignores instructions, never persist not_found when a real website exists. */
+  function coerceGbpWhenWebsitePresent(parsed, websiteHint) {
+    const w = String(websiteHint || "").trim();
+    if (!/^https?:\/\//i.test(w)) return;
+    if (parsed.gbp_status !== "not_found") return;
+    parsed.gbp_status = "unclear";
+    const note =
+      "Automated inference only: a website URL was provided; a GBP may exist or need claiming—live Maps verification was not performed.";
+    parsed.notes = [parsed.notes, note].filter(Boolean).join(" ");
+    const c = Number(parsed.listing_confidence);
+    parsed.listing_confidence =
+      Number.isFinite(c) ? Math.max(c, 0.38) : 0.4;
+  }
   
   export async function onRequest(context) {
     const { request, env } = context;
@@ -75,6 +89,13 @@ function json(data, status = 200) {
           statusRes.status || 404
         );
       }
+
+      const websiteHint = String(
+        status.optional_website_or_social ??
+          status.client?.optional_website_or_social ??
+          status.website_or_social ??
+          ""
+      ).trim();
   
       // 2) Ask AI for GBP-oriented audit/creation plan
   const prompt = `
@@ -84,11 +105,16 @@ Your job:
 Create a first-pass Google Business Profile audit or setup recommendation for a local business.
 
 Important:
-- Do NOT pretend you actually found a live Google Business Profile unless the input clearly proves it.
-- In this v1 flow, you are inferring likely GBP strategy from the business name, location, and description only.
-- If there is no evidence of a real listing, prefer "not_found" or "unclear" rather than inventing one.
+- Do NOT pretend you verified a live Google Maps listing. You are inferring from inputs only; say so in "notes" when relevant.
+- Do NOT claim a specific Maps URL or review count unless the input explicitly provides it.
+- In this v1 flow, you infer likely GBP posture from name, location, description, and optional website.
 - Focus on local SEO, category fit, NAP consistency, business model alignment, and setup recommendations.
 - Be practical, category-aware, and specific.
+
+WEBSITE / DOMAIN SIGNAL (critical):
+- If a real http(s) website URL is provided below for this business, treat it as evidence the business likely has or could claim a legitimate online footprint—including a GBP that may exist under a slightly different name or that needs claiming/merging.
+- In that case you MUST NOT use gbp_status "not_found". Prefer "unclear" or "likely_exists" with honest low-to-mid listing_confidence, and explain in "notes" that live Maps verification was not performed.
+- Reserve "not_found" for cases with no website AND no strong basis to believe a listing exists (e.g. brand-new entity, incomplete info only).
 
 Business name:
 ${status.input_business_name}
@@ -98,6 +124,9 @@ ${status.city_or_service_area_input}
 
 Business description:
 ${status.description_input}
+
+Website / social (optional):
+${websiteHint || "(none provided)"}
 
 Return ONLY valid JSON in this exact structure:
 
@@ -122,9 +151,10 @@ Return ONLY valid JSON in this exact structure:
 Rules:
 - "gbp_status" must be one of:
   "likely_exists", "unclear", "not_found"
-- "listing_found" must be boolean
+- "listing_found" must be boolean (true only if the input gives explicit evidence; a website alone is not proof of a claimed GBP)
 - "listing_confidence" must be a number from 0 to 1
 - If "gbp_status" is "unclear", do NOT use 0 confidence unless there is truly no basis at all
+- If a website URL is provided, "not_found" is almost always wrong—use "unclear" or "likely_exists" instead
 - "recommended_primary_category" must be a real-world GBP-style category, not a business model
 - "recommended_business_model" must be one of:
   "service_area", "storefront", "hybrid", "destination", "online"
@@ -202,6 +232,7 @@ Return JSON only. No markdown. No commentary.
   
       const content = aiJson?.choices?.[0]?.message?.content || "";
       const parsed = extractJsonObject(content);
+      coerceGbpWhenWebsitePresent(parsed, websiteHint);
   
       // 3) Persist GBP audit to Apps Script
       const appsScriptPayload = {

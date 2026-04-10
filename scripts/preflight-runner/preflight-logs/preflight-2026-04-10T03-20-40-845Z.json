@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "api_base": "https://intake.getsiteforge.com/api",
+    "started_at": "2026-04-10T03:20:00.372Z",
+    "qa_warnings": [
+      "No GBP detected"
+    ],
+    "summary": {
+      "slug": "summit-ridge-window-cleaning",
+      "gbp_status": "not_found",
+      "opportunity_present": true,
+      "positioning_clear": true
+    },
+    "input": {
+      "business_name": "Summit Ridge Window Cleaning",
+      "city_or_service_area": "Boulder, Colorado",
+      "description": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+      "website_or_social": "",
+      "client_email": ""
+    },
+    "finished_at": "2026-04-10T03:20:40.845Z"
+  },
+  "start": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "preflight_status": "recon_complete",
+      "paid_unlocked": true,
+      "intake_status": "started",
+      "message": "Pre-flight already exists for this slug.",
+      "code": 200
+    }
+  },
+  "recon": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "preflight_status": "recon_complete",
+      "code": 200
+    }
+  },
+  "gbp": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "gbp_status": "not_found",
+      "code": 200
+    }
+  },
+  "preview": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "business_understanding": "Summit Ridge Window Cleaning is poised to leverage its expertise in high-end residential services to attract discerning homeowners in Boulder.",
+      "opportunity": "By clearly showcasing your specialized services and proven results, we can convert interest into bookings more effectively.",
+      "website_direction": "A streamlined single-page website can highlight your unique offerings, customer testimonials, and a clear call to action, making it easy for potential clients to engage.",
+      "google_presence_insight": "Your business does not appear to have a fully established Google Business presence yet. Aligning that with your website can improve local discovery.",
+      "recommended_focus": [
+        "service clarity",
+        "trust signals",
+        "visual portfolio",
+        "customer engagement",
+        "conversion optimization"
+      ],
+      "next_step": "In the next phase, we will refine your service positioning and enhance the booking process to maximize conversions.",
+      "code": 200
+    }
+  }
+}

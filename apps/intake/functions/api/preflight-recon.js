@@ -80,6 +80,13 @@ function json(data, status = 200) {
           statusRes.status || 404
         );
       }
+
+      const websiteHint = String(
+        status.optional_website_or_social ??
+          status.client?.optional_website_or_social ??
+          status.website_or_social ??
+          ""
+      ).trim();
   
       // 2) Dedicated recon prompt with dedicated response shape
       const prompt = `
@@ -92,11 +99,17 @@ function json(data, status = 200) {
       1. internal strategic intelligence for SiteForge
       2. a selective client-facing preview that inspires the client to move forward
       
+      CRITICAL — DO NOT SUMMARIZE THE INPUT:
+      - Your job is to ANALYZE and DIFFERENTIATE, not to paraphrase the description.
+      - You must infer category dynamics, buyer psychology, and how this business wins vs typical local alternatives.
+      - If the description is short, infer likely business reality from the name + location + category (clearly label inferences in internal_strategy.must_verify_now when needed).
+      - Generic lines that could apply to any business in any city are a failure. Rewrite until every client_preview sentence could not apply verbatim to a random competitor.
+
       Important:
       - Do NOT give away the full strategy in the client-facing preview.
       - The client-facing preview should be persuasive, specific, and valuable, but incomplete.
-      - Keep the strongest implementation details in internal_strategy.
-      - Infer from the business name, location, and description only.
+      - Keep the strongest implementation details in internal_strategy and competitive_intelligence.
+      - Use website/social hint below if present; it is not verified live—treat as a signal only.
       - Do not mention Google Business Profile yet.
       - Focus on what makes this business a fit or non-fit for a high-performing single-page local business website.
       - Prefer practical local-business strategy over generic branding language.
@@ -109,6 +122,9 @@ function json(data, status = 200) {
       
       Business description:
       ${status.description_input}
+
+      Website / social (optional, may be empty):
+      ${websiteHint || "(none provided)"}
       
       Return ONLY valid JSON in this exact structure:
       
@@ -122,6 +138,13 @@ function json(data, status = 200) {
           "vertical_complexity": "",
           "one_page_fit": "",
           "confidence": 0
+        },
+        "competitive_intelligence": {
+          "differentiation_hypothesis": "",
+          "typical_local_alternatives": [],
+          "what_buyers_compare": [],
+          "likely_competitor_weaknesses": [],
+          "winning_local_positioning_angle": ""
         },
         "buyer_intelligence": {
           "decision_factors": [],
@@ -166,6 +189,13 @@ function json(data, status = 200) {
       - "one_page_fit" must be one of:
         "excellent_fit", "conditional_fit", "complex_fit"
       - "confidence" must be a number from 0 to 1
+
+      COMPETITIVE_INTELLIGENCE (required — this is not optional fluff)
+      - "differentiation_hypothesis": one tight sentence: what is *different* about THIS business vs generic peers (e.g. artist-owned vs big-box framing, custom vs commodity).
+      - "typical_local_alternatives": 2 to 5 realistic alternatives a buyer might choose instead (chains, online-only, big-box, mobile-only, etc.)—specific to the category.
+      - "what_buyers_compare": 3 to 7 concrete comparison points (price vs craft, turnaround, materials, trust, portfolio, convenience)—not vague "quality".
+      - "likely_competitor_weaknesses": where competitors in this category often underperform (specific, not "bad service").
+      - "winning_local_positioning_angle": the single strongest angle to win locally for THIS business (specific nouns from the inputs when possible).
 
       PRIMARY_CATEGORY GUIDANCE
       - This must describe the industry category, not the business model.
@@ -236,6 +266,8 @@ function json(data, status = 200) {
       CLIENT_PREVIEW WRITING RULES
       - "summary" should be 1 to 2 sentences
       - "summary" should sound like a sharp positioning read on the business
+      - FORBIDDEN in client_preview (any field): empty phrases like "uniquely positioned", "local art enthusiasts", "enhancing visibility", "drive foot traffic", "streamlined, visually engaging", "showcase offerings", "connect with you", "online presence" unless tied to a concrete mechanism.
+      - "opportunity" must name a specific leverage point (e.g. trust gap, proof gap, category confusion, booking friction)—not "grow your business".
       - "opportunity" should describe the business opportunity in practical terms
       - "sales_preview" should describe the kind of site outcome SiteForge could create, but without exposing the full blueprint
       - "recommended_focus" should be strategic themes, not implementation tasks
@@ -324,6 +356,7 @@ function json(data, status = 200) {
         factory_key: env.FACTORY_KEY,
         slug,
         entity_profile: parsed.entity_profile || {},
+        competitive_intelligence: parsed.competitive_intelligence || {},
         buyer_intelligence: parsed.buyer_intelligence || {},
         internal_strategy: parsed.internal_strategy || {},
         client_preview: parsed.client_preview || {}

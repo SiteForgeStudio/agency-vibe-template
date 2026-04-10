@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "api_base": "https://intake.getsiteforge.com/api",
+    "started_at": "2026-04-10T18:09:03.960Z",
+    "qa_warnings": [
+      "No GBP detected",
+      "GBP is not_found but a website URL was in the run input — possible false negative until Maps is verified"
+    ],
+    "summary": {
+      "slug": "simons-fine-art-framing-and-gallery",
+      "gbp_status": "not_found",
+      "opportunity_present": true,
+      "positioning_specificity_score": 100,
+      "opportunity_strength_score": 100,
+      "positioning_specificity_label": "strong",
+      "opportunity_strength_label": "strong"
+    },
+    "input": {
+      "business_name": "Simons Fine Art Framing and Gallery",
+      "city_or_service_area": "Dublin, Pa",
+      "description": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
+      "website_or_social": "https://www.simonsfineartframing.com/",
+      "client_email": "info@simonsfineartframing.com"
+    },
+    "finished_at": "2026-04-10T18:10:01.266Z"
+  },
+  "start": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "preflight_status": "recon_complete",
+      "paid_unlocked": false,
+      "intake_status": "locked",
+      "message": "Pre-flight already exists for this slug.",
+      "code": 200
+    }
+  },
+  "recon": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "preflight_status": "recon_complete",
+      "code": 200
+    }
+  },
+  "gbp": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "gbp_status": "not_found",
+      "code": 200
+    }
+  },
+  "preview": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "business_understanding": "Simons Fine Art Framing and Gallery stands out as a local gem, blending artistic passion with a commitment to affordability in framing services.",
+      "opportunity": "By showcasing your unique framing options and local artistry, we can attract more customers seeking personalized art solutions.",
+      "website_direction": "A streamlined single-page site could effectively highlight your offerings, build trust through testimonials, and simplify the inquiry process.",
+      "google_presence_insight": "Your business does not appear to have a fully established Google Business presence yet. Aligning that with your website can improve local discovery.",
+      "recommended_focus": [
+        "artistic portfolio display",
+        "customer trust signals",
+        "clear service offerings"
+      ],
+      "next_step": "In the next phase, we will refine your service presentation and enhance the booking experience.",
+      "code": 200
+    }
+  }
+}

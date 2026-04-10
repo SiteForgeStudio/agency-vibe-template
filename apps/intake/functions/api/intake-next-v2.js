@@ -126,22 +126,53 @@ export async function onRequestPost(context) {
     state.current_key = cleanString(state.blueprint.question_plan?.primary_field);
 
     let assistantMessage = "";
+    let questionRenderMeta = {
+      fallback_triggered: false,
+      llm_available: !!env?.OPENAI_API_KEY,
+      question_source: "intake_complete",
+      fallback_reason: null
+    };
+
     if (state.action === "complete") {
       assistantMessage = buildCompletionMessage(state.businessName, state.readiness);
     } else {
-      assistantMessage = await renderNextQuestion({
+      const rendered = await renderNextQuestion({
         env,
         blueprint: state.blueprint,
         previousPlan: currentPlan,
         interpretation: routed.audit,
         businessName: state.businessName
       });
+      assistantMessage = rendered.message;
+      questionRenderMeta = {
+        fallback_triggered: rendered.fallback_triggered,
+        llm_available: rendered.llm_available,
+        question_source: rendered.question_source,
+        fallback_reason: rendered.fallback_reason ?? null
+      };
     }
 
     state.conversation.push({
       role: "assistant",
       content: assistantMessage
     });
+
+    const answeredPf = cleanString(currentPlan.primary_field);
+    state.turn_debug = {
+      answered_primary_field: answeredPf || null,
+      primary_satisfied_after_answer: answeredPf
+        ? isFieldSatisfied(answeredPf, state.blueprint.fact_registry)
+        : null,
+      next_primary_field: cleanString(state.blueprint.question_plan?.primary_field) || null,
+      next_bundle_id: cleanString(state.blueprint.question_plan?.bundle_id) || null,
+      updated_fact_keys: cleanList(routed.audit?.updated_fact_keys),
+      secondary_updated_keys: cleanList(routed.audit?.secondary_updated_keys),
+      primary_field_updated: !!routed.audit?.primary_field_updated,
+      fallback_triggered: questionRenderMeta.fallback_triggered,
+      llm_available: questionRenderMeta.llm_available,
+      question_source: questionRenderMeta.question_source,
+      fallback_reason: questionRenderMeta.fallback_reason
+    };
 
     // Persist asked-question history for future stall detection
     state.blueprint.question_history = Array.isArray(state.blueprint.question_history)
@@ -2199,18 +2230,120 @@ function evaluateBlueprintReadiness(blueprint) {
   };
 }
 
+/** LLM user-payload hint: one primary_field only (manifest: renderer contract). */
+function getPrimaryFieldScopedHint(bundleId, primaryField) {
+  const pf = cleanString(primaryField);
+  const hints = {
+    booking_method:
+      "Ask ONLY how a prospect moves forward (call, form, quote request, online booking). Do NOT mention pricing, cost, or availability.",
+    pricing:
+      "Ask ONLY how pricing or quoting works (scope, complexity, tiers, custom quotes). Do NOT ask about booking channel, booking URL, or phone vs form here.",
+    booking_url:
+      "Ask ONLY for a scheduling/booking URL OR confirm everything is handled manually without a public link. Do NOT ask about pricing.",
+    contact_path:
+      "Ask ONLY the preferred contact path (form vs phone vs email, etc.). Do NOT bundle pricing into this question.",
+    review_quotes:
+      "Ask ONLY for review language, testimonials, or what clients say. Do not ask pricing or booking.",
+    trust_signal:
+      "Ask ONLY for trust signals or credibility markers.",
+    years_experience:
+      "Ask ONLY for tenure or years of experience.",
+    process_summary:
+      "Ask ONLY for the service workflow from inquiry to completion.",
+    service_area_main:
+      "Ask ONLY for the primary market or service area.",
+    surrounding_cities:
+      "Ask ONLY for nearby cities or regions served.",
+    founder_story:
+      "Ask ONLY for founder story, standards, or philosophy.",
+    phone: "Ask ONLY for the public phone number.",
+    email: "Ask ONLY for the public email address.",
+    address: "Ask ONLY for the public address, if any.",
+    hours: "Ask ONLY for hours or response-time expectations.",
+    gallery_visual_direction: "Ask ONLY for visual or gallery direction.",
+    hero_image_query: "Ask ONLY for hero image direction or search cues.",
+    faq_angles: "Ask ONLY for FAQ themes or objections.",
+    comparison: "Ask ONLY for alternatives or comparisons.",
+    events: "Ask ONLY for events or schedules.",
+    investment: "Ask ONLY for investment or package structure."
+  };
+  if (hints[pf]) return hints[pf];
+  return `Ask ONLY about "${pf.replace(/_/g, " ")}". Do not combine other intake topics in the same question.`;
+}
+
+/** Reject LLM text that bundles off-topic fields (e.g. pricing + booking_method). */
+function violatesPrimaryFieldQuestionScope(message, primaryField) {
+  const m = cleanString(message).toLowerCase();
+  const pf = cleanString(primaryField);
+  if (!m || !pf) return false;
+
+  const mentionsPricing =
+    /\b(pricing|price|priced|cost|fee|fees|rate|rates)\b/.test(m) ||
+    /\bhow much\b/.test(m) ||
+    /\b(pricing|price)\s+(or|and)\s+/.test(m);
+  const mentionsAvailability =
+    /\b(availability|available|time slots?|scheduling expectations)\b/.test(m) ||
+    /\banything\b[^?.]*\b(know|understand)\b[^?.]*\b(pricing|price|cost|availability)\b/.test(m);
+
+  switch (pf) {
+    case "booking_method":
+      if (mentionsPricing) return true;
+      if (mentionsAvailability) return true;
+      return false;
+    case "booking_url":
+      if (mentionsPricing && !/\b(url|link|http|www\.|schedul|book online)\b/.test(m)) return true;
+      return false;
+    default:
+      return false;
+  }
+}
+
 /* ========================================================================
  * Question Rendering
  * ====================================================================== */
 
+/**
+ * When fallback_triggered is true, explains why deterministic copy won (LLM path only).
+ * @typedef {"scope_violation"|"parse_error"|"empty_response"|"repetition"|"api_error"|"timeout"|null} FallbackReason
+ */
+function packQuestionRender(message, { fallback_triggered, llm_available, question_source, fallback_reason = null }) {
+  const out = {
+    message: cleanString(message),
+    fallback_triggered: !!fallback_triggered,
+    llm_available: !!llm_available,
+    question_source: cleanString(question_source) || "deterministic",
+    fallback_reason: null
+  };
+  if (out.fallback_triggered) {
+    out.fallback_reason = cleanString(fallback_reason) || null;
+  }
+  return out;
+}
+
+function classifyQuestionRenderFetchError(err) {
+  const name = cleanString(err?.name);
+  const msg = cleanString(err?.message).toLowerCase();
+  const code = err?.cause?.code || err?.code;
+  if (name === "AbortError" || code === "ETIMEDOUT" || /timeout|timed out/i.test(msg)) {
+    return "timeout";
+  }
+  return "api_error";
+}
+
 async function renderNextQuestion({ env, blueprint, previousPlan, interpretation, businessName }) {
+  const llmConfigured = !!env?.OPENAI_API_KEY;
   const plan = blueprint.question_plan;
   const hasPlan =
     isObject(plan) &&
     (hasMeaningfulValue(plan.primary_field) || cleanList(plan.target_fields).length > 0 || hasMeaningfulValue(plan.bundle_id));
 
   if (!hasPlan) {
-    return "Excellent — we now have enough verified clarity to move into final assembly.";
+    return packQuestionRender("Excellent — we now have enough verified clarity to move into final assembly.", {
+      fallback_triggered: false,
+      llm_available: llmConfigured,
+      question_source: "complete",
+      fallback_reason: null
+    });
   }
 
   const factRegistry = isObject(blueprint?.fact_registry) ? blueprint.fact_registry : {};
@@ -2228,24 +2361,19 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
 
   const fallback = buildDeterministicQuestion(adjustedPlan, blueprint, businessName);
 
-  if (!env?.OPENAI_API_KEY) {
-    return fallback;
+  if (!llmConfigured) {
+    return packQuestionRender(fallback, {
+      fallback_triggered: false,
+      llm_available: false,
+      question_source: "deterministic",
+      fallback_reason: null
+    });
   }
 
-  const bundleScopedHints = {
-    conversion: "Ask only about the next step, booking flow, pricing expectations, booking link, or availability expectations.",
-    positioning: "Ask only about audience, offer, differentiation, or visual fit.",
-    service_area: "Ask only about the primary market and nearby cities or regions served.",
-    proof: "Ask only about trust signals, outcomes, reviews, experience, or credibility.",
-    process: "Ask only about the typical workflow from inquiry to completion.",
-    gallery_strategy: "Ask only about the visual direction, image style, hero image fit, or gallery needs.",
-    pricing_model: "Ask only about pricing tiers, standard packages, or how pricing is structured.",
-    objection_handling: "Ask only about the questions or objections clients need answered before booking.",
-    story: "Ask only about founder story, standards, philosophy, or why the business was built this way.",
-    events_strategy: "Ask only about time-based offerings, schedules, sessions, or recurring events.",
-    comparison_strategy: "Ask only about alternatives buyers compare against and why this option is better.",
-    contact_details: "Ask only about factual public contact details like phone, email, address, hours, or booking link."
-  };
+  const primaryFieldScopedHint = getPrimaryFieldScopedHint(
+    cleanString(adjustedPlan.bundle_id),
+    cleanString(adjustedPlan.primary_field)
+  );
 
   const bundleSpecificUnresolvedPoints = normalizeStringArray(interpretation?.unresolved_points).filter((point) =>
     unresolvedPointMatchesBundle(point, adjustedPlan.bundle_id)
@@ -2254,7 +2382,7 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
   try {
     const payload = {
       model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
-      temperature: 0.35,
+      temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
         {
@@ -2263,13 +2391,11 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
             "You write the next intake question for SiteForge Factory.",
             "Style: consultative, expert-level, natural, concise, premium.",
             "Do not mention schema, JSON, fields, or technical internals.",
-            "Ask exactly one strong next question.",
+            "CRITICAL: The question must address EXACTLY ONE topic: the value of primary_field in the user message.",
+            "Do NOT ask about pricing, availability, reviews, service area, or other topics unless primary_field names that topic.",
+            "Do NOT combine multiple fields into one question (one sentence, one decision).",
             "Do not repeat what was just answered.",
             "Do not hardcode industries.",
-            "Stay strictly inside the requested decision scope.",
-            "Do not combine multiple decisions into one question.",
-            "If the current primary field is already answered, move naturally to the next unresolved field in the same decision.",
-            "If unresolved points exist, only use the ones that belong to the next decision.",
             "Make it feel like a sharp strategist at a premium agency.",
             'Return JSON only: { "message": "..." }'
           ].join("\n")
@@ -2282,12 +2408,10 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
               previous_bundle_id: cleanString(previousPlan?.bundle_id),
               next_bundle_id: cleanString(adjustedPlan.bundle_id),
               primary_field: cleanString(adjustedPlan.primary_field),
+              primary_field_only_instruction: primaryFieldScopedHint,
               target_fields: cleanList(adjustedPlan.target_fields),
               intent: cleanString(adjustedPlan.intent),
               reason: cleanString(adjustedPlan.reason),
-              bundle_scope_rule:
-                bundleScopedHints[cleanString(adjustedPlan.bundle_id)] ||
-                "Ask only within the selected decision.",
               already_resolved_fields: cleanList(planTargetFields.filter((fieldKey) => isFieldResolvedLocal(fieldKey))),
               unresolved_fields: cleanList(planTargetFields.filter((fieldKey) => !isFieldResolvedLocal(fieldKey))),
               updated_fact_keys: cleanList(interpretation?.updated_fact_keys),
@@ -2310,21 +2434,76 @@ async function renderNextQuestion({ env, blueprint, previousPlan, interpretation
       body: JSON.stringify(payload)
     });
 
-    if (!response.ok) return fallback;
+    if (!response.ok) {
+      return packQuestionRender(fallback, {
+        fallback_triggered: true,
+        llm_available: true,
+        question_source: "deterministic",
+        fallback_reason: "api_error"
+      });
+    }
 
     const data = await response.json();
     const raw = data?.choices?.[0]?.message?.content;
+    const rawStr = cleanString(raw);
     const parsed = safeJsonParse(raw);
     const message = cleanString(parsed?.message);
 
-    if (!message) return fallback;
-    if (isOverloadedQuestion(message, adjustedPlan.bundle_id)) return fallback;
-    if (looksLikeRepeatedQuestion(message, interpretation?.answer_summary, adjustedPlan.bundle_id)) return fallback;
+    let emptyOrParseReason = null;
+    if (!message) {
+      if (!rawStr) {
+        emptyOrParseReason = "empty_response";
+      } else if (!isObject(parsed)) {
+        emptyOrParseReason = "parse_error";
+      } else {
+        emptyOrParseReason = "empty_response";
+      }
+      return packQuestionRender(fallback, {
+        fallback_triggered: true,
+        llm_available: true,
+        question_source: "deterministic",
+        fallback_reason: emptyOrParseReason
+      });
+    }
+    if (isOverloadedQuestion(message, adjustedPlan.bundle_id)) {
+      return packQuestionRender(fallback, {
+        fallback_triggered: true,
+        llm_available: true,
+        question_source: "deterministic",
+        fallback_reason: "scope_violation"
+      });
+    }
+    if (looksLikeRepeatedQuestion(message, interpretation?.answer_summary, adjustedPlan.bundle_id)) {
+      return packQuestionRender(fallback, {
+        fallback_triggered: true,
+        llm_available: true,
+        question_source: "deterministic",
+        fallback_reason: "repetition"
+      });
+    }
+    if (violatesPrimaryFieldQuestionScope(message, cleanString(adjustedPlan.primary_field))) {
+      return packQuestionRender(fallback, {
+        fallback_triggered: true,
+        llm_available: true,
+        question_source: "deterministic",
+        fallback_reason: "scope_violation"
+      });
+    }
 
-    return message;
+    return packQuestionRender(message, {
+      fallback_triggered: false,
+      llm_available: true,
+      question_source: "llm",
+      fallback_reason: null
+    });
   } catch (err) {
     console.error("[intake-next-v2-1:render-question]", err);
-    return fallback;
+    return packQuestionRender(fallback, {
+      fallback_triggered: true,
+      llm_available: true,
+      question_source: "deterministic",
+      fallback_reason: classifyQuestionRenderFetchError(err)
+    });
   }
 }
 
@@ -2344,11 +2523,11 @@ function buildDeterministicQuestion(plan, blueprint, businessName) {
       case "booking_url":
         return `After someone requests a quote from ${name}, do you send them to a booking page or scheduling link, or is everything handled manually?`;
       case "booking_method":
-        return `When someone is ready to take the next step with ${name}, what should happen — do they call, request a quote, fill out a form, book online, or something else?`;
+        return `When someone is ready to move forward with ${name}, how do they typically take the next step — do they call, request a quote, use a form, book online, or something else?`;
       case "contact_path":
         return `What is the preferred path for a serious prospect to contact ${name} — form, phone call, text, email, or something else?`;
       default:
-        return `When someone is ready to take the next step with ${name}, what should happen, and is there anything they should understand about pricing, timing, or availability?`;
+        return `What is the single next detail about how ${name} converts interest into action that we should capture?`;
     }
   }
 
@@ -2504,6 +2683,7 @@ function normalizeState(state) {
   next.verification = isObject(next.verification) ? next.verification : {};
   next.blueprint = normalizeBlueprint(next.blueprint);
   next.readiness = isObject(next.readiness) ? next.readiness : {};
+  next.turn_debug = isObject(next.turn_debug) ? next.turn_debug : {};
 
   return next;
 }

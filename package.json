@@ -8,7 +8,8 @@
     "build": "node scripts/merge-json.mjs $CLIENT_ID && CLIENT_ID=$CLIENT_ID astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "intake:test": "node scripts/intake-runner"
+    "intake:test": "node scripts/intake-runner",
+    "preflight:test": "node scripts/preflight-runner"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.6",

@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "api_base": "https://intake.getsiteforge.com/api",
+    "started_at": "2026-04-10T18:11:20.248Z",
+    "qa_warnings": [
+      "No GBP detected",
+      "GBP is not_found but a website URL was in the run input — possible false negative until Maps is verified"
+    ],
+    "summary": {
+      "slug": "simons-fine-art-framing-gallery",
+      "gbp_status": "not_found",
+      "opportunity_present": true,
+      "positioning_specificity_score": 98,
+      "opportunity_strength_score": 100,
+      "positioning_specificity_label": "strong",
+      "opportunity_strength_label": "strong"
+    },
+    "input": {
+      "business_name": "Simons Fine Art Framing & Gallery",
+      "city_or_service_area": "Dublin, Pa",
+      "description": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
+      "website_or_social": "https://www.simonsfineartframing.com/",
+      "client_email": "info@simonsfineartframing.com"
+    },
+    "finished_at": "2026-04-10T18:11:56.122Z"
+  },
+  "start": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "preflight_status": "in_progress",
+      "paid_unlocked": false,
+      "intake_status": "locked",
+      "message": "Pre-flight started.",
+      "code": 200
+    }
+  },
+  "recon": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "preflight_status": "recon_complete",
+      "code": 200
+    }
+  },
+  "gbp": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "gbp_status": "not_found",
+      "code": 200
+    }
+  },
+  "preview": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "business_understanding": "Simons Fine Art Framing & Gallery is a local gem, combining artistic passion with a commitment to accessible framing solutions.",
+      "opportunity": "There is significant potential to attract local art enthusiasts and families by showcasing your unique framing services and the artistry behind them.",
+      "website_direction": "We envision a streamlined single-page site that highlights your portfolio, emphasizes customer testimonials, and simplifies the inquiry process.",
+      "google_presence_insight": "Your business does not appear to have a fully established Google Business presence yet. Aligning that with your website can improve local discovery.",
+      "recommended_focus": [
+        "showcasing art and framing options",
+        "building trust through testimonials",
+        "clarifying pricing and services"
+      ],
+      "next_step": "In the next phase, we will refine your offerings and enhance the booking process to drive more inquiries.",
+      "code": 200
+    }
+  }
+}

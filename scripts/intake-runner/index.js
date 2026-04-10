@@ -180,6 +180,16 @@ function printDebug(prevState, newState, data) {
   console.log("→ Updated Fact Keys:", lastAudit.updated_fact_keys);
   console.log("→ Secondary (non-progression) Keys:", lastAudit.secondary_updated_keys);
 
+  const td = newState.turn_debug || {};
+  console.log("\n🔧 TURN DEBUG:");
+  console.log("→ Answered primary (last turn):", td.answered_primary_field);
+  console.log("→ Primary satisfied after answer:", td.primary_satisfied_after_answer);
+  console.log("→ Next primary:", td.next_primary_field);
+  console.log("→ LLM available:", td.llm_available);
+  console.log("→ Question source:", td.question_source);
+  console.log("→ Fallback triggered:", td.fallback_triggered);
+  console.log("→ Fallback reason:", td.fallback_reason ?? "(none)");
+
   // ==========================
   // FACT CHANGES
   // ==========================

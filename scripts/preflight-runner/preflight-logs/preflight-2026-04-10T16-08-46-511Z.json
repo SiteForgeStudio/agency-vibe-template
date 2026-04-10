@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "api_base": "https://intake.getsiteforge.com/api",
+    "started_at": "2026-04-10T16:07:36.579Z",
+    "qa_warnings": [
+      "No GBP detected"
+    ],
+    "summary": {
+      "slug": "simons-fine-art-framing-and-gallery",
+      "gbp_status": "not_found",
+      "opportunity_present": true,
+      "positioning_clear": true
+    },
+    "input": {
+      "business_name": "Simons Fine Art Framing and Gallery",
+      "city_or_service_area": "Dublin, Pa",
+      "description": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
+      "website_or_social": "https://www.simonsfineartframing.com/",
+      "client_email": "info@simonsfineartframing.com"
+    },
+    "finished_at": "2026-04-10T16:08:46.511Z"
+  },
+  "start": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "preflight_status": "in_progress",
+      "paid_unlocked": false,
+      "intake_status": "locked",
+      "message": "Pre-flight started.",
+      "code": 200
+    }
+  },
+  "recon": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "preflight_status": "recon_complete",
+      "code": 200
+    }
+  },
+  "gbp": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "gbp_status": "not_found",
+      "code": 200
+    }
+  },
+  "preview": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-and-gallery",
+      "business_understanding": "Simons Fine Art Framing and Gallery is uniquely positioned to attract local art enthusiasts and those seeking quality framing services.",
+      "opportunity": "By enhancing visibility and showcasing your unique offerings, we can drive more foot traffic and inquiries from the local community.",
+      "website_direction": "We envision a streamlined, visually engaging site that highlights your artistry and framing expertise, making it easy for potential customers to connect with you.",
+      "google_presence_insight": "Your business does not appear to have a fully established Google Business presence yet. Aligning that with your website can improve local discovery.",
+      "recommended_focus": [
+        "showcasing your art portfolio",
+        "emphasizing local community ties",
+        "clarifying service offerings"
+      ],
+      "next_step": "In the next phase, we will refine your messaging and explore effective ways to present your services and artistry.",
+      "code": 200
+    }
+  }
+}
