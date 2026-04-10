@@ -6,7 +6,7 @@ import path from "path";
 // CONFIG
 // ==========================
 const API_BASE = "https://intake.getsiteforge.com/api";
-const SLUG = "summit-ridge-window-cleaning-v2";
+const SLUG = "simons-fine-art-framing-gallery";
 
 const MODE = "interactive"; // "interactive" or "scripted"
 

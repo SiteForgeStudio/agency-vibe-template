@@ -662,6 +662,7 @@ function buildInterpreterSystemPrompt() {
     if (typeof v === "string") {
       const lower = v.toLowerCase();
       if (isPlausibleBookingUrlString(v)) return true;
+      if (isBookingUrlNoLinkSentinel(v)) return true;
       if (describesManualBookingNoUrl(lower)) return true;
     }
     const fromUser = cleanString(rawAnswer).toLowerCase();
@@ -673,11 +674,24 @@ function buildInterpreterSystemPrompt() {
   function isFieldSatisfied(fieldKey, factRegistry) {
   const fact = factRegistry?.[fieldKey];
 
-  // 🔥 SPECIAL CASE: booking_url not required for manual flows
+  // booking_url: satisfied = real URL OR explicit no-URL (answered + null/sentinel/manual phrasing)
   if (fieldKey === "booking_url") {
     const bookingMethod = factRegistry?.booking_method?.value;
 
     if (isManualBookingMethodValue(bookingMethod)) return true;
+
+    if (fact && cleanString(fact.status) === "answered") {
+      const v = fact.value;
+      if (v == null) return true;
+      if (typeof v === "string") {
+        const t = v.trim().toLowerCase();
+        if (isBookingUrlNoLinkSentinel(v)) return true;
+        if (isPlausibleBookingUrlString(v)) return true;
+        if (describesManualBookingNoUrl(t)) return true;
+      }
+      return false;
+    }
+    return false;
   }
 
 if (fieldKey === "contact_path") {
@@ -802,6 +816,7 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
     } else {
       const manualSignals = [
         "manual",
+        "manually",
         "handled manually",
         "no booking",
         "no booking link",
@@ -815,7 +830,7 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
 
         repaired.fact_updates.push({
           fact_key: "booking_url",
-          value: null,
+          value: "manual",
           confidence: 0.9,
           verified: true,
           status: "answered",
@@ -987,7 +1002,7 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
           if (!updatedFactKeys.includes("booking_url")) updatedFactKeys.push("booking_url");
         } else if (describesManualBookingNoUrl(lower)) {
           nextBlueprint.fact_registry.booking_url = {
-            value: null,
+            value: "manual",
             status: "answered",
             confidence: 0.88,
             verified: true,
@@ -1056,7 +1071,7 @@ if (
     !bookingUrlAlreadyResolved
   ) {
     nextBlueprint.fact_registry.booking_url = {
-      value: null,
+      value: "manual",
       status: "answered",
       confidence: 1,
       verified: true,
@@ -1570,11 +1585,11 @@ function syncBusinessDraftFromEvidence({ blueprint, state }) {
 
   safeAssignPathIfExists(draft, "settings.vibe", firstNonEmpty([fact("vibe"), inferVibe(state)]));
   safeAssignPathIfExists(draft, "settings.cta_text", firstNonEmpty([fact("cta_text"), "Get Started"]));
-  safeAssignPathIfExists(draft, "settings.cta_link", firstNonEmpty([fact("booking_url"), fact("cta_link"), "#contact"]));
+  safeAssignPathIfExists(draft, "settings.cta_link", firstNonEmpty([bookingUrlValueForDraftLink(fact("booking_url")), fact("cta_link"), "#contact"]));
   safeAssignPathIfExists(
     draft,
     "settings.cta_type",
-    hasMeaningfulValue(fact("booking_url")) && fact("booking_url") !== "manual_followup" ? "external" : "anchor"
+    hasMeaningfulValue(bookingUrlValueForDraftLink(fact("booking_url"))) ? "external" : "anchor"
   );
 
   syncMenuFromToggles(draft, blueprint.strategy?.schema_toggles || {});
@@ -1753,7 +1768,7 @@ function syncContactDraftFromEvidence(draft, factRegistry, state) {
   );
 
   safeAssignPathIfExists(draft, "contact.cta_text", firstNonEmpty([fact("cta_text"), "Get in Touch"]));
-  safeAssignPathIfExists(draft, "contact.cta_link", firstNonEmpty([fact("booking_url"), fact("cta_link"), "#contact"]));
+  safeAssignPathIfExists(draft, "contact.cta_link", firstNonEmpty([bookingUrlValueForDraftLink(fact("booking_url")), fact("cta_link"), "#contact"]));
 }
 
 function syncFeaturesDraftFromEvidence(draft, factRegistry) {
@@ -3023,6 +3038,25 @@ function hasMeaningfulValue(value) {
   if (typeof value === "boolean") return true;
   if (typeof value === "number") return true;
   return cleanString(value) !== "";
+}
+
+/** String value meaning no public scheduling URL (not a navigable CTA href). */
+function isBookingUrlNoLinkSentinel(value) {
+  const s = cleanString(value).toLowerCase();
+  return (
+    s === "manual" ||
+    s === "none" ||
+    s === "n/a" ||
+    s === "na" ||
+    s === "manual_followup"
+  );
+}
+
+/** booking_url fact value safe to use as settings/contact href (skips manual/no-URL sentinels). */
+function bookingUrlValueForDraftLink(raw) {
+  if (!hasMeaningfulValue(raw) || typeof raw !== "string") return "";
+  if (isBookingUrlNoLinkSentinel(raw)) return "";
+  return isPlausibleBookingUrlString(raw) ? raw.trim() : "";
 }
 
 function sanitizeFactStatus(value) {

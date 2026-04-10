@@ -35,3 +35,4 @@ submit.response.json
 success/
 
 /scripts/intake-runner/intake-logs/
+/scripts/intake-runner/preflight-logs/
