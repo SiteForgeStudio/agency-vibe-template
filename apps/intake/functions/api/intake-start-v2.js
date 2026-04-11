@@ -2125,7 +2125,8 @@ function getQuestionBundleMap(strategy, factRegistry, sectionStatus) {
       base_priority: 240,
       target_fields: ["booking_method", "contact_path", "pricing", "booking_url"],
       target_sections: ["contact", "settings", "hero"],
-      intent: "Clarify the next step, booking flow, and any pricing or availability expectations.",
+      intent:
+        "Clarify how visitors take the next step (call, form, booking link, etc.). Pricing and availability are separate slots when relevant.",
       reason: "This defines how the site converts visitors."
     },
 
@@ -2248,7 +2249,7 @@ function renderQuestion(questionPlan, blueprint) {
     },
 
     conversion() {
-      return `When someone is ready to take the next step with ${businessName}, what should happen—do they call, request a quote, fill out a form, book online, or do something else—and is there anything they should know about pricing or availability?`;
+      return `When someone is ready to move forward with ${businessName}, how do they typically take the next step — do they call, request a quote, use a form, book online, or something else?`;
     },
 
     service_area() {
