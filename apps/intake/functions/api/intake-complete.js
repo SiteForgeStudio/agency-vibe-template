@@ -9,16 +9,15 @@
  * - optionally submit to /api/submit
  */
 
-const SCHEMA_VIBES = [
-  "Midnight Tech",
-  "Zenith Earth",
-  "Vintage Boutique",
-  "Rugged Industrial",
-  "Modern Minimal",
-  "Luxury Noir",
-  "Legacy Professional",
-  "Solar Flare"
-];
+import {
+  SCHEMA_VIBES,
+  selectVibe,
+  buildHeroImageQuery,
+  buildFallbackGalleryQueries,
+  inferPremiumGalleryCount,
+  galleryLayoutFromSignals,
+  assertFactorySynthesisGuards
+} from "../utils/factory-synthesis.js";
 
 const ALLOWED_MENU_PATHS = [
   "#home",
@@ -109,6 +108,7 @@ export async function onRequestPost(context) {
     const strategyBrief = buildStrategyBrief(state, strategyContract);
     let businessJson = buildBusinessJson(state, strategyContract, strategyBrief);
     businessJson = ensureInspirationQueries(businessJson, state, strategyContract);
+    assertFactorySynthesisGuards(businessJson);
 
     const validation = validateBusinessJson(businessJson);
 
@@ -220,9 +220,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     inferTone(strategyContract) ||
     "Professional, clear, trustworthy";
 
-  const vibe = resolveSchemaVibe(
-    cleanString(strategyContract.visual_strategy?.recommended_vibe)
-  );
+  const vibe = selectVibe(SCHEMA_VIBES, strategyContract, state);
 
   const trustbar = buildTrustbar(state, strategyContract);
   const features = buildFeatures(state, strategyContract);
@@ -293,7 +291,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       subtext: normalizePublicText(resolveHeroSubtext(state, strategyContract)),
       image: {
         alt: normalizePublicText(resolveHeroImageAlt(state, businessName)),
-        image_search_query: buildHeroImageQuery(state, strategyContract)
+        image_search_query: buildHeroImageQuery(state, strategyContract, vibe)
       }
     },
 
@@ -486,8 +484,9 @@ function buildGallery(state, strategyContract, vibe) {
       image_source: { image_search_query: items[0]?.image_search_query || "" }
     },
     true,
-    cleanString(strategyContract.business_context?.category),
-    vibe
+    strategyContract,
+    vibe,
+    state
   );
 
   return normalized;
@@ -693,49 +692,11 @@ function resolveObjectionHandle(state, strategyContract) {
    Image Logic
 ========================= */
 
-function buildHeroImageQuery(state, strategyContract) {
-  const category = cleanString(strategyContract.business_context?.category);
-  const offer = cleanString(state.answers?.primary_offer);
-  const area = cleanString(state.answers?.service_area);
-  const vibe = cleanString(strategyContract.visual_strategy?.recommended_vibe);
-  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
-  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
-
-  const candidates = [
-    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "hero"),
-    visualQueryFromThemes(themes, "hero"),
-    genericVisualQuery(category, area, vibe, "hero")
-  ].filter(Boolean);
-
-  return clampWords(candidates[0] || "professional service lifestyle photography", 4, 8);
-}
-
-function buildFallbackGalleryQueries(state, strategyContract, vibe) {
-  const category = cleanString(strategyContract.business_context?.category);
-  const offer = cleanString(state.answers?.primary_offer);
-  const area = cleanString(state.answers?.service_area);
-  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
-  const themes = cleanList(strategyContract.asset_policy?.preferred_image_themes);
-
-  const visualSeeds = [
-    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "wide"),
-    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "detail"),
-    visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, "lifestyle"),
-    visualQueryFromThemes(themes, "gallery"),
-    genericVisualQuery(category, area, vibe, "gallery"),
-    beforeAfterQuery(category, offer)
-  ].filter(Boolean);
-
-  const queries = uniqueList(visualSeeds)
-    .map((seed) => clampWords(seed, 4, 8))
-    .filter(Boolean);
-
-  return queries.slice(0, 6);
-}
-
 function ensureInspirationQueries(data, state, strategyContract) {
+  const resolvedVibe = cleanString(data?.settings?.vibe);
+
   if (!data?.hero?.image?.image_search_query) {
-    data.hero.image.image_search_query = buildHeroImageQuery(state, strategyContract);
+    data.hero.image.image_search_query = buildHeroImageQuery(state, strategyContract, resolvedVibe);
   }
 
   if (data?.strategy?.show_gallery) {
@@ -747,16 +708,13 @@ function ensureInspirationQueries(data, state, strategyContract) {
     const count = Number(
       data.gallery.computed_count ||
       data.gallery.items.length ||
-      inferPremiumGalleryCount(
-        cleanString(strategyContract.business_context?.category),
-        cleanString(data?.settings?.vibe)
-      )
+      inferPremiumGalleryCount(strategyContract, state, resolvedVibe)
     );
 
     const fallbackQueries = buildFallbackGalleryQueries(
       state,
       strategyContract,
-      cleanString(data?.settings?.vibe)
+      resolvedVibe
     );
 
     while (data.gallery.items.length < count) {
@@ -1164,55 +1122,6 @@ function inferPraiseThemes(state, strategyContract) {
   return uniqueList(themes);
 }
 
-function visualQueryFromContext(category, offer, serviceDescriptions, area, vibe, mode) {
-  const text = `${category} ${offer} ${serviceDescriptions}`.toLowerCase();
-
-  if (text.includes("window")) {
-    if (mode === "hero") return `luxury home exterior window cleaning`;
-    if (mode === "wide") return `professional window cleaning modern home exterior`;
-    if (mode === "detail") return `streak free glass cleaning close detail`;
-    if (mode === "lifestyle") return `window cleaner large residential glass service`;
-  }
-
-  const areaToken = cleanString(area) ? cleanString(area).split(",")[0] : "";
-  return [category, areaToken, vibe, "professional", "service", "photography"]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function visualQueryFromThemes(themes, mode) {
-  const joined = cleanList(themes).join(" ").toLowerCase();
-  if (!joined) return "";
-
-  if (joined.includes("lifestyle")) return mode === "hero"
-    ? "professional service lifestyle photography"
-    : "clean professional service detail photography";
-
-  if (joined.includes("realistic")) return "realistic residential service photography";
-
-  return "";
-}
-
-function genericVisualQuery(category, area, vibe, mode) {
-  const lower = cleanString(category).toLowerCase();
-  if (lower.includes("window")) {
-    return mode === "hero"
-      ? "modern luxury home clean glass exterior"
-      : "professional residential glass cleaning detail";
-  }
-
-  const areaToken = cleanString(area) ? cleanString(area).split(",")[0] : "";
-  return [areaToken, category, vibe, "professional", "photography"]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function beforeAfterQuery(category, offer) {
-  const lower = `${category} ${offer}`.toLowerCase();
-  if (lower.includes("window")) return "before after window cleaning glass detail";
-  return "before after service transformation detail";
-}
-
 function galleryTitleFromQuery(query, idx) {
   const q = cleanString(query).toLowerCase();
   if (q.includes("before after")) return "Before & After";
@@ -1221,16 +1130,6 @@ function galleryTitleFromQuery(query, idx) {
   if (q.includes("lifestyle")) return "On-Site Service";
   if (q.includes("modern home")) return "Residential Project";
   return `Project ${idx + 1}`;
-}
-
-function inferPremiumGalleryCount(category, vibe) {
-  const lower = cleanString(category).toLowerCase();
-  const v = cleanString(vibe);
-
-  if (v === "Luxury Noir") return 5;
-  if (lower.includes("window") || lower.includes("service")) return 6;
-  if (lower.includes("photo") || lower.includes("creative")) return 8;
-  return 6;
 }
 
 /* =========================
@@ -1260,11 +1159,6 @@ function normalizeCategory(value) {
   if (["coach", "coaching", "consultant", "consulting"].includes(value)) return "coach";
   if (["portfolio", "creative", "artist", "designer", "photographer"].includes(value)) return "portfolio";
   return "service";
-}
-
-function resolveSchemaVibe(vibe) {
-  const value = cleanString(vibe);
-  return SCHEMA_VIBES.includes(value) ? value : "Modern Minimal";
 }
 
 function inferTone(strategyContract) {
@@ -1360,7 +1254,7 @@ function inferFaqAnswer(question, state, strategyContract) {
   return "We keep the experience clear, helpful, and easy to understand.";
 }
 
-function normalizeGalleryShape(gallery, showGallery, industry, vibe) {
+function normalizeGalleryShape(gallery, showGallery, strategyContract, vibe, state) {
   const gg = gallery || {};
   const enabled = Boolean(gg.enabled ?? showGallery);
 
@@ -1372,19 +1266,14 @@ function normalizeGalleryShape(gallery, showGallery, industry, vibe) {
     }));
   }
 
-  const ind = String(industry || "").toLowerCase();
-  const isLuxury = ind.includes("watch") || ind.includes("jewelry") || String(vibe || "") === "Luxury Noir";
-  const isCreative = ind.includes("photo") || ind.includes("studio") || ind.includes("art");
-  const isTrades = ind.includes("detailing") || ind.includes("plumbing") || ind.includes("construction") || ind.includes("trades") || ind.includes("service") || ind.includes("window");
-
   const computed_layout =
     gg.computed_layout ||
-    (isLuxury ? "bento" : isCreative ? "masonry" : "grid");
+    galleryLayoutFromSignals(strategyContract);
 
   const computed_count =
     gg.computed_count ||
     items.length ||
-    inferPremiumGalleryCount(industry, vibe);
+    inferPremiumGalleryCount(strategyContract, state, vibe);
 
   return {
     enabled,
