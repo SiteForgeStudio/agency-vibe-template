@@ -778,10 +778,13 @@ function buildNormalizedStrategy(strategy, reconData) {
   const sourceSnapshot = isObject(strategy?.source_snapshot) ? strategy.source_snapshot : {};
   const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
   const reconSnapshot = isObject(reconData) ? reconData : {};
+  const reconRoot = reconPayloadRoot(reconData);
+  const entityProfile = safeParseJsonString(reconRoot?.entity_profile_json);
 
   const serviceArea = uniqueList([
     ...cleanList(businessContext?.service_area),
     ...cleanList(napRecommendation?.service_area),
+    ...cleanList(entityProfile?.service_area),
     cleanString(reconSnapshot?.city_or_service_area_input)
   ]);
 
@@ -796,15 +799,21 @@ function buildNormalizedStrategy(strategy, reconData) {
         cleanString(napRecommendation?.name),
       category:
         cleanString(businessContext?.category) ||
-        cleanString(businessContext?.business_type),
+        cleanString(businessContext?.business_type) ||
+        cleanString(entityProfile?.primary_category),
       normalized_category: normalizeCategory(
         businessContext?.category ||
           businessContext?.business_type ||
           strategy?.internal_strategy?.business_category ||
+          cleanString(entityProfile?.primary_category) ||
           "general"
       ),
-      business_model: cleanString(businessContext?.business_model),
-      strategic_archetype: cleanString(businessContext?.strategic_archetype),
+      business_model: cleanString(
+        firstNonEmpty([businessContext?.business_model, entityProfile?.business_model])
+      ),
+      strategic_archetype: cleanString(
+        firstNonEmpty([businessContext?.strategic_archetype, entityProfile?.strategic_archetype])
+      ),
       service_area: serviceArea
     },
 
