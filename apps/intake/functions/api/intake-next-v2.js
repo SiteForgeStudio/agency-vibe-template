@@ -148,7 +148,8 @@ export async function onRequestPost(context) {
       llm_available: !!env?.OPENAI_API_KEY,
       question_source: "intake_complete",
       fallback_reason: null,
-      preflight_bridge_framing: null
+      preflight_bridge_framing: null,
+      question_render_mode: null
     };
 
     if (state.action === "complete") {
@@ -168,7 +169,8 @@ export async function onRequestPost(context) {
         llm_available: rendered.llm_available,
         question_source: rendered.question_source,
         fallback_reason: rendered.fallback_reason ?? null,
-        preflight_bridge_framing: rendered.preflight_bridge_framing ?? null
+        preflight_bridge_framing: rendered.preflight_bridge_framing ?? null,
+        question_render_mode: rendered.question_render_mode ?? "rephrase_only"
       };
     }
 
@@ -195,6 +197,8 @@ export async function onRequestPost(context) {
       question_source: questionRenderMeta.question_source,
       fallback_reason: questionRenderMeta.fallback_reason,
       preflight_bridge_framing: questionRenderMeta.preflight_bridge_framing ?? null,
+      preflight_intelligence_keys: listPreflightIntelligenceKeys(state.preflight_intelligence),
+      question_render_mode: questionRenderMeta.question_render_mode ?? null,
       reinforcement_triggered: !!state.reinforcement,
       reinforcement_type: state.reinforcement ? "alignment" : null,
       reinforcement_source: state.reinforcement?.source ?? null
@@ -2523,47 +2527,6 @@ function buildPreflightBridgeFraming(bundleId, primaryField, pi) {
   return "";
 }
 
-/** LLM user-payload hint: one primary_field only (manifest: renderer contract). */
-function getPrimaryFieldScopedHint(bundleId, primaryField) {
-  const pf = cleanString(primaryField);
-  const hints = {
-    booking_method:
-      "Ask ONLY how a prospect moves forward (call, form, quote request, online booking). Do NOT mention pricing, cost, or availability.",
-    pricing:
-      "Ask ONLY how pricing or quoting works (scope, complexity, tiers, custom quotes). Do NOT ask about booking channel, booking URL, or phone vs form here.",
-    booking_url:
-      "Ask ONLY for a scheduling/booking URL OR confirm everything is handled manually without a public link. Do NOT ask about pricing.",
-    contact_path:
-      "Ask ONLY the preferred contact path (form vs phone vs email, etc.). Do NOT bundle pricing into this question.",
-    review_quotes:
-      "Ask ONLY for review language, testimonials, or what clients say. Do not ask pricing or booking.",
-    trust_signal:
-      "Ask ONLY for trust signals or credibility markers.",
-    years_experience:
-      "Ask ONLY for tenure or years of experience.",
-    process_summary:
-      "Ask ONLY for the service workflow from inquiry to completion.",
-    service_area_main:
-      "Ask ONLY for the primary market or service area.",
-    surrounding_cities:
-      "Ask ONLY for nearby cities or regions served.",
-    founder_story:
-      "Ask ONLY for founder story, standards, or philosophy.",
-    phone: "Ask ONLY for the public phone number.",
-    email: "Ask ONLY for the public email address.",
-    address: "Ask ONLY for the public address, if any.",
-    hours: "Ask ONLY for hours or response-time expectations.",
-    gallery_visual_direction: "Ask ONLY for visual or gallery direction.",
-    hero_image_query: "Ask ONLY for hero image direction or search cues.",
-    faq_angles: "Ask ONLY for FAQ themes or objections.",
-    comparison: "Ask ONLY for alternatives or comparisons.",
-    events: "Ask ONLY for events or schedules.",
-    investment: "Ask ONLY for investment or package structure."
-  };
-  if (hints[pf]) return hints[pf];
-  return `Ask ONLY about "${pf.replace(/_/g, " ")}". Do not combine other intake topics in the same question.`;
-}
-
 /** Reject LLM text that bundles off-topic fields (e.g. pricing + booking_method). */
 function violatesPrimaryFieldQuestionScope(message, primaryField) {
   const m = cleanString(message).toLowerCase();
@@ -2599,14 +2562,36 @@ function violatesPrimaryFieldQuestionScope(message, primaryField) {
  * When fallback_triggered is true, explains why deterministic copy won (LLM path only).
  * @typedef {"scope_violation"|"parse_error"|"empty_response"|"repetition"|"api_error"|"timeout"|null} FallbackReason
  */
-function packQuestionRender(message, { fallback_triggered, llm_available, question_source, fallback_reason = null, preflight_bridge_framing = null }) {
+function listPreflightIntelligenceKeys(pi) {
+  if (!isObject(pi)) return [];
+  return Object.keys(pi).filter((k) => {
+    const v = pi[k];
+    if (v == null) return false;
+    if (k === "spec_version") return true;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === "string") return v.trim().length > 0;
+    if (typeof v === "boolean" || typeof v === "number") return true;
+    if (isObject(v)) return Object.keys(v).length > 0;
+    return false;
+  });
+}
+
+function packQuestionRender(message, {
+  fallback_triggered,
+  llm_available,
+  question_source,
+  fallback_reason = null,
+  preflight_bridge_framing = null,
+  question_render_mode = null
+}) {
   const out = {
     message: cleanString(message),
     fallback_triggered: !!fallback_triggered,
     llm_available: !!llm_available,
     question_source: cleanString(question_source) || "deterministic",
     fallback_reason: null,
-    preflight_bridge_framing: cleanString(preflight_bridge_framing) || null
+    preflight_bridge_framing: cleanString(preflight_bridge_framing) || null,
+    question_render_mode: cleanString(question_render_mode) || null
   };
   if (out.fallback_triggered) {
     out.fallback_reason = cleanString(fallback_reason) || null;
@@ -2622,6 +2607,95 @@ function classifyQuestionRenderFetchError(err) {
     return "timeout";
   }
   return "api_error";
+}
+
+/** Hard constraint for rephrase-only LLM: what must NOT appear when this is the active slot. */
+function getRephraseForbiddenLine(primaryField) {
+  const pf = cleanString(primaryField);
+  switch (pf) {
+    case "booking_method":
+      return "Do NOT mention pricing, cost, fees, rates, how much you charge, quotes as money, or availability / time slots (except scheduling channel words like “book online” if already in base_question).";
+    case "booking_url":
+      return "Do NOT mention pricing, cost, fees, or how much.";
+    case "contact_path":
+      return "Do NOT mention pricing, package tiers, or booking URLs unless base_question already does.";
+    case "pricing":
+      return "Do NOT ask how someone books, scheduling links, or phone vs form as a second thread—only pricing/quoting mechanics.";
+    default:
+      return "Do not introduce topics outside what base_question already asks.";
+  }
+}
+
+/**
+ * Single-topic questions: LLM may only rephrase base_question (already from deterministic + preflight lead).
+ * This makes multi-field invention structurally unlikely vs open generation.
+ */
+async function polishIntakeQuestionRephraseOnly({
+  env,
+  baseQuestion,
+  primaryField,
+  bundleId,
+  businessName
+}) {
+  const base = cleanString(baseQuestion);
+  const pf = cleanString(primaryField);
+  if (!base || !env?.OPENAI_API_KEY) return null;
+
+  const payload = {
+    model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
+    temperature: 0.12,
+    max_tokens: 200,
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: [
+          "You polish a single intake question for SiteForge Factory.",
+          "Input includes base_question. It is already correct and single-topic.",
+          "Rewrite in a consultative, premium tone with MINIMAL change to meaning and scope.",
+          "Hard rules:",
+          "1) Output exactly ONE question: one or two short sentences, max 65 words total.",
+          "2) Do NOT add examples, dimensions, or follow-up topics that base_question does not already imply.",
+          "3) " + getRephraseForbiddenLine(pf),
+          "4) Do not mention schema, JSON, fields, or internal labels.",
+          '5) Return JSON only: { "message": "..." }'
+        ].join("\n")
+      },
+      {
+        role: "user",
+        content: JSON.stringify(
+          {
+            business_name: cleanString(businessName),
+            primary_field: pf,
+            bundle_id: cleanString(bundleId),
+            base_question: base
+          },
+          null,
+          2
+        )
+      }
+    ]
+  };
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    throw new Error(`polish question ${response.status}: ${errBody.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const raw = data?.choices?.[0]?.message?.content;
+  const parsed = safeJsonParse(raw);
+  const message = cleanString(parsed?.message);
+  return message || null;
 }
 
 async function renderNextQuestion({
@@ -2643,7 +2717,8 @@ async function renderNextQuestion({
       fallback_triggered: false,
       llm_available: llmConfigured,
       question_source: "complete",
-      fallback_reason: null
+      fallback_reason: null,
+      question_render_mode: null
     });
   }
 
@@ -2667,16 +2742,15 @@ async function renderNextQuestion({
     preflightIntelligence
   );
 
-  const primaryFieldScopedHint = getPrimaryFieldScopedHint(
-    cleanString(adjustedPlan.bundle_id),
-    cleanString(adjustedPlan.primary_field)
-  );
   const bridgeFraming = buildPreflightBridgeFraming(
     cleanString(adjustedPlan.bundle_id),
     cleanString(adjustedPlan.primary_field),
     preflightIntelligence
   );
-  const bridgeMeta = { preflight_bridge_framing: bridgeFraming || null };
+  const bridgeMeta = {
+    preflight_bridge_framing: bridgeFraming || null,
+    question_render_mode: "rephrase_only"
+  };
 
   if (!llmConfigured) {
     return packQuestionRender(fallback, {
@@ -2684,105 +2758,26 @@ async function renderNextQuestion({
       llm_available: false,
       question_source: "deterministic",
       fallback_reason: null,
-      ...bridgeMeta
+      preflight_bridge_framing: bridgeMeta.preflight_bridge_framing,
+      question_render_mode: "deterministic_only"
     });
   }
 
-  const instructionWithBridge = bridgeFraming
-    ? `${primaryFieldScopedHint}\n\nPreflight bridge (single topic — primary_field only):\n${bridgeFraming}`
-    : primaryFieldScopedHint;
-
-  const bundleSpecificUnresolvedPoints = normalizeStringArray(interpretation?.unresolved_points).filter((point) =>
-    unresolvedPointMatchesBundle(point, adjustedPlan.bundle_id)
-  );
-
   try {
-    const payload = {
-      model: env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
-      temperature: 0.2,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: [
-            "You write the next intake question for SiteForge Factory.",
-            "Style: consultative, expert-level, natural, concise, premium.",
-            "Do not mention schema, JSON, fields, or technical internals.",
-            "CRITICAL: The question must address EXACTLY ONE topic: the value of primary_field in the user message.",
-            "Do NOT ask about pricing, availability, reviews, service area, or other topics unless primary_field names that topic.",
-            "Do NOT combine multiple fields into one question (one sentence, one decision).",
-            "If a preflight bridge note is present, weave it in naturally as validation — still only one topic matching primary_field.",
-            "Do not repeat what was just answered.",
-            "Do not hardcode industries.",
-            "Make it feel like a sharp strategist at a premium agency.",
-            'Return JSON only: { "message": "..." }'
-          ].join("\n")
-        },
-        {
-          role: "user",
-          content: JSON.stringify(
-            {
-              business_name: cleanString(businessName),
-              previous_bundle_id: cleanString(previousPlan?.bundle_id),
-              next_bundle_id: cleanString(adjustedPlan.bundle_id),
-              primary_field: cleanString(adjustedPlan.primary_field),
-              primary_field_only_instruction: instructionWithBridge,
-              preflight_bridge_framing: bridgeFraming || null,
-              target_fields: cleanList(adjustedPlan.target_fields),
-              intent: cleanString(adjustedPlan.intent),
-              reason: cleanString(adjustedPlan.reason),
-              already_resolved_fields: cleanList(planTargetFields.filter((fieldKey) => isFieldResolvedLocal(fieldKey))),
-              unresolved_fields: cleanList(planTargetFields.filter((fieldKey) => !isFieldResolvedLocal(fieldKey))),
-              updated_fact_keys: cleanList(interpretation?.updated_fact_keys),
-              answer_summary: cleanString(interpretation?.answer_summary),
-              unresolved_points: bundleSpecificUnresolvedPoints
-            },
-            null,
-            2
-          )
-        }
-      ]
-    };
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify(payload)
+    const message = await polishIntakeQuestionRephraseOnly({
+      env,
+      baseQuestion: fallback,
+      primaryField: cleanString(adjustedPlan.primary_field),
+      bundleId: cleanString(adjustedPlan.bundle_id),
+      businessName
     });
 
-    if (!response.ok) {
-      return packQuestionRender(fallback, {
-        fallback_triggered: true,
-        llm_available: true,
-        question_source: "deterministic",
-        fallback_reason: "api_error",
-        ...bridgeMeta
-      });
-    }
-
-    const data = await response.json();
-    const raw = data?.choices?.[0]?.message?.content;
-    const rawStr = cleanString(raw);
-    const parsed = safeJsonParse(raw);
-    const message = cleanString(parsed?.message);
-
-    let emptyOrParseReason = null;
     if (!message) {
-      if (!rawStr) {
-        emptyOrParseReason = "empty_response";
-      } else if (!isObject(parsed)) {
-        emptyOrParseReason = "parse_error";
-      } else {
-        emptyOrParseReason = "empty_response";
-      }
       return packQuestionRender(fallback, {
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
-        fallback_reason: emptyOrParseReason,
+        fallback_reason: "empty_response",
         ...bridgeMeta
       });
     }
