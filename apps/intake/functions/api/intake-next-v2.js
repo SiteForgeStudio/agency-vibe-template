@@ -2018,43 +2018,94 @@ function inferAccessModel(blueprint, state) {
   return "hybrid";
 }
 
+/**
+ * Phone-forward booking intents (call, quote-by-phone, etc.) require a published phone — not just email.
+ * Bare "manual" is excluded so email-only manual flows can still pass until phone is collected.
+ */
+function requiresPublishedPhoneForExecution(bmRaw) {
+  const m = cleanString(bmRaw).toLowerCase().replace(/\s+/g, "_");
+  if (!m || m === "manual") return false;
+  return isManualBookingMethodValue(bmRaw);
+}
+
+/**
+ * Intent (booking_method) is not execution: e.g. "call" without a number is not an operable CTA.
+ */
+function evaluateExecutionPathForAccess(fr) {
+  const bm = fr?.booking_method?.value;
+  const hasPhone = isFactComplete(fr.phone);
+  const hasEmail = isFactComplete(fr.email);
+  const contactPathOk = isFieldSatisfied("contact_path", fr);
+  const bookingUrlOk = isFieldSatisfied("booking_url", fr);
+  const m = cleanString(bm).toLowerCase().replace(/\s+/g, "_");
+
+  if (!hasMeaningfulValue(bm)) {
+    return { ok: false, missing_focus_id: "action_path" };
+  }
+
+  if (requiresPublishedPhoneForExecution(bm)) {
+    return hasPhone
+      ? { ok: true, missing_focus_id: null }
+      : { ok: false, missing_focus_id: "phone_for_call" };
+  }
+
+  if (
+    m.includes("book_online") ||
+    m.includes("online_booking") ||
+    (m.includes("schedule") && (m.includes("online") || m.includes("link")))
+  ) {
+    const v = fr.booking_url?.value;
+    const real =
+      typeof v === "string" &&
+      hasMeaningfulValue(v) &&
+      !isBookingUrlNoLinkSentinel(v) &&
+      isPlausibleBookingUrlString(v);
+    return real
+      ? { ok: true, missing_focus_id: null }
+      : { ok: false, missing_focus_id: "booking_url_live" };
+  }
+
+  const hasReach = hasPhone || hasEmail;
+  const ok = hasReach || contactPathOk || bookingUrlOk;
+  return {
+    ok,
+    missing_focus_id: ok ? null : "action_path"
+  };
+}
+
 function evaluateAccessSatisfaction(fr, model) {
   const hasAddr = isFactComplete(fr.address);
   const hasHours = isFactComplete(fr.hours);
-  const hasPhone = isFactComplete(fr.phone);
-  const hasEmail = isFactComplete(fr.email);
   const hasMain = isFactComplete(fr.service_area_main);
   const hasSurround =
     (Array.isArray(fr.surrounding_cities?.value) && fr.surrounding_cities.value.length > 0) ||
     ensureArrayStrings(fr.service_area_list?.value).length > 1;
-  const hasReach = hasPhone || hasEmail;
-  const contactPathOk = isFieldSatisfied("contact_path", fr);
-  const bookingUrlOk = isFieldSatisfied("booking_url", fr);
+  const exec = evaluateExecutionPathForAccess(fr);
 
   let checks = [];
   let satisfied = false;
 
   switch (model) {
-    case "local_physical":
+    case "local_physical": {
+      const hasBm = hasMeaningfulValue(fr.booking_method?.value);
       checks = [
         { id: "address", ok: hasAddr },
-        { id: "hours", ok: hasHours }
+        { id: "hours", ok: hasHours },
+        ...(hasBm ? [{ id: "execution_path", ok: exec.ok }] : [])
       ];
-      satisfied = hasAddr && hasHours;
+      satisfied = hasAddr && hasHours && (!hasBm || exec.ok);
       break;
+    }
     case "local_service_area":
       checks = [
         { id: "service_area_main", ok: hasMain },
-        {
-          id: "reach_or_path",
-          ok: hasReach || contactPathOk || bookingUrlOk
-        }
+        { id: "reach_or_path", ok: exec.ok }
       ];
-      satisfied = hasMain && (hasReach || contactPathOk || bookingUrlOk);
+      satisfied = hasMain && exec.ok;
       break;
     case "virtual_remote":
-      checks = [{ id: "digital_reach", ok: hasEmail || contactPathOk || bookingUrlOk }];
-      satisfied = !!(hasEmail || contactPathOk || bookingUrlOk);
+      checks = [{ id: "digital_reach", ok: exec.ok }];
+      satisfied = exec.ok;
       break;
     case "hybrid":
     default:
@@ -2063,22 +2114,27 @@ function evaluateAccessSatisfaction(fr, model) {
           id: "location_or_geo",
           ok: hasAddr || hasMain || hasSurround
         },
-        {
-          id: "action_path",
-          ok: contactPathOk || bookingUrlOk || hasReach
-        }
+        { id: "action_path", ok: exec.ok }
       ];
-      satisfied = (hasAddr || hasMain || hasSurround) && (contactPathOk || bookingUrlOk || hasReach);
+      satisfied = (hasAddr || hasMain || hasSurround) && exec.ok;
       break;
   }
 
   const score = checks.length ? checks.filter((c) => c.ok).length / checks.length : 0;
   const failed = checks.find((c) => !c.ok);
+  let missing_focus_id = failed?.id || null;
+  if (
+    missing_focus_id &&
+    ["action_path", "reach_or_path", "digital_reach", "execution_path"].includes(missing_focus_id) &&
+    exec.missing_focus_id
+  ) {
+    missing_focus_id = exec.missing_focus_id;
+  }
   return {
     satisfied,
     score: Number(score.toFixed(3)),
     checks,
-    missing_focus_id: failed?.id || null
+    missing_focus_id
   };
 }
 
@@ -2092,7 +2148,10 @@ function buildAccessPlannerHint(access) {
     reach_or_path: "conversion",
     digital_reach: "conversion",
     action_path: "conversion",
-    location_or_geo: "service_area"
+    location_or_geo: "service_area",
+    execution_path: "contact_details",
+    phone_for_call: "contact_details",
+    booking_url_live: "conversion"
   };
   return {
     missing_focus_id: id || null,

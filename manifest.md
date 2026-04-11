@@ -1,4 +1,4 @@
-# SiteForge Factory — Intake & Preflight Manifest **v2.3** (April 2026)
+# SiteForge Factory — Intake & Preflight Manifest **v2.4** (April 2026)
 
 Use this file as the **handoff anchor** for architecture, constraints, and phase order. Implementation details live in code and in `docs/PREFLIGHT_OUTPUT_SPEC_V1.md` (preflight → intake handoff shape).
 
@@ -142,6 +142,12 @@ Minimum fields emitted today:
 | `reinforcement_triggered` | Alignment line added |
 | `reinforcement_type` | e.g. `alignment` when fired |
 | `reinforcement_source` | Which preflight signal matched |
+| `premium_next_unlock` | Premium layer focus (`component`, urgency, gap) |
+| `premium_avg_score` | Mean premium component score |
+| `access_model` | Inferred access model enum |
+| `access_satisfied` | Whether access gate checks pass |
+| `access_score` | Access checklist score (0–1) |
+| `access_planner_hint` | `{ decision_boost, missing_focus_id }` when gate not satisfied |
 
 **KPI — fallback rate (per session or rolling):**
 
@@ -162,6 +168,50 @@ Minimum fields emitted today:
 - **Minimum preview:** hero, features, contact path, CTA — as defined by strategy toggles and conversion gates in code.
 - **Premium ready:** only **enabled** components count toward “premium” signals (proof, visuals, process, story, geo, etc.).
 - **Rule:** Disabled components do not inflate readiness.
+
+---
+
+## Access model (intake-next-v2)
+
+**Purpose:** Unify **how customers reach the business** — contact path, service geography, and physical presence — so intake collects the **minimum viable “usable site”** before optimizing for depth.
+
+**Model enum (inferred in code):** `local_physical` · `local_service_area` · `virtual_remote` · `hybrid`
+
+| Model | Idea | Satisfaction (code) |
+|--------|------|---------------------|
+| **local_physical** | Customers come to you (storefront, gallery, salon) | Address + hours; if `booking_method` is set, **execution path** must also pass (see below) |
+| **local_service_area** | You go to the customer (contractors, mobile) | Primary service area + **executable** reach (not “intent only”) |
+| **virtual_remote** | No geographic constraint (coaches, agencies) | **Executable** digital reach |
+| **hybrid** | Both place and remote | Location **or** geo signal **and** an **executable** action path |
+
+**Execution path (locked):** Knowing *how* someone should convert (e.g. `booking_method`: `call`) is not enough. The site must have the **facts to perform** that path — e.g. phone-forward methods require a real **`phone`** value; online-booking methods require a real **booking URL** (not only `manual` / no-link sentinels). Bare `manual` is treated separately so email-only flows can still validate. Implemented in `evaluateExecutionPathForAccess` / `requiresPublishedPhoneForExecution`.
+
+**Inference inputs:** `booking_method`, `strategy.business_context` (category, archetype, description when present), key facts (`primary_offer`, `business_understanding`), `preflight_intelligence`, and existing address / `service_area_main` when already captured.
+
+**Blueprint:** `blueprint.access_readiness` — `{ model, satisfied, score, checks, missing_focus_id, planner_hint }`.  
+`planner_hint.decision_boost` nudges the next bundle (`contact_details` | `service_area` | `conversion`) when something is still missing.
+
+**Relationship to premium:** **Access completeness is the gate.** **Premium readiness** (`blueprint.premium_readiness`) is the **optimization layer** (per-component 0–1 scores, `next_unlock`, impact ordering). While `access_readiness.satisfied === false`, premium “next unlock” only considers **contact** and **service_area** components so the planner does not chase hero/FAQ depth before the site is reachable.
+
+---
+
+## Premium readiness scoring (intake-next-v2)
+
+**Blueprint:** `blueprint.premium_readiness` — per-component scores (hero, contact, features, gallery, faqs, testimonials, processSteps, about, investment, service_area, events, comparison), `ordered_by_impact`, `summary` (avg score, weakest), and **`access_gate`** (snapshot of access state for debugging).
+
+**Planner:** Candidates get a **premium unlock boost** from component gaps × decision→component impact weights (capped). This **guides** ordering; it does not replace contracts.
+
+---
+
+## Planner — access gate (hard rule)
+
+When **`access_readiness.satisfied === false`**, a question **candidate is dropped** (not merely down-ranked) if the **next** `primary_field` for that bundle is **not** an access field.
+
+**Access primary fields (gate allowlist):** `booking_method`, `booking_url`, `contact_path`, `phone`, `email`, `address`, `hours`, `service_area_main`, `surrounding_cities`.
+
+**Conversion bundle:** `pricing` is ordered **after** booking/path fields so it is not the next primary while the gate is closed.
+
+**Design intent:** **Block** illegal next steps; use **+62** on `planner_hint.decision_boost` and mild score nudges to **guide** — avoid huge artificial penalties that made the planner feel mechanical.
 
 ---
 
@@ -209,7 +259,7 @@ Minimum fields emitted today:
 
 ## Current status (honest)
 
-**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners, **factory-synthesis** on intake-complete (vibe + image queries + gallery layout/count without industry branching).
+**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners, **access readiness + premium readiness** on blueprint, **factory-synthesis** on intake-complete (vibe + image queries + gallery layout/count without industry branching).
 
 **Monitor:** `fallback_rate`, scope violations, repetition stalls, GBP/preflight depth.
 
@@ -247,4 +297,4 @@ A system that **thinks like a strategist** (within guardrails) and **executes li
 
 ## New chat handoff line
 
-> We’re building SiteForge Factory per **`manifest.md` v2.3** (blueprint + planner + controlled renderer + **factory-synthesis** on intake-complete). Next task: [describe]. Check primary field contract, renderer scope, `turn_debug` / fallback rate, and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.
+> We’re building SiteForge Factory per **`manifest.md` v2.4** (blueprint + planner + **access gate** + **premium readiness** + controlled renderer + **factory-synthesis** on intake-complete). Next task: [describe]. Check primary field contract, renderer scope, `access_readiness` / `premium_readiness`, `turn_debug` / fallback rate, and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.

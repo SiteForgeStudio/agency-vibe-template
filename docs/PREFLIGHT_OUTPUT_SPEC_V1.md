@@ -2,7 +2,7 @@
 
 **Purpose:** Quality filter for preflight output and for handoff to intake (validation, not re-discovery).
 
-**System anchor:** Intake architecture, contracts, and observability are defined in **`manifest.md` v2.3**; bump this spec’s version note when the preflight → `preflight_intelligence` handoff shape changes.
+**System anchor:** Intake architecture, contracts, and observability are defined in **`manifest.md` v2.4**; bump this spec’s version note when the preflight → `preflight_intelligence` handoff shape changes.
 
 ---
 
