@@ -2415,6 +2415,53 @@ function appendReinforcementToAssistantMessage(reinforcement, assistantMessage) 
   return `${note}\n\n${base}`;
 }
 
+const PRICING_BRIDGE_INSTRUCTION =
+  "Ask ONLY how pricing or quoting works for their work (one topic; no booking channel or URL).";
+
+/**
+ * Consultative context for the pricing slot: layers positioning → weaknesses → differentiation_hypothesis
+ * → buyer_factors → opportunity. Does not add a second question; the deterministic/rephrase body stays one-field.
+ */
+function buildPricingPreflightNarrative(pi, { maxChars = 400, withPricingInstruction = false } = {}) {
+  if (!isObject(pi)) return "";
+  const pos = cleanString(pi.positioning);
+  const hyp = cleanString(pi.differentiation_hypothesis);
+  const weak = cleanList(pi.weaknesses)
+    .map((w) => cleanString(w))
+    .filter(Boolean);
+  const buyers = cleanList(pi.buyer_factors)
+    .map((x) => cleanString(x))
+    .filter(Boolean);
+  const opp = cleanString(pi.opportunity);
+
+  const sentences = [];
+
+  if (pos) {
+    sentences.push(`Preflight research suggests this positioning read: ${truncate(pos, 168)}`);
+  }
+  if (weak.length) {
+    sentences.push(`Buyers in this space often navigate concerns such as ${weak.slice(0, 2).join("; ")}`);
+  }
+  if (hyp) {
+    sentences.push(`A differentiation angle to pressure-test is: ${truncate(hyp, 156)}`);
+  }
+  if (!sentences.length && buyers.length) {
+    sentences.push(`Buyers in this space often weigh ${buyers.slice(0, 4).join(", ")}`);
+  }
+  if (!sentences.length && opp) {
+    sentences.push(truncate(opp, 220));
+  }
+  if (!sentences.length) return "";
+
+  let body = sentences.map((s) => (/\.\s*$/.test(s.trim()) ? s.trim() : `${s.trim()}.`)).join(" ");
+
+  const tail = withPricingInstruction ? ` ${PRICING_BRIDGE_INSTRUCTION}` : "";
+  const budget = withPricingInstruction ? Math.max(140, maxChars - tail.length) : maxChars;
+  body = truncate(body, budget) + tail;
+
+  return body.trim();
+}
+
 /**
  * Preflight → intake bridge: one short framing note for the LLM (same primary_field only).
  * @see docs/PREFLIGHT_OUTPUT_SPEC_V1.md
@@ -2435,11 +2482,9 @@ function userFacingDeterministicLead(bundleId, primaryField, pi) {
   const hyp = cleanString(pi.differentiation_hypothesis);
   const alts = cleanList(pi.local_alternatives);
 
-  if (pf === "pricing" && buyers.length) {
-    return `Buyers in your space often weigh ${buyers.slice(0, 4).join(", ")}. `;
-  }
-  if (pf === "pricing" && !buyers.length && opp) {
-    return `${truncate(opp, 180)} `;
+  if (pf === "pricing") {
+    const narrative = buildPricingPreflightNarrative(pi, { maxChars: 260, withPricingInstruction: false });
+    if (narrative) return `${narrative} `;
   }
   if (pf === "target_persona" && angle) {
     return `You may show up strongest when positioned as: ${truncate(angle, 200)} `;
@@ -2503,10 +2548,9 @@ function buildPreflightBridgeFraming(bundleId, primaryField, pi) {
   if (pf === "booking_method" && opp) {
     return `Conversion context (stay on booking channel only; no pricing): ${truncate(opp, 260)}`;
   }
-  if (pf === "pricing" && (buyers.length || opp)) {
-    const bf = buyers.length ? `Buyers in this space often weigh: ${buyers.slice(0, 4).join("; ")}.` : "";
-    const oc = opp ? ` ${truncate(opp, 220)}` : "";
-    return `${bf}${oc} Ask ONLY how pricing or quoting works for their work (one topic; no booking channel or URL).`.trim();
+  if (pf === "pricing") {
+    const narrative = buildPricingPreflightNarrative(pi, { maxChars: 520, withPricingInstruction: true });
+    if (narrative) return narrative;
   }
   if ((pf === "faq_angles" || b === "objection_handling") && buyers.length) {
     return `Buyers in this space often weigh: ${buyers.slice(0, 4).join("; ")}. Ask what objections or questions come up before someone books (stay on FAQ angle only).`;
@@ -3719,8 +3763,13 @@ function isOverloadedQuestion(message, bundleId) {
     .filter((entry) => entry.matched)
     .map((entry) => entry.key);
 
-  if (activeBundles.length <= 1) return false;
-  return !activeBundles.every((key) => key === bundleId);
+  let relevant = activeBundles;
+  if (cleanString(bundleId) === "conversion") {
+    relevant = activeBundles.filter((k) => k !== "positioning");
+  }
+
+  if (relevant.length <= 1) return false;
+  return !relevant.every((key) => key === bundleId);
 }
 
 function unresolvedPointMatchesBundle(point, bundleId) {
