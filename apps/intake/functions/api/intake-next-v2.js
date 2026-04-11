@@ -2440,6 +2440,11 @@ function buildPreflightBridgeFraming(bundleId, primaryField, pi) {
   if (pf === "booking_method" && opp) {
     return `Conversion context (stay on booking channel only; no pricing): ${truncate(opp, 260)}`;
   }
+  if (pf === "pricing" && (buyers.length || opp)) {
+    const bf = buyers.length ? `Buyers in this space often weigh: ${buyers.slice(0, 4).join("; ")}.` : "";
+    const oc = opp ? ` ${truncate(opp, 220)}` : "";
+    return `${bf}${oc} Ask ONLY how pricing or quoting works for their work (one topic; no booking channel or URL).`.trim();
+  }
   if ((pf === "faq_angles" || b === "objection_handling") && buyers.length) {
     return `Buyers in this space often weigh: ${buyers.slice(0, 4).join("; ")}. Ask what objections or questions come up before someone books (stay on FAQ angle only).`;
   }

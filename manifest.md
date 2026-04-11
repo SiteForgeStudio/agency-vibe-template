@@ -1,377 +1,229 @@
-# **🏗️ SiteForge Factory — Intake V2 Manifest (Blueprint \+ Planner Architecture)**
+# SiteForge Factory — Intake & Preflight Manifest **v2.2** (April 2026)
 
-## **🔥 Core Philosophy**
-
-SiteForge is NOT a chatbot.
-
-It is a **schema-driven, strategy-backed site generation engine** where:
-
-* Preflight \= intelligence \+ direction  
-* Intake \= verification \+ refinement  
-* Output \= **valid, premium `business.json`**
-
-The system must:
-
-* Work across ANY business type (no hardcoding industries)  
-* Feel like an expert strategist (not a form)  
-* Produce **high-conversion, modern websites**
+Use this file as the **handoff anchor** for architecture, constraints, and phase order. Implementation details live in code and in `docs/PREFLIGHT_OUTPUT_SPEC_V1.md` (preflight → intake handoff shape).
 
 ---
 
-# **🧠 SYSTEM SHIFT (CRITICAL)**
+## Core principle (locked)
 
-## **❌ OLD MODEL (REMOVE)**
+SiteForge is **not** a form builder, a chatbot, or a template generator.
 
-* Turn-based intake  
-* `current_key` driving flow  
-* Narrative blocks (`what_it_is`, etc.)  
-* Regex-based extraction  
-* Random or loosely guided questions
-
-## **✅ NEW MODEL (REQUIRED)**
-
-**Planner \+ Blueprint System**
-
-Flow:
-
-Preflight → Blueprint → Section Status → Planner → Question → AI Extraction → Validation → business.json
+It is a **controlled AI system** that extracts structured business intelligence through a consultative experience and produces a **schema-valid** `business.json` (via the live blueprint / draft pipeline).
 
 ---
 
-# **🧩 CORE COMPONENTS**
+## System architecture (locked)
 
-## **1\. Preflight (SOURCE OF TRUTH)**
+```
+Preflight (intelligence; not conversational state machine)
+    ↓
+intake-start-v2.js  (blueprint + fact seed from preflight)
+    ↓
+intake-next-v2.js   (controlled refinement engine; endpoint bills as v2.1)
+    ↓
+intake-complete / readiness gates
+    ↓
+submit → GitHub → Astro → Netlify preview
+```
 
-Preflight provides:
-
-* `strategy_contract`  
-* audience insights  
-* conversion strategy  
-* proof signals  
-* site structure  
-* content requirements  
-* schema toggles  
-* AEO \+ FAQ angles  
-* GBP / NAP insights
-
-⚠️ Intake MUST NOT rediscover this.  
-It must **build on it**.
+**Code references:** `apps/intake/functions/api/intake-start-v2.js`, `apps/intake/functions/api/intake-next-v2.js`.
 
 ---
 
-## **2\. Blueprint (NEW — REQUIRED)**
+## Design principle (critical)
 
-Created in `intake-start.js`
+| Layer | Owner | Role |
+|--------|--------|------|
+| **What to ask** | Blueprint / planner | `question_plan`, bundles, `primary_field` |
+| **What to update** | Blueprint + router | `fact_registry`, draft sync |
+| **How to ask (wording)** | AI (renderer) | Single-field question copy |
+| **Tone / UX polish** | AI + optional layers | Consultative voice; non-owning add-ons |
 
-### **Structure:**
-
-{
-
-  "strategy": {},
-
-  "fact\_registry": {},
-
-  "business\_draft": {},
-
-  "section\_status": {},
-
-  "verification\_queue": \[\],
-
-  "question\_candidates": \[\]
-
-}
+**Rule of thumb:** *Structure is deterministic; experience is adaptive.*
 
 ---
 
-## **3\. Fact Registry**
+## Preflight system
 
-Tracks ALL known information with provenance:
+**Role:** Intelligence generation (not end-user interaction). Not a conversational product and not driven as an intake-style state machine.
 
-{
+**Typical pipeline (conceptual):** `preflight-start` → recon → GBP → preview → optional status polling.  
+**Runner:** `scripts/preflight-runner/` — mirrors steps, logs under `scripts/preflight-runner/preflight-logs/`, supports local/prod and timing.
 
-  "primary\_offer": {
+**Required strategic output** (see spec for exact shape): business understanding, opportunity, website direction, recommended focus/sections, FAQ/AEO angles, Google presence insight, etc.
 
-    "value": "...",
+**Competitive intelligence** (evolving): e.g. differentiation signals, local alternatives, buyer factors — consumed by intake via `state.preflight_intelligence` (see `docs/PREFLIGHT_OUTPUT_SPEC_V1.md`).
 
-    "source": "preflight | user | inferred",
-
-    "confidence": 0.9,
-
-    "verified": false
-
-  }
-
-}
+**Known weakness:** GBP entity resolution can false-negative (`not_found`); treat as active risk, not a reason to loosen intake contracts.
 
 ---
 
-## **4\. Business Draft (TARGET OUTPUT)**
+## Intake v2.1 — controlled engine
 
-Partial `business.json` being built live:
+**Role:** AI behaves as **consultant phrasing**, not as the **owner of structure**.
 
-{
-
-  "hero": {},
-
-  "features": \[\],
-
-  "about": {},
-
-  "contact": {},
-
-  "gallery": {},
-
-  "faqs": \[\],
-
-  "processSteps": \[\]
-
-}
+- **Code** enforces bundles, `primary_field`, validation, and progression.
+- **AI** improves question wording within strict scope and interprets answers into safe fact updates.
 
 ---
 
-## **5\. Section Status Engine (REPLACES NARRATIVE MODEL)**
+## Blueprint system (locked)
 
-Each section is:
+**Source of truth for “what we’re asking this turn”:**  
+`blueprint.question_plan` (including `bundle_id`, `primary_field`, `target_fields`).
 
-{
-
-  "hero": {
-
-    "enabled": true,
-
-    "required\_for\_preview": true,
-
-    "fields\_needed": \["headline", "subtext"\],
-
-    "status": "missing | partial | ready"
-
-  }
-
-}
-
-### **Determined by:**
-
-* `strategy_contract.schema_toggles`  
-* `content_requirements.preview_required_fields`  
-* schema rules
+Facts live in `blueprint.fact_registry`; the partial site shape lives in `business_draft` and is synced from evidence in code.
 
 ---
 
-## **6\. Planner (THE BRAIN)**
+## Primary field contract (non-negotiable)
 
-### **Function:**
+1. **`primary_field` defines intent** for the turn.
+2. **The rendered question MUST target only that field** (no multi-topic prompts).
+3. **Interpretation MUST prioritize updating that field**; the router enforces capture when the model omits it.
+4. **`fact_registry[primary_field]` must reach satisfaction** before the planner advances (see `isFieldSatisfied` / bundle rules). Secondary updates may occur but **do not drive progression**.
 
-planNextQuestion(blueprint)
-
-### **It selects:**
-
-* highest-impact missing section  
-* required or blocking data  
-* appropriate **question bundle**
-
-### **Output:**
-
-{
-
-  "bundle\_id": "positioning",
-
-  "target\_fields": \["primary\_offer", "audience", "differentiation"\],
-
-  "reason": "hero \+ features incomplete"
-
-}
+**Planner stickiness:** Do not advance to the next `primary_field` until the current one is satisfied.
 
 ---
 
-# **🎯 QUESTION BUNDLES (REUSABLE, NOT HARD CODED)**
+## Renderer system (critical)
 
-## **Examples:**
+**Architecture:** `LLM → validation → fallback → deterministic copy`
 
-### **Positioning**
-
-Who you serve \+ what you do \+ why different
-
-### **Process**
-
-Client journey from start → outcome
-
-### **Conversion**
-
-How customers take action
-
-### **Proof**
-
-Why someone should trust you
-
-### **Visual Direction**
-
-What should be shown in gallery
-
-### **Service Area**
-
-Where you operate
-
-### **Offer Detail**
-
-Breakdown of services/products
+- **One question = one field** (`primary_field` only).
+- **No bundle leakage** (e.g. don’t mix pricing and booking channel in one prompt).
+- **Guards:** `violatesPrimaryFieldQuestionScope()`, `isOverloadedQuestion()`, repetition checks.
+- **On violation:** discard LLM output, use deterministic question — **intelligence is controlled, not free-form.**
 
 ---
 
-# **✨ QUESTION GENERATION**
+## Interpretation
 
-## **RULE:**
-
-* Code selects **bundle**  
-* AI generates **natural wording**
-
-Example:
-
-Input:
-
-{
-
-  "bundle": "process",
-
-  "tone": "consultative",
-
-  "business\_type": "coach"
-
-}
-
-Output:
-
-“When someone decides to work with you, what does the journey typically look like—from the first conversation to the outcome you’re helping them achieve?”
+- **Primary field update is mandatory** for progression; enforcement fills the slot when needed.
+- **Broad capture is allowed:** one user message may update multiple facts; only **primary field satisfaction** gates progression.
 
 ---
 
-# **🔐 PRIMARY FIELD CONTRACT (NON-NEGOTIABLE)**
+## Preflight → intake bridge (non-owning)
 
-* Every turn **MUST** update the active `primary_field`.
-* If interpretation does not produce it, the **system enforces** it (capture from the user answer for that slot).
-* **Progression** (advancement to the next planned field / bundle) depends **only** on satisfaction of this active field—not on other extracted facts.
-* **Secondary facts** are allowed in the same turn (multi-fact answers are welcome) but are **ignored for progression**; they enrich `fact_registry` without changing turn ownership until the planner advances.
-* **Planner stickiness:** the engine does not advance to the next `primary_field` until the **current** active field is satisfied (`isFieldSatisfied` / contract rules). Secondary captures alone must not skip ahead.
+- **`state.preflight_intelligence`** is seeded at start (`intake-start-v2.js`) from strategy/recon/spec-aligned fields.
+- **Question rendering** may inject a short **preflight bridge** hint into the renderer payload so wording feels informed — **without** breaking the single-field contract.
 
 ---
 
-# **🧠 ANSWER INTERPRETATION (NO REGEX)**
+## Reinforcement (non-owning)
 
-## **AI Extraction Contract:**
-
-{
-
-  "field\_updates": {},
-
-  "copy\_candidates": {},
-
-  "verified\_fields": \[\],
-
-  "inferred\_fields": \[\],
-
-  "followup\_needed": \[\]
-
-}
+- **Post-interpretation only:** optional short alignment line when user answer matches preflight signals (deterministic match; **no** planner/renderer ownership).
+- **Observability:** `turn_debug.reinforcement_*` — must stay non-blocking for progression.
 
 ---
 
-# **🔒 VALIDATION LAYER (CODE)**
+## Observability — `state.turn_debug` (every turn)
 
-Code decides:
+Minimum fields emitted today:
 
-* what gets written to `business_draft`  
-* what needs verification  
-* what is preview-safe  
-* what triggers follow-up
+| Field | Purpose |
+|--------|---------|
+| `answered_primary_field` | Previous turn’s `primary_field` |
+| `primary_satisfied_after_answer` | Satisfaction of that field after routing |
+| `next_primary_field` | Planned next primary |
+| `next_bundle_id` | Planned bundle |
+| `updated_fact_keys` | Facts written this turn (primary path) |
+| `secondary_updated_keys` | Secondary captures |
+| `primary_field_updated` | Whether primary slot received an update |
+| `llm_available` | API configured |
+| `question_source` | `llm` \| `deterministic` \| `complete` \| `intake_complete` |
+| `fallback_triggered` | Used deterministic path after LLM |
+| `fallback_reason` | `scope_violation` \| `repetition` \| `parse_error` \| `empty_response` \| `api_error` \| `timeout` \| null |
+| `preflight_bridge_framing` | Bridge text passed to renderer (if any) |
+| `reinforcement_triggered` | Alignment line added |
+| `reinforcement_type` | e.g. `alignment` when fired |
+| `reinforcement_source` | Which preflight signal matched |
 
----
+**KPI — fallback rate (per session or rolling):**
 
-# **⚙️ INTAKE-START.JS ROLE (UPDATED)**
+`fallback_rate = (# turns with fallback_triggered && llm_available) / (# turns where llm_available)`
 
-## **MUST:**
+| Rate | Meaning |
+|------|--------|
+| &lt; 10% | Healthy |
+| 10–30% | Tune prompts / scope guards |
+| &gt; 30% | Treat as system issue |
 
-1. Fetch preflight  
-2. Extract `strategy_contract`  
-3. Seed:  
-   * fact\_registry  
-   * business\_draft (partial)  
-4. Build blueprint  
-5. Compute section\_status  
-6. Run planner → first bundle  
-7. Generate first question  
-8. Save full state
-
-## **MUST NOT:**
-
-* rely on narrative blocks  
-* rely on category for logic  
-* ask generic opening questions  
-* ignore preflight data
-
----
-
-# **🧪 READINESS MODEL (V2)**
-
-## **Preview Ready When:**
-
-* All required sections (enabled by strategy) are:  
-  * complete OR acceptable via AI inference  
-* All **must\_verify\_now** fields handled  
-* Conversion path is valid  
-* No blocking missing fields
+**Integrity triangle (when something drifts):** primary field contract → renderer scope → fallback rate.
 
 ---
 
-# **🚫 HARD RULES**
+## Readiness model (locked concept)
 
-* ❌ No industry hardcoding ("window cleaner", etc.)  
-* ❌ No regex-based meaning extraction  
-* ❌ No random questions  
-* ❌ No form-style interrogation  
-* ✅ Always schema-driven  
-* ✅ Always strategy-aware  
-* ✅ Always conversion-aware
+- **Minimum preview:** hero, features, contact path, CTA — as defined by strategy toggles and conversion gates in code.
+- **Premium ready:** only **enabled** components count toward “premium” signals (proof, visuals, process, story, geo, etc.).
+- **Rule:** Disabled components do not inflate readiness.
 
 ---
 
-# **🔮 FUTURE EXPANSION (ALREADY ACCOUNTED FOR)**
+## Gallery & contact
 
-* Competitor intelligence  
-* Best-in-class references  
-* Dynamic vibe generation  
-* fal.ai image pipeline  
-* CMS-driven rebuilds  
-* AEO (llms.txt \+ AI.instructions)
+- **Gallery:** must be able to produce image search/query and computed layout/count from evidence (see draft sync in engine).
+- **Contact:** `booking_method`, CTA, `contact_path`, and `booking_url` must stay **consistent** (including explicit “no public booking URL” / manual flows — engine uses sentinel values and satisfaction rules).
 
 ---
 
-# **💡 KEY INSIGHT**
+## Testing
 
-We are not asking:
+- **Intake:** `scripts/intake-runner/` — scripted or interactive session, logs state and `turn_debug`.
+- **Preflight:** `scripts/preflight-runner/` — pipeline steps and structured logs.
 
-“What question comes next?”
-
-We are asking:
-
-“What is the highest-value missing information required to produce a premium site?”
+**Future:** assertion-based regression, session replay.
 
 ---
 
-# **🚀 END STATE**
+## Client experience
 
-A system that:
-
-* feels like a strategist  
-* builds sites better than most agencies  
-* adapts to ANY business type  
-* produces clean, valid, high-quality `business.json`
+- **Feels** conversational (ChatGPT-like), **behaves** as a guided, schema-backed engine.
+- **Never** expose raw schema keys or internal field names to end users in copy.
 
 ---
 
-## **If continuing in a new chat:**
+## Current status (honest)
 
-Start with:
+**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners.
 
-“We are working on SiteForge Factory using the Intake V2 Manifest (Blueprint \+ Planner system). Help me implement \[component\].”
+**Monitor:** `fallback_rate`, scope violations, repetition stalls, GBP/preflight depth.
+
+**Weak areas:** GBP reliability, preflight depth, competitive gap surfacing (productized), copy variance under fallback.
 
 ---
 
+## Phases (order matters)
+
+1. **Engine hardening (current):** stabilize fallback rate, reduce scope violations, **no loop regressions** on conversion fields (`booking_url`, etc.).
+2. **Intelligence tuning:** LLM phrasing quality, fewer fallbacks, tone.
+3. **Preflight expansion:** richer competitive intelligence, gaps, patterns.
+4. **Consultative AI:** surface opportunities, reinforce positioning (on top of non-owning reinforcement).
+5. **Premium output:** hero/copy/narrative quality.
+6. **Client UX:** UI polish, answer refinement loops, preview iteration.
+
+---
+
+## Hard rules (reinforced)
+
+- No multi-field questions.
+- No AI-owned field selection (planner + contract own progression).
+- No industry hardcoding for logic.
+- No “patch the symptom” without fixing contract/renderer/observability.
+- Blueprint + `primary_field` remain source of truth for turn intent.
+- **Determinism before intelligence; observability before tuning.**
+
+---
+
+## End state
+
+A system that **thinks like a strategist** (within guardrails) and **executes like an engine**: valid structure, measurable behavior, consultative surface.
+
+---
+
+## New chat handoff line
+
+> We’re building SiteForge Factory per **`manifest.md` v2.2** (blueprint + planner + controlled renderer). Next task: [describe]. Check primary field contract, renderer scope, and `turn_debug` / fallback rate if behavior looks wrong.

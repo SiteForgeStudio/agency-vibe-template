@@ -318,6 +318,44 @@ function safeStrategy(reconData) {
   return {};
 }
 
+/** Preflight API may nest row fields under recon_snapshot or place them on the root. */
+function reconPayloadRoot(reconData) {
+  const r = isObject(reconData) ? reconData : {};
+  if (isObject(r.recon_snapshot) && Object.keys(r.recon_snapshot).length) {
+    return r.recon_snapshot;
+  }
+  return r;
+}
+
+/** Parse Apps Script JSON columns that arrive as stringified JSON. */
+function safeParseJsonString(raw) {
+  if (raw == null) return null;
+  if (isObject(raw) && !Array.isArray(raw)) return raw;
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return isObject(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function clipText(value, maxLen) {
+  const s = cleanString(value);
+  if (!s) return "";
+  if (s.length <= maxLen) return s;
+  return `${s.slice(0, Math.max(0, maxLen - 1))}…`;
+}
+
+function entityProfilePositioningHint(ep) {
+  if (!isObject(ep)) return "";
+  const cat = cleanString(ep.primary_category);
+  const arch = cleanString(ep.strategic_archetype);
+  const bm = cleanString(ep.business_model);
+  const parts = [cat, arch || bm].filter(Boolean);
+  return parts.join(" · ");
+}
+
 function normalizeCategory(value) {
   const raw = cleanString(value).toLowerCase();
 
@@ -344,33 +382,109 @@ function normalizeCategory(value) {
 
 /**
  * Normalized strategic payload for intake (validation, not re-discovery).
- * Maps spec fields + competitive_intelligence from strategy_contract or recon root.
+ * Maps spec fields + competitive_intelligence from strategy_contract, recon blobs
+ * (`preflight_strategy_json`, `buyer_intelligence_json`, `entity_profile_json`), and seeded answers.
  * @see docs/PREFLIGHT_OUTPUT_SPEC_V1.md
  */
 function buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers) {
   const strategyObj = isObject(strategy) ? strategy : {};
   const recon = isObject(reconData) ? reconData : {};
+  const blob = reconPayloadRoot(reconData);
   const seeded = isObject(seededAnswers) ? seededAnswers : {};
+
+  const ps = safeParseJsonString(blob.preflight_strategy_json);
+  const bi = safeParseJsonString(blob.buyer_intelligence_json);
+  const ep = safeParseJsonString(blob.entity_profile_json);
+
+  const clientPreview = isObject(ps?.client_preview) ? ps.client_preview : {};
+  const internal = isObject(ps?.internal_strategy) ? ps.internal_strategy : {};
+  const aeoAngles = uniqueList(cleanList(internal.aeo_angles));
+
   const ci = isObject(strategyObj.competitive_intelligence)
     ? strategyObj.competitive_intelligence
     : isObject(recon.competitive_intelligence)
       ? recon.competitive_intelligence
-      : {};
+      : isObject(ps?.competitive_intelligence)
+        ? ps.competitive_intelligence
+        : {};
+
+  const summary = cleanString(clientPreview.summary);
+  const opportunityFromPreview = cleanString(clientPreview.opportunity);
+  const salesPreview = cleanString(clientPreview.sales_preview);
+  const nextStepTeaser = cleanString(clientPreview.next_step_teaser);
+  const recommendedFromPreview = cleanList(clientPreview.recommended_focus);
+
+  const buyerFromIntel = cleanList(bi?.decision_factors);
+  const objectionsFromIntel = cleanList(bi?.common_objections);
+  const trustMarkers = cleanList(bi?.trust_markers);
+  const redFlags = cleanList(bi?.red_flags_customers_avoid);
+
+  const winning_angle = firstNonEmpty([
+    cleanString(ci.winning_local_angle),
+    aeoAngles[0] || "",
+    summary ? clipText(summary, 260) : ""
+  ]);
+
+  const differentiation_hypothesis = firstNonEmpty([
+    cleanString(ci.differentiation_hypothesis),
+    summary ? clipText(summary, 420) : ""
+  ]);
+
+  const positioning = firstNonEmpty([
+    cleanString(ci.differentiation_hypothesis),
+    summary ? clipText(summary, 360) : "",
+    entityProfilePositioningHint(ep),
+    cleanString(seeded.business_understanding),
+    cleanString(strategyObj.business_context?.differentiation)
+  ]);
+
+  const opportunity = firstNonEmpty([
+    opportunityFromPreview,
+    cleanString(seeded.opportunity),
+    cleanString(strategyObj.business_context?.opportunity)
+  ]);
+
+  const website_direction = firstNonEmpty([
+    salesPreview,
+    nextStepTeaser,
+    cleanString(seeded.website_direction),
+    cleanString(strategyObj.site_structure?.future_dynamic_vibe_hint)
+  ]);
+
+  const buyer_factors = uniqueList([
+    ...cleanList(ci.buyer_comparison_factors),
+    ...buyerFromIntel
+  ]);
+
+  const weaknesses = uniqueList([
+    ...cleanList(ci.competitor_weaknesses),
+    ...objectionsFromIntel,
+    ...redFlags
+  ]);
+
+  const local_alternatives = uniqueList(cleanList(ci.local_alternatives));
+
+  const recommended_focus = recommendedFromPreview.length
+    ? recommendedFromPreview
+    : uniqueList(cleanList(seeded.recommended_focus));
 
   return compactObject({
-    positioning: firstNonEmpty([
-      cleanString(ci.differentiation_hypothesis),
-      cleanString(seeded.business_understanding),
-      cleanString(strategyObj.business_context?.differentiation)
+    positioning,
+    opportunity,
+    website_direction,
+    winning_angle,
+    buyer_factors,
+    weaknesses,
+    differentiation_hypothesis,
+    local_alternatives,
+    recommended_focus,
+    trust_markers: trustMarkers,
+    common_objections: objectionsFromIntel,
+    target_persona_hint: firstNonEmpty([
+      cleanString(strategyObj.audience_model?.primary_persona),
+      cleanString(strategyObj.audience_model?.primary_audience),
+      entityProfilePositioningHint(ep)
     ]),
-    opportunity: cleanString(seeded.opportunity),
-    website_direction: cleanString(seeded.website_direction),
-    winning_angle: cleanString(ci.winning_local_angle),
-    buyer_factors: cleanList(ci.buyer_comparison_factors),
-    weaknesses: cleanList(ci.competitor_weaknesses),
-    differentiation_hypothesis: cleanString(ci.differentiation_hypothesis),
-    local_alternatives: cleanList(ci.local_alternatives),
-    recommended_focus: cleanList(seeded.recommended_focus),
     google_presence_insight: cleanString(seeded.google_presence_insight),
     spec_version: "PREFLIGHT_OUTPUT_SPEC_V1"
   });
