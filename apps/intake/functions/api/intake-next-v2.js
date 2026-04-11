@@ -2415,6 +2415,65 @@ function appendReinforcementToAssistantMessage(reinforcement, assistantMessage) 
  * Preflight → intake bridge: one short framing note for the LLM (same primary_field only).
  * @see docs/PREFLIGHT_OUTPUT_SPEC_V1.md
  */
+/**
+ * Short opening clause for **deterministic** questions when LLM output is skipped.
+ * Must stay on-topic for primary_field (no "Ask ONLY" / meta — that's LLM-only).
+ */
+function userFacingDeterministicLead(bundleId, primaryField, pi) {
+  if (!isObject(pi)) return "";
+  const b = cleanString(bundleId);
+  const pf = cleanString(primaryField);
+  const buyers = cleanList(pi.buyer_factors);
+  const weak = cleanList(pi.weaknesses);
+  const pos = cleanString(pi.positioning);
+  const opp = cleanString(pi.opportunity);
+  const angle = cleanString(pi.winning_angle);
+  const hyp = cleanString(pi.differentiation_hypothesis);
+  const alts = cleanList(pi.local_alternatives);
+
+  if (pf === "pricing" && buyers.length) {
+    return `Buyers in your space often weigh ${buyers.slice(0, 4).join(", ")}. `;
+  }
+  if (pf === "pricing" && !buyers.length && opp) {
+    return `${truncate(opp, 180)} `;
+  }
+  if (pf === "target_persona" && angle) {
+    return `You may show up strongest when positioned as: ${truncate(angle, 200)} `;
+  }
+  if (pf === "differentiation" && hyp) {
+    return `Here's a working differentiation angle to react to: ${truncate(hyp, 220)} `;
+  }
+  if (pf === "primary_offer" && pos) {
+    return `${truncate(pos, 200)} `;
+  }
+  if ((pf === "review_quotes" || pf === "trust_signal") && weak.length) {
+    return `Buyers in this space sometimes worry about: ${weak.slice(0, 3).join("; ")}. `;
+  }
+  if (pf === "comparison" && (alts.length || weak.length)) {
+    const parts = [];
+    if (alts.length) parts.push(`nearby alternatives include ${alts.slice(0, 2).join(", ")}`);
+    if (weak.length) parts.push(`common concerns include ${weak.slice(0, 2).join("; ")}`);
+    if (parts.length) return `${parts.join("; ")}. `;
+  }
+  if ((pf === "faq_angles" || b === "objection_handling") && buyers.length) {
+    return `Before someone commits, they often weigh: ${buyers.slice(0, 4).join(", ")}. `;
+  }
+  if (pf === "process_summary" && cleanString(pi.website_direction)) {
+    return `For the site journey we're considering: ${truncate(cleanString(pi.website_direction), 180)} `;
+  }
+  return "";
+}
+
+function buildDeterministicQuestionWithPreflight(plan, blueprint, businessName, preflightIntelligence) {
+  const base = buildDeterministicQuestion(plan, blueprint, businessName);
+  const lead = userFacingDeterministicLead(
+    cleanString(plan?.bundle_id),
+    cleanString(plan?.primary_field),
+    preflightIntelligence
+  );
+  return lead ? `${lead}${base}` : base;
+}
+
 function buildPreflightBridgeFraming(bundleId, primaryField, pi) {
   if (!isObject(pi)) return "";
   const pf = cleanString(primaryField);
@@ -2601,7 +2660,12 @@ async function renderNextQuestion({
     }
   }
 
-  const fallback = buildDeterministicQuestion(adjustedPlan, blueprint, businessName);
+  const fallback = buildDeterministicQuestionWithPreflight(
+    adjustedPlan,
+    blueprint,
+    businessName,
+    preflightIntelligence
+  );
 
   const primaryFieldScopedHint = getPrimaryFieldScopedHint(
     cleanString(adjustedPlan.bundle_id),
