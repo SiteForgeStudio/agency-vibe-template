@@ -186,7 +186,9 @@ Minimum fields emitted today:
 
 **Execution path (locked):** Knowing *how* someone should convert (e.g. `booking_method`: `call`) is not enough. The site must have the **facts to perform** that path — e.g. phone-forward methods require a real **`phone`** value; online-booking methods require a real **booking URL** (not only `manual` / no-link sentinels). Bare `manual` is treated separately so email-only flows can still validate. Implemented in `evaluateExecutionPathForAccess` / `requiresPublishedPhoneForExecution`.
 
-**Inference inputs:** `booking_method`, `strategy.business_context` (category, archetype, description when present), key facts (`primary_offer`, `business_understanding`), `preflight_intelligence`, and existing address / `service_area_main` when already captured.
+**Preflight precedence:** When `strategy.business_context.business_model` (from entity profile / contract) is set, it **overrides** heuristic inference — e.g. **`storefront` → `local_physical`** (address + hours required) even if a `service_area` list exists for marketing copy. Mapping: `storefront`→local_physical, `service_area`→local_service_area, `online`→virtual_remote, `hybrid`→hybrid, `destination`→hybrid.
+
+**Heuristic inference (fallback):** `booking_method`, `strategy.business_context` (category, archetype, description when present), key facts (`primary_offer`, `business_understanding`), `preflight_intelligence`, and existing address / `service_area_main` when preflight model is absent.
 
 **Blueprint:** `blueprint.access_readiness` — `{ model, satisfied, score, checks, missing_focus_id, planner_hint }`.  
 `planner_hint.decision_boost` nudges the next bundle (`contact_details` | `service_area` | `conversion`) when something is still missing.

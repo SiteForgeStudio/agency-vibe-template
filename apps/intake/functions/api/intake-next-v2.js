@@ -209,7 +209,9 @@ export async function onRequestPost(context) {
       access_model: ar?.model ?? null,
       access_satisfied: ar?.satisfied ?? null,
       access_score: ar?.score ?? null,
-      access_planner_hint: ar?.planner_hint ?? null
+      access_planner_hint: ar?.planner_hint ?? null,
+      access_model_source: ar?.access_model_source ?? null,
+      business_model_signal: ar?.business_model_signal ?? null
     };
 
     // Persist asked-question history for future stall detection
@@ -1950,10 +1952,34 @@ function buildVerificationQueue({ blueprint, state }) {
 
 /** @typedef {"local_physical"|"local_service_area"|"virtual_remote"|"hybrid"} AccessModelKey */
 
+/**
+ * Preflight `entity_profile.business_model` / strategy `business_context.business_model` wins over
+ * heuristics (e.g. seeded `service_area` must not downgrade a storefront to service-area-only).
+ * @see preflight-recon entity_profile.business_model enum
+ */
+function mapPreflightBusinessModelToAccessModel(raw) {
+  const m = cleanString(raw).toLowerCase().replace(/\s+/g, "_");
+  if (!m) return null;
+  if (m === "storefront" || m.includes("storefront")) return "local_physical";
+  if (m === "service_area" || m === "service-area") return "local_service_area";
+  if (m === "online") return "virtual_remote";
+  if (m === "hybrid") return "hybrid";
+  if (m === "destination") return "hybrid";
+  return null;
+}
+
 function inferAccessModel(blueprint, state) {
   const fr = safeObject(blueprint?.fact_registry);
   const strategy = safeObject(blueprint?.strategy);
   const bc = safeObject(strategy.business_context);
+  const provenanceBc = safeObject(state?.provenance?.strategy_contract?.business_context);
+  const preflightBm = firstNonEmpty([
+    cleanString(bc.business_model),
+    cleanString(provenanceBc.business_model)
+  ]);
+  const fromPreflight = mapPreflightBusinessModelToAccessModel(preflightBm);
+  if (fromPreflight) return fromPreflight;
+
   const cat = cleanString(bc.category).toLowerCase();
   const arch = cleanString(bc.strategic_archetype).toLowerCase();
   const pi = safeObject(state?.preflight_intelligence);
@@ -2161,6 +2187,14 @@ function buildAccessPlannerHint(access) {
 
 function computeAccessReadiness(blueprint, state) {
   const fr = safeObject(blueprint.fact_registry);
+  const bc = safeObject(blueprint?.strategy?.business_context);
+  const provenanceBc = safeObject(state?.provenance?.strategy_contract?.business_context);
+  const businessModelSignal = firstNonEmpty([
+    cleanString(bc.business_model),
+    cleanString(provenanceBc.business_model)
+  ]);
+  const preflightMapped = mapPreflightBusinessModelToAccessModel(businessModelSignal);
+
   const model = inferAccessModel(blueprint, state);
   const sat = evaluateAccessSatisfaction(fr, model);
   const planner_hint = buildAccessPlannerHint({ ...sat, model, satisfied: sat.satisfied });
@@ -2172,7 +2206,9 @@ function computeAccessReadiness(blueprint, state) {
     score: sat.score,
     checks: sat.checks,
     missing_focus_id: sat.missing_focus_id,
-    planner_hint
+    planner_hint,
+    business_model_signal: businessModelSignal || null,
+    access_model_source: preflightMapped ? "preflight_business_model" : "inferred"
   };
 }
 
@@ -2436,7 +2472,9 @@ function computePremiumReadinessEngine(blueprint) {
           model: access.model,
           score: access.score,
           missing_focus_id: access.missing_focus_id || null,
-          planner_hint: access.planner_hint || null
+          planner_hint: access.planner_hint || null,
+          business_model_signal: access.business_model_signal || null,
+          access_model_source: access.access_model_source || null
         }
       : null,
     summary: {
