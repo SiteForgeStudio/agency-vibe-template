@@ -3034,46 +3034,107 @@ const PRICING_BRIDGE_INSTRUCTION =
   "Ask ONLY how pricing or quoting works for their work (one topic; no booking channel or URL).";
 
 /**
- * Consultative context for the pricing slot: layers positioning → weaknesses → differentiation_hypothesis
- * → buyer_factors → opportunity. Does not add a second question; the deterministic/rephrase body stays one-field.
+ * One opinionated framing sentence for pricing: competitor weaknesses, local alternatives, buyer tradeoffs,
+ * then wedge/hypothesis — generic buyer lists last. Full sentence is built first, then truncated once (caller
+ * may truncate again to narrative maxChars). Tone stays client-facing, not internal strategy jargon.
  */
-function buildPricingPreflightNarrative(pi, { maxChars = 400, withPricingInstruction = false } = {}) {
+function buildPricingFramingSentence(pi) {
   if (!isObject(pi)) return "";
-  const pos = cleanString(pi.positioning);
-  const hyp = cleanString(pi.differentiation_hypothesis);
+  /** One truncation per sentence (full text first); narrative may truncate again to its budget. */
+  const frame = (sentence, max = 340) => truncate(cleanString(sentence), max);
   const weak = cleanList(pi.weaknesses)
     .map((w) => cleanString(w))
     .filter(Boolean);
   const buyers = cleanList(pi.buyer_factors)
     .map((x) => cleanString(x))
     .filter(Boolean);
+  const alts = cleanList(pi.local_alternatives)
+    .map((a) => cleanString(a))
+    .filter(Boolean);
+  const focus = cleanList(pi.recommended_focus)
+    .map((f) => cleanString(f))
+    .filter(Boolean);
+  const hyp = cleanString(pi.differentiation_hypothesis);
+  const pos = cleanString(pi.positioning);
   const opp = cleanString(pi.opportunity);
+  const angle = cleanString(pi.winning_angle);
 
-  const sentences = [];
-
-  if (pos) {
-    sentences.push(`Preflight research suggests this positioning read: ${truncate(pos, 168)}`);
+  if (weak.length && hyp) {
+    return frame(
+      `Buyers feel ${weak[0]}; your pricing should reflect this clearly: ${hyp}.`
+    );
+  }
+  if (weak.length >= 2) {
+    return frame(
+      `The tension is ${weak[0]} versus ${weak[1]} — your quote rules should show which side you own.`
+    );
+  }
+  if (weak.length && buyers.length) {
+    return frame(
+      `They compare on ${buyers.slice(0, 2).join(" and ")} while peers often show ${weak[0]}.`
+    );
   }
   if (weak.length) {
-    sentences.push(`Buyers in this space often navigate concerns such as ${weak.slice(0, 2).join("; ")}`);
+    return frame(
+      `Peers often stumble on ${weak[0]}; spell how you price so that gap is obvious.`
+    );
+  }
+  if (alts.length && hyp) {
+    const vs = alts.slice(0, 2).join(" and ");
+    return frame(
+      `Against ${vs}, this is the kind of value your pricing should communicate: ${hyp}.`
+    );
+  }
+  if (alts.length && buyers.length) {
+    const vs = alts.slice(0, 2).join(" and ");
+    return frame(
+      buyers[1]
+        ? `Versus ${vs}, the tradeoff is ${buyers[0]} versus ${buyers[1]} — quotes should show which side you own.`
+        : `Versus ${vs}, buyers still judge on ${buyers[0]} — make pricing pick a side.`
+    );
+  }
+  if (focus.length >= 2) {
+    return frame(
+      `The pull is between ${focus[0]} and ${focus[1]} — align quotes with the tradeoff you're choosing.`
+    );
+  }
+  if (focus.length) {
+    return frame(`Your quotes should foreground this: ${focus[0]}.`);
   }
   if (hyp) {
-    sentences.push(`A differentiation angle to pressure-test is: ${truncate(hyp, 156)}`);
+    return frame(`Your pricing should reflect this clearly: ${hyp}.`);
   }
-  if (!sentences.length && buyers.length) {
-    sentences.push(`Buyers in this space often weigh ${buyers.slice(0, 4).join(", ")}`);
+  if (alts.length && angle) {
+    const vs = alts[0];
+    return frame(
+      `You win locally when ${angle} — how do your quotes usually reflect that compared to ${vs}?`
+    );
   }
-  if (!sentences.length && opp) {
-    sentences.push(truncate(opp, 220));
+  if (angle) {
+    return frame(`You win locally when ${angle} — align quotes with that promise.`);
   }
-  if (!sentences.length) return "";
+  if (pos) {
+    return frame(`Against generic options, the read is ${pos} — make quoting match that stance.`);
+  }
+  if (buyers.length) {
+    return frame(
+      `Buyers weigh ${buyers.slice(0, 3).join(", ")} — clarify how your quotes work.`
+    );
+  }
+  if (opp) {
+    return frame(opp, 220);
+  }
+  return "";
+}
 
-  let body = sentences.map((s) => (/\.\s*$/.test(s.trim()) ? s.trim() : `${s.trim()}.`)).join(" ");
-
+/**
+ * Consultative context for the pricing slot: **one** framing sentence + optional instruction tail.
+ * Does not add a second question; the deterministic/rephrase body stays one-field.
+ */
+function buildPricingPreflightNarrative(pi, { maxChars = 400, withPricingInstruction = false } = {}) {
   const tail = withPricingInstruction ? ` ${PRICING_BRIDGE_INSTRUCTION}` : "";
-  const budget = withPricingInstruction ? Math.max(140, maxChars - tail.length) : maxChars;
-  body = truncate(body, budget) + tail;
-
+  const budget = Math.max(80, maxChars - tail.length);
+  const body = truncate(buildPricingFramingSentence(pi), budget) + tail;
   return body.trim();
 }
 
