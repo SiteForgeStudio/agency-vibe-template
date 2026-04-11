@@ -1,4 +1,4 @@
-# SiteForge Factory — Intake & Preflight Manifest **v2.2** (April 2026)
+# SiteForge Factory — Intake & Preflight Manifest **v2.3** (April 2026)
 
 Use this file as the **handoff anchor** for architecture, constraints, and phase order. Implementation details live in code and in `docs/PREFLIGHT_OUTPUT_SPEC_V1.md` (preflight → intake handoff shape).
 
@@ -21,12 +21,14 @@ intake-start-v2.js  (blueprint + fact seed from preflight)
     ↓
 intake-next-v2.js   (controlled refinement engine; endpoint bills as v2.1)
     ↓
-intake-complete / readiness gates
+intake-complete.js  (readiness + enrichment gates → assemble business_json)
+    ↓
+factory-synthesis.js (vibe + hero/gallery image signals; final taste layer)
     ↓
 submit → GitHub → Astro → Netlify preview
 ```
 
-**Code references:** `apps/intake/functions/api/intake-start-v2.js`, `apps/intake/functions/api/intake-next-v2.js`.
+**Code references:** `apps/intake/functions/api/intake-start-v2.js`, `apps/intake/functions/api/intake-next-v2.js`, `apps/intake/functions/api/intake-complete.js`, `apps/intake/functions/utils/factory-synthesis.js`.
 
 ---
 
@@ -170,6 +172,25 @@ Minimum fields emitted today:
 
 ---
 
+## Factory synthesis (final `business_json` taste layer)
+
+**Role:** After narrative readiness and enrichment pass, **intake-complete** assembles schema-valid output; **factory-synthesis** is the dedicated module for **vibe resolution** and **image-search intelligence** (hero + gallery) so `intake-complete.js` stays an orchestrator, not a pile of ad hoc branches.
+
+| Piece | Location | Responsibility |
+|--------|-----------|----------------|
+| **Synthesis logic** | `apps/intake/functions/utils/factory-synthesis.js` | `selectVibe` (contract enum → style-signal blob → deterministic hash on opaque `strategic_archetype`), `buildHeroImageQuery`, `buildFallbackGalleryQueries`, `inferPremiumGalleryCount`, `galleryLayoutFromSignals` |
+| **Execution + guards** | `apps/intake/functions/api/intake-complete.js` | Builds `business_json`, runs `ensureInspirationQueries`, **`assertFactorySynthesisGuards`** (missing/invalid vibe or hero query → hard error; no silent failure) |
+
+**Rules (locked with “no industry hardcoding”):**
+
+- Derive keywords and queries from **`strategy_contract`** (e.g. `visual_strategy.recommended_vibe`, `asset_policy.preferred_image_themes`, opaque archetype slug) plus **intake answers** (offer, area, tone, differentiation), not from vertical-specific `if (category === …)` tables.
+- **Style vocabulary** (luxury, zen, heritage, industrial, …) may score **signal blobs**; arbitrary industries do not get bespoke query strings.
+- Gallery **layout** uses theme richness + stable hash on archetype; **count** uses themes, photo hints, and hash — not category name heuristics.
+
+**Do not** move this into `intake-next-v2` (planner/renderer path) or ask the end user for “vibe” as a separate step; synthesis is **post-facts**, pre-submit.
+
+---
+
 ## Testing
 
 - **Intake:** `scripts/intake-runner/` — scripted or interactive session, logs state and `turn_debug`.
@@ -188,7 +209,7 @@ Minimum fields emitted today:
 
 ## Current status (honest)
 
-**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners.
+**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners, **factory-synthesis** on intake-complete (vibe + image queries + gallery layout/count without industry branching).
 
 **Monitor:** `fallback_rate`, scope violations, repetition stalls, GBP/preflight depth.
 
@@ -226,4 +247,4 @@ A system that **thinks like a strategist** (within guardrails) and **executes li
 
 ## New chat handoff line
 
-> We’re building SiteForge Factory per **`manifest.md` v2.2** (blueprint + planner + controlled renderer). Next task: [describe]. Check primary field contract, renderer scope, and `turn_debug` / fallback rate if behavior looks wrong.
+> We’re building SiteForge Factory per **`manifest.md` v2.3** (blueprint + planner + controlled renderer + **factory-synthesis** on intake-complete). Next task: [describe]. Check primary field contract, renderer scope, `turn_debug` / fallback rate, and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.

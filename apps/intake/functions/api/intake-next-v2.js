@@ -183,6 +183,7 @@ export async function onRequestPost(context) {
 
     const answeredPf = cleanString(currentPlan.primary_field);
     const pr = state.blueprint.premium_readiness;
+    const ar = state.blueprint.access_readiness;
     state.turn_debug = {
       answered_primary_field: answeredPf || null,
       primary_satisfied_after_answer: answeredPf
@@ -204,7 +205,11 @@ export async function onRequestPost(context) {
       reinforcement_type: state.reinforcement ? "alignment" : null,
       reinforcement_source: state.reinforcement?.source ?? null,
       premium_next_unlock: pr?.next_unlock || null,
-      premium_avg_score: pr?.summary?.avg_score ?? null
+      premium_avg_score: pr?.summary?.avg_score ?? null,
+      access_model: ar?.model ?? null,
+      access_satisfied: ar?.satisfied ?? null,
+      access_score: ar?.score ?? null,
+      access_planner_hint: ar?.planner_hint ?? null
     };
 
     // Persist asked-question history for future stall detection
@@ -1231,13 +1236,15 @@ function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastA
     state
   });
 
+  nextBlueprint.access_readiness = computeAccessReadiness(nextBlueprint, state);
   nextBlueprint.premium_readiness = computePremiumReadinessEngine(nextBlueprint);
 
   nextBlueprint.question_candidates = buildQuestionCandidates({
     blueprint: nextBlueprint,
     schemaGuide,
     previousPlan,
-    lastAudit
+    lastAudit,
+    state
   });
 
 const nextQuestionPlan = planNextQuestion(
@@ -1936,6 +1943,205 @@ function buildVerificationQueue({ blueprint, state }) {
   return queue.sort((a, b) => b.priority - a.priority);
 }
 
+/* ========================================================================
+ * Access model (how customers reach / engage: physical + service area + contact)
+ * Gate: access completeness before premium optimization.
+ * ======================================================================== */
+
+/** @typedef {"local_physical"|"local_service_area"|"virtual_remote"|"hybrid"} AccessModelKey */
+
+function inferAccessModel(blueprint, state) {
+  const fr = safeObject(blueprint?.fact_registry);
+  const strategy = safeObject(blueprint?.strategy);
+  const bc = safeObject(strategy.business_context);
+  const cat = cleanString(bc.category).toLowerCase();
+  const arch = cleanString(bc.strategic_archetype).toLowerCase();
+  const pi = safeObject(state?.preflight_intelligence);
+  const bm = cleanString(fr.booking_method?.value).toLowerCase().replace(/\s+/g, "_");
+
+  const blob = [
+    cat,
+    arch,
+    cleanString(fr.primary_offer?.value),
+    cleanString(fr.business_understanding?.value),
+    cleanString(pi?.positioning),
+    cleanString(pi?.opportunity),
+    cleanString(bc.business_description),
+    cleanString(bc.summary)
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const hasAddr = isFactComplete(fr.address);
+  const hasMainGeo = isFactComplete(fr.service_area_main);
+
+  if (bm.includes("virtual") || /\bremote\b|\bvirtual\b/.test(arch)) {
+    return "virtual_remote";
+  }
+  if (
+    /\b(coach|consulting|agency|freelance|online)\b/.test(cat) ||
+    /\b(coach|consultant|advisor)\b/.test(blob)
+  ) {
+    return "virtual_remote";
+  }
+
+  if (
+    /\b(mobile|field)\b/.test(arch) ||
+    blob.includes("we come to you") ||
+    blob.includes("come to your") ||
+    /\bserving\b/.test(blob) ||
+    (blob.includes("mobile") && blob.includes("service"))
+  ) {
+    return "local_service_area";
+  }
+
+  if (
+    /\b(gallery|salon|retail|restaurant|storefront|framing)\b/.test(cat) ||
+    blob.includes("visit us") ||
+    blob.includes("our location") ||
+    blob.includes("walk-in")
+  ) {
+    return "local_physical";
+  }
+
+  if (
+    (blob.includes("studio") || blob.includes("gallery")) &&
+    (blob.includes("online") || blob.includes("book online") || blob.includes("schedule online"))
+  ) {
+    return "hybrid";
+  }
+
+  if (hasAddr && hasMainGeo) return "hybrid";
+  if (hasAddr) return "local_physical";
+  if (hasMainGeo) return "local_service_area";
+
+  return "hybrid";
+}
+
+function evaluateAccessSatisfaction(fr, model) {
+  const hasAddr = isFactComplete(fr.address);
+  const hasHours = isFactComplete(fr.hours);
+  const hasPhone = isFactComplete(fr.phone);
+  const hasEmail = isFactComplete(fr.email);
+  const hasMain = isFactComplete(fr.service_area_main);
+  const hasSurround =
+    (Array.isArray(fr.surrounding_cities?.value) && fr.surrounding_cities.value.length > 0) ||
+    ensureArrayStrings(fr.service_area_list?.value).length > 1;
+  const hasReach = hasPhone || hasEmail;
+  const contactPathOk = isFieldSatisfied("contact_path", fr);
+  const bookingUrlOk = isFieldSatisfied("booking_url", fr);
+
+  let checks = [];
+  let satisfied = false;
+
+  switch (model) {
+    case "local_physical":
+      checks = [
+        { id: "address", ok: hasAddr },
+        { id: "hours", ok: hasHours }
+      ];
+      satisfied = hasAddr && hasHours;
+      break;
+    case "local_service_area":
+      checks = [
+        { id: "service_area_main", ok: hasMain },
+        {
+          id: "reach_or_path",
+          ok: hasReach || contactPathOk || bookingUrlOk
+        }
+      ];
+      satisfied = hasMain && (hasReach || contactPathOk || bookingUrlOk);
+      break;
+    case "virtual_remote":
+      checks = [{ id: "digital_reach", ok: hasEmail || contactPathOk || bookingUrlOk }];
+      satisfied = !!(hasEmail || contactPathOk || bookingUrlOk);
+      break;
+    case "hybrid":
+    default:
+      checks = [
+        {
+          id: "location_or_geo",
+          ok: hasAddr || hasMain || hasSurround
+        },
+        {
+          id: "action_path",
+          ok: contactPathOk || bookingUrlOk || hasReach
+        }
+      ];
+      satisfied = (hasAddr || hasMain || hasSurround) && (contactPathOk || bookingUrlOk || hasReach);
+      break;
+  }
+
+  const score = checks.length ? checks.filter((c) => c.ok).length / checks.length : 0;
+  const failed = checks.find((c) => !c.ok);
+  return {
+    satisfied,
+    score: Number(score.toFixed(3)),
+    checks,
+    missing_focus_id: failed?.id || null
+  };
+}
+
+function buildAccessPlannerHint(access) {
+  if (!access || access.satisfied) return null;
+  const id = cleanString(access.missing_focus_id);
+  const map = {
+    address: "contact_details",
+    hours: "contact_details",
+    service_area_main: "service_area",
+    reach_or_path: "conversion",
+    digital_reach: "conversion",
+    action_path: "conversion",
+    location_or_geo: "service_area"
+  };
+  return {
+    missing_focus_id: id || null,
+    decision_boost: map[id] || "contact_details"
+  };
+}
+
+function computeAccessReadiness(blueprint, state) {
+  const fr = safeObject(blueprint.fact_registry);
+  const model = inferAccessModel(blueprint, state);
+  const sat = evaluateAccessSatisfaction(fr, model);
+  const planner_hint = buildAccessPlannerHint({ ...sat, model, satisfied: sat.satisfied });
+
+  return {
+    spec_version: 1,
+    model,
+    satisfied: sat.satisfied,
+    score: sat.score,
+    checks: sat.checks,
+    missing_focus_id: sat.missing_focus_id,
+    planner_hint
+  };
+}
+
+function applyAccessGateToConversionFields(decision, fields, accessReadiness) {
+  const list = cleanList(fields);
+  if (!accessReadiness || accessReadiness.satisfied) return list;
+  if (cleanString(decision) !== "conversion") return list;
+  if (!list.includes("pricing")) return list;
+  return [...list.filter((f) => f !== "pricing"), "pricing"];
+}
+
+/** Facts that satisfy “access” (reach / place / geo) — used to gate planner when access_readiness is not satisfied. */
+const ACCESS_GATE_PRIMARY_FIELDS = new Set([
+  "booking_method",
+  "booking_url",
+  "contact_path",
+  "phone",
+  "email",
+  "address",
+  "hours",
+  "service_area_main",
+  "surrounding_cities"
+]);
+
+function isAccessPrimaryField(fieldKey) {
+  return ACCESS_GATE_PRIMARY_FIELDS.has(cleanString(fieldKey));
+}
+
 /** Per-component urgency when choosing what to unlock next (higher = prioritize intake toward this). */
 const PREMIUM_COMPONENT_WEIGHTS = {
   contact: 1,
@@ -2090,10 +2296,19 @@ function scoreComparisonPremium(fr) {
   return isFactComplete(fr.comparison) ? 0.9 : 0;
 }
 
-function pickNextPremiumUnlock(components) {
+function pickNextPremiumUnlock(components, accessReadiness) {
+  let pool = components;
+  if (accessReadiness && accessReadiness.satisfied === false) {
+    pool = {};
+    for (const k of ["contact", "service_area"]) {
+      if (components[k]) pool[k] = components[k];
+    }
+    if (!Object.keys(pool).length) pool = components;
+  }
+
   let best = null;
   let bestUrgency = -1;
-  for (const [id, row] of Object.entries(components)) {
+  for (const [id, row] of Object.entries(pool)) {
     const w = PREMIUM_COMPONENT_WEIGHTS[id] || 0.32;
     const gap = 1 - Number(row.score || 0);
     const urgency = gap * w;
@@ -2117,6 +2332,7 @@ function pickNextPremiumUnlock(components) {
 function computePremiumReadinessEngine(blueprint) {
   const fr = safeObject(blueprint.fact_registry);
   const draft = safeObject(blueprint.business_draft);
+  const access = blueprint.access_readiness;
 
   const components = {
     hero: { score: scoreHeroPremium(fr, draft), missing: [] },
@@ -2137,7 +2353,7 @@ function computePremiumReadinessEngine(blueprint) {
     row.tier = premiumTierFromScore(row.score);
   }
 
-  const next_unlock = pickNextPremiumUnlock(components);
+  const next_unlock = pickNextPremiumUnlock(components, access);
   const ordered = Object.entries(components)
     .map(([id, row]) => ({
       component: id,
@@ -2155,9 +2371,20 @@ function computePremiumReadinessEngine(blueprint) {
     components,
     next_unlock,
     ordered_by_impact: ordered,
+    access_gate: access
+      ? {
+          satisfied: !!access.satisfied,
+          model: access.model,
+          score: access.score,
+          missing_focus_id: access.missing_focus_id || null,
+          planner_hint: access.planner_hint || null
+        }
+      : null,
     summary: {
       avg_score: Number(avg.toFixed(3)),
-      weakest: ordered[0] || null
+      weakest: ordered[0] || null,
+      access_satisfied: access ? !!access.satisfied : true,
+      access_model: access?.model || null
     }
   };
 }
@@ -2181,29 +2408,42 @@ function premiumUnlockBoostForDecision(decision, premiumReadiness) {
   return Math.round(Math.min(96, boost));
 }
 
-function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
+function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) {
   const candidates = [];
   const decisionStates = safeObject(blueprint.decision_states);
   const factRegistry = safeObject(blueprint.fact_registry);
   const componentStates = safeObject(blueprint.component_states);
-  const premiumReadiness = blueprint.premium_readiness || computePremiumReadinessEngine(blueprint);
+  const accessReadiness = blueprint.access_readiness || computeAccessReadiness(blueprint, state);
+  const premiumReadiness =
+    blueprint.premium_readiness ||
+    computePremiumReadinessEngine({ ...blueprint, access_readiness: accessReadiness });
   const questionHistory = Array.isArray(blueprint.question_history) ? blueprint.question_history : [];
   const askedTurns = questionHistory.length;
-  const conversionUnresolvedCount = cleanList(getDecisionTargets()?.conversion?.target_fields)
-    .filter((field) => Object.prototype.hasOwnProperty.call(factRegistry, field))
-    .filter((field) => !isFieldSatisfied(field, factRegistry)).length;
+  const conversionTargetFieldsOrdered = applyAccessGateToConversionFields(
+    "conversion",
+    cleanList(getDecisionTargets()?.conversion?.target_fields).filter((field) =>
+      Object.prototype.hasOwnProperty.call(factRegistry, field)
+    ),
+    accessReadiness
+  );
+  const conversionUnresolvedCount = conversionTargetFieldsOrdered.filter(
+    (field) => !isFieldSatisfied(field, factRegistry)
+  ).length;
   const decisionTargets = getDecisionTargets();
 
   for (const [decision, config] of Object.entries(decisionTargets)) {
-    const state = decisionStates[decision] || {};
-    const targetFields = cleanList(config.target_fields).filter((field) => Object.prototype.hasOwnProperty.call(factRegistry, field));
+    const decisionState = decisionStates[decision] || {};
+    const rawTargetFields = cleanList(config.target_fields).filter((field) =>
+      Object.prototype.hasOwnProperty.call(factRegistry, field)
+    );
+    const targetFields = applyAccessGateToConversionFields(decision, rawTargetFields, accessReadiness);
 
     let unresolvedFields = targetFields.filter((field) => !isFieldSatisfied(field, factRegistry));
     const relatedComponents = cleanList(config.components).filter(
       (component) => componentStates[component]?.enabled || componentStates[component]?.required
     );
 
-    if (!unresolvedFields.length && Number(state.confidence || 0) >= 0.8) continue;
+    if (!unresolvedFields.length && Number(decisionState.confidence || 0) >= 0.8) continue;
 
     // planner-side stall / repetition pivot
     const askedCounts = {};
@@ -2227,25 +2467,51 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
         .concat(stalledFields);
     }
 
+    const nextPrimaryField = cleanString(unresolvedFields[0] || targetFields[0]);
+    if (
+      accessReadiness &&
+      accessReadiness.satisfied === false &&
+      unresolvedFields.length > 0 &&
+      nextPrimaryField &&
+      !isAccessPrimaryField(nextPrimaryField)
+    ) {
+      continue;
+    }
+
     let score = Number(config.base_priority || 100);
     score += premiumUnlockBoostForDecision(decision, premiumReadiness);
+
+    const plannerHint = accessReadiness?.planner_hint;
+    if (accessReadiness && accessReadiness.satisfied === false && plannerHint?.decision_boost === decision) {
+      score += 62;
+    }
+
     score += unresolvedFields.length * 35;
     score += relatedComponents.filter((component) => !componentStates[component]?.draft_ready).length * 18;
     score += relatedComponents.filter((component) => !componentStates[component]?.premium_ready).length * 10;
-    score += Math.round((1 - Number(state.confidence || 0)) * 100);
+    score += Math.round((1 - Number(decisionState.confidence || 0)) * 100);
 
     if (decision === "contact_details" && coreDecisionsStillWeak(decisionStates)) {
-      score -= 140;
+      if (accessReadiness && accessReadiness.satisfied === false) {
+        score += 28;
+      } else {
+        score -= 140;
+      }
     }
 
-    // Strong early anchor: keep focus on conversion until core path is captured.
+    // Early anchor: prefer conversion until core path is captured (softer than hard bundle bans; access gate uses isAccessPrimaryField).
     if (askedTurns < 4 && conversionUnresolvedCount > 0 && decision !== "conversion") {
-      score -= 130;
+      if (accessReadiness && accessReadiness.satisfied === false && (decision === "service_area" || decision === "contact_details")) {
+        // still allow access-critical bundles
+      } else {
+        score -= 52;
+      }
     }
 
     if (decision === "service_area" && coreDecisionsStillWeak(decisionStates)) {
-      // Delay geo details until higher-priority strategic slots stabilize.
-      score -= 90;
+      if (!(accessReadiness && accessReadiness.satisfied === false && accessReadiness.model === "local_service_area")) {
+        score -= 90;
+      }
     }
 
     if (decision === cleanString(previousPlan?.bundle_id)) {
@@ -3322,6 +3588,7 @@ function normalizeBlueprint(blueprint) {
   next.component_states = isObject(next.component_states) ? next.component_states : {};
   next.decision_states = isObject(next.decision_states) ? next.decision_states : {};
   next.premium_readiness = isObject(next.premium_readiness) ? next.premium_readiness : null;
+  next.access_readiness = isObject(next.access_readiness) ? next.access_readiness : null;
   next.evidence_log = Array.isArray(next.evidence_log) ? next.evidence_log : [];
   next.question_history = Array.isArray(next.question_history) ? next.question_history : [];
   return next;
