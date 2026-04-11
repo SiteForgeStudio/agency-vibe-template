@@ -616,9 +616,13 @@ function buildInterpreterSystemPrompt() {
       "call_for_quote",
       "call_to_get_quote",
       "phone_call",
-      "quote_by_phone"
+      "quote_by_phone",
+      "call_us"
     ];
     if (exact.includes(m)) return true;
+    // "call us", "call the shop", "call for an appointment" → call_* (underscore-normalized)
+    if (m.startsWith("call_")) return true;
+    if (m === "phone" || m.startsWith("phone_")) return true;
     if (m.includes("phone") && (m.includes("call") || m.includes("quote"))) return true;
     if (m.includes("call") && m.includes("quote")) return true;
     return false;
@@ -638,6 +642,9 @@ function buildInterpreterSystemPrompt() {
   }
 
   function describesManualBookingNoUrl(lower) {
+    const s = cleanString(lower).toLowerCase().trim();
+    if (!s) return false;
+    if (s === "none" || s === "nope" || s === "nah" || s === "no") return true;
     const signals = [
       "manual",
       "manually",
@@ -655,7 +662,7 @@ function buildInterpreterSystemPrompt() {
       "don't have a link",
       "do not have a link"
     ];
-    return signals.some((sig) => lower.includes(sig));
+    return signals.some((sig) => s.includes(sig));
   }
 
   function isAcceptableBookingUrlFactUpdate(update, rawAnswer) {
@@ -668,7 +675,7 @@ function buildInterpreterSystemPrompt() {
       if (describesManualBookingNoUrl(lower)) return true;
     }
     const fromUser = cleanString(rawAnswer).toLowerCase();
-    if (fromUser && describesManualBookingNoUrl(fromUser)) return true;
+    if (fromUser && (describesManualBookingNoUrl(fromUser) || isBookingUrlNoLinkSentinel(fromUser))) return true;
     if (typeof v === "string" && extractHttpUrlFromText(v)) return true;
     return false;
   }
@@ -823,6 +830,7 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
       const manualSignals = [
         "manual",
         "manually",
+        "none",
         "handled manually",
         "no booking",
         "no booking link",
@@ -1006,7 +1014,7 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
             updated_at: now
           };
           if (!updatedFactKeys.includes("booking_url")) updatedFactKeys.push("booking_url");
-        } else if (describesManualBookingNoUrl(lower)) {
+        } else if (describesManualBookingNoUrl(lower) || isBookingUrlNoLinkSentinel(cleanString(answer))) {
           nextBlueprint.fact_registry.booking_url = {
             value: "manual",
             status: "answered",
