@@ -182,6 +182,7 @@ export async function onRequestPost(context) {
     });
 
     const answeredPf = cleanString(currentPlan.primary_field);
+    const pr = state.blueprint.premium_readiness;
     state.turn_debug = {
       answered_primary_field: answeredPf || null,
       primary_satisfied_after_answer: answeredPf
@@ -201,7 +202,9 @@ export async function onRequestPost(context) {
       question_render_mode: questionRenderMeta.question_render_mode ?? null,
       reinforcement_triggered: !!state.reinforcement,
       reinforcement_type: state.reinforcement ? "alignment" : null,
-      reinforcement_source: state.reinforcement?.source ?? null
+      reinforcement_source: state.reinforcement?.source ?? null,
+      premium_next_unlock: pr?.next_unlock || null,
+      premium_avg_score: pr?.summary?.avg_score ?? null
     };
 
     // Persist asked-question history for future stall detection
@@ -1228,6 +1231,8 @@ function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastA
     state
   });
 
+  nextBlueprint.premium_readiness = computePremiumReadinessEngine(nextBlueprint);
+
   nextBlueprint.question_candidates = buildQuestionCandidates({
     blueprint: nextBlueprint,
     schemaGuide,
@@ -1931,11 +1936,257 @@ function buildVerificationQueue({ blueprint, state }) {
   return queue.sort((a, b) => b.priority - a.priority);
 }
 
+/** Per-component urgency when choosing what to unlock next (higher = prioritize intake toward this). */
+const PREMIUM_COMPONENT_WEIGHTS = {
+  contact: 1,
+  hero: 0.85,
+  features: 0.72,
+  investment: 0.65,
+  testimonials: 0.62,
+  gallery: 0.55,
+  faqs: 0.48,
+  processSteps: 0.42,
+  about: 0.38,
+  service_area: 0.35,
+  events: 0.28,
+  comparison: 0.26
+};
+
+/**
+ * How strongly each intake decision lifts premium readiness for site components.
+ * Values are 0–1; a decision can move multiple components (e.g. positioning → hero + features).
+ */
+const PREMIUM_DECISION_IMPACT = {
+  conversion: { contact: 0.95, hero: 0.35, investment: 0.12 },
+  contact_details: { contact: 1 },
+  positioning: { hero: 0.85, features: 0.8 },
+  proof: { testimonials: 0.9, about: 0.28 },
+  process: { processSteps: 1 },
+  gallery_strategy: { gallery: 1, hero: 0.35 },
+  pricing_model: { investment: 1, faqs: 0.18 },
+  objection_handling: { faqs: 1 },
+  story: { about: 1 },
+  service_area: { service_area: 1 },
+  events_strategy: { events: 0.75 },
+  comparison_strategy: { comparison: 0.85 }
+};
+
+function premiumTierFromScore(score) {
+  const s = Number(score) || 0;
+  if (s >= 0.86) return "premium";
+  if (s >= 0.55) return "partial";
+  if (s <= 0.02) return "off";
+  return "weak";
+}
+
+function scoreHeroPremium(fr, draft) {
+  const checks = [
+    hasMeaningfulValue(getByPath(draft, "hero.headline")),
+    hasMeaningfulValue(getByPath(draft, "hero.subtext")),
+    hasMeaningfulValue(getByPath(draft, "hero.image.image_search_query")),
+    isFactComplete(fr.primary_offer) && isFactComplete(fr.differentiation)
+  ];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreContactPremium(fr, draft) {
+  const frObj = fr;
+  const checks = [
+    isFieldSatisfied("booking_method", frObj) && isFieldSatisfied("booking_url", frObj),
+    isFactComplete(fr.phone) || isFactComplete(fr.email),
+    hasMeaningfulValue(firstNonEmpty([fr.cta_text?.value, getByPath(draft, "contact.cta_text"), getByPath(draft, "settings.cta_text")])),
+    isFactComplete(fr.contact_path) ||
+      isFactComplete(fr.hours) ||
+      hasMeaningfulValue(getByPath(draft, "contact.text"))
+  ];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreFeaturesPremium(fr, draft) {
+  const offer = isFactComplete(fr.primary_offer);
+  const diff = isFactComplete(fr.differentiation);
+  const services = ensureArrayStrings(fr.service_list?.value);
+  const feats = getByPath(draft, "features");
+  const featN = Array.isArray(feats) ? feats.length : 0;
+  const checks = [
+    offer,
+    diff,
+    services.length >= 2 || featN >= 2,
+    featN >= 3 || services.length >= 4
+  ];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreGalleryPremium(fr, draft) {
+  const q = hasMeaningfulValue(getByPath(draft, "gallery.image_source.image_search_query"));
+  const layout = hasMeaningfulValue(
+    firstNonEmpty([getByPath(draft, "gallery.computed_layout"), getByPath(draft, "gallery.layout")])
+  );
+  const countOk = typeof getByPath(draft, "gallery.computed_count") === "number" && getByPath(draft, "gallery.computed_count") >= 6;
+  const direction = isFactComplete(fr.gallery_visual_direction) || ensureArrayStrings(fr.image_themes?.value).length > 0;
+  const checks = [q, layout, countOk || direction];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreFaqsPremium(fr, draft) {
+  const angles = ensureArrayStrings(fr.faq_angles?.value);
+  const draftFaqs = getByPath(draft, "faqs");
+  const n = Array.isArray(draftFaqs) ? draftFaqs.length : 0;
+  const checks = [angles.length >= 3, n >= 3];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreTestimonialsPremium(fr) {
+  const quotes = ensureArrayStrings(fr.review_quotes?.value);
+  const checks = [quotes.length >= 2, isFactComplete(fr.trust_signal) || quotes.length >= 1];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreProcessPremium(fr, draft) {
+  const steps = getByPath(draft, "processSteps");
+  const n = Array.isArray(steps) ? steps.length : 0;
+  const summary = looksLikeProcessFact(fr.process_summary?.value);
+  const checks = [n >= 3, summary];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreAboutPremium(fr, draft) {
+  let hits = 0;
+  if (isFactComplete(fr.founder_story)) hits++;
+  if (hasMeaningfulValue(getByPath(draft, "about.story_text"))) hits++;
+  if (isFactComplete(fr.years_experience)) hits++;
+  if (hits >= 2) return 1;
+  if (hits === 1) return 0.55;
+  return 0;
+}
+
+function scoreInvestmentPremium(fr, draft) {
+  const pricingOk = isPricingComplete(fr);
+  const inv = getByPath(draft, "investment");
+  const invOk = Array.isArray(inv) && inv.length > 0;
+  const checks = [pricingOk, invOk];
+  return checks.filter(Boolean).length / checks.length;
+}
+
+function scoreServiceAreaPremium(fr) {
+  const main = isFactComplete(fr.service_area_main);
+  const sur =
+    (Array.isArray(fr.surrounding_cities?.value) && fr.surrounding_cities.value.length > 0) ||
+    ensureArrayStrings(fr.service_area_list?.value).length > 1;
+  if (main && sur) return 1;
+  if (main) return 0.62;
+  return 0;
+}
+
+function scoreEventsPremium(fr) {
+  const ev = fr.events?.value;
+  const n = Array.isArray(ev) ? ev.length : 0;
+  if (n >= 3) return 1;
+  if (n >= 1) return 0.45;
+  return 0;
+}
+
+function scoreComparisonPremium(fr) {
+  return isFactComplete(fr.comparison) ? 0.9 : 0;
+}
+
+function pickNextPremiumUnlock(components) {
+  let best = null;
+  let bestUrgency = -1;
+  for (const [id, row] of Object.entries(components)) {
+    const w = PREMIUM_COMPONENT_WEIGHTS[id] || 0.32;
+    const gap = 1 - Number(row.score || 0);
+    const urgency = gap * w;
+    if (urgency > bestUrgency) {
+      bestUrgency = urgency;
+      best = {
+        component: id,
+        urgency: Number(urgency.toFixed(3)),
+        gap: Number(gap.toFixed(3)),
+        score: row.score
+      };
+    }
+  }
+  return best;
+}
+
+/**
+ * Per-component premium readiness (0–1) + which decision most reduces the biggest gap.
+ * Drives planner boosts in buildQuestionCandidates — does not change field contracts.
+ */
+function computePremiumReadinessEngine(blueprint) {
+  const fr = safeObject(blueprint.fact_registry);
+  const draft = safeObject(blueprint.business_draft);
+
+  const components = {
+    hero: { score: scoreHeroPremium(fr, draft), missing: [] },
+    contact: { score: scoreContactPremium(fr, draft), missing: [] },
+    features: { score: scoreFeaturesPremium(fr, draft), missing: [] },
+    gallery: { score: scoreGalleryPremium(fr, draft), missing: [] },
+    faqs: { score: scoreFaqsPremium(fr, draft), missing: [] },
+    testimonials: { score: scoreTestimonialsPremium(fr), missing: [] },
+    processSteps: { score: scoreProcessPremium(fr, draft), missing: [] },
+    about: { score: scoreAboutPremium(fr, draft), missing: [] },
+    investment: { score: scoreInvestmentPremium(fr, draft), missing: [] },
+    service_area: { score: scoreServiceAreaPremium(fr), missing: [] },
+    events: { score: scoreEventsPremium(fr), missing: [] },
+    comparison: { score: scoreComparisonPremium(fr), missing: [] }
+  };
+
+  for (const [id, row] of Object.entries(components)) {
+    row.tier = premiumTierFromScore(row.score);
+  }
+
+  const next_unlock = pickNextPremiumUnlock(components);
+  const ordered = Object.entries(components)
+    .map(([id, row]) => ({
+      component: id,
+      score: row.score,
+      tier: row.tier,
+      weighted_gap: Number(((1 - row.score) * (PREMIUM_COMPONENT_WEIGHTS[id] || 0.3)).toFixed(3))
+    }))
+    .sort((a, b) => b.weighted_gap - a.weighted_gap);
+
+  const avg =
+    Object.values(components).reduce((s, x) => s + x.score, 0) / Math.max(1, Object.keys(components).length);
+
+  return {
+    spec_version: 1,
+    components,
+    next_unlock,
+    ordered_by_impact: ordered,
+    summary: {
+      avg_score: Number(avg.toFixed(3)),
+      weakest: ordered[0] || null
+    }
+  };
+}
+
+function premiumUnlockBoostForDecision(decision, premiumReadiness) {
+  const impact = PREMIUM_DECISION_IMPACT[cleanString(decision)];
+  if (!impact || !premiumReadiness?.components) return 0;
+
+  const focusComp = cleanString(premiumReadiness.next_unlock?.component);
+  let boost = 0;
+
+  for (const [comp, coupling] of Object.entries(impact)) {
+    const row = premiumReadiness.components[comp];
+    if (!row) continue;
+    const gap = 1 - Number(row.score || 0);
+    const globalW = PREMIUM_COMPONENT_WEIGHTS[comp] || 0.35;
+    const focus = focusComp && focusComp === comp ? 1.42 : 1;
+    boost += gap * coupling * globalW * 58 * focus;
+  }
+
+  return Math.round(Math.min(96, boost));
+}
+
 function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
   const candidates = [];
   const decisionStates = safeObject(blueprint.decision_states);
   const factRegistry = safeObject(blueprint.fact_registry);
   const componentStates = safeObject(blueprint.component_states);
+  const premiumReadiness = blueprint.premium_readiness || computePremiumReadinessEngine(blueprint);
   const questionHistory = Array.isArray(blueprint.question_history) ? blueprint.question_history : [];
   const askedTurns = questionHistory.length;
   const conversionUnresolvedCount = cleanList(getDecisionTargets()?.conversion?.target_fields)
@@ -1977,6 +2228,7 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit }) {
     }
 
     let score = Number(config.base_priority || 100);
+    score += premiumUnlockBoostForDecision(decision, premiumReadiness);
     score += unresolvedFields.length * 35;
     score += relatedComponents.filter((component) => !componentStates[component]?.draft_ready).length * 18;
     score += relatedComponents.filter((component) => !componentStates[component]?.premium_ready).length * 10;
@@ -3069,6 +3321,7 @@ function normalizeBlueprint(blueprint) {
   next.question_plan = isObject(next.question_plan) ? next.question_plan : null;
   next.component_states = isObject(next.component_states) ? next.component_states : {};
   next.decision_states = isObject(next.decision_states) ? next.decision_states : {};
+  next.premium_readiness = isObject(next.premium_readiness) ? next.premium_readiness : null;
   next.evidence_log = Array.isArray(next.evidence_log) ? next.evidence_log : [];
   next.question_history = Array.isArray(next.question_history) ? next.question_history : [];
   return next;
