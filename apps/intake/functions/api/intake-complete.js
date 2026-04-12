@@ -524,6 +524,55 @@ const PROCESS_STEP_LIBRARY = {
 };
 
 /* =========================
+   Strategy toggles (behavior-first, schema_toggles = opt-out hints)
+========================= */
+
+/**
+ * Preflight can set schema_toggles.show_x = false to suppress a section.
+ * true/undefined does not override behavior-driven visibility.
+ */
+function toggleOptOut(schemaToggles, key, computedShow) {
+  if (schemaToggles?.[key] === false) return false;
+  return Boolean(computedShow);
+}
+
+function shouldShowProcess({ behavior, processSteps }) {
+  const steps = Array.isArray(processSteps) ? processSteps : [];
+  if (steps.length >= 3) return true;
+  if (behavior?.complexity && behavior.complexity !== "simple") return true;
+  return false;
+}
+
+function shouldShowTestimonials({ behavior, testimonials }) {
+  const list = Array.isArray(testimonials) ? testimonials : [];
+  if (list.length >= 2) return true;
+  if (behavior?.trust_sensitivity === "high" && list.length >= 1) return true;
+  return false;
+}
+
+function shouldShowTrustbar({ behavior, trustbar }) {
+  const n = trustbar?.items?.length ?? 0;
+  if (n >= 2) return true;
+  if (behavior?.trust_sensitivity === "high" && n >= 1) return true;
+  return false;
+}
+
+function shouldShowGallery({ behavior, gallery }) {
+  const items = gallery?.items;
+  const n = Array.isArray(items) ? items.length : 0;
+  if (n >= 3) return true;
+  if (behavior?.purchase_trigger === "visual" && n >= 1) return true;
+  return false;
+}
+
+function shouldShowFaqs({ behavior, faqs }) {
+  const list = Array.isArray(faqs) ? faqs : [];
+  if (list.length >= 3) return true;
+  if (behavior?.decision_style === "considered" && list.length >= 1) return true;
+  return false;
+}
+
+/* =========================
    Main Assembly
 ========================= */
 
@@ -569,21 +618,28 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   const faqs = buildFaqs(state, strategyContract);
   const serviceArea = buildServiceArea(state, strategyContract);
 
+  const schemaToggles = isObject(strategyContract.schema_toggles) ? strategyContract.schema_toggles : {};
+
   const toggles = {
-    show_trustbar: Boolean(strategyContract.schema_toggles?.show_trustbar) && Boolean(trustbar),
-    show_about: Boolean(strategyContract.schema_toggles?.show_about ?? true),
-    show_features: Boolean(strategyContract.schema_toggles?.show_features ?? true),
+    show_trustbar: toggleOptOut(schemaToggles, "show_trustbar", shouldShowTrustbar({ behavior, trustbar })),
+    show_about: toggleOptOut(schemaToggles, "show_about", true),
+    show_features: toggleOptOut(schemaToggles, "show_features", true),
     show_events: false,
-    show_process:
-      Boolean(strategyContract.schema_toggles?.show_process ?? true) &&
-      processSteps.length >= 3 &&
-      behavior.complexity !== "simple",
-    show_testimonials: Boolean(strategyContract.schema_toggles?.show_testimonials ?? true) && testimonials.length > 0,
+    show_process: toggleOptOut(schemaToggles, "show_process", shouldShowProcess({ behavior, processSteps })),
+    show_testimonials: toggleOptOut(
+      schemaToggles,
+      "show_testimonials",
+      shouldShowTestimonials({ behavior, testimonials }) && testimonials.length > 0
+    ),
     show_comparison: false,
-    show_gallery: Boolean(strategyContract.schema_toggles?.show_gallery ?? true) && Boolean(gallery),
+    show_gallery: toggleOptOut(
+      schemaToggles,
+      "show_gallery",
+      shouldShowGallery({ behavior, gallery }) && Boolean(gallery)
+    ),
     show_investment: false,
-    show_faqs: Boolean(strategyContract.schema_toggles?.show_faqs ?? true) && faqs.length > 0,
-    show_service_area: Boolean(strategyContract.schema_toggles?.show_service_area ?? true) && Boolean(serviceArea)
+    show_faqs: toggleOptOut(schemaToggles, "show_faqs", shouldShowFaqs({ behavior, faqs }) && faqs.length > 0),
+    show_service_area: toggleOptOut(schemaToggles, "show_service_area", Boolean(serviceArea))
   };
 
   const sections = {

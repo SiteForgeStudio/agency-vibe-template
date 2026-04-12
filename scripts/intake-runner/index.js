@@ -10,6 +10,18 @@ const SLUG = "simons-fine-art-framing-gallery";
 
 const MODE = "interactive"; // "interactive" or "scripted"
 
+/** After the last intake-next turn, POST state to intake-complete (factory assembly). Set INTAKE_RUN_COMPLETE=0 to skip. */
+const RUN_INTAKE_COMPLETE = process.env.INTAKE_RUN_COMPLETE !== "0";
+
+/**
+ * Optional body.action for intake-complete: use "complete" only if you want the worker to run the submit path
+ * (requires valid submit config server-side). Omit or null = assemble business_json only.
+ */
+const COMPLETE_ACTION = process.env.INTAKE_COMPLETE_ACTION || "";
+
+/** If true, exit with code 1 when intake-complete returns ok: false */
+const EXIT_ON_COMPLETE_FAIL = process.env.INTAKE_EXIT_ON_COMPLETE_FAIL !== "0";
+
 // Optional scripted answers
 const scriptedAnswers = [
   "We serve homeowners in Boulder, Colorado.",
@@ -83,8 +95,13 @@ async function loop() {
     console.log("🧠 AI:", question);
 
     if (state?.action === "complete" || state?.readiness?.can_generate_now || !state?.blueprint?.question_plan) {
-      console.log("\n✅ Intake complete.");
-      saveSession();
+      console.log("\n✅ Intake conversation finished (no more questions).");
+      const completeResult = await runIntakeComplete();
+      saveSession(completeResult);
+      const failed = completeResult && completeResult.ok === false;
+      if (failed && EXIT_ON_COMPLETE_FAIL) {
+        process.exit(1);
+      }
       process.exit(0);
     }
 
@@ -221,6 +238,61 @@ function printDebug(prevState, newState, data) {
 }
 
 // ==========================
+// INTAKE-COMPLETE (factory assembly)
+// ==========================
+
+/**
+ * Sends final state to intake-complete. Server re-checks readiness + enrichment; 400 is normal if gates aren’t met yet.
+ */
+async function runIntakeComplete() {
+  if (!RUN_INTAKE_COMPLETE) {
+    console.log("\n⏭  Skipping intake-complete (set INTAKE_RUN_COMPLETE=0).");
+    return null;
+  }
+
+  console.log("\n🏭 Calling intake-complete…");
+
+  const body = { state };
+  if (COMPLETE_ACTION) {
+    body.action = COMPLETE_ACTION;
+  }
+
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/intake-complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+  } catch (err) {
+    console.error("❌ intake-complete fetch error:", err);
+    return { ok: false, error: String(err?.message || err) };
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!data.ok) {
+    console.error("\n❌ intake-complete:", data.error || res.status, data.message || "");
+    if (data.readiness) {
+      console.error("→ readiness:", JSON.stringify(data.readiness, null, 2));
+    }
+    if (data.enrichment) {
+      console.error("→ enrichment:", JSON.stringify(data.enrichment, null, 2));
+    }
+    if (data.issues) {
+      console.error("→ validation issues:", data.issues);
+    }
+    return data;
+  }
+
+  console.log("\n✅ intake-complete: business_json ready.");
+  if (data.strategy_brief?.derived_behavior) {
+    console.log("→ derived_behavior:", data.strategy_brief.derived_behavior);
+  }
+  return data;
+}
+
+// ==========================
 // LOGGING
 // ==========================
 function logTurn(question, answer, state) {
@@ -232,11 +304,21 @@ function logTurn(question, answer, state) {
   });
 }
 
-function saveSession() {
+function saveSession(completeResponse) {
   const filename = `session-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
   const filepath = path.join(logDir, filename);
 
-  fs.writeFileSync(filepath, JSON.stringify(sessionLog, null, 2));
+  const payload = {
+    meta: {
+      slug: SLUG,
+      api_base: API_BASE,
+      saved_at: new Date().toISOString()
+    },
+    turns: sessionLog,
+    intake_complete: completeResponse || null
+  };
+
+  fs.writeFileSync(filepath, JSON.stringify(payload, null, 2));
 
   console.log(`\n💾 Session saved to: ${filepath}\n`);
 }
