@@ -3138,9 +3138,35 @@ function buildPricingPreflightNarrative(pi, { maxChars = 400, withPricingInstruc
   return body.trim();
 }
 
-/** Full sentence(s) for expert deterministic questions; truncate once at the end. */
-function expertDeterministicFrame(text, max = 420) {
-  return truncate(cleanString(text), max);
+/** Lead clause max; question is never truncated (assembled separately). */
+const EXPERT_LEAD_MAX = 180;
+
+/**
+ * Build lead from segments in **keep order**: first segment is last dropped when over budget.
+ * Drops lowest-priority segments (listed last) until under max, then clamps the remainder only if needed.
+ */
+function squeezeExpertLead(parts, maxLead = EXPERT_LEAD_MAX) {
+  const cleaned = parts.map((p) => cleanString(p)).filter(Boolean);
+  let list = cleaned.slice();
+  while (list.length > 1 && list.join(" ").length > maxLead) {
+    list.pop();
+  }
+  let lead = list.join(" ").trim();
+  if (lead.length > maxLead) {
+    lead = truncate(lead, maxLead);
+  }
+  return lead;
+}
+
+/**
+ * Two-part expert message: clamped lead + intact question (never blind-truncated with the lead).
+ */
+function buildExpertMessage({ lead, question }) {
+  const q = cleanString(question);
+  const l = cleanString(lead);
+  if (!q) return l;
+  if (!l) return q;
+  return `${l}\n\n${q}`;
 }
 
 /**
@@ -3249,23 +3275,31 @@ function buildAccessExpertQuestion(primaryField, businessName, blueprint, pi) {
 
   if (pf === "phone") {
     const interp = buildInterpretation("phone", pi, blueprint, { callHeavy });
-    return expertDeterministicFrame(
-      `${interp} What's the best number for customers to reach ${name}?`
-    );
+    return buildExpertMessage({
+      lead: squeezeExpertLead([interp]),
+      question: `What's the best number for customers to reach ${name}?`
+    });
   }
   if (pf === "email") {
     const interp = buildInterpretation("email", pi, blueprint);
-    return expertDeterministicFrame(`${interp} What email should we publish for ${name}?`);
+    return buildExpertMessage({
+      lead: squeezeExpertLead([interp]),
+      question: `What email should we publish for ${name}?`
+    });
   }
   if (pf === "address") {
     const interp = buildInterpretation("address", pi, blueprint, { accessKind: kind });
-    return expertDeterministicFrame(`${interp} What address or location should we show for ${name}?`);
+    return buildExpertMessage({
+      lead: squeezeExpertLead([interp]),
+      question: `What address or location should we show for ${name}?`
+    });
   }
   if (pf === "hours") {
     const interp = buildInterpretation("hours", pi, blueprint);
-    return expertDeterministicFrame(
-      `${interp} What hours or availability should people expect when they contact ${name}?`
-    );
+    return buildExpertMessage({
+      lead: squeezeExpertLead([interp]),
+      question: `What hours or availability should people expect when they contact ${name}?`
+    });
   }
   return "";
 }
@@ -3286,19 +3320,22 @@ function buildProcessExpertQuestion(businessName, blueprint, pi) {
     [cat, opp, pos].join(" ")
   );
   const interp = buildInterpretation("process_summary", pi, blueprint, { tangible });
-  let guidance = "";
-  if (opp) {
-    guidance = `${opp} `;
-  } else if (pos) {
-    guidance = `${pos} `;
-  }
+  const guidance = opp || pos || "";
+  const prefix = wd ? `For the site journey we're considering: ${wd}` : "";
 
   const question = tangible
     ? "What does that experience usually look like when someone brings you a project—walk us through it in your own words."
     : `What does that process usually look like from first contact through completion for ${name}?`;
 
-  const prefix = wd ? `For the site journey we're considering: ${wd} ` : "";
-  return expertDeterministicFrame(`${prefix}${interp} ${guidance}${question}`);
+  /** Drop order when over budget: site-journey prefix → preflight guidance → interpretation (last resort clamp). */
+  const leadParts = [interp];
+  if (guidance) leadParts.push(guidance);
+  if (prefix) leadParts.push(prefix);
+
+  return buildExpertMessage({
+    lead: squeezeExpertLead(leadParts),
+    question
+  });
 }
 
 /**
@@ -3322,17 +3359,22 @@ function buildProofExpertQuestion(primaryField, businessName, blueprint, pi) {
     bridge = `They usually weigh ${buyers.slice(0, 2).join(" and ")} before saying yes.`;
   }
 
-  const setup = [interp, bridge].filter(Boolean).join(" ");
+  /** Drop order: bridge (nuance / comparison) before interpretation. */
+  const leadParts = [interp];
+  if (bridge) leadParts.push(bridge);
 
   if (pf === "review_quotes") {
-    return expertDeterministicFrame(
-      `${setup} After working with you, what do customers usually say about the result—or what language should we echo on the site?`
-    );
+    return buildExpertMessage({
+      lead: squeezeExpertLead(leadParts),
+      question:
+        "After working with you, what do customers usually say about the result—or what language should we echo on the site?"
+    });
   }
   if (pf === "trust_signal") {
-    return expertDeterministicFrame(
-      `${setup} What should we lean on most for ${name}—reviews, outcomes, credentials, photos, or something else—so that confidence lands quickly?`
-    );
+    return buildExpertMessage({
+      lead: squeezeExpertLead(leadParts),
+      question: `What should we lean on most for ${name}—reviews, outcomes, credentials, photos, or something else—so that confidence lands quickly?`
+    });
   }
   return "";
 }
