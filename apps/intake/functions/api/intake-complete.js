@@ -168,6 +168,8 @@ export async function onRequestGet() {
 ========================= */
 
 function buildStrategyBrief(state, strategyContract) {
+  const signalBlob = buildSignalBlob(state, strategyContract);
+  const derived_behavior = deriveBehavior(signalBlob);
   return {
     business_name: cleanString(state.businessName),
     slug: cleanString(state.slug),
@@ -185,9 +187,341 @@ function buildStrategyBrief(state, strategyContract) {
     recommended_vibe: cleanString(strategyContract.visual_strategy?.recommended_vibe),
     schema_toggles: isObject(strategyContract.schema_toggles) ? strategyContract.schema_toggles : {},
     asset_policy: isObject(strategyContract.asset_policy) ? strategyContract.asset_policy : {},
-    copy_policy: isObject(strategyContract.copy_policy) ? strategyContract.copy_policy : {}
+    copy_policy: isObject(strategyContract.copy_policy) ? strategyContract.copy_policy : {},
+    signal_blob: summarizeSignalBlobForBrief(signalBlob),
+    derived_behavior,
+    proof_angle_suggestions: generateProofAngles(signalBlob)
   };
 }
+
+/* =========================
+   Signal → Behavior (factory reasoning)
+========================= */
+
+/**
+ * Unified signal view: answers + contract, concatenated for heuristic scoring (not industry routing).
+ */
+function buildSignalBlob(state, strategyContract) {
+  const sc = isObject(strategyContract) ? strategyContract : {};
+  const answers = isObject(state?.answers) ? state.answers : {};
+  const bc = isObject(sc.business_context) ? sc.business_context : {};
+  const am = isObject(sc.audience_model) ? sc.audience_model : {};
+  const pm = isObject(sc.proof_model) ? sc.proof_model : {};
+  const cs = isObject(sc.conversion_strategy) ? sc.conversion_strategy : {};
+
+  const objections = uniqueList([
+    ...cleanList(answers.common_objections),
+    ...cleanList(pm.common_objections)
+  ]);
+  const trust = uniqueList([
+    cleanString(answers.trust_signal),
+    ...cleanList(answers.trust_signals),
+    ...cleanList(pm.trust_signals)
+  ]).filter(Boolean);
+  const factors = uniqueList([
+    ...cleanList(answers.buyer_decision_factors),
+    ...cleanList(am.decision_factors)
+  ]);
+
+  const textBlob = [
+    cleanString(answers.primary_offer),
+    cleanString(answers.differentiation),
+    cleanString(answers.opportunity),
+    cleanString(answers.business_understanding),
+    cleanString(answers.website_direction),
+    cleanString(answers.process_notes),
+    cleanString(answers.trust_signal),
+    cleanString(answers.tone_of_voice),
+    ...objections,
+    ...factors,
+    ...cleanList(answers.aeo_angles)
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  return {
+    offer: cleanString(answers.primary_offer),
+    model: cleanString(bc.business_model),
+    positioning: cleanString(answers.business_understanding),
+    angle: cleanList(answers.aeo_angles)[0] || cleanString(am.primary_persona),
+    objections,
+    trust,
+    tone: cleanString(answers.tone_of_voice) || inferTone(sc),
+    category: cleanString(bc.category),
+    persona: cleanString(answers.audience) || cleanString(am.primary_persona),
+    primary_conversion: cleanString(cs.primary_conversion),
+    decision_factors: factors,
+    text_blob: textBlob
+  };
+}
+
+function summarizeSignalBlobForBrief(blob) {
+  if (!isObject(blob)) return {};
+  return {
+    offer: blob.offer,
+    model: blob.model,
+    tone: blob.tone,
+    category: blob.category,
+    persona: blob.persona,
+    primary_conversion: blob.primary_conversion,
+    objection_count: Array.isArray(blob.objections) ? blob.objections.length : 0,
+    trust_signal_count: Array.isArray(blob.trust) ? blob.trust.length : 0,
+    decision_factor_count: Array.isArray(blob.decision_factors) ? blob.decision_factors.length : 0,
+    text_blob_preview: cleanString(blob.text_blob).slice(0, 360)
+  };
+}
+
+/**
+ * Behavioral read on the business — human decision patterns, not NAICS codes.
+ */
+function deriveBehavior(signalBlob) {
+  const blob = cleanString(signalBlob?.text_blob);
+  return {
+    decision_style: inferDecisionStyle(signalBlob, blob),
+    trust_sensitivity: inferTrustSensitivity(signalBlob, blob),
+    complexity: inferComplexity(signalBlob, blob),
+    differentiation_type: inferDifferentiationType(signalBlob, blob),
+    purchase_trigger: inferPurchaseTrigger(signalBlob, blob)
+  };
+}
+
+function inferDecisionStyle(signalBlob, blob) {
+  const pc = cleanString(signalBlob?.primary_conversion).toLowerCase();
+  if (pc.includes("call") || /\burgent|today|asap|right away|same day\b/.test(blob)) return "fast";
+  const objN = signalBlob?.objections?.length || 0;
+  const dfN = signalBlob?.decision_factors?.length || 0;
+  if (/\bfeel|meaningful|care|peace of mind|family|special\b/.test(blob) || objN + dfN >= 4) {
+    return "emotional";
+  }
+  if (objN >= 1 || dfN >= 2 || /\bcompare|research|evaluate|plan\b/.test(blob)) return "considered";
+  return "considered";
+}
+
+function inferTrustSensitivity(signalBlob, blob) {
+  const objN = signalBlob?.objections?.length || 0;
+  if (objN >= 2 || /\bworry|concern|risk|hesitat|scam|not sure\b/.test(blob)) return "high";
+  const tN = signalBlob?.trust?.length || 0;
+  if (tN >= 2 || /\btrust|review|proof|credential|insured\b/.test(blob)) return "medium";
+  if (objN === 0 && tN === 0 && blob.length < 80) return "low";
+  return "medium";
+}
+
+function inferComplexity(signalBlob, blob) {
+  const objN = signalBlob?.objections?.length || 0;
+  const dfN = signalBlob?.decision_factors?.length || 0;
+  if (
+    objN >= 2 ||
+    dfN >= 4 ||
+    /\b(assess|diagnos|consult|custom|tailor|inspection|evaluation|scope|quote)\b/.test(blob)
+  ) {
+    return "expert_required";
+  }
+  if (/\b(book online|flat rate|instant|quick checkout|one tap)\b/.test(blob) && objN === 0 && dfN < 2) {
+    return "simple";
+  }
+  return "guided";
+}
+
+function inferDifferentiationType(signalBlob, blob) {
+  const scores = {
+    quality: scoreKeywordGroups(blob, [/quality|craft|detail|premium|professional|careful/]),
+    speed: scoreKeywordGroups(blob, [/fast|quick|rush|same day|responsive|turnaround/]),
+    price: scoreKeywordGroups(blob, [/afford|budget|price|value|rate|fair/]),
+    experience: scoreKeywordGroups(blob, [/experience|journey|service|relationship|white[\s-]?glove/])
+  };
+  let best = "experience";
+  let max = -1;
+  for (const [k, v] of Object.entries(scores)) {
+    if (v > max) {
+      max = v;
+      best = k;
+    }
+  }
+  return best;
+}
+
+function scoreKeywordGroups(blob, patterns) {
+  let n = 0;
+  for (const re of patterns) {
+    const m = blob.match(re);
+    if (m) n += m.length;
+  }
+  return n;
+}
+
+function inferPurchaseTrigger(signalBlob, blob) {
+  if (/\burgent|emergency|today|asap\b/.test(blob)) return "urgent";
+  if (/\bphoto|gallery|before|after|see the|visual\b/.test(blob)) return "visual";
+  if (/\brefer|reputation|word of mouth|local|neighbor\b/.test(blob)) return "relationship";
+  const style = inferDecisionStyle(signalBlob, blob);
+  if (style === "fast") return "urgent";
+  return "relationship";
+}
+
+function generateProofAngles(signalBlob) {
+  const out = [];
+  const objections = Array.isArray(signalBlob?.objections) ? signalBlob.objections : [];
+  for (const o of objections.slice(0, 3)) {
+    const t = cleanString(o);
+    if (!t) continue;
+    out.push(`Address the worry: “${cleanSentenceFragment(t)}” with a concrete proof point on the page.`);
+  }
+  const firstTrust = cleanString(signalBlob?.trust?.[0]);
+  if (firstTrust && out.length < 3) {
+    out.push(`Echo this trust anchor in headline or proof: ${firstTrust}.`);
+  }
+  return out.slice(0, 4);
+}
+
+/**
+ * Abstract process backbone from behavior (not vertical templates).
+ */
+function generateProcessShape(behavior) {
+  if (behavior.complexity === "expert_required") {
+    return ["diagnose", "guide", "deliver"];
+  }
+  if (behavior.decision_style === "fast") {
+    return ["request", "confirm", "complete"];
+  }
+  return ["discover", "decide", "experience"];
+}
+
+function buildSyntheticProcessSteps(shape, behavior) {
+  const dt = behavior.differentiation_type;
+  const variant = ["quality", "speed", "price", "experience"].includes(dt) ? dt : "experience";
+  const library = PROCESS_STEP_LIBRARY;
+  return shape.map((key) => {
+    const pack = library[key] || library.discover;
+    const desc =
+      pack.body[variant] ||
+      pack.body.experience ||
+      "We keep the workflow clear from first contact through completion.";
+    return {
+      title: normalizePublicText(pack.title),
+      description: normalizePublicText(cleanSentence(desc))
+    };
+  });
+}
+
+const PROCESS_STEP_LIBRARY = {
+  diagnose: {
+    title: "Understand goals and constraints",
+    body: {
+      quality:
+        "We start by clarifying priorities, fit, and the quality standard you want so the plan matches reality.",
+      speed:
+        "We align quickly on timing, urgent needs, and the fastest safe path from first contact to completion.",
+      price:
+        "We define scope and options early so pricing stays understandable before work begins.",
+      experience:
+        "We begin by mapping what you need, what success looks like, and any constraints that should shape the plan."
+    }
+  },
+  guide: {
+    title: "Choose the right approach",
+    body: {
+      quality:
+        "We recommend an approach that protects craftsmanship and sets expectations before work starts.",
+      speed:
+        "We lock the leanest sequence that still protects the outcome, with clear checkpoints along the way.",
+      price:
+        "We match the plan to your budget band and tradeoffs so there are no surprises midstream.",
+      experience:
+        "We recommend a path that fits your situation, then confirm details so expectations stay aligned."
+    }
+  },
+  deliver: {
+    title: "Deliver with care",
+    body: {
+      quality:
+        "Execution focuses on detail, finish, and a result that holds up to scrutiny.",
+      speed:
+        "Work moves efficiently with proactive updates so you always know what happens next.",
+      price:
+        "Delivery stays within the agreed scope and communicates value clearly at handoff.",
+      experience:
+        "We carry the work through completion with communication, care, and a clean finish."
+    }
+  },
+  request: {
+    title: "Start with a simple request",
+    body: {
+      quality:
+        "You reach out with the basics; we respond with a clear sense of fit and next steps.",
+      speed:
+        "You make a fast first move; we confirm timing and priorities immediately.",
+      price:
+        "You share enough for a realistic range or quote path before anything is locked in.",
+      experience:
+        "You reach out with what you need; we respond quickly with a human, helpful next step."
+    }
+  },
+  confirm: {
+    title: "Confirm the plan",
+    body: {
+      quality:
+        "We confirm scope and standards so quality expectations are explicit before work begins.",
+      speed:
+        "We lock the essentials in one pass so momentum doesn’t stall on back-and-forth.",
+      price:
+        "We confirm what’s included, timing, and price bands so the agreement feels transparent.",
+      experience:
+        "We align on scope, timing, and responsibilities so everyone shares the same picture."
+    }
+  },
+  complete: {
+    title: "Complete and follow through",
+    body: {
+      quality:
+        "Work finishes with a careful handoff and attention to the details that matter most.",
+      speed:
+        "We close the loop quickly with clear completion and any quick fixes if needed.",
+      price:
+        "We finish within the agreed scope and make sure value landed as expected.",
+      experience:
+        "We complete the work with clear communication and a polished handoff you can trust."
+    }
+  },
+  discover: {
+    title: "Explore fit",
+    body: {
+      quality:
+        "You learn how the work is done, what quality means here, and whether it matches your bar.",
+      speed:
+        "You see how fast we can move and what we need from you to keep things on track.",
+      price:
+        "You understand options and ranges early so you can decide comfortably.",
+      experience:
+        "You get a clear feel for how it feels to work together before you commit."
+    }
+  },
+  decide: {
+    title: "Decide with confidence",
+    body: {
+      quality:
+        "You choose a path that reflects the level of care and finish you want.",
+      speed:
+        "You pick timing and priorities so the next steps stay simple and predictable.",
+      price:
+        "You select an option that fits your budget without hiding tradeoffs.",
+      experience:
+        "You choose next steps with enough clarity that the decision feels grounded, not rushed."
+    }
+  },
+  experience: {
+    title: "Experience the outcome",
+    body: {
+      quality:
+        "Delivery focuses on a result you’re proud to show off and that matches what was promised.",
+      speed:
+        "You get a fast, clean finish with minimal friction at handoff.",
+      price:
+        "The outcome matches the agreed scope and feels worth what you invested.",
+      experience:
+        "The experience ends with a result that matches the story the site told up front."
+    }
+  }
+};
 
 /* =========================
    Main Assembly
@@ -222,9 +556,14 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
 
   const vibe = selectVibe(SCHEMA_VIBES, strategyContract, state);
 
+  const behavior =
+    isObject(strategyBrief?.derived_behavior) && strategyBrief.derived_behavior
+      ? strategyBrief.derived_behavior
+      : deriveBehavior(buildSignalBlob(state, strategyContract));
+
   const trustbar = buildTrustbar(state, strategyContract);
   const features = buildFeatures(state, strategyContract);
-  const processSteps = buildProcessSteps(state);
+  const processSteps = buildProcessSteps(state, strategyContract, behavior);
   const gallery = buildGallery(state, strategyContract, vibe);
   const testimonials = buildTestimonials(state, strategyContract);
   const faqs = buildFaqs(state, strategyContract);
@@ -235,7 +574,10 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     show_about: Boolean(strategyContract.schema_toggles?.show_about ?? true),
     show_features: Boolean(strategyContract.schema_toggles?.show_features ?? true),
     show_events: false,
-    show_process: processSteps.length >= 3,
+    show_process:
+      Boolean(strategyContract.schema_toggles?.show_process ?? true) &&
+      processSteps.length >= 3 &&
+      behavior.complexity !== "simple",
     show_testimonials: Boolean(strategyContract.schema_toggles?.show_testimonials ?? true) && testimonials.length > 0,
     show_comparison: false,
     show_gallery: Boolean(strategyContract.schema_toggles?.show_gallery ?? true) && Boolean(gallery),
@@ -258,7 +600,8 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     intelligence: {
       industry: normalizePublicText(category),
       target_persona: normalizePublicText(targetAudience),
-      tone_of_voice: normalizePublicText(tone)
+      tone_of_voice: normalizePublicText(tone),
+      derived_behavior: behavior
     },
 
     strategy: toggles,
@@ -433,16 +776,30 @@ function buildFeatures(state, strategyContract) {
   return deduped;
 }
 
-function buildProcessSteps(state) {
+function buildProcessSteps(state, strategyContract, behavior) {
+  const signalBlob = buildSignalBlob(state, strategyContract);
+  const b =
+    isObject(behavior) && behavior
+      ? behavior
+      : deriveBehavior(signalBlob);
+
+  if (b.complexity === "simple") {
+    return [];
+  }
+
   const source = cleanString(state.answers?.process_notes);
-  const steps = extractProcessSteps(source);
+  const extracted = extractProcessSteps(source);
 
-  if (steps.length < 3) return [];
+  if (extracted.length >= 3) {
+    return extracted.slice(0, 5).map((step, idx) => ({
+      title: normalizePublicText(step.title || inferProcessStepTitle(step.description, idx)),
+      description: normalizePublicText(cleanSentence(step.description))
+    }));
+  }
 
-  return steps.slice(0, 5).map((step, idx) => ({
-    title: normalizePublicText(step.title || inferProcessStepTitle(step.description, idx)),
-    description: normalizePublicText(cleanSentence(step.description))
-  }));
+  const shape = generateProcessShape(b);
+  const synthetic = buildSyntheticProcessSteps(shape, b);
+  return synthetic.length >= 3 ? synthetic : [];
 }
 
 function buildGallery(state, strategyContract, vibe) {
