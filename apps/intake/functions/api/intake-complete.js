@@ -198,43 +198,78 @@ function buildStrategyBrief(state, strategyContract) {
    Signal → Behavior (factory reasoning)
 ========================= */
 
+function firstNonEmpty(values) {
+  const list = Array.isArray(values) ? values : [values];
+  for (const v of list) {
+    const s = cleanString(typeof v === "string" ? v : String(v ?? ""));
+    if (s) return s;
+  }
+  return "";
+}
+
 /**
- * Unified signal view: answers + contract, concatenated for heuristic scoring (not industry routing).
+ * Unified signal view: answers + strategy contract + **preflight_intelligence** (merged aggressively).
+ * Heuristic scoring uses `text_blob`; keep preflight in sync so deriveBehavior is not generic when PI exists.
  */
 function buildSignalBlob(state, strategyContract) {
   const sc = isObject(strategyContract) ? strategyContract : {};
   const answers = isObject(state?.answers) ? state.answers : {};
+  const pi = isObject(state?.preflight_intelligence) ? state.preflight_intelligence : {};
   const bc = isObject(sc.business_context) ? sc.business_context : {};
   const am = isObject(sc.audience_model) ? sc.audience_model : {};
   const pm = isObject(sc.proof_model) ? sc.proof_model : {};
   const cs = isObject(sc.conversion_strategy) ? sc.conversion_strategy : {};
 
+  const positioning = firstNonEmpty([answers.business_understanding, pi.positioning]);
+  const opportunity = firstNonEmpty([answers.opportunity, pi.opportunity]);
+  const websiteDirection = firstNonEmpty([answers.website_direction, pi.website_direction]);
+
+  const aeoFirst = cleanList(answers.aeo_angles)[0] || "";
+  const angle = firstNonEmpty([
+    aeoFirst,
+    pi.winning_angle,
+    pi.differentiation_hypothesis,
+    am.primary_persona
+  ]);
+
   const objections = uniqueList([
     ...cleanList(answers.common_objections),
-    ...cleanList(pm.common_objections)
+    ...cleanList(pm.common_objections),
+    ...cleanList(pi.common_objections),
+    ...cleanList(pi.weaknesses)
   ]);
+
   const trust = uniqueList([
     cleanString(answers.trust_signal),
     ...cleanList(answers.trust_signals),
-    ...cleanList(pm.trust_signals)
+    ...cleanList(pm.trust_signals),
+    ...cleanList(pi.trust_markers)
   ]).filter(Boolean);
+
   const factors = uniqueList([
     ...cleanList(answers.buyer_decision_factors),
-    ...cleanList(am.decision_factors)
+    ...cleanList(am.decision_factors),
+    ...cleanList(pi.buyer_factors)
   ]);
+
+  const persona = firstNonEmpty([answers.audience, am.primary_persona, pi.target_persona_hint]);
 
   const textBlob = [
     cleanString(answers.primary_offer),
     cleanString(answers.differentiation),
-    cleanString(answers.opportunity),
-    cleanString(answers.business_understanding),
-    cleanString(answers.website_direction),
+    cleanString(opportunity),
+    cleanString(positioning),
+    cleanString(websiteDirection),
     cleanString(answers.process_notes),
     cleanString(answers.trust_signal),
     cleanString(answers.tone_of_voice),
+    cleanString(angle),
+    cleanString(pi.differentiation_hypothesis),
     ...objections,
     ...factors,
-    ...cleanList(answers.aeo_angles)
+    ...cleanList(answers.aeo_angles),
+    ...cleanList(pi.recommended_focus),
+    ...cleanList(pi.local_alternatives)
   ]
     .join(" ")
     .toLowerCase();
@@ -242,13 +277,14 @@ function buildSignalBlob(state, strategyContract) {
   return {
     offer: cleanString(answers.primary_offer),
     model: cleanString(bc.business_model),
-    positioning: cleanString(answers.business_understanding),
-    angle: cleanList(answers.aeo_angles)[0] || cleanString(am.primary_persona),
+    positioning,
+    opportunity,
+    angle,
     objections,
     trust,
     tone: cleanString(answers.tone_of_voice) || inferTone(sc),
     category: cleanString(bc.category),
-    persona: cleanString(answers.audience) || cleanString(am.primary_persona),
+    persona,
     primary_conversion: cleanString(cs.primary_conversion),
     decision_factors: factors,
     text_blob: textBlob
@@ -264,6 +300,9 @@ function summarizeSignalBlobForBrief(blob) {
     category: blob.category,
     persona: blob.persona,
     primary_conversion: blob.primary_conversion,
+    positioning: blob.positioning,
+    opportunity: blob.opportunity,
+    angle: blob.angle,
     objection_count: Array.isArray(blob.objections) ? blob.objections.length : 0,
     trust_signal_count: Array.isArray(blob.trust) ? blob.trust.length : 0,
     decision_factor_count: Array.isArray(blob.decision_factors) ? blob.decision_factors.length : 0,
