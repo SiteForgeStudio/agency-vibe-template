@@ -3138,6 +3138,231 @@ function buildPricingPreflightNarrative(pi, { maxChars = 400, withPricingInstruc
   return body.trim();
 }
 
+/** Full sentence(s) for expert deterministic questions; truncate once at the end. */
+function expertDeterministicFrame(text, max = 420) {
+  return truncate(cleanString(text), max);
+}
+
+/**
+ * Confident read on how customers actually think—one sentence, before guidance + question.
+ * Not "this is important" but "this is what usually happens in their head."
+ * @param {Record<string, unknown>} [extras] e.g. { callHeavy, accessKind, tangible }
+ */
+function buildInterpretation(primaryField, pi, blueprint, extras = {}) {
+  const pf = cleanString(primaryField);
+  const p = isObject(pi) ? pi : null;
+  const opp = p ? cleanString(p.opportunity) : "";
+  const pos = p ? cleanString(p.positioning) : "";
+  const bc = safeObject(blueprint?.strategy?.business_context);
+  const cat = cleanString(bc.category).toLowerCase();
+  const blob = [cat, opp, pos].join(" ");
+
+  if (pf === "phone") {
+    if (extras.callHeavy) {
+      return "For most customers, this is where they decide whether to move forward—they usually just want to call and get a clear answer.";
+    }
+    return "People bounce when contact feels vague; this line should match how you actually want to be reached.";
+  }
+  if (pf === "email") {
+    return "Serious buyers often test the waters by email first—they're deciding if you sound real and responsive.";
+  }
+  if (pf === "address") {
+    const kind = extras.accessKind || expertAccessKind(blueprint, pi);
+    if (kind === "local_physical") {
+      return "Walk-ins and map checks are where people either commit or bounce—clarity here is trust.";
+    }
+    if (kind === "local_service_area") {
+      return "Most people sanity-check where you're based or who you serve before they bother reaching out.";
+    }
+    if (kind === "virtual_remote") {
+      return "Remote buyers still look for a real anchor—location or base helps them picture who they're hiring.";
+    }
+    return "The right location line filters the wrong fits and reassures the right ones.";
+  }
+  if (pf === "hours") {
+    return "Nobody likes guessing whether you're reachable—hours set expectations before the first hello.";
+  }
+  if (pf === "process_summary") {
+    const tangible =
+      extras.tangible ??
+      /\b(fram|gallery|print|custom|art|piece|studio|bespoke)\b/i.test(blob);
+    if (tangible) {
+      return "Most people aren't buying a transaction—they're trusting you with something that matters to them.";
+    }
+    return "The experience is often what they're really evaluating—the deliverable is only part of the story.";
+  }
+  if (pf === "review_quotes") {
+    return "Trust usually only clicks once someone can picture the outcome—not before.";
+  }
+  if (pf === "trust_signal") {
+    return "People rarely bet on promises alone—they look for proof they can believe.";
+  }
+  return null;
+}
+
+/**
+ * Lightweight access flavor for copy (storefront vs service area vs remote) from strategy + preflight.
+ */
+function expertAccessKind(blueprint, pi) {
+  const bc = safeObject(blueprint?.strategy?.business_context);
+  const pre = mapPreflightBusinessModelToAccessModel(bc.business_model);
+  if (pre === "local_physical") return "local_physical";
+  if (pre === "local_service_area") return "local_service_area";
+  if (pre === "virtual_remote") return "virtual_remote";
+  if (pre === "hybrid") return "hybrid";
+  const p = isObject(pi) ? pi : {};
+  const blob = [cleanString(bc.category), cleanString(p.positioning), cleanString(p.opportunity)]
+    .join(" ")
+    .toLowerCase();
+  const cat = cleanString(bc.category).toLowerCase();
+  if (
+    /\b(gallery|retail|restaurant|salon|framing|storefront)\b/.test(cat) ||
+    /walk-in|visit us|in person/.test(blob)
+  ) {
+    return "local_physical";
+  }
+  if (/\b(virtual|remote|online)\b/.test(cat) || /\b(coach|consultant|consulting)\b/.test(cat)) {
+    return "virtual_remote";
+  }
+  if (/\b(mobile|field)\b/.test(cat) || /we come to you|come to your/.test(blob)) {
+    return "local_service_area";
+  }
+  return "hybrid";
+}
+
+function expertCallHeavyBooking(fr) {
+  const bm = fr?.booking_method?.value;
+  if (requiresPublishedPhoneForExecution(bm)) return true;
+  const s = cleanString(bm).toLowerCase();
+  return /\bcall\b|\bphone\b|phone call|quote by phone/.test(s);
+}
+
+/**
+ * Access (phone, email, address, hours): interpretation (stance on buyer behavior) + one clear ask.
+ */
+function buildAccessExpertQuestion(primaryField, businessName, blueprint, pi) {
+  const name = cleanString(businessName) || "your business";
+  const pf = cleanString(primaryField);
+  const fr = safeObject(blueprint?.fact_registry);
+  const kind = expertAccessKind(blueprint, pi);
+  const callHeavy = expertCallHeavyBooking(fr);
+
+  if (pf === "phone") {
+    const interp = buildInterpretation("phone", pi, blueprint, { callHeavy });
+    return expertDeterministicFrame(
+      `${interp} What's the best number for customers to reach ${name}?`
+    );
+  }
+  if (pf === "email") {
+    const interp = buildInterpretation("email", pi, blueprint);
+    return expertDeterministicFrame(`${interp} What email should we publish for ${name}?`);
+  }
+  if (pf === "address") {
+    const interp = buildInterpretation("address", pi, blueprint, { accessKind: kind });
+    return expertDeterministicFrame(`${interp} What address or location should we show for ${name}?`);
+  }
+  if (pf === "hours") {
+    const interp = buildInterpretation("hours", pi, blueprint);
+    return expertDeterministicFrame(
+      `${interp} What hours or availability should people expect when they contact ${name}?`
+    );
+  }
+  return "";
+}
+
+/**
+ * Process: interpretation (what they're really buying) + optional preflight guidance + concrete ask.
+ */
+function buildProcessExpertQuestion(businessName, blueprint, pi) {
+  const name = cleanString(businessName) || "your business";
+  const bc = safeObject(blueprint?.strategy?.business_context);
+  const cat = cleanString(bc.category);
+  const p = isObject(pi) ? pi : null;
+  const wd = p ? cleanString(p.website_direction) : "";
+  const opp = p ? cleanString(p.opportunity) : "";
+  const pos = p ? cleanString(p.positioning) : "";
+
+  const tangible = /\b(fram|gallery|print|custom|art|piece|studio|bespoke)\b/i.test(
+    [cat, opp, pos].join(" ")
+  );
+  const interp = buildInterpretation("process_summary", pi, blueprint, { tangible });
+  let guidance = "";
+  if (opp) {
+    guidance = `${opp} `;
+  } else if (pos) {
+    guidance = `${pos} `;
+  }
+
+  const question = tangible
+    ? "What does that experience usually look like when someone brings you a project—walk us through it in your own words."
+    : `What does that process usually look like from first contact through completion for ${name}?`;
+
+  const prefix = wd ? `For the site journey we're considering: ${wd} ` : "";
+  return expertDeterministicFrame(`${prefix}${interp} ${guidance}${question}`);
+}
+
+/**
+ * Proof (reviews / trust): interpretation (how trust forms) + buyer reality from preflight + ask for evidence.
+ */
+function buildProofExpertQuestion(primaryField, businessName, blueprint, pi) {
+  const name = cleanString(businessName) || "your business";
+  const pf = cleanString(primaryField);
+  const p = isObject(pi) ? pi : null;
+  const weak = p ? cleanList(p.weaknesses) : [];
+  const buyers = p ? cleanList(p.buyer_factors) : [];
+  const opp = p ? cleanString(p.opportunity) : "";
+
+  const interp = buildInterpretation(pf, p, blueprint) || "";
+  let bridge = "";
+  if (opp) {
+    bridge = opp;
+  } else if (weak.length) {
+    bridge = `Concretely, that often shows up as worrying about ${weak[0]}.`;
+  } else if (buyers.length) {
+    bridge = `They usually weigh ${buyers.slice(0, 2).join(" and ")} before saying yes.`;
+  }
+
+  const setup = [interp, bridge].filter(Boolean).join(" ");
+
+  if (pf === "review_quotes") {
+    return expertDeterministicFrame(
+      `${setup} After working with you, what do customers usually say about the result—or what language should we echo on the site?`
+    );
+  }
+  if (pf === "trust_signal") {
+    return expertDeterministicFrame(
+      `${setup} What should we lean on most for ${name}—reviews, outcomes, credentials, photos, or something else—so that confidence lands quickly?`
+    );
+  }
+  return "";
+}
+
+/**
+ * Replaces generic deterministic copy for access, process, and proof when we want expert tone.
+ * @returns {string} Full question text, or "" to use standard deterministic + optional preflight lead.
+ */
+function buildExpertContextualDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence) {
+  const name =
+    cleanString(businessName) ||
+    cleanString(getByPath(blueprint, "business_draft.brand.name")) ||
+    "your business";
+  const bundleId = cleanString(plan?.bundle_id);
+  const primaryField = cleanString(plan?.primary_field);
+  const pi = isObject(preflightIntelligence) ? preflightIntelligence : null;
+
+  if (bundleId === "contact_details") {
+    const q = buildAccessExpertQuestion(primaryField, name, blueprint, pi);
+    if (q) return q;
+  }
+  if (bundleId === "process" && primaryField === "process_summary") {
+    return buildProcessExpertQuestion(name, blueprint, pi);
+  }
+  if (bundleId === "proof" && (primaryField === "review_quotes" || primaryField === "trust_signal")) {
+    return buildProofExpertQuestion(primaryField, name, blueprint, pi);
+  }
+  return "";
+}
+
 /**
  * Preflight → intake bridge: one short framing note for the LLM (same primary_field only).
  * @see docs/PREFLIGHT_OUTPUT_SPEC_V1.md
@@ -3190,6 +3415,8 @@ function userFacingDeterministicLead(bundleId, primaryField, pi) {
 }
 
 function buildDeterministicQuestionWithPreflight(plan, blueprint, businessName, preflightIntelligence) {
+  const expert = buildExpertContextualDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence);
+  if (expert) return expert;
   const base = buildDeterministicQuestion(plan, blueprint, businessName);
   const lead = userFacingDeterministicLead(
     cleanString(plan?.bundle_id),
@@ -3228,14 +3455,40 @@ function buildPreflightBridgeFraming(bundleId, primaryField, pi) {
     const narrative = buildPricingPreflightNarrative(pi, { maxChars: 520, withPricingInstruction: true });
     if (narrative) return narrative;
   }
+  if (b === "contact_details") {
+    if (pf === "phone") {
+      return `Why this matters: a clear public number should feel easy and trustworthy for how customers start. Rephrase warmly; stay on phone only—no pricing or booking URLs.`;
+    }
+    if (pf === "email") {
+      return `Why this matters: prospects should know where a serious inquiry goes. Rephrase naturally; stay on email only.`;
+    }
+    if (pf === "address") {
+      return `Why this matters: location sets expectations for visits or service area. Rephrase clearly; stay on address only.`;
+    }
+    if (pf === "hours") {
+      return `Why this matters: clear hours reduce friction and repeat questions. Rephrase helpfully; stay on hours only.`;
+    }
+  }
   if ((pf === "faq_angles" || b === "objection_handling") && buyers.length) {
     return `Buyers in this space often weigh: ${buyers.slice(0, 4).join("; ")}. Ask what objections or questions come up before someone books (stay on FAQ angle only).`;
   }
-  if ((pf === "review_quotes" || pf === "trust_signal") && weak.length) {
-    return `Market gaps to contrast against (trust topic only): ${weak.slice(0, 3).join("; ")}. Ask for proof or language that addresses that gap.`;
+  if (pf === "review_quotes" || pf === "trust_signal") {
+    if (opp) {
+      return `Reflect real buyer hesitation or desire: ${truncate(opp, 300)} Ask for concrete proof, quotes, or credibility lines that address that (trust topic only).`;
+    }
+    if (weak.length) {
+      return `Where buyers tend to worry: ${weak.slice(0, 3).join("; ")}. Ask what they show or say that flips that worry (trust topic only).`;
+    }
   }
-  if (pf === "process_summary" && cleanString(pi.website_direction)) {
-    return `Site flow intent from research: ${truncate(cleanString(pi.website_direction), 240)} — ask for the real-world process that supports that journey.`;
+  if (pf === "process_summary") {
+    const wd = cleanString(pi.website_direction);
+    const parts = [];
+    if (wd) parts.push(`Site direction: ${truncate(wd, 220)}`);
+    if (opp) parts.push(`Context: ${truncate(opp, 260)}`);
+    if (parts.length) {
+      return `${parts.join(" — ")} Ask for the concrete steps a client experiences—first touch through delivery (process topic only).`;
+    }
+    return `Ask for the real-world process from first contact through completion—specific steps, not a generic promise (process topic only).`;
   }
   if (pf === "comparison" && (weak.length || alts.length || focus.length)) {
     const parts = [];
