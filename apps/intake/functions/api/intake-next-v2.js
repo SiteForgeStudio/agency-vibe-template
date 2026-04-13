@@ -911,6 +911,27 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
  * Evidence Router + Blueprint Mutations
  * ====================================================================== */
 
+function maybePromotePrefilledToVerified(answer, fact) {
+  if (!isObject(fact) || cleanString(fact.status) !== "prefilled_unverified") return fact;
+
+  const text = cleanString(answer).toLowerCase();
+
+  const isAffirmation =
+    text.includes("yes") ||
+    text.includes("correct") ||
+    text.includes("looks good") ||
+    text.includes("sounds right") ||
+    text.includes("that works");
+
+  if (!isAffirmation) return fact;
+
+  return {
+    ...fact,
+    verified: true,
+    status: "answered"
+  };
+}
+
 function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpretation, answer }) {
   const nextBlueprint = deepClone(blueprint);
   nextBlueprint.fact_registry = deepClone(blueprint.fact_registry || {});
@@ -1004,6 +1025,18 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
       };
 
       updatedFactKeys.push(update.fact_key);
+    }
+  }
+
+  if (expectedField) {
+    const fk = expectedField;
+    const fact = nextBlueprint.fact_registry[fk];
+    if (fact) {
+      const promoted = maybePromotePrefilledToVerified(answer, fact);
+      if (promoted !== fact) {
+        nextBlueprint.fact_registry[fk] = promoted;
+        if (!updatedFactKeys.includes(fk)) updatedFactKeys.push(fk);
+      }
     }
   }
 
@@ -3456,7 +3489,45 @@ function userFacingDeterministicLead(bundleId, primaryField, pi) {
   return "";
 }
 
+function formatFactValueForConfirmationPrompt(value) {
+  if (value == null) return "";
+  if (Array.isArray(value)) {
+    const parts = value.map((v) => cleanString(v)).filter(Boolean);
+    return parts.length ? parts.join("; ") : "";
+  }
+  return cleanString(value);
+}
+
+function buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflightIntelligence) {
+  const primaryField = cleanString(plan?.primary_field);
+  if (!primaryField) return "";
+  const fact = blueprint?.fact_registry?.[primaryField];
+  if (!fact || cleanString(fact.status) !== "prefilled_unverified") return "";
+
+  let insight = formatFactValueForConfirmationPrompt(fact.value);
+  if (!hasMeaningfulValue(insight) && isObject(preflightIntelligence)) {
+    const pi = preflightIntelligence;
+    const fallbacks = {
+      business_understanding: cleanString(pi.positioning),
+      opportunity: cleanString(pi.opportunity),
+      differentiation: cleanString(pi.differentiation_hypothesis),
+      trust_signal: cleanList(pi.trust_markers)[0],
+      aeo_angles: cleanString(pi.winning_angle),
+      recommended_focus: cleanList(pi.recommended_focus).join("; "),
+      website_direction: cleanString(pi.website_direction)
+    };
+    insight = fallbacks[primaryField] || "";
+  }
+
+  if (!hasMeaningfulValue(insight)) return "";
+
+  return `Here's what we're seeing:\n\n${truncate(insight, 640)}\n\nDoes this feel right, or would you adjust it?`;
+}
+
 function buildDeterministicQuestionWithPreflight(plan, blueprint, businessName, preflightIntelligence) {
+  const prefillQ = buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflightIntelligence);
+  if (prefillQ) return prefillQ;
+
   const expert = buildExpertContextualDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence);
   if (expert) return expert;
   const base = buildDeterministicQuestion(plan, blueprint, businessName);
@@ -4161,6 +4232,8 @@ function sanitizeFactStatus(value) {
   if (status === "inferred") return "inferred";
   if (status === "answered") return "answered";
   if (status === "missing") return "missing";
+  if (status === "prefilled_unverified") return "prefilled_unverified";
+  if (status === "seeded") return "seeded";
   return "answered";
 }
 
@@ -4349,6 +4422,8 @@ function isFactResolved(fact) {
 
   const status = cleanString(fact.status);
   const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;
+
+  if (status === "prefilled_unverified") return false;
 
   return (
     status === "answered" ||

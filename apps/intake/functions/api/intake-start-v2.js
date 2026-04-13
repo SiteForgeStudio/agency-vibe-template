@@ -55,19 +55,8 @@ export async function onRequestPost(context) {
     const seededAnswers = buildSeededAnswers(strategy, reconData);
     const preflight_intelligence = buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers);
 
-    // 2) BUILD BLUEPRINT
-    const blueprint = buildBlueprintFromPreflight(strategy, reconData, seededAnswers);
-    // ==========================
-    // 🔥 HYDRATE FACTS FROM PREFLIGHT (PATCH 5)
-    // ==========================
-    const inferredFacts = hydrateFactsFromStrategyContract(strategy);
-
-    blueprint.fact_registry = {
-      ...blueprint.fact_registry,
-      ...Object.fromEntries(
-        Object.entries(inferredFacts).filter(([_, v]) => v !== undefined)
-      )
-    };
+    // 2) BUILD BLUEPRINT (merges strategy-inferred facts + preflight_intelligence hydration before section/plan)
+    const blueprint = buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflight_intelligence);
 
     // 3) INITIALIZE STATE
     const initialState = {
@@ -744,9 +733,18 @@ function buildSeedMeta(seededAnswers) {
    BLUEPRINT
 -------------------------------- */
 
-function buildBlueprintFromPreflight(strategy, reconData, seededAnswers) {
+function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflightIntelligence) {
   const normalizedStrategy = buildNormalizedStrategy(strategy, reconData);
-  const factRegistry = buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrategy);
+  let factRegistry = buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrategy);
+
+  const inferredFacts = hydrateFactsFromStrategyContract(strategy);
+  factRegistry = {
+    ...factRegistry,
+    ...Object.fromEntries(Object.entries(inferredFacts).filter(([_, v]) => v !== undefined))
+  };
+
+  hydrateFactRegistryWithPreflightIntelligence(factRegistry, preflightIntelligence);
+
   const businessDraft = buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry);
   const sectionStatus = computeSectionStatus(normalizedStrategy, factRegistry, businessDraft);
   const verificationQueue = buildVerificationQueue(normalizedStrategy, factRegistry, sectionStatus);
@@ -1157,6 +1155,68 @@ function addFact(registry, key, value, options = {}) {
     related_sections: asArray(options.related_sections),
     status: hasMeaningfulValue(value) ? (options.verified ? "verified" : "seeded") : "missing"
   };
+}
+
+/**
+ * Overlay `preflight_intelligence` onto existing fact rows (PI is authoritative copy; still unverified until intake confirms).
+ * Sets status `prefilled_unverified` so intake-next treats fields as not yet resolved (see isFactResolved).
+ */
+function hydrateFromPreflight(existingEntry, value) {
+  if (!hasMeaningfulValue(value)) return existingEntry;
+  if (!isObject(existingEntry)) return existingEntry;
+  return {
+    ...existingEntry,
+    value,
+    source: "preflight",
+    confidence: 0.7,
+    verified: false,
+    status: "prefilled_unverified"
+  };
+}
+
+function hydrateFactRegistryWithPreflightIntelligence(facts, pi) {
+  if (!isObject(facts) || !isObject(pi)) return;
+
+  const positioning = cleanString(pi.positioning);
+  if (facts.business_understanding && positioning) {
+    facts.business_understanding = hydrateFromPreflight(facts.business_understanding, positioning);
+  }
+
+  const opportunity = cleanString(pi.opportunity);
+  if (facts.opportunity && opportunity) {
+    facts.opportunity = hydrateFromPreflight(facts.opportunity, opportunity);
+  }
+
+  const diffHyp = cleanString(pi.differentiation_hypothesis);
+  if (facts.differentiation && diffHyp) {
+    facts.differentiation = hydrateFromPreflight(facts.differentiation, diffHyp);
+  }
+
+  const trustFirst = cleanList(pi.trust_markers)[0];
+  if (facts.trust_signal && trustFirst) {
+    facts.trust_signal = hydrateFromPreflight(facts.trust_signal, trustFirst);
+  }
+
+  const mergedAeo = uniqueList([
+    ...cleanList(facts.aeo_angles?.value),
+    ...cleanList(pi.winning_angle ? [pi.winning_angle] : [])
+  ]);
+  if (facts.aeo_angles && mergedAeo.length) {
+    facts.aeo_angles = hydrateFromPreflight(facts.aeo_angles, mergedAeo);
+  }
+
+  const mergedFocus = uniqueList([
+    ...cleanList(facts.recommended_focus?.value),
+    ...cleanList(pi.recommended_focus)
+  ]);
+  if (facts.recommended_focus && mergedFocus.length) {
+    facts.recommended_focus = hydrateFromPreflight(facts.recommended_focus, mergedFocus);
+  }
+
+  const webDir = cleanString(pi.website_direction);
+  if (facts.website_direction && webDir) {
+    facts.website_direction = hydrateFromPreflight(facts.website_direction, webDir);
+  }
 }
 
 function inferConfidence(source, value) {
