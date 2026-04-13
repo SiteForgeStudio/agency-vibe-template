@@ -614,8 +614,9 @@ function buildInterpreterSystemPrompt() {
   function isFactComplete(fact) {
     if (!fact) return false;
 
-    // 🔥 ONLY requirement: usable value
-    return hasMeaningfulValue(fact.value);
+    // 🔥 ONLY requirement: usable value (never treat nested fact stubs as content)
+    const v = sanitizeFactValue(fact.value);
+    return hasMeaningfulValue(v);
   }
 
   /** Phone / quote-by-phone style flows do not need an external booking URL. */
@@ -737,7 +738,7 @@ function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSectio
     .filter((item) => isObject(item) && allowedFactKeys.includes(cleanString(item.fact_key)))
     .map((item) => ({
       fact_key: cleanString(item.fact_key),
-      value: normalizeModelValue(item.value),
+      value: sanitizeFactValue(normalizeModelValue(item.value)),
       confidence: clampNumber(item.confidence, 0, 1, 0.5),
       verified: item.verified !== false,
       status: sanitizeFactStatus(item.status),
@@ -991,7 +992,7 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
       : null;
 
     const newFact = {
-      value: deepClone(update.value),
+      value: sanitizeFactValue(deepClone(update.value)),
       source: "user",
       confidence: clampNumber(update.confidence, 0, 1, existing?.confidence ?? 0.5),
       verified: update.verified !== false,
@@ -4124,23 +4125,40 @@ function normalizeFactRegistry(input) {
 
   for (const [key, entry] of Object.entries(registry)) {
     if (isObject(entry) && Object.prototype.hasOwnProperty.call(entry, "value")) {
+      let val = sanitizeFactValue(normalizeModelValue(entry.value));
+      let status = sanitizeFactStatus(entry.status || inferFactStatus(val));
+      let verified = !!entry.verified;
+
+      if (!hasMeaningfulValue(val)) {
+        if (status === "answered" || status === "inferred" || status === "partial") {
+          status = inferFactStatus(val);
+          verified = false;
+        }
+        if (status === "prefilled_unverified") {
+          status = "missing";
+          verified = false;
+        }
+      }
+
       out[key] = {
         ...entry,
-        value: normalizeModelValue(entry.value),
+        value: val,
         source: cleanString(entry.source) || "unknown",
         confidence: clampNumber(entry.confidence, 0, 1, 0),
-        verified: !!entry.verified,
-        status: sanitizeFactStatus(entry.status || inferFactStatus(entry.value)),
+        verified,
+        status,
         rationale: cleanString(entry.rationale),
         history: Array.isArray(entry.history) ? entry.history : []
       };
     } else {
+      let val = sanitizeFactValue(normalizeModelValue(entry));
+      const status = sanitizeFactStatus(inferFactStatus(val));
       out[key] = {
-        value: normalizeModelValue(entry),
+        value: val,
         source: "unknown",
-        confidence: hasMeaningfulValue(entry) ? 0.5 : 0,
+        confidence: hasMeaningfulValue(val) ? 0.5 : 0,
         verified: false,
-        status: inferFactStatus(entry),
+        status,
         rationale: "",
         history: []
       };
@@ -4204,6 +4222,43 @@ function hasMeaningfulValue(value) {
   if (typeof value === "boolean") return true;
   if (typeof value === "number") return true;
   return cleanString(value) !== "";
+}
+
+/**
+ * Strips nested fact rows or status-only stubs accidentally stored as `fact.value`
+ * (e.g. `{ status: "missing" }` or a full `{ value, status, source, ... }` blob).
+ */
+function sanitizeFactValue(value) {
+  if (value == null) return value;
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeFactValue(item));
+  }
+  if (!isObject(value)) return value;
+
+  if ("value" in value && ("status" in value || "source" in value)) {
+    return sanitizeFactValue(value.value);
+  }
+  if ("status" in value && "source" in value) {
+    return null;
+  }
+  if ("status" in value) {
+    const metaKeys = new Set([
+      "status",
+      "confidence",
+      "verified",
+      "rationale",
+      "source",
+      "updated_at",
+      "requires_client_verification"
+    ]);
+    if (Object.keys(value).every((k) => metaKeys.has(k))) {
+      return null;
+    }
+  }
+  return value;
 }
 
 /** String value meaning no public scheduling URL (not a navigable CTA href). */
@@ -4424,6 +4479,9 @@ function isFactResolved(fact) {
   const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;
 
   if (status === "prefilled_unverified") return false;
+
+  const v = sanitizeFactValue(fact.value);
+  if (!hasMeaningfulValue(v)) return false;
 
   return (
     status === "answered" ||

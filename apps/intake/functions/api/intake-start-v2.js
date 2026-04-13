@@ -145,11 +145,33 @@ export async function onRequestPost(context) {
    RESPONSE HELPERS
 -------------------------------- */
 
+function extractValue(v) {
+  if (v == null) return v;
+  if (Array.isArray(v)) return v.map((x) => extractValue(x));
+  if (!isObject(v)) return v;
+  if ("value" in v) return extractValue(v.value);
+  if ("status" in v && "source" in v) return null;
+  if ("status" in v) {
+    const metaKeys = new Set([
+      "status",
+      "confidence",
+      "verified",
+      "rationale",
+      "source",
+      "updated_at",
+      "requires_client_verification"
+    ]);
+    if (Object.keys(v).every((k) => metaKeys.has(k))) return null;
+  }
+  return v;
+}
+
 function buildInferredFact(value) {
-  if (!value) return undefined;
+  const leaf = extractValue(value);
+  if (!hasMeaningfulValue(leaf)) return undefined;
 
   return {
-    value,
+    value: leaf,
     status: "inferred",
     confidence: 0.8,
     verified: false,
@@ -1162,11 +1184,12 @@ function addFact(registry, key, value, options = {}) {
  * Sets status `prefilled_unverified` so intake-next treats fields as not yet resolved (see isFactResolved).
  */
 function hydrateFromPreflight(existingEntry, value) {
-  if (!hasMeaningfulValue(value)) return existingEntry;
+  const leaf = extractValue(value);
+  if (!hasMeaningfulValue(leaf)) return existingEntry;
   if (!isObject(existingEntry)) return existingEntry;
   return {
     ...existingEntry,
-    value,
+    value: leaf,
     source: "preflight",
     confidence: 0.7,
     verified: false,
