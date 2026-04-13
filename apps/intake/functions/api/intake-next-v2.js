@@ -2570,6 +2570,18 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     const targetFields = applyAccessGateToConversionFields(decision, rawTargetFields, accessReadiness);
 
     let unresolvedFields = targetFields.filter((field) => !isFieldSatisfied(field, factRegistry));
+    if (unresolvedFields.some((fk) => cleanString(factRegistry[fk]?.status) === "prefilled_unverified")) {
+      const orderIdx = (fk) => {
+        const i = targetFields.indexOf(fk);
+        return i < 0 ? 9999 : i;
+      };
+      unresolvedFields = unresolvedFields.slice().sort((a, b) => {
+        const pa = cleanString(factRegistry[a]?.status) === "prefilled_unverified" ? 0 : 1;
+        const pb = cleanString(factRegistry[b]?.status) === "prefilled_unverified" ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return orderIdx(a) - orderIdx(b);
+      });
+    }
     const relatedComponents = cleanList(config.components).filter(
       (component) => componentStates[component]?.enabled || componentStates[component]?.required
     );
@@ -2599,12 +2611,16 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     }
 
     const nextPrimaryField = cleanString(unresolvedFields[0] || targetFields[0]);
+    const bypassAccessForPrefill = unresolvedFields.some(
+      (fk) => cleanString(factRegistry[fk]?.status) === "prefilled_unverified"
+    );
     if (
       accessReadiness &&
       accessReadiness.satisfied === false &&
       unresolvedFields.length > 0 &&
       nextPrimaryField &&
-      !isAccessPrimaryField(nextPrimaryField)
+      !isAccessPrimaryField(nextPrimaryField) &&
+      !bypassAccessForPrefill
     ) {
       continue;
     }
