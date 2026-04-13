@@ -1229,6 +1229,36 @@ function buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrateg
     related_sections: ["gallery", "hero"]
   });
 
+  hydrateServiceAreaFromPreflight(facts, reconData);
+  return facts;
+}
+
+/**
+ * Seed primary service area from recon / entity profile when answers did not carry it.
+ */
+function hydrateServiceAreaFromPreflight(facts, reconData) {
+  const recon = reconPayloadRoot(reconData);
+  const ep = safeParseJsonString(recon?.entity_profile_json);
+  let areas = cleanList(recon?.service_area);
+  if (isObject(ep)) {
+    areas = [...areas, ...cleanList(ep.service_area)];
+  }
+  if (!areas.length) return facts;
+
+  const main = cleanString(areas[0]);
+  if (!main) return facts;
+
+  const cur = facts.service_area_main;
+  if (cur && hasMeaningfulValue(cur.value)) return facts;
+
+  facts.service_area_main = {
+    value: main,
+    source: "preflight",
+    confidence: 0.8,
+    verified: false,
+    status: "prefilled_unverified",
+    related_sections: Array.isArray(cur?.related_sections) ? cur.related_sections : ["service_area", "hero"]
+  };
   return facts;
 }
 

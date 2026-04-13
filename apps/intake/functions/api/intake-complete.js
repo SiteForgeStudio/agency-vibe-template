@@ -316,6 +316,56 @@ function buildSignalBlob(state, strategyContract) {
   };
 }
 
+/**
+ * Compact strategy view for assembly (signal-driven; no industry templates).
+ */
+function buildStrategyModels(signalBlob) {
+  const exp = isObject(signalBlob?.experience_model) ? signalBlob.experience_model : {};
+  const visual = isObject(signalBlob?.visual_strategy) ? signalBlob.visual_strategy : {};
+  const process = isObject(signalBlob?.process_model) ? signalBlob.process_model : {};
+  const pricing = isObject(signalBlob?.pricing_model) ? signalBlob.pricing_model : {};
+  const trustSignals = Array.isArray(signalBlob?.trust) ? signalBlob.trust.filter(Boolean) : [];
+
+  const stepsEmphasis = process.steps_emphasis;
+  const steps =
+    Array.isArray(stepsEmphasis) && stepsEmphasis.length
+      ? stepsEmphasis.map((s) => cleanString(s)).filter(Boolean)
+      : cleanString(stepsEmphasis)
+        ? [cleanString(stepsEmphasis)]
+        : ["discover", "decide", "deliver"];
+
+  return {
+    visual_strategy: {
+      type: cleanString(exp.visual_importance).toLowerCase() === "critical" ? "transformation" : "supporting",
+      focus: cleanList(visual.must_show),
+      intent: cleanString(visual.primary_visual_job) || "showcase work in real-world context"
+    },
+
+    process_strategy: {
+      type: cleanString(exp.decision_mode).toLowerCase() === "guided" ? "consultative" : "simple",
+      goal: cleanList(process.buyer_anxiety)[0] || "help customer understand what to expect",
+      steps
+    },
+
+    trust_strategy: {
+      type: cleanString(exp.trust_requirement).toLowerCase() === "high_technical" ? "technical_authority" : "general",
+      proof: trustSignals.length ? trustSignals : ["quality", "experience", "reliability"]
+    },
+
+    pricing_strategy: {
+      type: /\bvariable\b/i.test(cleanString(exp.pricing_behavior)) ? "variable" : "fixed",
+      display: cleanString(pricing.site_treatment) || "standard",
+      cta: cleanString(pricing.cta_alignment) || "contact"
+    }
+  };
+}
+
+function capitalizeStrategyStep(s) {
+  const t = cleanString(s);
+  if (!t) return "";
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 function summarizeSignalBlobForBrief(blob) {
   if (!isObject(blob)) return {};
   return {
@@ -762,6 +812,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   const vibe = selectVibe(SCHEMA_VIBES, strategyContract, state);
 
   const signalBlob = buildSignalBlob(state, strategyContract);
+  const strategyModels = buildStrategyModels(signalBlob);
   const behavior =
     isObject(strategyBrief?.derived_behavior) && strategyBrief.derived_behavior
       ? strategyBrief.derived_behavior
@@ -771,6 +822,13 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   let features = buildFeatures(state, strategyContract);
   let processSteps = buildProcessSteps(state, strategyContract, behavior);
 
+  if (!processSteps.length && strategyModels.process_strategy.type === "consultative") {
+    processSteps = strategyModels.process_strategy.steps.map((s) => ({
+      title: capitalizeStrategyStep(s),
+      description: "We guide you through each step so you feel confident in every decision."
+    }));
+  }
+
   processSteps = enhanceProcessSteps(processSteps, signalBlob, behavior).map((s) => ({
     ...s,
     description: normalizePublicText(s.description)
@@ -779,6 +837,15 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     ...f,
     description: normalizePublicText(f.description)
   }));
+
+  if (strategyModels.trust_strategy.type === "technical_authority") {
+    features.push({
+      title: "Expert Craftsmanship",
+      description: "Using professional-grade materials and proven techniques.",
+      icon_slug: pickFeatureIcon("Expert Craftsmanship professional-grade materials", features.length)
+    });
+  }
+
   const gallery = buildGallery(state, strategyContract, vibe);
   const testimonials = buildTestimonials(state, strategyContract);
   const faqs = buildFaqs(state, strategyContract);
@@ -840,6 +907,10 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   hero.headline = normalizePublicText(hero.headline);
   hero.subtext = normalizePublicText(hero.subtext);
 
+  if (!cleanString(hero.headline) && strategyModels.visual_strategy.type === "transformation") {
+    hero.headline = normalizePublicText("Designed to showcase and preserve what matters most");
+  }
+
   const sections = {
     about: true,
     features,
@@ -865,6 +936,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       menu: buildMenu(toggles, sections),
       cta_text: normalizePublicText(
         cleanString(state.answers?.cta_text) ||
+        (strategyModels.pricing_strategy.type === "variable" ? "Request a Consultation" : "") ||
         inferPrimaryCtaText(strategyContract, bookingUrl, pmPi, emPi)
       ),
       cta_link: bookingUrl || cleanString(state.answers?.cta_link) || "#contact",

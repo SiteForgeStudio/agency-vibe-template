@@ -560,6 +560,7 @@ function buildInterpreterSystemPrompt() {
     "Only update fields outside the current bundle if the answer clearly and directly provides them.",
     "If the answer is about pricing, prefer pricing over primary_offer.",
     "If the answer is about booking flow, prefer booking_method, booking_url, or contact_path over positioning fields.",
+    "If the bundle is contact_details and the user gives phone, address, or hours together, include fact_updates for each distinct field you can extract.",
     "If the answer is about process, prefer process_summary over generic differentiation.",
     "If the answer is about visuals, prefer hero_image_query or gallery_visual_direction.",
     "If the answer is partial, still update the primary field with status='partial' rather than leaving it missing.",
@@ -790,6 +791,59 @@ function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSectio
   };
 }
 
+function extractPhoneFromContactAnswer(text) {
+  const s = cleanString(text);
+  if (!s) return "";
+  const m = s.match(/(?:\+?\d{1,3}[-.\s])?(?:\(?\d{3}\)?)[-.\s]?\d{3}[-.\s]?\d{4}\b/);
+  return m ? cleanString(m[0]) : "";
+}
+
+function extractStreetAddressFromContactAnswer(text) {
+  const s = cleanString(text);
+  if (!s) return "";
+  const lineMatch = s.match(
+    /\d{1,5}\s+[^\n,]+(?:street|st|avenue|ave|road|rd|blvd|boulevard|drive|dr|lane|ln|way|court|ct|circle|cir)\b[^\n,!?]*/i
+  );
+  if (lineMatch) return cleanString(lineMatch[0]);
+  const zip = s.match(/\d{1,5}\s+[^,]+,?\s*[A-Za-z.\s]+,?\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?/);
+  return zip ? cleanString(zip[0]) : "";
+}
+
+function extractHoursFromContactAnswer(text) {
+  const t = cleanString(text);
+  if (!t) return "";
+  const lower = t.toLowerCase();
+  const looksTime =
+    /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekdays|weekends|daily|open|closed)\b/.test(lower) ||
+    /\d{1,2}:\d{2}/.test(t) ||
+    /\d{1,2}\s*(?:a\.?m\.|p\.?m\.)/i.test(t);
+  if (!looksTime) return "";
+  return t.length > 280 ? truncate(t, 280) : t;
+}
+
+function repairContactDetailsComboFacts(repaired, rawAnswer) {
+  const text = cleanString(rawAnswer);
+  if (!text) return;
+  repaired.fact_updates = repaired.fact_updates || [];
+  const keys = new Set(repaired.fact_updates.map((u) => cleanString(u.fact_key)));
+  const push = (fact_key, value, rationale) => {
+    if (!hasMeaningfulValue(value) || keys.has(fact_key)) return;
+    repaired.fact_updates.push({
+      fact_key,
+      value,
+      confidence: 0.74,
+      verified: true,
+      status: "answered",
+      rationale
+    });
+    keys.add(fact_key);
+  };
+
+  push("phone", extractPhoneFromContactAnswer(text), "Parsed phone from combined contact reply.");
+  push("address", extractStreetAddressFromContactAnswer(text), "Parsed address from combined contact reply.");
+  push("hours", extractHoursFromContactAnswer(text), "Parsed hours from combined contact reply.");
+}
+
 function repairInterpretationForActiveTarget(interpretation, currentPlan, answer) {
   const repaired = deepClone(interpretation);
   const primaryField = cleanString(currentPlan?.primary_field);
@@ -802,7 +856,7 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
   const alreadyUpdated = (repaired.fact_updates || []).some(
     (item) => cleanString(item.fact_key) === primaryField
   );
-  if (alreadyUpdated) return repaired;
+  if (alreadyUpdated && bundleId !== "contact_details") return repaired;
 
   if (bundleId === "conversion" && primaryField === "pricing") {
     const pricingSignals = [
@@ -906,6 +960,10 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
         rationale: "User provided visual direction relevant to image strategy."
       });
     }
+  }
+
+  if (bundleId === "contact_details") {
+    repairContactDetailsComboFacts(repaired, text);
   }
 
   return repaired;
@@ -2638,6 +2696,22 @@ function premiumUnlockBoostForDecision(decision, premiumReadiness) {
   return Math.round(Math.min(96, boost));
 }
 
+/** When primary city is already implied by recon/preflight/strategy, do not re-ask service_area_main. */
+function hasLocationSignalsForServiceArea(factRegistry, state, blueprint) {
+  if (hasMeaningfulValue(factRegistry?.service_area_main?.value)) return true;
+  if (hasMeaningfulValue(factRegistry?.address?.value)) return true;
+  const pi = safeObject(state?.preflight_intelligence);
+  const sa = pi.service_area;
+  if (Array.isArray(sa) && sa.some((x) => hasMeaningfulValue(x))) return true;
+  if (typeof sa === "string" && cleanString(sa)) return true;
+  const bc =
+    safeObject(blueprint?.strategy?.business_context) ||
+    safeObject(state?.provenance?.strategy_contract?.business_context);
+  const bsa = bc?.service_area;
+  if (Array.isArray(bsa) && bsa.some((x) => cleanString(x))) return true;
+  return typeof bsa === "string" && !!cleanString(bsa);
+}
+
 function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) {
   const candidates = [];
   const decisionStates = safeObject(blueprint.decision_states);
@@ -2669,6 +2743,14 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     const targetFields = applyAccessGateToConversionFields(decision, rawTargetFields, accessReadiness);
 
     let unresolvedFields = targetFields.filter((field) => !isFieldSatisfied(field, factRegistry));
+
+    if (decision === "service_area") {
+      unresolvedFields = unresolvedFields.filter((field) => {
+        if (field !== "service_area_main") return true;
+        return !hasLocationSignalsForServiceArea(factRegistry, state, blueprint);
+      });
+    }
+
     if (unresolvedFields.some((fk) => cleanString(factRegistry[fk]?.status) === "prefilled_unverified")) {
       const orderIdx = (fk) => {
         const i = targetFields.indexOf(fk);
@@ -3699,6 +3781,15 @@ function buildDeterministicQuestionWithPreflight(plan, blueprint, businessName, 
 
   const prefillQ = buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflightIntelligence);
   if (prefillQ) return prefillQ;
+
+  const bundleId = cleanString(plan?.bundle_id);
+  const pf = cleanString(plan?.primary_field);
+  if (
+    bundleId === "contact_details" &&
+    ["phone", "address", "hours"].includes(pf)
+  ) {
+    return "Where can people reach or visit you? You can include phone, address, and hours if available.";
+  }
 
   const expert = buildExpertContextualDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence);
   if (expert) return expert;
