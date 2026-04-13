@@ -168,6 +168,45 @@ function json(data, status = 200) {
           "sales_preview": "",
           "recommended_focus": [],
           "next_step_teaser": ""
+        },
+        "experience_model": {
+          "purchase_type": "",
+          "decision_mode": "",
+          "visual_importance": "",
+          "trust_requirement": "",
+          "pricing_behavior": "",
+          "experience_rationale": ""
+        },
+        "component_importance": {
+          "gallery": "",
+          "process": "",
+          "testimonials": "",
+          "pricing_section": "",
+          "comparison": "",
+          "faqs": "",
+          "service_area": "",
+          "contact_conversion": "",
+          "events_or_booking": "",
+          "investment": ""
+        },
+        "visual_strategy": {
+          "primary_visual_job": "",
+          "gallery_story": "",
+          "imagery_tone": "",
+          "must_show": [],
+          "avoid": []
+        },
+        "process_model": {
+          "buyer_anxiety": [],
+          "process_narrative": "",
+          "steps_emphasis": "",
+          "reassurance_devices": []
+        },
+        "pricing_model": {
+          "site_treatment": "",
+          "cta_alignment": "",
+          "risk_language": "",
+          "pricing_notes": ""
         }
       }
       
@@ -309,6 +348,54 @@ function json(data, status = 200) {
       - For appointment-based services, prioritize credentials, clarity, and ease of scheduling
       - For client_preview, reflect the buyer psychology of the category without revealing the full internal strategy
 
+      EXPERIENCE STRATEGY LAYER (required — prescribes HOW the site should work, not just WHAT the business is)
+      - Infer from category dynamics, risk, purchase complexity, and proof needs. Do NOT name a canned industry template (no "because framing shop" boilerplate).
+      - Do NOT hardcode verticals: every enum choice must be justified by signals in the inputs (description, name, location, optional URL hint).
+
+      experience_model ENUMS (use exactly one string per field from these lists):
+      - purchase_type:
+        "impulse_or_quick" | "transactional_standard" | "consultative_service" | "scheduled_experience" | "high_stakes_project" | "emergency_or_urgent" | "relationship_ongoing"
+      - decision_mode:
+        "self_serve_compare" | "guided_education" | "appointment_required" | "multi_visit_decision" | "committee_or_family"
+      - visual_importance:
+        "low" | "medium" | "high" | "critical"
+      - trust_requirement:
+        "light_social_proof" | "moderate_credibility" | "high_personal_risk" | "high_technical_proof" | "safety_or_compliance"
+      - pricing_behavior:
+        "transparent_list" | "starting_at_or_ranges" | "quote_after_scope" | "consultation_first_no_public_numbers" | "variable_donation_or_custom" | "not_applicable"
+      - experience_rationale: 1–2 sentences tying the enums to buyer reality (specific, non-generic).
+
+      component_importance ENUMS (each key: "none" | "low" | "medium" | "high" | "critical"):
+      - Score gallery, process, testimonials, pricing_section, comparison, faqs, service_area, contact_conversion, events_or_booking, investment.
+      - Priorities MUST follow experience_model (e.g. critical visual_importance → gallery high/critical; high_technical trust → testimonials+process often high; consultation_first pricing → pricing_section explains value, avoids naked price lists).
+      - Do not set everything to "high". Differentiate: at least three keys must be below "high" unless the description demands otherwise.
+
+      visual_strategy ENUMS:
+      - primary_visual_job:
+        "establish_trust" | "show_transformation" | "show_craft_detail" | "show_environment_context" | "show_people_and_relationships" | "show_variety_and_range"
+      - imagery_tone:
+        "minimal_clean" | "editorial" | "warm_personal" | "technical_precise" | "luxury_restrained" | "bold_expressive"
+      - gallery_story: one sentence — what the gallery must prove to win the buyer (not "show photos").
+      - must_show: 2–5 concrete visual proof concepts (objects/behaviors/materials/outcomes), not generic "quality photos".
+      - avoid: 1–4 visual clichés that would undermine trust for THIS category.
+
+      process_model ENUMS:
+      - steps_emphasis:
+        "walk_in_simple" | "call_first" | "schedule_consult" | "quote_then_schedule" | "deposit_milestone" | "remote_then_in_person"
+      - buyer_anxiety: 3–7 specific worries (not "bad service").
+      - process_narrative: 2–4 sentences — how the journey should feel on the site to reduce anxiety (consultative, guided, transparent).
+      - reassurance_devices: 3–7 concrete credibility mechanisms (e.g. archival materials, warranties, measurement process) — category-appropriate, not filler.
+
+      pricing_model ENUMS:
+      - cta_alignment: "call" | "request_quote" | "book_consultation" | "schedule_visit" | "transparent_buy" | "donate_or_custom"
+      - risk_language: "prefer_no_public_numbers" | "ranges_ok" | "starting_at_ok" | "full_transparency_ok"
+      - site_treatment: 2–3 sentences — how pricing should behave on the site (consultation CTA vs list vs ranges), tied to pricing_behavior.
+      - pricing_notes: optional short caveats (scope drivers, custom work, rush fees) — only if inferable.
+
+      ALIGN internal_strategy WITH EXPERIENCE LAYER
+      - recommended_sections and faq_angles should reflect component_importance and process_model (e.g. if process/testimonials are high, sections should include concrete proof paths, not generic labels).
+      - Do NOT contradict experience_model.pricing_behavior in pricing_model.site_treatment.
+
       Return JSON only. No markdown. No commentary.
       `;
         
@@ -359,7 +446,12 @@ function json(data, status = 200) {
         competitive_intelligence: parsed.competitive_intelligence || {},
         buyer_intelligence: parsed.buyer_intelligence || {},
         internal_strategy: parsed.internal_strategy || {},
-        client_preview: parsed.client_preview || {}
+        client_preview: parsed.client_preview || {},
+        experience_model: parsed.experience_model || {},
+        component_importance: parsed.component_importance || {},
+        visual_strategy: parsed.visual_strategy || {},
+        process_model: parsed.process_model || {},
+        pricing_model: parsed.pricing_model || {}
       };
   
       const persistRes = await fetch(env.APPS_SCRIPT_WEBAPP_URL, {

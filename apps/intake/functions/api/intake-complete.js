@@ -19,6 +19,8 @@ import {
   assertFactorySynthesisGuards
 } from "../utils/factory-synthesis.js";
 
+import { enhanceProcessSteps, enhanceFeatures, enhanceHero } from "../utils/content-enhancement.js";
+
 const ALLOWED_MENU_PATHS = [
   "#home",
   "#about",
@@ -254,6 +256,11 @@ function buildSignalBlob(state, strategyContract) {
 
   const persona = firstNonEmpty([answers.audience, am.primary_persona, pi.target_persona_hint]);
 
+  const em = isObject(pi.experience_model) ? pi.experience_model : {};
+  const proc = isObject(pi.process_model) ? pi.process_model : {};
+  const prc = isObject(pi.pricing_model) ? pi.pricing_model : {};
+  const vis = isObject(pi.visual_strategy) ? pi.visual_strategy : {};
+
   const textBlob = [
     cleanString(answers.primary_offer),
     cleanString(answers.differentiation),
@@ -265,6 +272,19 @@ function buildSignalBlob(state, strategyContract) {
     cleanString(answers.tone_of_voice),
     cleanString(angle),
     cleanString(pi.differentiation_hypothesis),
+    cleanString(em.purchase_type),
+    cleanString(em.decision_mode),
+    cleanString(em.visual_importance),
+    cleanString(em.trust_requirement),
+    cleanString(em.pricing_behavior),
+    cleanString(em.experience_rationale),
+    cleanString(proc.process_narrative),
+    ...cleanList(proc.buyer_anxiety),
+    ...cleanList(proc.reassurance_devices),
+    cleanString(prc.site_treatment),
+    cleanString(prc.pricing_notes),
+    cleanString(vis.gallery_story),
+    ...cleanList(vis.must_show),
     ...objections,
     ...factors,
     ...cleanList(answers.aeo_angles),
@@ -287,7 +307,12 @@ function buildSignalBlob(state, strategyContract) {
     persona,
     primary_conversion: cleanString(cs.primary_conversion),
     decision_factors: factors,
-    text_blob: textBlob
+    text_blob: textBlob,
+    experience_model: em,
+    process_model: proc,
+    pricing_model: prc,
+    visual_strategy: vis,
+    component_importance: isObject(pi.component_importance) ? pi.component_importance : {}
   };
 }
 
@@ -315,12 +340,57 @@ function summarizeSignalBlobForBrief(blob) {
  */
 function deriveBehavior(signalBlob) {
   const blob = cleanString(signalBlob?.text_blob);
+  const em = isObject(signalBlob?.experience_model) ? signalBlob.experience_model : {};
+
+  let decision_style = inferDecisionStyle(signalBlob, blob);
+  let trust_sensitivity = inferTrustSensitivity(signalBlob, blob);
+  let complexity = inferComplexity(signalBlob, blob);
+  let purchase_trigger = inferPurchaseTrigger(signalBlob, blob);
+
+  const dm = cleanString(em.decision_mode).toLowerCase();
+  if (
+    dm &&
+    (dm.includes("guided") ||
+      dm === "guided_education" ||
+      dm === "appointment_required" ||
+      dm === "multi_visit_decision" ||
+      dm === "committee_or_family")
+  ) {
+    if (complexity === "simple") complexity = "guided";
+  }
+  if (dm === "multi_visit_decision" || dm === "committee_or_family") {
+    complexity = "expert_required";
+    decision_style = "considered";
+  }
+
+  const pt = cleanString(em.purchase_type).toLowerCase();
+  if (
+    pt &&
+    (pt.includes("consultative") ||
+      pt.includes("high_stakes") ||
+      pt.includes("scheduled_experience") ||
+      pt.includes("relationship_ongoing"))
+  ) {
+    if (complexity === "simple") complexity = "guided";
+    if (decision_style === "fast") decision_style = "considered";
+  }
+
+  const trq = cleanString(em.trust_requirement).toLowerCase();
+  if (trq.includes("high_technical") || trq.includes("safety") || trq.includes("compliance")) {
+    trust_sensitivity = "high";
+  }
+
+  const vi = cleanString(em.visual_importance).toLowerCase();
+  if (vi === "critical" || vi === "high") {
+    purchase_trigger = "visual";
+  }
+
   return {
-    decision_style: inferDecisionStyle(signalBlob, blob),
-    trust_sensitivity: inferTrustSensitivity(signalBlob, blob),
-    complexity: inferComplexity(signalBlob, blob),
+    decision_style,
+    trust_sensitivity,
+    complexity,
     differentiation_type: inferDifferentiationType(signalBlob, blob),
-    purchase_trigger: inferPurchaseTrigger(signalBlob, blob)
+    purchase_trigger
   };
 }
 
@@ -415,6 +485,35 @@ function generateProofAngles(signalBlob) {
 /**
  * Abstract process backbone from behavior (not vertical templates).
  */
+const PI_IMPORTANCE_RANK = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
+
+function piImportanceRank(value) {
+  const v = cleanString(value).toLowerCase();
+  return PI_IMPORTANCE_RANK[v] ?? 0;
+}
+
+function piImportanceAtLeast(importance, key, minLevel) {
+  if (!isObject(importance)) return false;
+  return piImportanceRank(importance[key]) >= piImportanceRank(minLevel);
+}
+
+/**
+ * Maps preflight `process_model.steps_emphasis` to abstract process keys (not industry labels).
+ */
+function processShapeFromPreflightModel(processModel) {
+  if (!isObject(processModel)) return null;
+  const e = cleanString(processModel.steps_emphasis).toLowerCase();
+  const map = {
+    walk_in_simple: ["request", "confirm", "complete"],
+    call_first: ["request", "confirm", "deliver"],
+    schedule_consult: ["diagnose", "guide", "deliver"],
+    quote_then_schedule: ["request", "confirm", "deliver"],
+    deposit_milestone: ["diagnose", "guide", "deliver"],
+    remote_then_in_person: ["request", "guide", "deliver"]
+  };
+  return map[e] || null;
+}
+
 function generateProcessShape(behavior) {
   if (behavior.complexity === "expert_required") {
     return ["diagnose", "guide", "deliver"];
@@ -575,14 +674,16 @@ function toggleOptOut(schemaToggles, key, computedShow) {
   return Boolean(computedShow);
 }
 
-function shouldShowProcess({ behavior, processSteps }) {
+function shouldShowProcess({ behavior, processSteps, componentImportance }) {
+  if (piImportanceAtLeast(componentImportance, "process", "high")) return true;
   const steps = Array.isArray(processSteps) ? processSteps : [];
   if (steps.length >= 3) return true;
   if (behavior?.complexity && behavior.complexity !== "simple") return true;
   return false;
 }
 
-function shouldShowTestimonials({ behavior, testimonials }) {
+function shouldShowTestimonials({ behavior, testimonials, componentImportance }) {
+  if (piImportanceAtLeast(componentImportance, "testimonials", "high")) return true;
   const list = Array.isArray(testimonials) ? testimonials : [];
   if (list.length >= 2) return true;
   if (behavior?.trust_sensitivity === "high" && list.length >= 1) return true;
@@ -596,11 +697,27 @@ function shouldShowTrustbar({ behavior, trustbar }) {
   return false;
 }
 
-function shouldShowGallery({ behavior, gallery }) {
+function shouldShowGallery({ behavior, gallery, experienceModel }) {
+  const vi = cleanString(experienceModel?.visual_importance).toLowerCase();
+  if (vi === "critical" || vi === "high") return true;
   const items = gallery?.items;
   const n = Array.isArray(items) ? items.length : 0;
   if (n >= 3) return true;
   if (behavior?.purchase_trigger === "visual" && n >= 1) return true;
+  return false;
+}
+
+function shouldShowInvestmentSection(state, strategyContract) {
+  const pi = isObject(state?.preflight_intelligence) ? state.preflight_intelligence : {};
+  const ci = isObject(pi.component_importance) ? pi.component_importance : {};
+  const pm = isObject(pi.pricing_model) ? pi.pricing_model : {};
+  const em = isObject(pi.experience_model) ? pi.experience_model : {};
+  if (piImportanceAtLeast(ci, "investment", "medium")) return true;
+  if (piImportanceAtLeast(ci, "pricing_section", "high")) return true;
+  const pb = cleanString(em.pricing_behavior).toLowerCase();
+  if (pb.includes("transparent_list") || pb.includes("starting_at")) return true;
+  const rk = cleanString(pm.risk_language).toLowerCase();
+  if (rk.includes("full_transparency")) return true;
   return false;
 }
 
@@ -644,42 +761,84 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
 
   const vibe = selectVibe(SCHEMA_VIBES, strategyContract, state);
 
+  const signalBlob = buildSignalBlob(state, strategyContract);
   const behavior =
     isObject(strategyBrief?.derived_behavior) && strategyBrief.derived_behavior
       ? strategyBrief.derived_behavior
-      : deriveBehavior(buildSignalBlob(state, strategyContract));
+      : deriveBehavior(signalBlob);
 
   const trustbar = buildTrustbar(state, strategyContract);
-  const features = buildFeatures(state, strategyContract);
-  const processSteps = buildProcessSteps(state, strategyContract, behavior);
+  let features = buildFeatures(state, strategyContract);
+  let processSteps = buildProcessSteps(state, strategyContract, behavior);
+
+  processSteps = enhanceProcessSteps(processSteps, signalBlob, behavior).map((s) => ({
+    ...s,
+    description: normalizePublicText(s.description)
+  }));
+  features = enhanceFeatures(features, signalBlob, behavior).map((f) => ({
+    ...f,
+    description: normalizePublicText(f.description)
+  }));
   const gallery = buildGallery(state, strategyContract, vibe);
   const testimonials = buildTestimonials(state, strategyContract);
   const faqs = buildFaqs(state, strategyContract);
   const serviceArea = buildServiceArea(state, strategyContract);
 
   const schemaToggles = isObject(strategyContract.schema_toggles) ? strategyContract.schema_toggles : {};
+  const pi = isObject(state?.preflight_intelligence) ? state.preflight_intelligence : {};
+  const ci = isObject(pi.component_importance) ? pi.component_importance : {};
+  const emPi = isObject(pi.experience_model) ? pi.experience_model : {};
+  const pmPi = isObject(pi.pricing_model) ? pi.pricing_model : {};
 
   const toggles = {
     show_trustbar: toggleOptOut(schemaToggles, "show_trustbar", shouldShowTrustbar({ behavior, trustbar })),
     show_about: toggleOptOut(schemaToggles, "show_about", true),
     show_features: toggleOptOut(schemaToggles, "show_features", true),
-    show_events: false,
-    show_process: toggleOptOut(schemaToggles, "show_process", shouldShowProcess({ behavior, processSteps })),
+    show_events: toggleOptOut(
+      schemaToggles,
+      "show_events",
+      piImportanceAtLeast(ci, "events_or_booking", "medium")
+    ),
+    show_process: toggleOptOut(
+      schemaToggles,
+      "show_process",
+      shouldShowProcess({ behavior, processSteps, componentImportance: ci })
+    ),
     show_testimonials: toggleOptOut(
       schemaToggles,
       "show_testimonials",
-      shouldShowTestimonials({ behavior, testimonials }) && testimonials.length > 0
+      shouldShowTestimonials({ behavior, testimonials, componentImportance: ci }) && testimonials.length > 0
     ),
-    show_comparison: false,
+    show_comparison: toggleOptOut(
+      schemaToggles,
+      "show_comparison",
+      piImportanceAtLeast(ci, "comparison", "medium")
+    ),
     show_gallery: toggleOptOut(
       schemaToggles,
       "show_gallery",
-      shouldShowGallery({ behavior, gallery }) && Boolean(gallery)
+      shouldShowGallery({ behavior, gallery, experienceModel: emPi }) && Boolean(gallery)
     ),
-    show_investment: false,
+    show_investment: toggleOptOut(
+      schemaToggles,
+      "show_investment",
+      shouldShowInvestmentSection(state, strategyContract)
+    ),
     show_faqs: toggleOptOut(schemaToggles, "show_faqs", shouldShowFaqs({ behavior, faqs }) && faqs.length > 0),
     show_service_area: toggleOptOut(schemaToggles, "show_service_area", Boolean(serviceArea))
   };
+
+  let hero = {
+    headline: normalizePublicText(resolveHeroHeadline(state, businessName)),
+    subtext: normalizePublicText(resolveHeroSubtext(state, strategyContract)),
+    image: {
+      alt: normalizePublicText(resolveHeroImageAlt(state, businessName)),
+      image_search_query: buildHeroImageQuery(state, strategyContract, vibe)
+    }
+  };
+  hero = enhanceHero(hero, signalBlob, behavior);
+  hero.headline = normalizePublicText(hero.headline);
+  hero.subtext = normalizePublicText(hero.subtext);
 
   const sections = {
     about: true,
@@ -706,7 +865,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       menu: buildMenu(toggles, sections),
       cta_text: normalizePublicText(
         cleanString(state.answers?.cta_text) ||
-        inferPrimaryCtaText(strategyContract, bookingUrl)
+        inferPrimaryCtaText(strategyContract, bookingUrl, pmPi, emPi)
       ),
       cta_link: bookingUrl || cleanString(state.answers?.cta_link) || "#contact",
       cta_type: bookingUrl ? "external" : inferCtaType(cleanString(state.answers?.cta_link) || "#contact"),
@@ -724,14 +883,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       objection_handle: normalizePublicText(resolveObjectionHandle(state, strategyContract))
     },
 
-    hero: {
-      headline: normalizePublicText(resolveHeroHeadline(state, businessName)),
-      subtext: normalizePublicText(resolveHeroSubtext(state, strategyContract)),
-      image: {
-        alt: normalizePublicText(resolveHeroImageAlt(state, businessName)),
-        image_search_query: buildHeroImageQuery(state, strategyContract, vibe)
-      }
-    },
+    hero,
 
     about: {
       story_text: normalizePublicText(resolveAboutStory(state, businessName)),
@@ -750,7 +902,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       email,
       phone,
       email_recipient: email,
-      button_text: normalizePublicText(inferContactButtonText(strategyContract, bookingUrl)),
+      button_text: normalizePublicText(inferContactButtonText(strategyContract, bookingUrl, pmPi, emPi)),
       office_address: normalizePublicText(officeAddress)
     },
 
@@ -878,7 +1030,13 @@ function buildProcessSteps(state, strategyContract, behavior) {
       ? behavior
       : deriveBehavior(signalBlob);
 
-  if (b.complexity === "simple") {
+  const pi = isObject(state?.preflight_intelligence) ? state.preflight_intelligence : {};
+  const pm = isObject(pi.process_model) ? pi.process_model : {};
+  const ci = isObject(pi.component_importance) ? pi.component_importance : {};
+  const processBoost =
+    piImportanceAtLeast(ci, "process", "medium") || cleanString(pm.process_narrative).length > 20;
+
+  if (b.complexity === "simple" && !processBoost) {
     return [];
   }
 
@@ -892,7 +1050,23 @@ function buildProcessSteps(state, strategyContract, behavior) {
     }));
   }
 
-  const shape = generateProcessShape(b);
+  const narrative = cleanString(pm.process_narrative);
+  if (narrative && narrative.length > 40) {
+    const sentences = narrative
+      .split(/\.\s+/)
+      .map((s) => cleanSentence(s && !/[.!?]$/.test(s.trim()) ? `${s}.` : s))
+      .filter(Boolean)
+      .slice(0, 4);
+    if (sentences.length >= 3) {
+      return sentences.map((desc, idx) => ({
+        title: normalizePublicText(inferProcessStepTitle(desc, idx)),
+        description: normalizePublicText(desc)
+      }));
+    }
+  }
+
+  const fromPreflight = processShapeFromPreflightModel(pm);
+  const shape = fromPreflight || generateProcessShape(b);
   const synthetic = buildSyntheticProcessSteps(shape, b);
   return synthetic.length >= 3 ? synthetic : [];
 }
@@ -1619,7 +1793,25 @@ function inferTone(strategyContract) {
     : "";
 }
 
-function inferPrimaryCtaText(strategyContract, bookingUrl) {
+function inferPrimaryCtaText(strategyContract, bookingUrl, pricingModel, experienceModel) {
+  const pm = isObject(pricingModel) ? pricingModel : {};
+  const em = isObject(experienceModel) ? experienceModel : {};
+  const risk = cleanString(pm.risk_language).toLowerCase();
+  const cta = cleanString(pm.cta_alignment).toLowerCase();
+  const pb = cleanString(em.pricing_behavior).toLowerCase();
+
+  if (
+    risk.includes("prefer_no_public") ||
+    risk.includes("no_public") ||
+    pb.includes("consultation_first") ||
+    pb.includes("quote_after_scope") ||
+    pb.includes("variable_no_public")
+  ) {
+    if (cta.includes("consult") || cta.includes("schedule_visit")) return "Request a Consultation";
+    if (cta.includes("quote")) return "Request a Quote";
+    return "Request a Consultation";
+  }
+
   const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
   if (bookingUrl || primary === "book_now") return "Book Now";
   if (primary === "call_now") return "Call Now";
@@ -1648,7 +1840,15 @@ function inferContactSubheadline(state, strategyContract) {
   return "Tell us what you need and we’ll help you with the right next step.";
 }
 
-function inferContactButtonText(strategyContract, bookingUrl) {
+function inferContactButtonText(strategyContract, bookingUrl, pricingModel, experienceModel) {
+  const pm = isObject(pricingModel) ? pricingModel : {};
+  const em = isObject(experienceModel) ? experienceModel : {};
+  const risk = cleanString(pm.risk_language).toLowerCase();
+  const pb = cleanString(em.pricing_behavior).toLowerCase();
+  if (risk.includes("prefer_no_public") || pb.includes("consultation_first") || pb.includes("quote_after_scope")) {
+    return "Request a Consultation";
+  }
+
   const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
   if (bookingUrl || primary === "book_now") return "Book Now";
   if (primary === "call_now") return "Call Now";

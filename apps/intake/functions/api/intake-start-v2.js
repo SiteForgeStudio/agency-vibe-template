@@ -432,6 +432,7 @@ function buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers) {
 
   const winning_angle = firstNonEmpty([
     cleanString(ci.winning_local_angle),
+    cleanString(ci.winning_local_positioning_angle),
     aeoAngles[0] || "",
     summary ? clipText(summary, 260) : ""
   ]);
@@ -464,20 +465,31 @@ function buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers) {
 
   const buyer_factors = uniqueList([
     ...cleanList(ci.buyer_comparison_factors),
+    ...cleanList(ci.what_buyers_compare),
     ...buyerFromIntel
   ]);
 
   const weaknesses = uniqueList([
     ...cleanList(ci.competitor_weaknesses),
+    ...cleanList(ci.likely_competitor_weaknesses),
     ...objectionsFromIntel,
     ...redFlags
   ]);
 
-  const local_alternatives = uniqueList(cleanList(ci.local_alternatives));
+  const local_alternatives = uniqueList([
+    ...cleanList(ci.local_alternatives),
+    ...cleanList(ci.typical_local_alternatives)
+  ]);
 
   const recommended_focus = recommendedFromPreview.length
     ? recommendedFromPreview
     : uniqueList(cleanList(seeded.recommended_focus));
+
+  const experience_model = isObject(ps?.experience_model) ? ps.experience_model : {};
+  const component_importance = isObject(ps?.component_importance) ? ps.component_importance : {};
+  const visual_strategy = isObject(ps?.visual_strategy) ? ps.visual_strategy : {};
+  const process_model = isObject(ps?.process_model) ? ps.process_model : {};
+  const pricing_model = isObject(ps?.pricing_model) ? ps.pricing_model : {};
 
   return compactObject({
     positioning,
@@ -497,7 +509,19 @@ function buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers) {
       entityProfilePositioningHint(ep)
     ]),
     google_presence_insight: cleanString(seeded.google_presence_insight),
-    spec_version: "PREFLIGHT_OUTPUT_SPEC_V1"
+    experience_model,
+    component_importance,
+    visual_strategy,
+    process_model,
+    pricing_model,
+    spec_version:
+      Object.keys(experience_model).length ||
+      Object.keys(component_importance).length ||
+      Object.keys(visual_strategy).length ||
+      Object.keys(process_model).length ||
+      Object.keys(pricing_model).length
+        ? "PREFLIGHT_OUTPUT_SPEC_V1_1"
+        : "PREFLIGHT_OUTPUT_SPEC_V1"
   });
 }
 
@@ -756,7 +780,7 @@ function buildSeedMeta(seededAnswers) {
 -------------------------------- */
 
 function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflightIntelligence) {
-  const normalizedStrategy = buildNormalizedStrategy(strategy, reconData);
+  const normalizedStrategy = buildNormalizedStrategy(strategy, reconData, preflightIntelligence);
   let factRegistry = buildFactRegistry(strategy, reconData, seededAnswers, normalizedStrategy);
 
   const inferredFacts = hydrateFactsFromStrategyContract(strategy);
@@ -784,7 +808,7 @@ function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflig
   };
 }
 
-function buildNormalizedStrategy(strategy, reconData) {
+function buildNormalizedStrategy(strategy, reconData, preflightIntelligence) {
   const businessContext = isObject(strategy?.business_context) ? strategy.business_context : {};
   const conversionStrategy = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
   const audienceModel = isObject(strategy?.audience_model) ? strategy.audience_model : {};
@@ -885,11 +909,50 @@ function buildNormalizedStrategy(strategy, reconData) {
       publish_required_fields: cleanList(contentRequirements?.publish_required_fields)
     },
 
-    schema_toggles: normalizeSchemaToggles(schemaToggles, strategy, reconData)
+    schema_toggles: normalizeSchemaToggles(schemaToggles, strategy, reconData, preflightIntelligence)
   };
 }
 
-function normalizeSchemaToggles(schemaToggles, strategy, reconData) {
+function componentImportanceRank(value) {
+  const v = cleanString(value).toLowerCase();
+  const rank = { none: 0, low: 1, medium: 2, high: 3, critical: 4 };
+  return rank[v] ?? 0;
+}
+
+function importanceAtLeast(importance, key, minLevel) {
+  if (!isObject(importance)) return false;
+  return componentImportanceRank(importance[key]) >= componentImportanceRank(minLevel);
+}
+
+/**
+ * Preflight `component_importance` boosts section toggles (OR with section-derived inference).
+ * Keys match preflight-recon output (not industry-specific).
+ */
+function mergeComponentImportanceIntoInferred(componentImportance, inferred) {
+  const ci = isObject(componentImportance) ? componentImportance : {};
+  if (!Object.keys(ci).length) return inferred;
+
+  const out = { ...inferred };
+  if (importanceAtLeast(ci, "gallery", "high")) out.show_gallery = true;
+  if (importanceAtLeast(ci, "process", "high")) out.show_process = true;
+  if (importanceAtLeast(ci, "testimonials", "high")) out.show_testimonials = true;
+  if (importanceAtLeast(ci, "faqs", "medium")) out.show_faqs = true;
+  if (importanceAtLeast(ci, "investment", "medium") || importanceAtLeast(ci, "pricing_section", "medium")) {
+    out.show_investment = true;
+  }
+  if (importanceAtLeast(ci, "comparison", "medium")) out.show_comparison = true;
+  if (importanceAtLeast(ci, "service_area", "medium")) out.show_service_area = true;
+  if (importanceAtLeast(ci, "events_or_booking", "medium")) out.show_events = true;
+  if (importanceAtLeast(ci, "testimonials", "medium") || importanceAtLeast(ci, "gallery", "medium")) {
+    out.show_trustbar = true;
+  }
+  if (importanceAtLeast(ci, "gallery", "medium") && importanceAtLeast(ci, "process", "medium")) {
+    out.show_features = true;
+  }
+  return out;
+}
+
+function normalizeSchemaToggles(schemaToggles, strategy, reconData, preflightIntelligence) {
   const recommendedSections = deriveRecommendedSections(strategy, reconData).map((item) => item.toLowerCase());
 
   const inferred = {
@@ -917,18 +980,23 @@ function normalizeSchemaToggles(schemaToggles, strategy, reconData) {
       recommendedSections.some((s) => s.includes("location"))
   };
 
+  const merged = mergeComponentImportanceIntoInferred(
+    preflightIntelligence?.component_importance,
+    inferred
+  );
+
   return {
-    show_trustbar: getBoolean(schemaToggles?.show_trustbar, inferred.show_trustbar),
-    show_about: getBoolean(schemaToggles?.show_about, inferred.show_about),
-    show_features: getBoolean(schemaToggles?.show_features, inferred.show_features || true),
-    show_events: getBoolean(schemaToggles?.show_events, inferred.show_events),
-    show_process: getBoolean(schemaToggles?.show_process, inferred.show_process),
-    show_testimonials: getBoolean(schemaToggles?.show_testimonials, inferred.show_testimonials),
-    show_comparison: getBoolean(schemaToggles?.show_comparison, inferred.show_comparison),
-    show_gallery: getBoolean(schemaToggles?.show_gallery, inferred.show_gallery),
-    show_investment: getBoolean(schemaToggles?.show_investment, inferred.show_investment),
-    show_faqs: getBoolean(schemaToggles?.show_faqs, inferred.show_faqs),
-    show_service_area: getBoolean(schemaToggles?.show_service_area, inferred.show_service_area)
+    show_trustbar: getBoolean(schemaToggles?.show_trustbar, merged.show_trustbar),
+    show_about: getBoolean(schemaToggles?.show_about, merged.show_about),
+    show_features: getBoolean(schemaToggles?.show_features, merged.show_features || true),
+    show_events: getBoolean(schemaToggles?.show_events, merged.show_events),
+    show_process: getBoolean(schemaToggles?.show_process, merged.show_process),
+    show_testimonials: getBoolean(schemaToggles?.show_testimonials, merged.show_testimonials),
+    show_comparison: getBoolean(schemaToggles?.show_comparison, merged.show_comparison),
+    show_gallery: getBoolean(schemaToggles?.show_gallery, merged.show_gallery),
+    show_investment: getBoolean(schemaToggles?.show_investment, merged.show_investment),
+    show_faqs: getBoolean(schemaToggles?.show_faqs, merged.show_faqs),
+    show_service_area: getBoolean(schemaToggles?.show_service_area, merged.show_service_area)
   };
 }
 

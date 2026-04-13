@@ -4,6 +4,8 @@
 
 **System anchor:** Intake architecture, contracts, and observability are defined in **`manifest.md` v2.4**; bump this spec’s version note when the preflight → `preflight_intelligence` handoff shape changes.
 
+**Handoff version:** `PREFLIGHT_OUTPUT_SPEC_V1_1` when `experience_model` / `component_importance` / `visual_strategy` / `process_model` / `pricing_model` are present in stored preflight strategy JSON (`spec_version` in `state.preflight_intelligence`).
+
 ---
 
 ## Purpose
@@ -242,12 +244,73 @@ Preflight is **valid** only if:
 
 ---
 
+## Experience strategy layer (v1.1 — required for recon / optional for legacy rows)
+
+**Goal:** Prescribe **how the website should behave** (purchase journey, proof, visuals, pricing posture, section priorities), not only **what the business is**.
+
+These objects are produced by `/api/preflight-recon`, persisted with the preflight record, and bridged into `state.preflight_intelligence` for intake + synthesis. **Do not hardcode industries:** every enum must be justified from inputs (description, name, geography, optional URL hint), not from category name alone.
+
+### `experience_model`
+
+| Field | Role |
+|--------|------|
+| `purchase_type` | How the buyer commits (impulse → ongoing relationship). |
+| `decision_mode` | Self-serve vs guided vs appointment-heavy. |
+| `visual_importance` | How much the site depends on imagery to win trust. |
+| `trust_requirement` | How strong proof must be (social → technical/compliance). |
+| `pricing_behavior` | Whether numbers belong on the site or behind consult/quote. |
+| `experience_rationale` | 1–2 sentences linking the enums to buyer reality (non-generic). |
+
+Enums are **closed lists** in the recon prompt (see `preflight-recon.js`); the model must pick exactly one allowed string per enum field.
+
+### `component_importance`
+
+Per-component **importance** (`none` → `critical`) for: gallery, process, testimonials, pricing_section, comparison, faqs, service_area, contact_conversion, events_or_booking, investment.
+
+Used to bias schema toggles, section order, and intake emphasis—not as a second copy of `recommended_focus`.
+
+### `visual_strategy`
+
+| Field | Role |
+|--------|------|
+| `primary_visual_job` | What the visuals must *do* (trust, transformation, craft, context…). |
+| `gallery_story` | One sentence: what the gallery must *prove*. |
+| `imagery_tone` | Aesthetic direction (closed enum in prompt). |
+| `must_show` | Concrete proof concepts (materials, outcomes, context)—not “nice photos”. |
+| `avoid` | Category-specific visual clichés to skip. |
+
+### `process_model`
+
+| Field | Role |
+|--------|------|
+| `buyer_anxiety` | Specific worries (not “bad service”). |
+| `process_narrative` | How the journey should read on the site (reduce anxiety, guided). |
+| `steps_emphasis` | Closed enum: how steps are sequenced (walk-in vs consult-first, etc.). |
+| `reassurance_devices` | Concrete credibility mechanisms (warranties, process, materials). |
+
+### `pricing_model`
+
+| Field | Role |
+|--------|------|
+| `site_treatment` | How pricing behaves on the site (aligned with `experience_model.pricing_behavior`). |
+| `cta_alignment` | Closed enum: call, quote, consult, schedule, etc. |
+| `risk_language` | Whether public numbers are appropriate. |
+| `pricing_notes` | Optional scope/rush/custom-work caveats when inferable. |
+
+### QA (v1.1)
+
+- At least **three** `component_importance` keys below `high` unless inputs force an “everything critical” business.  
+- `visual_strategy.must_show` must be **concrete** (nouns/behaviors), not generic.  
+- `process_model.process_narrative` must address **anxiety** implied by `experience_model`.  
+- `pricing_model` must **not** contradict `experience_model.pricing_behavior`.
+
+---
+
 ## Future Extensions (Not Required Yet)
 
 - `best_in_class_patterns`  
-- Pricing strategy hints  
 - Service expansion suggestions  
-- AEO-specific outputs  
+- Additional AEO-only bundles  
 
 ---
 
@@ -281,4 +344,4 @@ If something drifts:
 
 ---
 
-*Version: v1 — intake handoff reference.*
+*Version: v1.1 — intake handoff reference (experience strategy layer + v1 fields).*

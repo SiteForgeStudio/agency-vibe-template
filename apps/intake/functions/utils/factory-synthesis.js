@@ -151,6 +151,25 @@ function firstAreaToken(area) {
   return s.split(/[,;]/)[0].trim();
 }
 
+function isObject(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+/** Preflight `visual_strategy` + `experience_model` — no category switches. */
+function preflightVisualSeedParts(state) {
+  const pi = state?.preflight_intelligence;
+  if (!isObject(pi)) return [];
+  const vs = isObject(pi.visual_strategy) ? pi.visual_strategy : {};
+  const em = isObject(pi.experience_model) ? pi.experience_model : {};
+  return [
+    cleanString(vs.primary_visual_job),
+    cleanString(vs.imagery_tone),
+    cleanString(vs.gallery_story),
+    ...cleanList(vs.must_show),
+    cleanString(em.visual_importance)
+  ].filter(Boolean);
+}
+
 /**
  * Hero image search query from themes + offer text + area + resolved vibe (fully dynamic).
  */
@@ -166,7 +185,8 @@ export function buildHeroImageQuery(state, strategyContract, resolvedVibe) {
     cleanString(a.primary_offer),
     cleanString(a.service_descriptions),
     firstAreaToken(a.service_area),
-    cleanString(resolvedVibe)
+    cleanString(resolvedVibe),
+    ...preflightVisualSeedParts(state)
   ];
   const blob = seedParts.filter(Boolean).join(" ");
   const keywords = extractVisualKeywords(blob, 10);
@@ -190,7 +210,8 @@ export function buildFallbackGalleryQueries(state, strategyContract, resolvedVib
     cleanString(a.primary_offer),
     cleanString(a.service_descriptions),
     firstAreaToken(a.service_area),
-    cleanString(resolvedVibe)
+    cleanString(resolvedVibe),
+    ...preflightVisualSeedParts(state)
   ];
   const blob = seedParts.filter(Boolean).join(" ");
   const keywords = extractVisualKeywords(blob, 8);
@@ -230,9 +251,12 @@ export function inferPremiumGalleryCount(strategyContract, state, vibe) {
     cleanString(state?.answers?.photos_status).toLowerCase().includes("have") ||
     cleanList(state?.answers?.gallery_queries).length > 0;
 
+  const vi = cleanString(state?.preflight_intelligence?.experience_model?.visual_importance).toLowerCase();
+  const visualBump = vi === "critical" ? 2 : vi === "high" ? 1 : 0;
+
   const base = 5 + (stableHash(`${arch}|${vibe}|${themes.length}`) % 5);
   const bump = photoHint ? 1 : 0;
-  return Math.min(9, base + bump);
+  return Math.min(9, base + bump + visualBump);
 }
 
 /**
