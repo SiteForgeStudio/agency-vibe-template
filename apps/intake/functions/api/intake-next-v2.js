@@ -614,6 +614,9 @@ function buildInterpreterSystemPrompt() {
   function isFactComplete(fact) {
     if (!fact) return false;
 
+    // Narrative follow-up pending — field not satisfied until user expands
+    if (hasMeaningfulValue(fact.intake_followup)) return false;
+
     // 🔥 ONLY requirement: usable value (never treat nested fact stubs as content)
     const v = sanitizeFactValue(fact.value);
     return hasMeaningfulValue(v);
@@ -933,6 +936,100 @@ function maybePromotePrefilledToVerified(answer, fact) {
   };
 }
 
+function isConsultativeExperienceHint(preflightIntelligence) {
+  const pi = isObject(preflightIntelligence) ? preflightIntelligence : {};
+  const em = isObject(pi.experience_model) ? pi.experience_model : {};
+  const pt = cleanString(em.purchase_type).toLowerCase();
+  const dm = cleanString(em.decision_mode).toLowerCase();
+  if (pt.includes("consult")) return true;
+  if (dm.includes("guided") || dm.includes("appointment") || dm.includes("multi_visit")) return true;
+  return false;
+}
+
+function computeNarrativeFollowUp(fieldKey, answerText) {
+  const fk = cleanString(fieldKey);
+  const t = cleanString(answerText);
+  const lower = t.toLowerCase();
+  if (!t) return null;
+
+  if (fk === "process_summary") {
+    if (t.length < 20) {
+      return "Can you walk me through that in a bit more detail—what actually happens step by step?";
+    }
+    const processVerbRe =
+      /\b(bring|calls?|calling|choose|choosing|start|starts|walk|walks|help|helps|guide|guides|contact|send|meets?|schedule|scheduling|discuss|finish|completes?|deliver|arrive|order|build|makes?)\b/i;
+    if (!processVerbRe.test(lower)) {
+      return "Can you walk me through that in a bit more detail—what actually happens step by step?";
+    }
+    return null;
+  }
+
+  if (fk === "target_persona") {
+    const trimmed = lower.trim();
+    if (
+      /^(everyone|anyone|anybody|all people|all customers|the public|people in general)\b/.test(trimmed) ||
+      (/\b(everyone|anyone|anybody)\b/.test(lower) && t.length < 48)
+    ) {
+      return "Who do you tend to work with most often in practice?";
+    }
+    return null;
+  }
+
+  if (fk === "primary_offer") {
+    const words = t.split(/\s+/).filter(Boolean);
+    const hasList = /[,;]| and |\/|\||\b(or|plus)\b/i.test(t);
+    if (words.length <= 5 && t.length < 56 && !hasList) {
+      return "Can you give me a couple specific examples of what people come to you for?";
+    }
+    return null;
+  }
+
+  if (fk === "faq_angles") {
+    const words = t.split(/\s+/).filter(Boolean);
+    if (t.length < 22 || words.length < 5) {
+      return "What concerns or questions do customers typically have before choosing you—can you add a bit more detail?";
+    }
+    return null;
+  }
+
+  return null;
+}
+
+const NARRATIVE_QUALITY_FIELDS = new Set(["process_summary", "target_persona", "primary_offer", "faq_angles"]);
+
+function applyNarrativeQualityPass(nextBlueprint, expectedField, answer) {
+  const fk = cleanString(expectedField);
+  if (!fk || !NARRATIVE_QUALITY_FIELDS.has(fk) || !hasMeaningfulValue(answer)) return;
+  const fact = nextBlueprint.fact_registry[fk];
+  if (!isObject(fact)) return;
+
+  const text = cleanString(answer);
+  const follow = computeNarrativeFollowUp(fk, text);
+
+  if (follow) {
+    nextBlueprint.fact_registry[fk] = {
+      ...fact,
+      status: "partial",
+      verified: false,
+      intake_followup: follow,
+      rationale: "Narrative follow-up (light quality pass)."
+    };
+    return;
+  }
+
+  if (hasMeaningfulValue(fact.intake_followup)) {
+    const next = { ...fact };
+    delete next.intake_followup;
+    if (hasMeaningfulValue(next.value)) {
+      next.status = "answered";
+      next.verified = true;
+      const prevR = cleanString(next.rationale);
+      next.rationale = prevR && !prevR.includes("Narrative follow-up") ? prevR : "Confirmed after follow-up.";
+    }
+    nextBlueprint.fact_registry[fk] = next;
+  }
+}
+
 function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpretation, answer }) {
   const nextBlueprint = deepClone(blueprint);
   nextBlueprint.fact_registry = deepClone(blueprint.fact_registry || {});
@@ -1178,6 +1275,8 @@ if (
     updatedFactKeys.push("contact_path");
   }
 }
+
+  applyNarrativeQualityPass(nextBlueprint, expectedField, answer);
 
 
 
@@ -2671,6 +2770,21 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
       score -= 60;
     }
 
+    const narrativeReadinessGaps = {
+      who_its_for: !isFactResolved(factRegistry.target_persona),
+      process_clarity: !isFactResolved(factRegistry.process_summary),
+      service_specificity: !isFactResolved(factRegistry.primary_offer),
+      faq_substance: !isFactResolved(factRegistry.faq_angles)
+    };
+    if (decision === "positioning") {
+      if (narrativeReadinessGaps.who_its_for) score += 30;
+      if (narrativeReadinessGaps.service_specificity) score += 25;
+    } else if (decision === "process" && narrativeReadinessGaps.process_clarity) {
+      score += 30;
+    } else if (decision === "objection_handling" && narrativeReadinessGaps.faq_substance) {
+      score += 20;
+    }
+
     candidates.push({
       bundle_id: decision,
       score,
@@ -3358,24 +3472,19 @@ function buildAccessExpertQuestion(primaryField, businessName, blueprint, pi) {
  * Process: interpretation (what they're really buying) + optional preflight guidance + concrete ask.
  */
 function buildProcessExpertQuestion(businessName, blueprint, pi) {
-  const name = cleanString(businessName) || "your business";
-  const bc = safeObject(blueprint?.strategy?.business_context);
-  const cat = cleanString(bc.category);
   const p = isObject(pi) ? pi : null;
   const wd = p ? cleanString(p.website_direction) : "";
   const opp = p ? cleanString(p.opportunity) : "";
   const pos = p ? cleanString(p.positioning) : "";
 
-  const tangible = /\b(fram|gallery|print|custom|art|piece|studio|bespoke)\b/i.test(
-    [cat, opp, pos].join(" ")
-  );
-  const interp = buildInterpretation("process_summary", pi, blueprint, { tangible });
+  const interp = buildInterpretation("process_summary", pi, blueprint, { tangible: false });
   const guidance = opp || pos || "";
   const prefix = wd ? `For the site journey we're considering: ${wd}` : "";
 
-  const question = tangible
-    ? "What does that experience usually look like when someone brings you a project—walk us through it in your own words."
-    : `What does that process usually look like from first contact through completion for ${name}?`;
+  const consultative = isConsultativeExperienceHint(pi);
+  const question = consultative
+    ? "What happens when someone comes to you—how do you guide them through the process?"
+    : "Walk me through what happens when someone chooses you—from first contact to finished result.";
 
   /** Drop order when over budget: site-journey prefix → preflight guidance → interpretation (last resort clamp). */
   const leadParts = [interp];
@@ -3541,12 +3650,69 @@ function buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflight
   return `Here's what we're seeing:\n\n${truncate(insight, 640)}\n\nDoes this feel right, or would you adjust it?`;
 }
 
+function narrativeAskCountForField(blueprint, primaryField) {
+  const pf = cleanString(primaryField);
+  const history = Array.isArray(blueprint?.question_history) ? blueprint.question_history : [];
+  let n = 0;
+  for (const e of history) {
+    if (cleanString(e?.primary_field) === pf) n++;
+  }
+  return n;
+}
+
+/**
+ * Stronger narrative prompts for readiness blocks (who / process / offer / FAQs).
+ * Process bundle uses buildProcessExpertQuestion; this covers the rest.
+ */
+function buildNarrativeDeterministicQuestion(plan, blueprint, preflightIntelligence) {
+  const bundleId = cleanString(plan?.bundle_id);
+  const pf = cleanString(plan?.primary_field);
+
+  if (bundleId === "positioning" && pf === "target_persona") {
+    const askN = narrativeAskCountForField(blueprint, "target_persona");
+    if (askN >= 1) {
+      return "What kind of customer do you work with most often, and what do they care about?";
+    }
+    return "Who usually comes to you for this? What are they bringing in or trying to get done?";
+  }
+  if (bundleId === "positioning" && pf === "primary_offer") {
+    const askN = narrativeAskCountForField(blueprint, "primary_offer");
+    if (askN >= 1) {
+      return "What are your most common services or types of work?";
+    }
+    return "What kinds of things do people usually hire you for? Give me a few real examples.";
+  }
+  if (bundleId === "objection_handling" && pf === "faq_angles") {
+    const askN = narrativeAskCountForField(blueprint, "faq_angles");
+    if (askN >= 1) {
+      return "What concerns or questions do customers typically have before choosing you?";
+    }
+    return "What do people usually worry about or ask before they decide to work with you?";
+  }
+  return "";
+}
+
 function buildDeterministicQuestionWithPreflight(plan, blueprint, businessName, preflightIntelligence) {
+  const primaryField = cleanString(plan?.primary_field);
+  const follow = cleanString(blueprint?.fact_registry?.[primaryField]?.intake_followup);
+  if (follow) return follow;
+
   const prefillQ = buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflightIntelligence);
   if (prefillQ) return prefillQ;
 
   const expert = buildExpertContextualDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence);
   if (expert) return expert;
+
+  const narrative = buildNarrativeDeterministicQuestion(plan, blueprint, preflightIntelligence);
+  if (narrative) {
+    const lead = userFacingDeterministicLead(
+      cleanString(plan?.bundle_id),
+      cleanString(plan?.primary_field),
+      preflightIntelligence
+    );
+    return lead ? `${lead}${narrative}` : narrative;
+  }
+
   const base = buildDeterministicQuestion(plan, blueprint, businessName);
   const lead = userFacingDeterministicLead(
     cleanString(plan?.bundle_id),
@@ -3958,9 +4124,9 @@ function buildDeterministicQuestion(plan, blueprint, businessName) {
   if (bundleId === "positioning") {
     switch (primaryField) {
       case "target_persona":
-        return `Who is the best-fit customer for ${name}, and what do they care most about when choosing someone like you?`;
+        return `Who usually comes to you for this? What are they bringing in or trying to get done?`;
       case "primary_offer":
-        return `What exactly do you want a new visitor to understand about what ${name} offers right away?`;
+        return `What kinds of things do people usually hire you for? Give me a few real examples.`;
       case "differentiation":
         return `What makes ${name} meaningfully different from the other options someone might be comparing you against?`;
       case "gallery_visual_direction":
@@ -3996,7 +4162,7 @@ function buildDeterministicQuestion(plan, blueprint, businessName) {
   }
 
   if (bundleId === "process") {
-    return `What does working with ${name} usually look like from the first inquiry through completion?`;
+    return `Walk me through what happens when someone chooses you—from first contact to finished result.`;
   }
 
   if (bundleId === "gallery_strategy") {
@@ -4015,7 +4181,7 @@ function buildDeterministicQuestion(plan, blueprint, businessName) {
   }
 
   if (bundleId === "objection_handling") {
-    return `What are the main questions or objections people usually have before they feel ready to move forward with ${name}?`;
+    return `What do people usually worry about or ask before they decide to work with you?`;
   }
 
   if (bundleId === "story") {
@@ -4490,6 +4656,8 @@ function stringifyFactValue(value) {
 
 function isFactResolved(fact) {
   if (!fact) return false;
+
+  if (hasMeaningfulValue(fact.intake_followup)) return false;
 
   const status = cleanString(fact.status);
   const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;

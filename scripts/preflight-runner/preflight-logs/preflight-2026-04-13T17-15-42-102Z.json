@@ -1,0 +1,77 @@
+{
+  "meta": {
+    "api_base": "https://intake.getsiteforge.com/api",
+    "started_at": "2026-04-13T17:14:51.841Z",
+    "qa_warnings": [
+      "No GBP detected"
+    ],
+    "summary": {
+      "slug": "summit-ridge-window-cleaning",
+      "gbp_status": "not_found",
+      "opportunity_present": true,
+      "positioning_specificity_score": 100,
+      "opportunity_strength_score": 100,
+      "positioning_specificity_label": "strong",
+      "opportunity_strength_label": "strong",
+      "competitor_framing_detected": true
+    },
+    "input": {
+      "business_name": "Summit Ridge Window Cleaning",
+      "city_or_service_area": "Boulder, Colorado",
+      "description": "High-end residential window cleaning specializing in large homes, glass restoration, and streak-free results.",
+      "website_or_social": "",
+      "client_email": ""
+    },
+    "finished_at": "2026-04-13T17:15:42.102Z"
+  },
+  "start": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "preflight_status": "recon_complete",
+      "paid_unlocked": true,
+      "intake_status": "started",
+      "message": "Pre-flight already exists for this slug.",
+      "code": 200
+    }
+  },
+  "recon": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "preflight_status": "recon_complete",
+      "code": 200
+    }
+  },
+  "gbp": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "gbp_status": "not_found",
+      "code": 200
+    }
+  },
+  "preview": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "summit-ridge-window-cleaning",
+      "business_understanding": "Summit Ridge Window Cleaning specializes in high-end residential services, particularly for large homes, which sets them apart from standard chains that often cater to volume over quality. Unlike online-only options that may lack personalized service, they focus on meticulous glass restoration and streak-free results tailored to discerning homeowners.",
+      "opportunity": "There is a significant trust gap in the window cleaning industry, where many consumers are uncertain about the quality and reliability of services offered by larger chains. By emphasizing their expertise in high-end residential cleaning, Summit Ridge can position itself as the go-to choice for homeowners seeking premium results.",
+      "website_direction": "The website must clearly demonstrate the superior quality of their services and the specific benefits of choosing a specialized provider over generic options.",
+      "google_presence_insight": "Automated verification was not performed; the next step is to check/claim GBP to enhance local visibility.",
+      "recommended_focus": [
+        "high-end residential specialization",
+        "glass restoration expertise",
+        "streak-free guarantee",
+        "personalized service approach",
+        "trust and reliability in premium cleaning"
+      ],
+      "next_step": "Let's discuss how we can create a compelling online presence that reflects your unique strengths and attracts your ideal clients.",
+      "code": 200
+    }
+  }
+}

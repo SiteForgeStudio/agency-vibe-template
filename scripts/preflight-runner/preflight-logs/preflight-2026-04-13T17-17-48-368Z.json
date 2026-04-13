@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "api_base": "https://intake.getsiteforge.com/api",
+    "started_at": "2026-04-13T17:17:07.433Z",
+    "qa_warnings": [],
+    "summary": {
+      "slug": "simons-fine-art-framing-gallery",
+      "gbp_status": "likely_exists",
+      "opportunity_present": true,
+      "positioning_specificity_score": 100,
+      "opportunity_strength_score": 100,
+      "positioning_specificity_label": "strong",
+      "opportunity_strength_label": "strong",
+      "competitor_framing_detected": true
+    },
+    "input": {
+      "business_name": "Simons Fine Art Framing & Gallery",
+      "city_or_service_area": "Dublin, Pa",
+      "description": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
+      "website_or_social": "https://www.simonsfineartframing.com/",
+      "client_email": "info@simonsfineartframing.com"
+    },
+    "finished_at": "2026-04-13T17:17:48.368Z"
+  },
+  "start": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "preflight_status": "recon_complete",
+      "paid_unlocked": true,
+      "intake_status": "started",
+      "message": "Pre-flight already exists for this slug.",
+      "code": 200
+    }
+  },
+  "recon": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "preflight_status": "recon_complete",
+      "code": 200
+    }
+  },
+  "gbp": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "gbp_status": "likely_exists",
+      "code": 200
+    }
+  },
+  "preview": {
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "slug": "simons-fine-art-framing-gallery",
+      "business_understanding": "Simons Fine Art Framing & Gallery offers a personalized, artist-driven approach to framing that contrasts sharply with the impersonal service often found at big-box retailers or online-only framing services. Their commitment to affordability ensures that quality craftsmanship is accessible to a wider audience, setting them apart from commodity options that prioritize price over quality.",
+      "opportunity": "There is a significant trust gap in the framing industry, where buyers often feel uncertain about the quality and craftsmanship of online or mass-produced options. By emphasizing their artist-owned status and dedication to the craft, Simons can leverage this gap to attract discerning customers who value quality over price.",
+      "website_direction": "The website must clearly demonstrate the superior craftsmanship and personalized service that customers can expect, distinguishing it from generic framing solutions.",
+      "google_presence_insight": "Automated verification was not performed; the next step is to check/claim the Google Business Profile to enhance local visibility.",
+      "recommended_focus": [
+        "artist-owned craftsmanship",
+        "custom framing solutions",
+        "affordability without compromise",
+        "community engagement through art",
+        "trust in quality over price"
+      ],
+      "next_step": "Let's explore how we can position your unique offerings to maximize your competitive advantage.",
+      "code": 200
+    }
+  }
+}
