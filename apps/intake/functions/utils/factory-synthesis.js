@@ -38,15 +38,6 @@ const VIBE_STYLE_RULES = [
   { re: /\b(minimal|clean|simple|quiet|refined|airy)\b/i, vibe: "Modern Minimal" }
 ];
 
-const GALLERY_MODE_SUFFIXES = [
-  "detail craftsmanship quality",
-  "wide establishing natural light",
-  "environment context authentic",
-  "lifestyle professional calm",
-  "texture material close view",
-  "workspace process behind scenes"
-];
-
 function cleanString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -145,86 +136,155 @@ export function selectVibe(allowedVibes, strategyContract, state) {
   return allowed[idx];
 }
 
-function firstAreaToken(area) {
-  const s = cleanString(area);
-  if (!s) return "";
-  return s.split(/[,;]/)[0].trim();
-}
-
 function isObject(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Preflight `visual_strategy` + `experience_model` — no category switches. */
-function preflightVisualSeedParts(state) {
-  const pi = state?.preflight_intelligence;
-  if (!isObject(pi)) return [];
-  const vs = isObject(pi.visual_strategy) ? pi.visual_strategy : {};
+function uniqueStableStrings(items) {
+  const seen = new Set();
+  const out = [];
+  for (const s of items) {
+    const t = cleanString(s);
+    if (!t) continue;
+    const k = t.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(t);
+  }
+  return out;
+}
+
+function rotateStable(arr, hash) {
+  if (!Array.isArray(arr) || !arr.length) return arr;
+  const off = Math.abs(hash) % arr.length;
+  return [...arr.slice(off), ...arr.slice(0, off)];
+}
+
+/** Experience signals only — no category names; archetype is opaque strategy slug. */
+function buildVisualSignalBlob(state, strategyContract) {
+  const pi = isObject(state?.preflight_intelligence) ? state.preflight_intelligence : {};
   const em = isObject(pi.experience_model) ? pi.experience_model : {};
-  return [
-    cleanString(vs.primary_visual_job),
-    cleanString(vs.imagery_tone),
-    cleanString(vs.gallery_story),
-    ...cleanList(vs.must_show),
-    cleanString(em.visual_importance)
-  ].filter(Boolean);
+  const focus = uniqueStableStrings([
+    ...cleanList(state?.answers?.recommended_focus),
+    ...cleanList(pi.recommended_focus)
+  ]);
+  return {
+    experience_model: em,
+    archetype: cleanString(strategyContract?.business_context?.strategic_archetype),
+    recommended_focus: focus
+  };
+}
+
+function buildStrategyModelsForVisuals(signalBlob) {
+  const exp = isObject(signalBlob?.experience_model) ? signalBlob.experience_model : {};
+  const dm = cleanString(exp.decision_mode).toLowerCase();
+  const consultative =
+    dm === "guided" ||
+    dm.includes("guided") ||
+    dm.includes("education") ||
+    dm === "appointment_required" ||
+    dm === "multi_visit_decision";
+  return {
+    process_strategy: {
+      type: consultative ? "consultative" : "simple"
+    }
+  };
+}
+
+function deriveVisualPatterns(signalBlob, strategyModels) {
+  const patterns = [];
+
+  const exp = signalBlob.experience_model || {};
+  const archetype = cleanString(signalBlob.archetype || "");
+
+  if (
+    cleanString(exp.visual_importance).toLowerCase() === "critical" ||
+    archetype.toLowerCase().includes("visual")
+  ) {
+    patterns.push("transformation");
+  }
+
+  if (
+    cleanString(exp.decision_mode).toLowerCase().includes("guided") ||
+    strategyModels?.process_strategy?.type === "consultative"
+  ) {
+    patterns.push("process");
+  }
+
+  if (cleanString(exp.trust_requirement).toLowerCase() === "high_technical") {
+    patterns.push("detail");
+  }
+
+  if (!patterns.length) {
+    patterns.push("environment", "people");
+  }
+
+  return patterns;
 }
 
 /**
- * Hero image search query from themes + offer text + area + resolved vibe (fully dynamic).
+ * Scene language from abstract patterns — not a static flat list; keyed by pattern role.
+ */
+function buildQueriesFromPatterns(patterns) {
+  const map = {
+    transformation: [
+      "before and after result comparison in clear even light",
+      "final outcome showcase with calm confident atmosphere"
+    ],
+    process: [
+      "professional at work in tidy unbranded real context",
+      "behind the scenes workflow in organized calm workspace"
+    ],
+    detail: [
+      "close-up detail precision with textured material clarity",
+      "macro texture quality under soft natural side light"
+    ],
+    environment: [
+      "authentic real world setting with warm ambient depth",
+      "quiet interior environment scene with natural window light"
+    ],
+    people: [
+      "candid customer interaction moment in approachable natural light",
+      "calm human service moment with quiet trustworthy warmth"
+    ]
+  };
+
+  return uniqueStableStrings(patterns.flatMap((p) => map[p] || []));
+}
+
+/**
+ * Hero image search query: experience patterns + stable rotation (no category or trade terms).
+ * `resolvedVibe` participates only in the hash for stable variety, not as a label in the query text.
  */
 export function buildHeroImageQuery(state, strategyContract, resolvedVibe) {
-  const a = state?.answers || {};
-  const themes = [
-    ...cleanList(strategyContract?.asset_policy?.preferred_image_themes),
-    ...cleanList(strategyContract?.visual_strategy?.preferred_image_themes)
-  ];
-  const seedParts = [
-    themes.join(" "),
-    cleanString(strategyContract?.business_context?.category),
-    cleanString(a.primary_offer),
-    cleanString(a.service_descriptions),
-    firstAreaToken(a.service_area),
-    cleanString(resolvedVibe),
-    ...preflightVisualSeedParts(state)
-  ];
-  const blob = seedParts.filter(Boolean).join(" ");
-  const keywords = extractVisualKeywords(blob, 10);
-  const base = keywords.length ? keywords.join(" ") : "professional service environment";
-  return clampWords(`${base} aesthetic photography`, 4, 8);
+  const signalBlob = buildVisualSignalBlob(state, strategyContract);
+  const strategyModels = buildStrategyModelsForVisuals(signalBlob);
+  const patterns = deriveVisualPatterns(signalBlob, strategyModels);
+  let queries = buildQueriesFromPatterns(patterns);
+  const slug = cleanString(state?.slug) || "site";
+  const h = stableHash(`${slug}|${patterns.join("|")}|${cleanString(resolvedVibe)}|hero`);
+  queries = rotateStable(queries, h);
+  const joined = queries.slice(0, 3).join(", ");
+  return (
+    cleanString(joined) ||
+    clampWords("authentic real world setting with natural window light and calm depth", 6, 14)
+  );
 }
 
 /**
- * Gallery fallback queries: rotate generic photography modes against extracted keywords (no category switches).
+ * Gallery fallback queries: same pattern engine; per-client stable order; strings sized for downstream clamp.
  */
 export function buildFallbackGalleryQueries(state, strategyContract, resolvedVibe) {
-  const a = state?.answers || {};
+  const signalBlob = buildVisualSignalBlob(state, strategyContract);
+  const strategyModels = buildStrategyModelsForVisuals(signalBlob);
+  const patterns = deriveVisualPatterns(signalBlob, strategyModels);
+  let queries = buildQueriesFromPatterns(patterns);
+  const slug = cleanString(state?.slug) || "site";
   const arch = cleanString(strategyContract?.business_context?.strategic_archetype);
-  const themes = [
-    ...cleanList(strategyContract?.asset_policy?.preferred_image_themes),
-    ...cleanList(strategyContract?.visual_strategy?.preferred_image_themes)
-  ];
-  const seedParts = [
-    themes.join(" "),
-    cleanString(strategyContract?.business_context?.category),
-    cleanString(a.primary_offer),
-    cleanString(a.service_descriptions),
-    firstAreaToken(a.service_area),
-    cleanString(resolvedVibe),
-    ...preflightVisualSeedParts(state)
-  ];
-  const blob = seedParts.filter(Boolean).join(" ");
-  const keywords = extractVisualKeywords(blob, 8);
-  const seed = keywords.length ? keywords.join(" ") : "professional service environment";
-
-  const start = stableHash(`${arch}|${seed}`) % GALLERY_MODE_SUFFIXES.length;
-  const queries = [];
-  for (let i = 0; i < 5; i++) {
-    const suffix = GALLERY_MODE_SUFFIXES[(start + i) % GALLERY_MODE_SUFFIXES.length];
-    queries.push(clampWords(`${seed} ${suffix}`, 4, 8));
-  }
-  queries.push(beforeAfterImageQuery(state, strategyContract, resolvedVibe));
-  return queries;
+  const h = stableHash(`${slug}|${arch}|${patterns.join("|")}|${cleanString(resolvedVibe)}|gallery`);
+  queries = rotateStable(queries, h);
+  const sliced = queries.slice(0, 5);
+  return sliced.map((q) => clampWords(q, 4, 8));
 }
 
 export function beforeAfterImageQuery(state, strategyContract, resolvedVibe) {
