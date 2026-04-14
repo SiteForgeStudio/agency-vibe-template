@@ -191,6 +191,10 @@ function buildStrategyModelsForVisuals(signalBlob) {
   };
 }
 
+/**
+ * Intent: abstract “what kind of visual story” from experience signals — not labels from NAICS/category.
+ * Output is pattern ids consumed only by `buildQueriesFromPatterns`.
+ */
 function deriveVisualPatterns(signalBlob, strategyModels) {
   const patterns = [];
 
@@ -223,7 +227,7 @@ function deriveVisualPatterns(signalBlob, strategyModels) {
 }
 
 /**
- * Scene language from abstract patterns — not a static flat list; keyed by pattern role.
+ * Query: scene phrases from intent patterns — role-keyed map, not per-industry strings.
  */
 function buildQueriesFromPatterns(patterns) {
   const map = {
@@ -253,14 +257,24 @@ function buildQueriesFromPatterns(patterns) {
 }
 
 /**
+ * Pipeline: signal → intent (patterns) → candidate scene queries.
+ * Single place so hero and gallery stay aligned; hash keys are slug/archetype (stable per client).
+ */
+function buildVisualQueryPipeline(state, strategyContract) {
+  const signalBlob = buildVisualSignalBlob(state, strategyContract);
+  const strategyModels = buildStrategyModelsForVisuals(signalBlob);
+  const patterns = deriveVisualPatterns(signalBlob, strategyModels);
+  const candidateQueries = buildQueriesFromPatterns(patterns);
+  return { patterns, candidateQueries };
+}
+
+/**
  * Hero image search query: experience patterns + stable rotation (no category or trade terms).
  * `resolvedVibe` participates only in the hash for stable variety, not as a label in the query text.
  */
 export function buildHeroImageQuery(state, strategyContract, resolvedVibe) {
-  const signalBlob = buildVisualSignalBlob(state, strategyContract);
-  const strategyModels = buildStrategyModelsForVisuals(signalBlob);
-  const patterns = deriveVisualPatterns(signalBlob, strategyModels);
-  let queries = buildQueriesFromPatterns(patterns);
+  const { patterns, candidateQueries: queries0 } = buildVisualQueryPipeline(state, strategyContract);
+  let queries = queries0;
   const slug = cleanString(state?.slug) || "site";
   const h = stableHash(`${slug}|${patterns.join("|")}|${cleanString(resolvedVibe)}|hero`);
   queries = rotateStable(queries, h);
@@ -275,10 +289,8 @@ export function buildHeroImageQuery(state, strategyContract, resolvedVibe) {
  * Gallery fallback queries: same pattern engine; per-client stable order; strings sized for downstream clamp.
  */
 export function buildFallbackGalleryQueries(state, strategyContract, resolvedVibe) {
-  const signalBlob = buildVisualSignalBlob(state, strategyContract);
-  const strategyModels = buildStrategyModelsForVisuals(signalBlob);
-  const patterns = deriveVisualPatterns(signalBlob, strategyModels);
-  let queries = buildQueriesFromPatterns(patterns);
+  const { patterns, candidateQueries: queries0 } = buildVisualQueryPipeline(state, strategyContract);
+  let queries = queries0;
   const slug = cleanString(state?.slug) || "site";
   const arch = cleanString(strategyContract?.business_context?.strategic_archetype);
   const h = stableHash(`${slug}|${arch}|${patterns.join("|")}|${cleanString(resolvedVibe)}|gallery`);
