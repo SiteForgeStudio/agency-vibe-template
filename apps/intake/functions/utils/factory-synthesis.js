@@ -223,6 +223,28 @@ function buildQueriesFromPatterns(patterns) {
   return uniqueStableStrings(patterns.flatMap((p) => map[p] || []));
 }
 
+function detectVisualModeFromSignals(visual) {
+  const focus = Array.isArray(visual?.recommended_focus) ? visual.recommended_focus : [];
+  const mustShow = Array.isArray(visual?.must_show) ? visual.must_show : [];
+  const themes = Array.isArray(visual?.image_themes) ? visual.image_themes : [];
+
+  const combined = [...focus, ...mustShow, ...themes].map((s) => String(s).toLowerCase());
+
+  if (combined.length >= 2) {
+    return "process";
+  }
+
+  if (themes.length > 0 && focus.length === 0) {
+    return "interaction";
+  }
+
+  if (focus.length > 0 && mustShow.length === 0) {
+    return "result";
+  }
+
+  return "general";
+}
+
 /**
  * Hero image search query: `signalBlob.visual` is primary; strategyModels kept on signature for callers.
  * Translation layer from structured signals → stock-search language (no industry tables).
@@ -237,20 +259,6 @@ export function buildHeroImageQuery(signalBlob, strategyModels, state, resolvedV
   const story = visual.visual_story || "";
   const differentiation = visual.differentiation || "";
   const galleryStory = visual.gallery_story || "";
-
-  function detectVisualMode(text) {
-    if (!text) return "general";
-    if (text.includes("craft") || text.includes("hand") || text.includes("process")) {
-      return "process";
-    }
-    if (text.includes("result") || text.includes("finished") || text.includes("outcome")) {
-      return "result";
-    }
-    if (text.includes("people") || text.includes("customer") || text.includes("community")) {
-      return "interaction";
-    }
-    return "general";
-  }
 
   const signalParts = [
     ...focus,
@@ -267,7 +275,7 @@ export function buildHeroImageQuery(signalBlob, strategyModels, state, resolvedV
     .toLowerCase();
 
   const category = cleanString(signalBlob?.category) || "service";
-  const mode = detectVisualMode(signalParts);
+  const mode = detectVisualModeFromSignals(visual);
 
   let subject = "";
   if (mode === "process") {
