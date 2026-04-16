@@ -1417,11 +1417,41 @@ function resolveObjectionHandle(state, strategyContract) {
 function ensureInspirationQueries(data, state, strategyContract) {
   const resolvedVibe = cleanString(data?.settings?.vibe);
 
+  if (!cleanString(data?.hero?.image?.image_search_query)) {
+    const signalBlob = buildSignalBlob(state, strategyContract);
+    const strategyModels = buildStrategyModels(signalBlob);
+    if (!data.hero) data.hero = {};
+    if (!data.hero.image) data.hero.image = {};
+    data.hero.image.image_search_query = buildHeroImageQuery(
+      signalBlob,
+      strategyModels,
+      state,
+      resolvedVibe
+    );
+  }
+
   if (data?.strategy?.show_gallery) {
     data.gallery = data.gallery || { enabled: true, items: [] };
     data.gallery.enabled = true;
 
     if (!Array.isArray(data.gallery.items)) data.gallery.items = [];
+
+    if (!data.gallery.items.length) {
+      const signalBlob = buildSignalBlob(state, strategyContract);
+      const strategyModels = buildStrategyModels(signalBlob);
+      const galleryQueries = buildFallbackGalleryQueries(
+        signalBlob,
+        strategyModels,
+        state,
+        resolvedVibe
+      );
+      if (Array.isArray(galleryQueries) && galleryQueries.length) {
+        data.gallery.items = galleryQueries.map((q, idx) => ({
+          title: galleryTitleFromQuery(q, idx),
+          image_search_query: q
+        }));
+      }
+    }
 
     const count = Number(
       data.gallery.computed_count ||
@@ -1441,15 +1471,10 @@ function ensureInspirationQueries(data, state, strategyContract) {
       });
     }
 
-    data.gallery.items = data.gallery.items.map((it, i) => {
-      const title = String(it?.title || galleryTitleFromQuery(it?.image_search_query, i));
-      const q = String(it?.image_search_query || "").trim();
-      return {
-        ...it,
-        title,
-        image_search_query: q || pool[i % pool.length] || ""
-      };
-    });
+    data.gallery.items = data.gallery.items.map((it, i) => ({
+      ...it,
+      title: String(it?.title || galleryTitleFromQuery(it?.image_search_query, i))
+    }));
 
     if (!isObject(data.gallery.image_source)) {
       data.gallery.image_source = {};
