@@ -936,11 +936,10 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     hero.headline = normalizePublicText("Designed to showcase and preserve what matters most");
   }
 
-  // --- IMAGE QUERY PIPELINE (AUTHORITATIVE) — signalBlob + strategyModels already built above ---
-  const heroQuery = buildHeroImageQuery(signalBlob, strategyModels, state, vibe);
-  if (hero?.image) {
-    hero.image.image_search_query = heroQuery;
-  }
+  // --- HERO IMAGE QUERY (AUTHORITATIVE; uses same signalBlob + strategyModels as assembly above) ---
+  const heroQuery = buildHeroImageQuery(signalBlob, strategyModels, state, cleanString(vibe));
+  if (!hero.image) hero.image = {};
+  hero.image.image_search_query = heroQuery;
 
   const sections = {
     about: true,
