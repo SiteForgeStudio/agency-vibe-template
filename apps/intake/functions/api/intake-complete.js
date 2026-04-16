@@ -940,6 +940,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   const heroQuery = buildHeroImageQuery(signalBlob, strategyModels, state, cleanString(vibe));
   if (!hero.image) hero.image = {};
   hero.image.image_search_query = heroQuery;
+  console.log("HERO QUERY SET:", hero.image.image_search_query);
 
   const sections = {
     about: true,
