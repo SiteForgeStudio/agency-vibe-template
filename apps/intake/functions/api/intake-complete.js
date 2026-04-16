@@ -846,7 +846,30 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     });
   }
 
-  const gallery = buildGallery(state, strategyContract, vibe);
+  let gallery = buildGallery(state, strategyContract, vibe);
+
+  const galleryQueries = buildFallbackGalleryQueries(state, strategyContract, vibe);
+  const hasExplicitGallery =
+    (Array.isArray(state.answers?.gallery_items) && state.answers.gallery_items.some((x) => isObject(x))) ||
+    cleanList(state.answers?.gallery_queries).length > 0;
+
+  if (!hasExplicitGallery && Array.isArray(galleryQueries) && galleryQueries.length) {
+    gallery = normalizeGalleryShape(
+      {
+        enabled: true,
+        items: galleryQueries.map((q, idx) => ({
+          title: galleryTitleFromQuery(q, idx),
+          image_search_query: q
+        })),
+        image_source: { image_search_query: galleryQueries[0] || "" }
+      },
+      true,
+      strategyContract,
+      vibe,
+      state
+    );
+  }
+
   const testimonials = buildTestimonials(state, strategyContract);
   const faqs = buildFaqs(state, strategyContract);
   const serviceArea = buildServiceArea(state, strategyContract);
@@ -900,7 +923,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     subtext: normalizePublicText(resolveHeroSubtext(state, strategyContract)),
     image: {
       alt: normalizePublicText(resolveHeroImageAlt(state, businessName)),
-      image_search_query: buildHeroImageQuery(state, strategyContract, vibe)
+      image_search_query: ""
     }
   };
   hero = enhanceHero(hero, signalBlob, behavior);
@@ -909,6 +932,12 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
 
   if (!cleanString(hero.headline) && strategyModels.visual_strategy.type === "transformation") {
     hero.headline = normalizePublicText("Designed to showcase and preserve what matters most");
+  }
+
+  // --- IMAGE QUERY PIPELINE (AUTHORITATIVE) — signalBlob + strategyModels already built above ---
+  const heroQuery = buildHeroImageQuery(state, strategyContract, vibe);
+  if (hero?.image) {
+    hero.image.image_search_query = heroQuery;
   }
 
   const sections = {
@@ -1166,14 +1195,7 @@ function buildGallery(state, strategyContract, vibe) {
     }));
   }
 
-  const fallback = buildFallbackGalleryQueries(state, strategyContract, vibe);
-  if (!items.length && !fallback.length) return null;
-  if (!items.length) {
-    items = fallback.map((query, idx) => ({
-      title: galleryTitleFromQuery(query, idx),
-      image_search_query: query
-    }));
-  }
+  if (!items.length) return null;
 
   const normalized = normalizeGalleryShape(
     {
@@ -1393,10 +1415,6 @@ function resolveObjectionHandle(state, strategyContract) {
 function ensureInspirationQueries(data, state, strategyContract) {
   const resolvedVibe = cleanString(data?.settings?.vibe);
 
-  if (!data?.hero?.image?.image_search_query) {
-    data.hero.image.image_search_query = buildHeroImageQuery(state, strategyContract, resolvedVibe);
-  }
-
   if (data?.strategy?.show_gallery) {
     data.gallery = data.gallery || { enabled: true, items: [] };
     data.gallery.enabled = true;
@@ -1409,29 +1427,25 @@ function ensureInspirationQueries(data, state, strategyContract) {
       inferPremiumGalleryCount(strategyContract, state, resolvedVibe)
     );
 
-    const fallbackQueries = buildFallbackGalleryQueries(
-      state,
-      strategyContract,
-      resolvedVibe
-    );
+    const pool = data.gallery.items
+      .map((it) => cleanString(it?.image_search_query))
+      .filter(Boolean);
 
-    while (data.gallery.items.length < count) {
+    while (data.gallery.items.length < count && pool.length) {
       const idx = data.gallery.items.length;
       data.gallery.items.push({
         title: `Project ${idx + 1}`,
-        image_search_query: fallbackQueries[idx % fallbackQueries.length] || "professional service detail photography"
+        image_search_query: pool[idx % pool.length]
       });
     }
 
     data.gallery.items = data.gallery.items.map((it, i) => {
       const title = String(it?.title || galleryTitleFromQuery(it?.image_search_query, i));
       const q = String(it?.image_search_query || "").trim();
-      const fallback = fallbackQueries[i % fallbackQueries.length] || "professional service detail photography";
-
       return {
         ...it,
         title,
-        image_search_query: clampWords(q || fallback, 4, 8)
+        image_search_query: q || pool[i % pool.length] || ""
       };
     });
 
@@ -1441,9 +1455,7 @@ function ensureInspirationQueries(data, state, strategyContract) {
 
     if (!cleanString(data.gallery.image_source.image_search_query)) {
       data.gallery.image_source.image_search_query =
-        data.gallery.items[0]?.image_search_query ||
-        fallbackQueries[0] ||
-        "professional service lifestyle photography";
+        data.gallery.items[0]?.image_search_query || "";
     }
   } else if (data.gallery) {
     data.gallery.enabled = Boolean(data.gallery.enabled);
