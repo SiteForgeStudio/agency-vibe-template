@@ -294,6 +294,17 @@ function buildSignalBlob(state, strategyContract) {
     .join(" ")
     .toLowerCase();
 
+  const visual = {
+    recommended_focus: cleanList(pi?.recommended_focus),
+    visual_story: cleanString(pi?.website_direction),
+    differentiation: cleanString(pi?.differentiation_hypothesis),
+    trust_context: cleanList(pi?.trust_markers),
+    gallery_story: cleanString(vis?.gallery_story),
+    must_show: cleanList(vis?.must_show),
+    image_themes: cleanList(answers?.image_themes),
+    gallery_visual_direction: cleanString(answers?.gallery_visual_direction)
+  };
+
   return {
     offer: cleanString(answers.primary_offer),
     model: cleanString(bc.business_model),
@@ -314,7 +325,8 @@ function buildSignalBlob(state, strategyContract) {
     process_model: proc,
     pricing_model: prc,
     visual_strategy: vis,
-    component_importance: isObject(pi.component_importance) ? pi.component_importance : {}
+    component_importance: isObject(pi.component_importance) ? pi.component_importance : {},
+    visual
   };
 }
 
@@ -940,7 +952,6 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   const heroQuery = buildHeroImageQuery(signalBlob, strategyModels, state, cleanString(vibe));
   if (!hero.image) hero.image = {};
   hero.image.image_search_query = heroQuery;
-  console.log("HERO QUERY SET:", hero.image.image_search_query);
 
   const sections = {
     about: true,
@@ -1417,73 +1428,82 @@ function resolveObjectionHandle(state, strategyContract) {
 function ensureInspirationQueries(data, state, strategyContract) {
   const resolvedVibe = cleanString(data?.settings?.vibe);
 
-  if (!cleanString(data?.hero?.image?.image_search_query)) {
-    const signalBlob = buildSignalBlob(state, strategyContract);
-    const strategyModels = buildStrategyModels(signalBlob);
-    if (!data.hero) data.hero = {};
-    if (!data.hero.image) data.hero.image = {};
-    data.hero.image.image_search_query = buildHeroImageQuery(
-      signalBlob,
-      strategyModels,
-      state,
-      resolvedVibe
-    );
-  }
+  const signalBlob = buildSignalBlob(state, strategyContract);
+  const strategyModels = buildStrategyModels(signalBlob);
+
+  if (!data.hero) data.hero = {};
+  if (!data.hero.image) data.hero.image = {};
+  data.hero.image.image_search_query = buildHeroImageQuery(
+    signalBlob,
+    strategyModels,
+    state,
+    resolvedVibe
+  );
+  console.log("[FACTORY] Hero query generated:", data.hero.image.image_search_query);
 
   if (data?.strategy?.show_gallery) {
     data.gallery = data.gallery || { enabled: true, items: [] };
     data.gallery.enabled = true;
 
-    if (!Array.isArray(data.gallery.items)) data.gallery.items = [];
+    const galleryQueries = buildFallbackGalleryQueries(
+      signalBlob,
+      strategyModels,
+      state,
+      resolvedVibe
+    );
+    const itemsFromFactory =
+      Array.isArray(galleryQueries) && galleryQueries.length
+        ? galleryQueries.map((q, idx) => ({
+            title: galleryTitleFromQuery(q, idx),
+            image_search_query: q
+          }))
+        : [];
 
-    if (!data.gallery.items.length) {
-      const signalBlob = buildSignalBlob(state, strategyContract);
-      const strategyModels = buildStrategyModels(signalBlob);
-      const galleryQueries = buildFallbackGalleryQueries(
-        signalBlob,
-        strategyModels,
-        state,
-        resolvedVibe
-      );
-      if (Array.isArray(galleryQueries) && galleryQueries.length) {
-        data.gallery.items = galleryQueries.map((q, idx) => ({
-          title: galleryTitleFromQuery(q, idx),
-          image_search_query: q
-        }));
-      }
-    }
-
-    const count = Number(
-      data.gallery.computed_count ||
-      data.gallery.items.length ||
-      inferPremiumGalleryCount(strategyContract, state, resolvedVibe)
+    const normalized = normalizeGalleryShape(
+      {
+        enabled: true,
+        items: itemsFromFactory,
+        image_source: { image_search_query: itemsFromFactory[0]?.image_search_query || "" }
+      },
+      true,
+      strategyContract,
+      resolvedVibe,
+      state
     );
 
-    const pool = data.gallery.items
-      .map((it) => cleanString(it?.image_search_query))
-      .filter(Boolean);
+    let items = Array.isArray(normalized.items) ? normalized.items : [];
+    const count = Number(
+      normalized.computed_count ||
+      items.length ||
+      inferPremiumGalleryCount(strategyContract, state, resolvedVibe)
+    );
+    const pool = items.map((it) => cleanString(it?.image_search_query)).filter(Boolean);
 
-    while (data.gallery.items.length < count && pool.length) {
-      const idx = data.gallery.items.length;
-      data.gallery.items.push({
+    while (items.length < count && pool.length) {
+      const idx = items.length;
+      items.push({
         title: `Project ${idx + 1}`,
         image_search_query: pool[idx % pool.length]
       });
     }
 
-    data.gallery.items = data.gallery.items.map((it, i) => ({
-      ...it,
-      title: String(it?.title || galleryTitleFromQuery(it?.image_search_query, i))
-    }));
+    data.gallery = {
+      ...normalized,
+      items: items.map((it, i) => ({
+        ...it,
+        title: String(it?.title || galleryTitleFromQuery(it?.image_search_query, i))
+      }))
+    };
 
     if (!isObject(data.gallery.image_source)) {
       data.gallery.image_source = {};
     }
-
     if (!cleanString(data.gallery.image_source.image_search_query)) {
       data.gallery.image_source.image_search_query =
         data.gallery.items[0]?.image_search_query || "";
     }
+
+    console.log("[FACTORY] Gallery factory applied, items:", data.gallery.items?.length);
   } else if (data.gallery) {
     data.gallery.enabled = Boolean(data.gallery.enabled);
   }
