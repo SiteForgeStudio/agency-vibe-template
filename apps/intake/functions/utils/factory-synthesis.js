@@ -224,20 +224,97 @@ function buildQueriesFromPatterns(patterns) {
 }
 
 /**
- * Hero image search query: same signal path as gallery (`signalBlob` + `strategyModels` from intake-complete).
- * `resolvedVibe` participates only in the hash for stable variety, not as a label in the query text.
+ * Hero image search query: `signalBlob.visual` is primary; strategyModels kept on signature for callers.
+ * Translation layer from structured signals → stock-search language (no industry tables).
  */
 export function buildHeroImageQuery(signalBlob, strategyModels, state, resolvedVibe) {
-  const patterns = deriveVisualPatterns(signalBlob, strategyModels);
-  let queries = buildQueriesFromPatterns(patterns);
-  const slug = cleanString(state?.slug) || "site";
-  const h = stableHash(`${slug}|${patterns.join("|")}|${cleanString(resolvedVibe)}|hero`);
-  queries = rotateStable(queries, h);
-  const joined = queries.slice(0, 3).join(", ");
-  return (
-    cleanString(joined) ||
-    clampWords("authentic real world setting with natural window light and calm depth", 6, 14)
-  );
+  const visual = signalBlob?.visual || {};
+
+  const focus = Array.isArray(visual.recommended_focus) ? visual.recommended_focus : [];
+  const mustShow = Array.isArray(visual.must_show) ? visual.must_show : [];
+  const themes = Array.isArray(visual.image_themes) ? visual.image_themes : [];
+
+  const story = visual.visual_story || "";
+  const differentiation = visual.differentiation || "";
+  const galleryStory = visual.gallery_story || "";
+
+  function detectVisualMode(text) {
+    if (!text) return "general";
+    if (text.includes("craft") || text.includes("hand") || text.includes("process")) {
+      return "process";
+    }
+    if (text.includes("result") || text.includes("finished") || text.includes("outcome")) {
+      return "result";
+    }
+    if (text.includes("people") || text.includes("customer") || text.includes("community")) {
+      return "interaction";
+    }
+    return "general";
+  }
+
+  const signalParts = [
+    ...focus,
+    ...mustShow,
+    ...themes,
+    story,
+    differentiation,
+    galleryStory,
+    cleanString(signalBlob?.offer),
+    cleanString(signalBlob?.positioning)
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const category = cleanString(signalBlob?.category) || "service";
+  const mode = detectVisualMode(signalParts);
+
+  let subject = "";
+  if (mode === "process") {
+    subject = `${category} process craftsmanship detail`;
+  } else if (mode === "interaction") {
+    subject = `${category} customer interaction`;
+  } else if (mode === "result") {
+    subject = `${category} finished work display`;
+  } else {
+    subject = `${category} professional environment`;
+  }
+
+  const detailHints = [];
+  if (signalParts.includes("craft") || signalParts.includes("quality")) {
+    detailHints.push("close-up detail");
+  }
+  if (signalParts.includes("custom") || signalParts.includes("personal")) {
+    detailHints.push("custom work");
+  }
+  if (signalParts.includes("artist") || signalParts.includes("creative")) {
+    detailHints.push("studio environment");
+  }
+
+  const vibeHint = resolvedVibe ? String(resolvedVibe).toLowerCase() : "";
+  let style = "natural lighting";
+  if (vibeHint.includes("minimal")) {
+    style = "clean minimal natural lighting";
+  } else if (vibeHint.includes("luxury")) {
+    style = "luxury refined lighting";
+  } else if (vibeHint.includes("industrial")) {
+    style = "industrial workshop lighting";
+  }
+
+  let query = [subject, ...detailHints, style]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!query || query.length < 10) {
+    query = `${category} professional realistic`;
+  }
+
+  console.log("[FACTORY HERO INPUT]", visual);
+  console.log("[FACTORY HERO OUTPUT]", query);
+
+  return query;
 }
 
 /**
