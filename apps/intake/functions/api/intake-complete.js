@@ -304,6 +304,8 @@ function buildSignalBlob(state, strategyContract) {
     trust,
     tone: cleanString(answers.tone_of_voice) || inferTone(sc),
     category: cleanString(bc.category),
+    /** Opaque strategy slug — used by factory visual patterns (not NAICS / industry routing). */
+    archetype: cleanString(bc.strategic_archetype),
     persona,
     primary_conversion: cleanString(cs.primary_conversion),
     decision_factors: factors,
@@ -848,7 +850,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
 
   let gallery = buildGallery(state, strategyContract, vibe);
 
-  const galleryQueries = buildFallbackGalleryQueries(state, strategyContract, vibe);
+  const galleryQueries = buildFallbackGalleryQueries(signalBlob, strategyModels, state, vibe);
   const hasExplicitGallery =
     (Array.isArray(state.answers?.gallery_items) && state.answers.gallery_items.some((x) => isObject(x))) ||
     cleanList(state.answers?.gallery_queries).length > 0;
@@ -935,7 +937,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   }
 
   // --- IMAGE QUERY PIPELINE (AUTHORITATIVE) — signalBlob + strategyModels already built above ---
-  const heroQuery = buildHeroImageQuery(state, strategyContract, vibe);
+  const heroQuery = buildHeroImageQuery(signalBlob, strategyModels, state, vibe);
   if (hero?.image) {
     hero.image.image_search_query = heroQuery;
   }
