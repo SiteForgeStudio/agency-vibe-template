@@ -820,12 +820,18 @@ function toSnakeCase(value) {
 function buildPreflightPromotionSources(reconData) {
   const root = reconPayloadRoot(reconData);
   const preflight = isObject(root?.preflight) ? root.preflight : {};
+  const parsedSummary =
+    safeParseJsonString(preflight?.summary) ||
+    safeParseJsonString(root?.summary) ||
+    safeParseJsonString(root?.preflight_summary_json);
   const input = isObject(preflight?.input)
     ? preflight.input
     : isObject(root?.input)
       ? root.input
       : root;
-  const summary = isObject(preflight?.summary)
+  const summary = isObject(parsedSummary)
+    ? parsedSummary
+    : isObject(preflight?.summary)
     ? preflight.summary
     : isObject(root?.summary)
       ? root.summary
@@ -834,8 +840,10 @@ function buildPreflightPromotionSources(reconData) {
 }
 
 function mapPreflightSourceKeyToFactKey(sourceKey) {
-  const k = toSnakeCase(sourceKey);
+  let k = toSnakeCase(sourceKey);
   if (!k) return "";
+  if (k.startsWith("summary_")) k = k.slice("summary_".length);
+  if (k.startsWith("input_") && k !== "input_business_name") k = k.slice("input_".length);
   const aliases = {
     input_business_name: "business_name",
     business_name: "business_name",
@@ -872,8 +880,10 @@ function canPromoteIntoFact(entry) {
 
 function promoteFactFromPreflightSource(facts, sourceObj, sourceKind) {
   if (!isObject(facts) || !isObject(sourceObj)) return;
-  const status = sourceKind === "input" ? "verified" : "inferred";
-  const confidence = sourceKind === "input" ? 0.95 : 0.75;
+  const fromInput = sourceKind === "input";
+  const status = fromInput ? "verified" : "inferred";
+  const confidence = fromInput ? 0.95 : 0.75;
+  const verified = fromInput;
 
   for (const [rawKey, rawValue] of Object.entries(sourceObj)) {
     const factKey = mapPreflightSourceKeyToFactKey(rawKey);
@@ -890,7 +900,7 @@ function promoteFactFromPreflightSource(facts, sourceObj, sourceKind) {
       source: "preflight",
       status,
       confidence,
-      verified: status === "verified"
+      verified
     };
   }
 }
