@@ -790,6 +790,7 @@ function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflig
   };
 
   hydrateFactRegistryWithPreflightIntelligence(factRegistry, preflightIntelligence);
+  promotePreflightFactsToRegistry(factRegistry, reconData);
 
   const businessDraft = buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry);
   const sectionStatus = computeSectionStatus(normalizedStrategy, factRegistry, businessDraft);
@@ -806,6 +807,98 @@ function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflig
     question_candidates: questionCandidates,
     question_plan: questionPlan
   };
+}
+
+function toSnakeCase(value) {
+  return cleanString(value)
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
+}
+
+function buildPreflightPromotionSources(reconData) {
+  const root = reconPayloadRoot(reconData);
+  const preflight = isObject(root?.preflight) ? root.preflight : {};
+  const input = isObject(preflight?.input)
+    ? preflight.input
+    : isObject(root?.input)
+      ? root.input
+      : root;
+  const summary = isObject(preflight?.summary)
+    ? preflight.summary
+    : isObject(root?.summary)
+      ? root.summary
+      : {};
+  return { input, summary };
+}
+
+function mapPreflightSourceKeyToFactKey(sourceKey) {
+  const k = toSnakeCase(sourceKey);
+  if (!k) return "";
+  const aliases = {
+    input_business_name: "business_name",
+    business_name: "business_name",
+    city: "service_area_main",
+    city_or_service_area_input: "service_area_main",
+    service_area: "service_area_main",
+    service_area_main: "service_area_main",
+    client_email: "email",
+    email: "email",
+    client_phone: "phone",
+    phone: "phone",
+    address: "address",
+    hours: "hours",
+    primary_offer: "primary_offer",
+    differentiation: "differentiation",
+    target_persona: "target_persona",
+    audience: "target_persona",
+    tagline: "tagline",
+    service_descriptions: "service_list",
+    process_summary: "process_summary"
+  };
+  return aliases[k] || k;
+}
+
+function canPromoteIntoFact(entry) {
+  if (!isObject(entry)) return false;
+  const status = cleanString(entry.status);
+  const confidence = typeof entry.confidence === "number" ? entry.confidence : 0;
+  if (status === "verified") return false;
+  if (status === "answered") return false;
+  if (status === "inferred" && confidence >= 0.8) return false;
+  return true;
+}
+
+function promoteFactFromPreflightSource(facts, sourceObj, sourceKind) {
+  if (!isObject(facts) || !isObject(sourceObj)) return;
+  const status = sourceKind === "input" ? "verified" : "inferred";
+  const confidence = sourceKind === "input" ? 0.95 : 0.75;
+
+  for (const [rawKey, rawValue] of Object.entries(sourceObj)) {
+    const factKey = mapPreflightSourceKeyToFactKey(rawKey);
+    if (!factKey || !Object.prototype.hasOwnProperty.call(facts, factKey)) continue;
+    const value = extractValue(rawValue);
+    if (!hasMeaningfulValue(value)) continue;
+
+    const current = facts[factKey];
+    if (!canPromoteIntoFact(current)) continue;
+
+    facts[factKey] = {
+      ...current,
+      value,
+      source: "preflight",
+      status,
+      confidence,
+      verified: status === "verified"
+    };
+  }
+}
+
+function promotePreflightFactsToRegistry(facts, reconData) {
+  const { input, summary } = buildPreflightPromotionSources(reconData);
+  promoteFactFromPreflightSource(facts, input, "input");
+  promoteFactFromPreflightSource(facts, summary, "summary");
 }
 
 function buildNormalizedStrategy(strategy, reconData, preflightIntelligence) {

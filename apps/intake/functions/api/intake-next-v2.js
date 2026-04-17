@@ -16,6 +16,7 @@
  */
 
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
+const INFERRED_FACT_COMPLETE_THRESHOLD = 0.8;
 
 const ALLOWED_ICON_TOKENS = [
   "zap",
@@ -618,9 +619,15 @@ function buildInterpreterSystemPrompt() {
     // Narrative follow-up pending — field not satisfied until user expands
     if (hasMeaningfulValue(fact.intake_followup)) return false;
 
-    // 🔥 ONLY requirement: usable value (never treat nested fact stubs as content)
     const v = sanitizeFactValue(fact.value);
-    return hasMeaningfulValue(v);
+    if (!hasMeaningfulValue(v)) return false;
+
+    const status = cleanString(fact.status);
+    const confidence = clampNumber(fact.confidence, 0, 1, 0);
+    if (status === "verified" || fact.verified === true) return true;
+    if (status === "answered") return true;
+    if (status === "inferred" && confidence >= INFERRED_FACT_COMPLETE_THRESHOLD) return true;
+    return false;
   }
 
   /** Phone / quote-by-phone style flows do not need an external booking URL. */
@@ -2852,6 +2859,19 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
       score -= 60;
     }
 
+    const completionRows = targetFields
+      .map((fk) => factRegistry[fk])
+      .filter((fact) => isObject(fact) && hasMeaningfulValue(fact.value));
+    const verifiedCount = completionRows.filter(
+      (fact) => fact.verified === true || cleanString(fact.status) === "verified"
+    ).length;
+    const verifiedRatio = completionRows.length ? verifiedCount / completionRows.length : 0;
+    if (verifiedRatio >= 0.75) {
+      score -= 140;
+    } else if (verifiedRatio >= 0.5) {
+      score -= 80;
+    }
+
     const narrativeReadinessGaps = {
       who_its_for: !isFactResolved(factRegistry.target_persona),
       process_clarity: !isFactResolved(factRegistry.process_summary),
@@ -3710,7 +3730,13 @@ function buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflight
   const primaryField = cleanString(plan?.primary_field);
   if (!primaryField) return "";
   const fact = blueprint?.fact_registry?.[primaryField];
-  if (!fact || cleanString(fact.status) !== "prefilled_unverified") return "";
+  if (!fact) return "";
+  const factStatus = cleanString(fact.status);
+  const factConfidence = clampNumber(fact.confidence, 0, 1, 0);
+  const isPrefilled = factStatus === "prefilled_unverified";
+  const isLowConfidenceInferred =
+    factStatus === "inferred" && factConfidence < INFERRED_FACT_COMPLETE_THRESHOLD;
+  if (!isPrefilled && !isLowConfidenceInferred) return "";
 
   let insight = formatFactValueForConfirmationPrompt(fact.value);
   if (!hasMeaningfulValue(insight) && isObject(preflightIntelligence)) {
@@ -3729,7 +3755,7 @@ function buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflight
 
   if (!hasMeaningfulValue(insight)) return "";
 
-  return `Here's what we're seeing:\n\n${truncate(insight, 640)}\n\nDoes this feel right, or would you adjust it?`;
+  return `I've noted this for ${primaryField.replace(/_/g, " ")}:\n\n${truncate(insight, 640)}\n\nIs this correct, or would you adjust it?`;
 }
 
 function narrativeAskCountForField(blueprint, primaryField) {
@@ -4759,8 +4785,9 @@ function isFactResolved(fact) {
   if (!hasMeaningfulValue(v)) return false;
 
   return (
+    status === "verified" ||
     status === "answered" ||
-    (status === "inferred" && confidence >= 0.7)
+    (status === "inferred" && confidence >= INFERRED_FACT_COMPLETE_THRESHOLD)
   );
 }
 

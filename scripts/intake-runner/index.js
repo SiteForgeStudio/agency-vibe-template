@@ -286,9 +286,32 @@ async function runIntakeComplete() {
   }
 
   console.log("\n✅ intake-complete: business_json ready.");
+
   if (data.strategy_brief?.derived_behavior) {
     console.log("→ derived_behavior:", data.strategy_brief.derived_behavior);
   }
+
+  // ==========================
+  // 🧪 FACTORY OUTPUT DEBUG
+  // ==========================
+
+  console.log("\n🧪 HERO IMAGE QUERY:");
+  console.log(
+    data?.business_json?.hero?.image?.image_search_query || "(missing)"
+  );
+
+  console.log("\n🖼️ GALLERY IMAGE QUERIES:");
+
+  const galleryItems = data?.business_json?.gallery?.items || [];
+
+  if (!galleryItems.length) {
+    console.log("(no gallery items)");
+  } else {
+    galleryItems.forEach((item, i) => {
+      console.log(`${i + 1}.`, item?.image_search_query || "(missing)");
+    });
+  }
+
   return data;
 }
 
