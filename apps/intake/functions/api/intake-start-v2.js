@@ -790,7 +790,7 @@ function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflig
   };
 
   hydrateFactRegistryWithPreflightIntelligence(factRegistry, preflightIntelligence);
-  promotePreflightFactsToRegistry(factRegistry, reconData);
+  promotePreflightFactsToRegistry(factRegistry, reconData, preflightIntelligence);
 
   const businessDraft = buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry);
   const sectionStatus = computeSectionStatus(normalizedStrategy, factRegistry, businessDraft);
@@ -859,31 +859,36 @@ function mapPreflightSourceKeyToFactKey(sourceKey) {
     hours: "hours",
     primary_offer: "primary_offer",
     differentiation: "differentiation",
+    differentiation_hypothesis: "differentiation",
+    positioning: "business_understanding",
     target_persona: "target_persona",
     audience: "target_persona",
     tagline: "tagline",
     service_descriptions: "service_list",
-    process_summary: "process_summary"
+    process_summary: "process_summary",
+    opportunity: "opportunity",
+    trust_signal: "trust_signal",
+    trust_markers: "trust_signal",
+    recommended_focus: "recommended_focus",
+    winning_angle: "aeo_angles",
+    website_direction: "website_direction"
   };
   return aliases[k] || k;
 }
 
 function canPromoteIntoFact(entry) {
   if (!isObject(entry)) return false;
+  if (entry.verified === true) return false;
   const status = cleanString(entry.status);
-  const confidence = typeof entry.confidence === "number" ? entry.confidence : 0;
-  if (status === "verified") return false;
   if (status === "answered") return false;
-  if (status === "inferred" && confidence >= 0.8) return false;
+  const confidence = typeof entry.confidence === "number" ? entry.confidence : 0;
+  if (confidence >= 0.8) return false;
   return true;
 }
 
 function promoteFactFromPreflightSource(facts, sourceObj, sourceKind) {
   if (!isObject(facts) || !isObject(sourceObj)) return;
   const fromInput = sourceKind === "input";
-  const status = fromInput ? "verified" : "inferred";
-  const confidence = fromInput ? 0.95 : 0.75;
-  const verified = fromInput;
 
   for (const [rawKey, rawValue] of Object.entries(sourceObj)) {
     const factKey = mapPreflightSourceKeyToFactKey(rawKey);
@@ -894,21 +899,50 @@ function promoteFactFromPreflightSource(facts, sourceObj, sourceKind) {
     const current = facts[factKey];
     if (!canPromoteIntoFact(current)) continue;
 
-    facts[factKey] = {
-      ...current,
-      value,
-      source: "preflight",
-      status,
-      confidence,
-      verified
-    };
+    if (fromInput) {
+      facts[factKey] = {
+        ...current,
+        value,
+        source: "preflight",
+        status: "verified",
+        confidence: 0.95,
+        verified: true
+      };
+    } else {
+      facts[factKey] = {
+        ...current,
+        value,
+        source: "preflight",
+        status: "inferred",
+        confidence: 0.75,
+        verified: false
+      };
+    }
   }
 }
 
-function promotePreflightFactsToRegistry(facts, reconData) {
+function buildSummaryPromotionPayloadFromPreflightIntelligence(pi) {
+  if (!isObject(pi)) return {};
+  const trustFirst = cleanList(pi.trust_markers)[0];
+  const win = cleanString(pi.winning_angle);
+  return compactObject({
+    business_understanding: cleanString(pi.positioning),
+    opportunity: cleanString(pi.opportunity),
+    differentiation: cleanString(pi.differentiation_hypothesis),
+    trust_signal: trustFirst,
+    recommended_focus: cleanList(pi.recommended_focus),
+    aeo_angles: win ? [win] : [],
+    website_direction: cleanString(pi.website_direction)
+  });
+}
+
+function promotePreflightFactsToRegistry(facts, reconData, preflightIntelligence) {
   const { input, summary } = buildPreflightPromotionSources(reconData);
+  const fromBridge = buildSummaryPromotionPayloadFromPreflightIntelligence(preflightIntelligence);
+  const mergedSummary = { ...summary, ...fromBridge };
+
   promoteFactFromPreflightSource(facts, input, "input");
-  promoteFactFromPreflightSource(facts, summary, "summary");
+  promoteFactFromPreflightSource(facts, mergedSummary, "summary");
 }
 
 function buildNormalizedStrategy(strategy, reconData, preflightIntelligence) {
