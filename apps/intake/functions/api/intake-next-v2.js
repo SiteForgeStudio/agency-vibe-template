@@ -45,6 +45,31 @@ const ALLOWED_ICON_TOKENS = [
   "phone"
 ];
 
+/** When preflight-derived positioning signals exist, factory can infer hero/gallery visuals without user prompts. */
+function hasVisualInferenceSignals(factRegistry) {
+  const rf = factRegistry?.recommended_focus?.value;
+  const diff = factRegistry?.differentiation?.value;
+  const cat = factRegistry?.category?.value || factRegistry?.industry?.value;
+
+  return Boolean(
+    (Array.isArray(rf) && rf.length > 0) ||
+      (typeof rf === "string" && rf.length > 0) ||
+      (diff && diff.length > 0) ||
+      (cat && cat.length > 0)
+  );
+}
+
+/** Present/missing evidence for a single schema evidence key (visual fields may count as present via inference). */
+function isEvidenceKeyPresentForComponentStates(fieldKey, factRegistry) {
+  if (
+    (fieldKey === "image_themes" || fieldKey === "gallery_visual_direction") &&
+    hasVisualInferenceSignals(factRegistry)
+  ) {
+    return true;
+  }
+  return isFactComplete(factRegistry?.[fieldKey]);
+}
+
 /* ========================================================================
  * Cloudflare Handlers
  * ====================================================================== */
@@ -740,6 +765,13 @@ if (fieldKey === "contact_path") {
     return true;
   }
 }
+
+  if (
+    (fieldKey === "image_themes" || fieldKey === "gallery_visual_direction") &&
+    hasVisualInferenceSignals(factRegistry)
+  ) {
+    return true;
+  }
 
   return isFactComplete(fact);
 }
@@ -1469,10 +1501,10 @@ function computeComponentStates({ blueprint, schemaGuide, state }) {
 
     const evidenceKeys = cleanList(guide.evidence_keys);
     const presentEvidence = evidenceKeys.filter((key) =>
-      isFactComplete(factRegistry?.[key])
-    ); 
-    const missingEvidence = evidenceKeys.filter((key) =>
-      !isFactComplete(factRegistry?.[key])
+      isEvidenceKeyPresentForComponentStates(key, factRegistry)
+    );
+    const missingEvidence = evidenceKeys.filter(
+      (key) => !isEvidenceKeyPresentForComponentStates(key, factRegistry)
     );
     const confidenceBase = evidenceKeys.length
       ? presentEvidence.length / evidenceKeys.length
@@ -1559,7 +1591,10 @@ function buildComponentEnableReasons(component, guide, blueprint, factRegistry) 
   if (component === "processSteps" && looksLikeProcessFact(factRegistry?.process_summary?.value)) {
     reasons.push("Client described a real service workflow.");
   }
-  if (component === "gallery" && isFactComplete(factRegistry?.gallery_visual_direction)) {
+  if (
+    component === "gallery" &&
+    (hasVisualInferenceSignals(factRegistry) || isFactComplete(factRegistry?.gallery_visual_direction))
+  ) {
     reasons.push("Visual direction evidence exists.");
   }
   if (component === "investment" && isStandardizedPricing(factRegistry?.pricing?.value)) {
@@ -1576,7 +1611,11 @@ function buildComponentDisableReasons(component, guide, blueprint, factRegistry)
   if (component === "processSteps" && !looksLikeProcessFact(factRegistry?.process_summary?.value)) {
     reasons.push("No confirmed workflow evidence yet.");
   }
-  if (component === "gallery" && !isFactComplete(factRegistry?.gallery_visual_direction)) {
+  if (
+    component === "gallery" &&
+    !hasVisualInferenceSignals(factRegistry) &&
+    !isFactComplete(factRegistry?.gallery_visual_direction)
+  ) {
     reasons.push("No confirmed gallery visual strategy yet.");
   }
   return reasons;
@@ -1683,7 +1722,10 @@ function computeDecisionStates({ blueprint, schemaGuide }) {
     out.process.confidence = Math.max(Number(out.process.confidence || 0), 0.72);
   }
 
-  if (isFactComplete(factRegistry?.gallery_visual_direction)) {
+  if (
+    isFactComplete(factRegistry?.gallery_visual_direction) ||
+    hasVisualInferenceSignals(factRegistry)
+  ) {
     out.gallery_strategy = out.gallery_strategy || {};
     out.gallery_strategy.confidence = Math.max(Number(out.gallery_strategy.confidence || 0), 0.68);
   }
@@ -2825,6 +2867,13 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     score += relatedComponents.filter((component) => !componentStates[component]?.draft_ready).length * 18;
     score += relatedComponents.filter((component) => !componentStates[component]?.premium_ready).length * 10;
     score += Math.round((1 - Number(decisionState.confidence || 0)) * 100);
+
+    if (
+      hasVisualInferenceSignals(factRegistry) &&
+      rawTargetFields.some((f) => f === "image_themes" || f === "gallery_visual_direction")
+    ) {
+      score -= 200;
+    }
 
     if (decision === "contact_details" && coreDecisionsStillWeak(decisionStates)) {
       if (accessReadiness && accessReadiness.satisfied === false) {
