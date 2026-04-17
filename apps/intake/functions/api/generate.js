@@ -260,15 +260,12 @@ function normalizeToMasterSchema_(raw, ctx) {
    ENSURE INSPIRATION QUERIES
 ------------------------------ */
 function ensureInspirationQueries_(data) {
-  // HERO query guarantee (4–8 words broad/visual)
-  if (!data?.hero?.image?.image_search_query) {
-    const industry = String(data?.intelligence?.industry || "service").toLowerCase();
-    data.hero.image.image_search_query = clampWords_(
-      `${industry} professional work in progress`,
-      4,
-      8
-    );
-  }
+  // Do not generate hero image queries here.
+  // Factory synthesis in intake-complete.js is the single source of truth.
+  if (!data?.hero) data.hero = {};
+  if (!data.hero.image) data.hero.image = {};
+
+  data.hero.image.image_search_query = String(data.hero.image.image_search_query || "").trim();
 
   // If gallery should show, ensure gallery structure + queries
   if (data?.strategy?.show_gallery) {
@@ -283,10 +280,6 @@ function ensureInspirationQueries_(data) {
       6
     );
 
-    const baseSubject = String(data?.intelligence?.industry || "service");
-    const vibe = String(data?.settings?.vibe || "");
-    const fallbackBase = `${baseSubject} results showcase ${vibe}`.trim();
-
     // Ensure enough items, but respect any intentional upstream item count first
     while (data.gallery.items.length < count) {
       data.gallery.items.push({
@@ -295,26 +288,21 @@ function ensureInspirationQueries_(data) {
       });
     }
 
-    data.gallery.items = data.gallery.items.map((it, i) => {
-      const title = String(it?.title || `Project ${i + 1}`);
-      const q = String(it?.image_search_query || "").trim();
-
-      return {
-        ...it,
-        title,
-        image_search_query: q || clampWords_(`${fallbackBase} ${i + 1}`, 4, 8)
-      };
-    });
+    // Do not generate gallery image queries here.
+    // Factory synthesis will populate these later.
+    data.gallery.items = data.gallery.items.map((it, i) => ({
+      ...it,
+      title: String(it?.title || `Project ${i + 1}`),
+      image_search_query: String(it?.image_search_query || "").trim()
+    }));
 
     if (!data.gallery.image_source || typeof data.gallery.image_source !== "object") {
       data.gallery.image_source = {};
     }
 
-    if (!String(data.gallery.image_source.image_search_query || "").trim()) {
-      data.gallery.image_source.image_search_query =
-        data.gallery.items[0]?.image_search_query ||
-        clampWords_(fallbackBase, 4, 8);
-    }
+    data.gallery.image_source.image_search_query = String(
+      data.gallery.image_source.image_search_query || ""
+    ).trim();
   } else {
     if (data.gallery) data.gallery.enabled = Boolean(data.gallery.enabled);
   }
