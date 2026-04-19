@@ -1,0 +1,213 @@
+{
+  "intelligence": {
+    "industry": "Service business",
+    "target_persona": "Art Gallery ? visual_portfolio_service",
+    "tone_of_voice": "Clear, modern, and trustworthy",
+    "derived_behavior": {
+      "decision_style": "emotional",
+      "trust_sensitivity": "high",
+      "complexity": "expert_required",
+      "differentiation_type": "quality",
+      "purchase_trigger": "visual"
+    }
+  },
+  "strategy": {
+    "show_trustbar": true,
+    "show_about": true,
+    "show_features": true,
+    "show_events": false,
+    "show_process": true,
+    "show_testimonials": true,
+    "show_comparison": false,
+    "show_gallery": true,
+    "show_investment": false,
+    "show_faqs": true,
+    "show_service_area": false
+  },
+  "settings": {
+    "vibe": "Modern Minimal",
+    "menu": [
+      {
+        "label": "Home",
+        "path": "#home"
+      },
+      {
+        "label": "About",
+        "path": "#about"
+      },
+      {
+        "label": "Services",
+        "path": "#features"
+      },
+      {
+        "label": "Process",
+        "path": "#process"
+      },
+      {
+        "label": "Reviews",
+        "path": "#testimonials"
+      },
+      {
+        "label": "Gallery",
+        "path": "#gallery"
+      },
+      {
+        "label": "FAQ",
+        "path": "#faqs"
+      },
+      {
+        "label": "Contact",
+        "path": "#contact"
+      }
+    ],
+    "cta_text": "Book Now",
+    "cta_link": "manual",
+    "cta_type": "external",
+    "secondary_cta_text": "Call Now",
+    "secondary_cta_link": "#contact"
+  },
+  "brand": {
+    "name": "Simons Fine Art Framing & Gallery",
+    "slug": "simons-fine-art-framing-gallery",
+    "tagline": "framming and matting",
+    "email": "info@simonsfineartframing.com",
+    "phone": "1231231234",
+    "office_address": "",
+    "objection_handle": "Clear quotes and honest expectations from the start."
+  },
+  "hero": {
+    "headline": "custom framing services in Dublin PA",
+    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Designed for Art Gallery ? visual_portfolio_servic...",
+    "image": {
+      "alt": "framming and matting",
+      "image_search_query": "service process craftsmanship detail close-up detail custom work studio environment clean minimal natural lighting"
+    }
+  },
+  "about": {
+    "story_text": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services.",
+    "founder_note": "Built for people who value quality, clarity, and a smooth process.",
+    "years_experience": "Experienced professional service"
+  },
+  "trustbar": {
+    "enabled": true,
+    "items": [
+      {
+        "label": "Artist Ownership",
+        "icon": "shield"
+      },
+      {
+        "label": "Trusted Service",
+        "icon": "shield"
+      },
+      {
+        "label": "Customer Focused",
+        "icon": "heart"
+      }
+    ]
+  },
+  "features": [
+    {
+      "title": "Quality Work",
+      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
+      "icon_slug": "map"
+    },
+    {
+      "title": "Quality-First Results",
+      "description": "Every detail is handled carefully so the finished result looks clean, sharp, and consistent. Built with care and attention to detail you can trust.",
+      "icon_slug": "award"
+    },
+    {
+      "title": "Service Highlight 3",
+      "description": "Clear, professional work designed to make the next step easy. Built with care and attention to detail you can trust.",
+      "icon_slug": "shield"
+    }
+  ],
+  "processSteps": [
+    {
+      "title": "Understand goals and constraints",
+      "description": "We start by clarifying priorities, fit, and the quality standard you want so the plan matches reality. Built with care and attention to detail you can trust."
+    },
+    {
+      "title": "Choose the right approach",
+      "description": "We recommend an approach that protects craftsmanship and sets expectations before work starts. Built with care and attention to detail you can trust."
+    },
+    {
+      "title": "Deliver with care",
+      "description": "Execution focuses on detail, finish, and a result that holds up to scrutiny. Built with care and attention to detail you can trust."
+    }
+  ],
+  "gallery": {
+    "enabled": true,
+    "title": "Gallery",
+    "layout": null,
+    "show_titles": true,
+    "image_source": {
+      "image_search_query": "authentic real world setting with warm ambient depth"
+    },
+    "computed_count": 4,
+    "computed_layout": "grid",
+    "items": [
+      {
+        "title": "Project 1",
+        "image_search_query": "authentic real world setting with warm ambient depth"
+      },
+      {
+        "title": "Project 2",
+        "image_search_query": "quiet interior environment scene with natural window light"
+      },
+      {
+        "title": "Project 3",
+        "image_search_query": "candid customer interaction moment in approachable natural light"
+      },
+      {
+        "title": "Project 4",
+        "image_search_query": "calm human service moment with quiet trustworthy warmth"
+      }
+    ]
+  },
+  "contact": {
+    "headline": "Get in Touch",
+    "subheadline": "Tell us what you need and we'll help you with the right next step.",
+    "email": "info@simonsfineartframing.com",
+    "phone": "1231231234",
+    "email_recipient": "info@simonsfineartframing.com",
+    "button_text": "Book Now",
+    "office_address": ""
+  },
+  "testimonials": [
+    {
+      "quote": "Customers often mention artist ownership as a reason they felt confident choosing Simons Fine Art Framing & Gallery.",
+      "author": "Happy Client 1"
+    },
+    {
+      "quote": "People appreciate the way Simons Fine Art Framing & Gallery combines careful work with a more polished, higher-trust customer experience.",
+      "author": "Happy Client 2"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "higher cost than big-box stores?",
+      "answer": "Pricing depends on the scope of work, and we'll help guide you to the right fit with a clear quote."
+    },
+    {
+      "question": "uncertainty about quality?",
+      "answer": "We keep the experience clear, helpful, and easy to understand."
+    },
+    {
+      "question": "concerns about turnaround time?",
+      "answer": "We keep the experience clear, helpful, and easy to understand."
+    },
+    {
+      "question": "lack of clear pricing?",
+      "answer": "We keep the experience clear, helpful, and easy to understand."
+    },
+    {
+      "question": "poor online reviews?",
+      "answer": "We keep the experience clear, helpful, and easy to understand."
+    },
+    {
+      "question": "generic service offerings?",
+      "answer": "We keep the experience clear, helpful, and easy to understand."
+    }
+  ]
+}
