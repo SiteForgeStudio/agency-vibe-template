@@ -2,6 +2,8 @@ import readline from "readline";
 import fs from "fs";
 import path from "path";
 
+const argv = process.argv.slice(2);
+
 // ==========================
 // CONFIG
 // ==========================
@@ -10,14 +12,24 @@ const SLUG = "simons-fine-art-framing-gallery";
 
 const MODE = "interactive"; // "interactive" or "scripted"
 
-/** After the last intake-next turn, POST state to intake-complete (factory assembly). Set INTAKE_RUN_COMPLETE=0 to skip. */
-const RUN_INTAKE_COMPLETE = process.env.INTAKE_RUN_COMPLETE !== "0";
+/**
+ * After the last intake-next turn, POST state to intake-complete (factory assembly).
+ * - Env: INTAKE_RUN_COMPLETE=0 to skip the POST entirely.
+ * - CLI: --no-complete (same as INTAKE_RUN_COMPLETE=0).
+ */
+const RUN_INTAKE_COMPLETE =
+  process.env.INTAKE_RUN_COMPLETE !== "0" && !argv.includes("--no-complete");
 
 /**
- * Optional body.action for intake-complete: use "complete" only if you want the worker to run the submit path
- * (requires valid submit config server-side). Omit or null = assemble business_json only.
+ * Server submit path: intake-complete with body.action === "complete" triggers /api/submit (worker).
+ * - Default: no action → assemble business_json only.
+ * - Env: INTAKE_COMPLETE_ACTION=complete to opt in.
+ * - Env: INTAKE_SKIP_SUBMIT=1 or CLI --no-submit → never send action (even if INTAKE_COMPLETE_ACTION is set).
  */
-const COMPLETE_ACTION = process.env.INTAKE_COMPLETE_ACTION || "";
+const SKIP_SUBMIT =
+  process.env.INTAKE_SKIP_SUBMIT === "1" || argv.includes("--no-submit");
+const COMPLETE_ACTION_RAW = process.env.INTAKE_COMPLETE_ACTION || "";
+const COMPLETE_ACTION = SKIP_SUBMIT ? "" : COMPLETE_ACTION_RAW;
 
 /** If true, exit with code 1 when intake-complete returns ok: false */
 const EXIT_ON_COMPLETE_FAIL = process.env.INTAKE_EXIT_ON_COMPLETE_FAIL !== "0";
@@ -289,11 +301,22 @@ function printDebug(prevState, newState, data) {
  */
 async function runIntakeComplete() {
   if (!RUN_INTAKE_COMPLETE) {
-    console.log("\n⏭  Skipping intake-complete (set INTAKE_RUN_COMPLETE=0).");
+    console.log(
+      "\n⏭  Skipping intake-complete (INTAKE_RUN_COMPLETE=0 or --no-complete)."
+    );
     return null;
   }
 
   console.log("\n🏭 Calling intake-complete…");
+  if (SKIP_SUBMIT && COMPLETE_ACTION_RAW) {
+    console.log(
+      "⏭  Submit path disabled (INTAKE_SKIP_SUBMIT=1 or --no-submit); not sending body.action."
+    );
+  } else if (COMPLETE_ACTION) {
+    console.log(`→ body.action: "${COMPLETE_ACTION}" (server may POST /api/submit)`);
+  } else {
+    console.log("→ no body.action (assemble business_json only; no /api/submit)");
+  }
 
   const body = { state };
   if (COMPLETE_ACTION) {

@@ -1052,7 +1052,7 @@ function buildNormalizedStrategy(strategy, reconData, preflightIntelligence) {
     },
 
     visual_strategy: {
-      recommended_vibe: cleanString(visualStrategy?.recommended_vibe) || "Modern Minimal",
+      recommended_vibe: cleanString(visualStrategy?.recommended_vibe) || "",
       preferred_image_themes: cleanList(assetPolicy?.preferred_image_themes)
     },
 
@@ -1592,7 +1592,7 @@ function buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrate
     }),
 
     settings: compactObject({
-      vibe: factValue(factRegistry, "vibe") || "Modern Minimal",
+      vibe: factValue(factRegistry, "vibe") || "",
       menu,
       cta_text: factValue(factRegistry, "cta_text") || "Get Started",
       cta_link: normalizeAnchorLink(factValue(factRegistry, "cta_link") || "#contact"),

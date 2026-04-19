@@ -37,9 +37,15 @@ const VIBE_STYLE_RULES = [
   { re: /\b(industrial|rugged|forge|steel|workshop|grit)\b/i, vibe: "Rugged Industrial" },
   { re: /\b(solar|flare|warm\s*gold|sunlit|radiant|energetic)\b/i, vibe: "Solar Flare" },
   { re: /\b(tech|cyber|neon|midnight|digital|futur)\b/i, vibe: "Midnight Tech" },
-  { re: /\b(vintage|boutique|curated|artisan|craft)\b/i, vibe: "Vintage Boutique" },
+  { re: /\b(vintage|boutique|curated|artisan|craft|gallery)\b/i, vibe: "Vintage Boutique" },
   { re: /\b(minimal|clean|simple|quiet|refined|airy)\b/i, vibe: "Modern Minimal" }
 ];
+
+/**
+ * Contract values treated as non-authoritative: lexical rules + hash may override (deterministic).
+ * Industry-agnostic — only universal “safe default” labels belong here.
+ */
+const SOFT_CONTRACT_VIBES = new Set(["Modern Minimal"]);
 
 function cleanString(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -78,10 +84,18 @@ export function stableHash(input) {
 /**
  * Combined lowercase text used for style scoring and keyword extraction (no single "industry" switch).
  */
-export function buildStyleSignalBlob(strategyContract, state) {
+/**
+ * @param {{ excludeContractVibe?: boolean }} [options] If excludeContractVibe, omit `recommended_vibe` so
+ *   lexical scoring is not circularly reinforced by the same string being resolved (manifest: deterministic signals).
+ */
+export function buildStyleSignalBlob(strategyContract, state, options = {}) {
+  const { excludeContractVibe = false } = options;
   const a = state?.answers || {};
-  const parts = [
-    cleanString(strategyContract?.visual_strategy?.recommended_vibe),
+  const parts = [];
+  if (!excludeContractVibe) {
+    parts.push(cleanString(strategyContract?.visual_strategy?.recommended_vibe));
+  }
+  parts.push(
     cleanString(strategyContract?.business_context?.strategic_archetype),
     cleanString(strategyContract?.business_context?.one_page_fit),
     cleanString(a.tone_of_voice),
@@ -90,7 +104,7 @@ export function buildStyleSignalBlob(strategyContract, state) {
     cleanString(a.primary_offer),
     cleanList(strategyContract?.asset_policy?.preferred_image_themes).join(" "),
     cleanList(strategyContract?.visual_strategy?.preferred_image_themes).join(" ")
-  ];
+  );
   return parts.filter(Boolean).join(" ").toLowerCase();
 }
 
@@ -123,17 +137,33 @@ function scoreVibeFromBlob(blob) {
 }
 
 /**
- * Resolve settings.vibe: trust contract enum when valid, else style text, else stable hash on opaque archetype.
+ * Resolve settings.vibe: user answer → strong contract enum → lexical rules on signal-only blob → contract soft default
+ * → stable hash on archetype + full blob. No category branching; same inputs always yield the same vibe.
  */
 export function selectVibe(allowedVibes, strategyContract, state) {
   const allowed = Array.isArray(allowedVibes) ? allowedVibes : SCHEMA_VIBES;
   const raw = cleanString(strategyContract?.visual_strategy?.recommended_vibe);
-  if (allowed.includes(raw)) return raw;
 
-  const blob = buildStyleSignalBlob(strategyContract, state);
-  const scored = scoreVibeFromBlob(blob);
+  const fromAnswers = cleanString(state?.answers?.vibe);
+  if (fromAnswers && allowed.includes(fromAnswers)) return fromAnswers;
+
+  const vibeFact = state?.blueprint?.fact_registry?.vibe;
+  const fromFact = cleanString(vibeFact?.value);
+  const factStatus = cleanString(vibeFact?.status);
+  if (fromFact && allowed.includes(fromFact) && factStatus === "answered") return fromFact;
+
+  const blobForScore = buildStyleSignalBlob(strategyContract, state, { excludeContractVibe: true });
+  const scored = scoreVibeFromBlob(blobForScore);
+
+  if (raw && allowed.includes(raw) && !SOFT_CONTRACT_VIBES.has(raw)) {
+    return raw;
+  }
+
   if (scored && allowed.includes(scored)) return scored;
 
+  if (raw && allowed.includes(raw)) return raw;
+
+  const blob = buildStyleSignalBlob(strategyContract, state);
   const arch = cleanString(strategyContract?.business_context?.strategic_archetype);
   const idx = stableHash(`${arch}|${blob}`) % allowed.length;
   return allowed[idx];

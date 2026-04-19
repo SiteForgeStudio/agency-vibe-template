@@ -1,3 +1,5 @@
+import { selectVibe, SCHEMA_VIBES, stableHash } from "../utils/factory-synthesis.js";
+
 /**
  * SITEFORGE FACTORY — intake-next-v2-1.js
  *
@@ -5231,7 +5233,12 @@ function buildProcessStepsFromSummary(summary) {
 }
 
 function inferVibe(state) {
-  return cleanString(state?.provenance?.strategy_contract?.visual_strategy?.recommended_vibe) || "Modern Minimal";
+  const contract = state?.provenance?.strategy_contract;
+  if (!contract) {
+    const key = cleanString(state?.slug) || cleanString(state?.businessName) || "default";
+    return SCHEMA_VIBES[stableHash(key) % SCHEMA_VIBES.length];
+  }
+  return selectVibe(SCHEMA_VIBES, contract, state);
 }
 
 function titleCase(text) {
