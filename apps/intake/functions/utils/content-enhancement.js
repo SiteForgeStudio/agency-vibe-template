@@ -82,12 +82,22 @@ export function enhanceHero(hero, signalBlob, behavior) {
 
   return {
     ...hero,
-    headline: truncate(headline, 120),
-    subtext: truncate(subtext, 200)
+    headline: truncateAtWordBoundary(headline, 120),
+    subtext: truncateAtWordBoundary(subtext, 260)
   };
 }
 
 /* ---------------- HELPERS ---------------- */
+
+export function truncateAtWordBoundary(str, max) {
+  if (!str) return "";
+  if (str.length <= max) return str;
+  const budget = max - 3;
+  const slice = str.slice(0, budget);
+  const lastSpace = slice.lastIndexOf(" ");
+  if (lastSpace > Math.floor(budget * 0.5)) return `${slice.slice(0, lastSpace).trim()}...`;
+  return `${slice.trim()}...`;
+}
 
 function makeConsultative(text, narrative) {
   if (!text) return narrative || "";
@@ -105,6 +115,5 @@ function makeTechnical(text) {
 }
 
 function truncate(str, max) {
-  if (!str) return "";
-  return str.length > max ? str.slice(0, max - 3) + "..." : str;
+  return truncateAtWordBoundary(str, max);
 }

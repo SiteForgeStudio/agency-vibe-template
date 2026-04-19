@@ -1,4 +1,4 @@
-# SiteForge Factory — Intake & Preflight Manifest **v2.5** (April 2026)
+# SiteForge Factory — Intake & Preflight Manifest **v2.6** (April 2026)
 
 Use this file as the **handoff anchor** for architecture, constraints, and phase order. Implementation details live in code and in `docs/PREFLIGHT_OUTPUT_SPEC_V1.md` (preflight → intake handoff shape).
 
@@ -258,6 +258,8 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 
 **Do not** move this into `intake-next-v2` (planner/renderer path) or ask the end user for “vibe” as a separate step; synthesis is **post-facts**, pre-submit.
 
+**Future (not implemented):** Preflight may accept a **client-supplied logo**. Deriving palette / visual mood (or a constrained brand hint) could **inform** `visual_strategy` and factory vibe/image choices so generated sites feel closer to existing branding—while staying within schema enums and deterministic guards until the ingestion and mapping contract is specified.
+
 ---
 
 ## Testing
@@ -316,4 +318,4 @@ A system that **thinks like a strategist** (within guardrails) and **executes li
 
 ## New chat handoff line
 
-> We’re building SiteForge Factory per **`manifest.md` v2.5** (blueprint + planner + **access gate** + **premium readiness** + controlled renderer + **factory-synthesis** on intake-complete + **narrative/enrichment gates** + **preflight seed alignment** + **visual inference** for evidence/planner). Next task: [describe]. Check primary field contract, renderer scope, `access_readiness` / `premium_readiness`, **`intake-complete` narrative vs enrichment** if assembly 400s, `turn_debug` / fallback rate, **runner** (don’t end on blueprint `can_generate_now` alone), and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.
+> We’re building SiteForge Factory per **`manifest.md` v2.6** (blueprint + planner + **access gate** + **premium readiness** + controlled renderer + **factory-synthesis** on intake-complete + **narrative/enrichment gates** + **preflight seed alignment** + **visual inference** for evidence/planner). Next task: [describe]. Check primary field contract, renderer scope, `access_readiness` / `premium_readiness`, **`intake-complete` narrative vs enrichment** if assembly 400s, `turn_debug` / fallback rate, **runner** (don’t end on blueprint `can_generate_now` alone), and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.

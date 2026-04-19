@@ -19,7 +19,12 @@ import {
   assertFactorySynthesisGuards
 } from "../utils/factory-synthesis.js";
 
-import { enhanceProcessSteps, enhanceFeatures, enhanceHero } from "../utils/content-enhancement.js";
+import {
+  enhanceProcessSteps,
+  enhanceFeatures,
+  enhanceHero,
+  truncateAtWordBoundary
+} from "../utils/content-enhancement.js";
 
 const ALLOWED_MENU_PATHS = [
   "#home",
@@ -812,7 +817,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     "contact@example.com";
 
   const phone = cleanString(state.answers?.phone);
-  const bookingUrl = cleanString(state.answers?.booking_url);
+  const bookingUrl = effectivePublicBookingUrl(state.answers?.booking_url);
   const officeAddress = cleanString(state.answers?.office_address);
 
   const category = cleanString(strategyContract.business_context?.category) || "Service business";
@@ -982,9 +987,9 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       cta_text: normalizePublicText(
         cleanString(state.answers?.cta_text) ||
         (strategyModels.pricing_strategy.type === "variable" ? "Request a Consultation" : "") ||
-        inferPrimaryCtaText(strategyContract, bookingUrl, pmPi, emPi)
+        inferPrimaryCtaText(strategyContract, bookingUrl, pmPi, emPi, state)
       ),
-      cta_link: bookingUrl || cleanString(state.answers?.cta_link) || "#contact",
+      cta_link: bookingUrl || resolveIntakeCtaAnchor(state.answers?.cta_link),
       cta_type: bookingUrl ? "external" : inferCtaType(cleanString(state.answers?.cta_link) || "#contact"),
       secondary_cta_text: normalizePublicText(inferSecondaryCtaText(strategyContract, phone)),
       secondary_cta_link: inferSecondaryCtaLink(phone, bookingUrl)
@@ -1019,7 +1024,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       email,
       phone,
       email_recipient: email,
-      button_text: normalizePublicText(inferContactButtonText(strategyContract, bookingUrl, pmPi, emPi)),
+      button_text: normalizePublicText(inferContactButtonText(strategyContract, bookingUrl, pmPi, emPi, state)),
       office_address: normalizePublicText(officeAddress)
     },
 
@@ -1157,8 +1162,21 @@ function buildProcessSteps(state, strategyContract, behavior) {
     return [];
   }
 
-  const source = cleanString(state.answers?.process_notes);
-  const extracted = extractProcessSteps(source);
+  const source =
+    cleanString(state.answers?.process_notes) ||
+    cleanString(state.answers?.process_summary);
+  let extracted = extractProcessSteps(source);
+
+  if (extracted.length === 2) {
+    extracted = [
+      ...extracted,
+      {
+        title: "Confirm the result",
+        description:
+          "We verify everything meets your expectations and walk through any final details before we close out."
+      }
+    ];
+  }
 
   if (extracted.length >= 3) {
     return extracted.slice(0, 5).map((step, idx) => ({
@@ -1337,15 +1355,28 @@ function resolveHeroSubtext(state, strategyContract) {
   );
 }
 
+function looksLikeEntityTaxonomyAudience(s) {
+  return /[·_]|\bvisual_portfolio\b/i.test(cleanString(s));
+}
+
+function audienceLabelForHero(state) {
+  const hint = cleanString(state?.preflight_intelligence?.target_persona_hint);
+  const aud = cleanString(state?.answers?.audience);
+  if (hint && looksLikeEntityTaxonomyAudience(aud)) return normalizePublicText(hint);
+  if (!aud) return "";
+  return normalizePublicText(aud.replace(/\s*·\s*/g, " – ").replace(/_/g, " "));
+}
+
 function buildPremiumHeroSubtext(state, strategyContract) {
-  const audience = cleanString(state.answers?.audience);
+  const audience = audienceLabelForHero(state);
   const area = cleanString(state.answers?.service_area);
   const differentiation = cleanString(state.answers?.differentiation);
   const bookingMethod = cleanString(state.answers?.booking_method);
 
-  const sentenceA = differentiation
+  const rawA = differentiation
     ? cleanSentenceFragment(differentiation)
     : cleanSentenceFragment(cleanString(state.answers?.website_direction));
+  const sentenceA = truncateAtWordBoundary(rawA, 220);
 
   const sentenceB = audience && area
     ? `Serving ${area} for ${audience}.`
@@ -1812,6 +1843,40 @@ function mapDecisionFactorToFeature(factor) {
   return null;
 }
 
+function inferProcessStepTitle(description, idx) {
+  const d = cleanString(description);
+  if (!d) return `Step ${idx + 1}`;
+  const firstSentence = d.split(/[.!?]/)[0] || d;
+  const short = truncateAtWordBoundary(firstSentence, 52).replace(/\s*\.\.\.$/, "");
+  return titleCaseSmart(short) || `Step ${idx + 1}`;
+}
+
+/**
+ * Turn short user phrases (comma / arrow lists) into concrete steps — not only cleaning-service keywords.
+ */
+function verbatimStepsFromPieces(pieces) {
+  const out = [];
+  let idx = 0;
+  for (const piece of pieces) {
+    const fragment = cleanSentenceFragment(piece);
+    if (!fragment) continue;
+    const lower = fragment.toLowerCase();
+    const title =
+      truncateAtWordBoundary(titleCaseSmart(fragment.split(/\s+/).slice(0, 5).join(" ")), 52) ||
+      `Step ${idx + 1}`;
+    const description =
+      fragment.length > 60
+        ? `${fragment.charAt(0).toUpperCase() + fragment.slice(1)}${/[.!?]$/.test(fragment) ? "" : "."}`
+        : `${titleCaseSmart(fragment)} — a clear checkpoint so you know what happens at this stage.`;
+    out.push({
+      title: normalizePublicText(title),
+      description: normalizePublicText(description)
+    });
+    idx++;
+  }
+  return out;
+}
+
 function extractProcessSteps(text) {
   const raw = cleanString(text);
   if (!raw) return [];
@@ -1847,6 +1912,18 @@ function extractProcessSteps(text) {
       seen.add(step.title.toLowerCase());
       canonical.push(step);
     }
+  }
+
+  if (canonical.length >= 3) {
+    return canonical.slice(0, 5);
+  }
+
+  if (pieces.length >= 3 && canonical.length === 0) {
+    return verbatimStepsFromPieces(pieces).slice(0, 5);
+  }
+
+  if (pieces.length >= 3 && canonical.length > 0 && canonical.length < 3) {
+    return verbatimStepsFromPieces(pieces).slice(0, 5);
   }
 
   return canonical;
@@ -1927,7 +2004,7 @@ function inferTone(strategyContract) {
     : "";
 }
 
-function inferPrimaryCtaText(strategyContract, bookingUrl, pricingModel, experienceModel) {
+function inferPrimaryCtaText(strategyContract, bookingUrl, pricingModel, experienceModel, state) {
   const pm = isObject(pricingModel) ? pricingModel : {};
   const em = isObject(experienceModel) ? experienceModel : {};
   const risk = cleanString(pm.risk_language).toLowerCase();
@@ -1944,6 +2021,12 @@ function inferPrimaryCtaText(strategyContract, bookingUrl, pricingModel, experie
     if (cta.includes("consult") || cta.includes("schedule_visit")) return "Request a Consultation";
     if (cta.includes("quote")) return "Request a Quote";
     return "Request a Consultation";
+  }
+
+  const bm = cleanString(state?.answers?.booking_method).toLowerCase();
+  const cp = cleanString(state?.answers?.contact_path).toLowerCase();
+  if (!bookingUrl && (bm.includes("call") || cp === "call")) {
+    return "Call Now";
   }
 
   const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
@@ -1974,13 +2057,19 @@ function inferContactSubheadline(state, strategyContract) {
   return "Tell us what you need and we’ll help you with the right next step.";
 }
 
-function inferContactButtonText(strategyContract, bookingUrl, pricingModel, experienceModel) {
+function inferContactButtonText(strategyContract, bookingUrl, pricingModel, experienceModel, state) {
   const pm = isObject(pricingModel) ? pricingModel : {};
   const em = isObject(experienceModel) ? experienceModel : {};
   const risk = cleanString(pm.risk_language).toLowerCase();
   const pb = cleanString(em.pricing_behavior).toLowerCase();
   if (risk.includes("prefer_no_public") || pb.includes("consultation_first") || pb.includes("quote_after_scope")) {
     return "Request a Consultation";
+  }
+
+  const bm = cleanString(state?.answers?.booking_method).toLowerCase();
+  const cp = cleanString(state?.answers?.contact_path).toLowerCase();
+  if (!bookingUrl && (bm.includes("call") || cp === "call")) {
+    return "Call Now";
   }
 
   const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
@@ -2295,6 +2384,22 @@ function cleanString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** Only real http(s) booking links — not sentinels like `manual` (truthy but not a URL). */
+function effectivePublicBookingUrl(raw) {
+  const u = cleanString(raw);
+  if (!u) return "";
+  const lower = u.toLowerCase();
+  if (["manual", "none", "n/a", "no"].includes(lower)) return "";
+  return /^https?:\/\//i.test(u) ? u : "";
+}
+
+function resolveIntakeCtaAnchor(raw) {
+  const c = cleanString(raw);
+  const lower = c.toLowerCase();
+  if (!c || ["manual", "none", "n/a"].includes(lower)) return "#contact";
+  return c;
+}
+
 function cleanList(value) {
   if (!Array.isArray(value)) return [];
   return value.map(cleanString).filter(Boolean);
@@ -2316,6 +2421,7 @@ function isObject(value) {
 
 function normalizePublicText(value) {
   return cleanString(value)
+    .replace(/\u00B7/g, " – ")
     .replace(/[’‘]/g, "'")
     .replace(/[“”]/g, '"')
     .replace(/[—–]/g, " - ")
