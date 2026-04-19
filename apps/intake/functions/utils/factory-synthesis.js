@@ -23,7 +23,10 @@ const STOPWORDS = new Set([
   "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "just", "also", "into",
   "about", "after", "before", "between", "through", "during", "under", "over", "again", "then",
   "here", "there", "any", "out", "off", "up", "down", "per", "via", "based", "local", "best",
-  "top", "full", "new", "get", "help", "make", "work", "services", "service", "business", "company"
+  "top", "full", "new", "get", "help", "make", "work", "services", "service", "business", "company",
+  // Strategy / conversion labels — not useful visual search tokens
+  "testimonial", "testimonials", "customer", "customers", "pricing", "reviews", "review", "engagement",
+  "structure", "clear", "quote", "quotes", "conversion", "faqs"
 ]);
 
 /** Style cues map to schema vibes (order: first match wins). */

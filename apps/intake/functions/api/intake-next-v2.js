@@ -773,6 +773,17 @@ if (fieldKey === "contact_path") {
     return true;
   }
 
+  // Persona often comes from entity profile / PI — do not re-interrogate when already seeded from preflight.
+  if (fieldKey === "target_persona") {
+    if (hasMeaningfulValue(fact?.intake_followup)) return false;
+    const v = sanitizeFactValue(fact?.value);
+    if (!hasMeaningfulValue(v)) return false;
+    const st = cleanString(fact?.status);
+    const src = cleanString(fact?.source);
+    if (st === "prefilled_unverified" || st === "seeded") return true;
+    if (src === "preflight" && hasMeaningfulValue(v)) return true;
+  }
+
   return isFactComplete(fact);
 }
 
@@ -2937,7 +2948,7 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     }
 
     const narrativeReadinessGaps = {
-      who_its_for: !isFactResolved(factRegistry.target_persona),
+      who_its_for: !isFactResolved(factRegistry.target_persona, "target_persona"),
       process_clarity: !isFactResolved(factRegistry.process_summary),
       service_specificity: !isFactResolved(factRegistry.primary_offer),
       faq_substance: !isFactResolved(factRegistry.faq_angles)
@@ -3098,7 +3109,7 @@ function evaluateBlueprintReadiness(blueprint) {
   // 🔥 STRONG GATING SIGNALS (NEW)
   // ==========================
   const hasPositioning =
-   isFactComplete(factRegistry?.target_persona) &&
+    isFieldSatisfied("target_persona", factRegistry) &&
     isFactComplete(factRegistry?.differentiation);
 
   const hasProof =
@@ -3843,9 +3854,9 @@ function buildNarrativeDeterministicQuestion(plan, blueprint, preflightIntellige
   if (bundleId === "positioning" && pf === "target_persona") {
     const askN = narrativeAskCountForField(blueprint, "target_persona");
     if (askN >= 1) {
-      return "What kind of customer do you work with most often, and what do they care about?";
+      return "In one short sentence, who is the main visitor you want this site to speak to?";
     }
-    return "Who usually comes to you for this? What are they bringing in or trying to get done?";
+    return "Who should feel this site was written for them — one sentence is enough.";
   }
   if (bundleId === "positioning" && pf === "primary_offer") {
     const askN = narrativeAskCountForField(blueprint, "primary_offer");
@@ -4174,7 +4185,7 @@ async function renderNextQuestion({
 
   const factRegistry = isObject(blueprint?.fact_registry) ? blueprint.fact_registry : {};
   const planTargetFields = Array.isArray(plan.target_fields) ? plan.target_fields : [];
-  const isFieldResolvedLocal = (fieldKey) => isFactResolved(factRegistry?.[fieldKey]);
+  const isFieldResolvedLocal = (fieldKey) => isFactResolved(factRegistry?.[fieldKey], fieldKey);
 
   let adjustedPlan = { ...plan };
 
@@ -4305,7 +4316,7 @@ function buildDeterministicQuestion(plan, blueprint, businessName) {
   if (bundleId === "positioning") {
     switch (primaryField) {
       case "target_persona":
-        return `Who usually comes to you for this? What are they bringing in or trying to get done?`;
+        return `Who is this site mainly for — one sentence is enough.`;
       case "primary_offer":
         return `What kinds of things do people usually hire you for? Give me a few real examples.`;
       case "differentiation":
@@ -4835,18 +4846,23 @@ function stringifyFactValue(value) {
   return cleanString(value);
 }
 
-function isFactResolved(fact) {
+function isFactResolved(fact, fieldKey = "") {
   if (!fact) return false;
 
   if (hasMeaningfulValue(fact.intake_followup)) return false;
 
+  const v = sanitizeFactValue(fact.value);
+  if (!hasMeaningfulValue(v)) return false;
+
   const status = cleanString(fact.status);
   const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;
 
-  if (status === "prefilled_unverified") return false;
+  if (fieldKey === "target_persona") {
+    if (status === "prefilled_unverified" || status === "seeded") return true;
+    if (cleanString(fact.source) === "preflight") return true;
+  }
 
-  const v = sanitizeFactValue(fact.value);
-  if (!hasMeaningfulValue(v)) return false;
+  if (status === "prefilled_unverified") return false;
 
   return (
     status === "verified" ||
@@ -5057,30 +5073,48 @@ function buildHeroSubtextFromEvidence({ offer, persona, differentiation, booking
   return truncate(text || "Built to help the right clients feel confident taking the next step.", 220);
 }
 
-function buildHeroImageQuery({ industry, offer, themes, differentiation, recommended_focus }) {
-  const focusBlob = ensureArrayStrings(recommended_focus).join(" ");
-  const base = firstNonEmpty([
-    focusBlob,
-    cleanString(industry),
-    cleanString(offer),
-    cleanString(differentiation),
-    ensureArrayStrings(themes).join(" ")
-  ]);
+/** Strategy labels (testimonials, pricing, etc.) are poor stock-photo search terms — keep only visually plausible tail words. */
+function stockSearchTailFromRecommendedFocus(focus) {
+  const arr = ensureArrayStrings(focus);
+  const out = [];
+  for (const s of arr) {
+    const t = cleanString(s).toLowerCase();
+    if (!t) continue;
+    if (
+      /testimonial|pricing|customer|review|quote|engagement|structure|conversion|faq\b/.test(t)
+    ) {
+      continue;
+    }
+    out.push(cleanString(s));
+  }
+  return out.slice(0, 4).join(" ");
+}
 
-  return truncate(compactVisualQuery(base, ["professional", "service", "premium", "realistic"]), 80);
+function buildHeroImageQuery({ industry, offer, themes, differentiation, recommended_focus }) {
+  const themeStr = ensureArrayStrings(themes).join(" ");
+  const core = firstNonEmpty([
+    cleanString(offer),
+    cleanString(industry),
+    cleanString(differentiation),
+    themeStr,
+    stockSearchTailFromRecommendedFocus(recommended_focus)
+  ]);
+  const base = core;
+
+  return truncate(compactVisualQuery(base, ["professional", "premium", "realistic"]), 80);
 }
 
 function buildGalleryImageQuery({ industry, offer, differentiation, themes, recommended_focus }) {
-  const focusBlob = ensureArrayStrings(recommended_focus).join(" ");
-  const base = firstNonEmpty([
-    focusBlob,
+  const themeStr = ensureArrayStrings(themes).join(" ");
+  const core = firstNonEmpty([
     cleanString(offer),
     cleanString(industry),
     cleanString(differentiation),
-    ensureArrayStrings(themes).join(" ")
+    themeStr,
+    stockSearchTailFromRecommendedFocus(recommended_focus)
   ]);
 
-  return truncate(compactVisualQuery(base, ["detail", "results", "quality", "realistic"]), 100);
+  return truncate(compactVisualQuery(core, ["detail", "quality", "realistic"]), 100);
 }
 
 function compactVisualQuery(base, boosters = []) {
