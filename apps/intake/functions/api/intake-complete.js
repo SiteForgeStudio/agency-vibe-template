@@ -1195,31 +1195,6 @@ function offerClausesToFeatureCards(primaryOffer, serviceDescriptions, signalBlo
   return out;
 }
 
-function legacyWindowCleaningBulletsIfLexical(signalBlob, primaryOffer, serviceDescriptions, strategyContract) {
-  const tb = cleanString(signalBlob?.text_blob);
-  const offer = `${cleanString(primaryOffer)} ${cleanString(serviceDescriptions)}`.toLowerCase();
-  const cat = cleanString(strategyContract?.business_context?.category).toLowerCase();
-  const hit =
-    (/\bwindow\b/.test(offer) || /\bwindow\b/.test(cat)) &&
-    (/\b(clean|glass|streak|pane|squeegee)\b/.test(tb) || /\b(clean|glass)\b/.test(offer));
-  if (!hit) return [];
-  return [
-    {
-      title: "Exterior Window Cleaning",
-      description:
-        "Detailed cleaning designed to leave large glass surfaces clear, bright, and streak-free."
-    },
-    {
-      title: "Glass Restoration",
-      description: "Restore clarity and improve the look of weathered or hard-water-marked glass."
-    },
-    {
-      title: "Premium Home Service",
-      description: "Professional service for larger homes where detail, care, and presentation matter."
-    }
-  ];
-}
-
 function buildFeatures(state, strategyContract, signalBlob) {
   const features = [];
   const answers = isObject(state?.answers) ? state.answers : {};
@@ -1241,22 +1216,6 @@ function buildFeatures(state, strategyContract, signalBlob) {
     const card = featureCardFromTheme(theme, signalBlob, features.length);
     if (!card) continue;
     if (!features.some((f) => featureTitlesSimilar(f.title, card.title))) features.push(card);
-  }
-
-  for (const bullet of legacyWindowCleaningBulletsIfLexical(
-    signalBlob,
-    primaryOffer,
-    serviceDescriptions,
-    strategyContract
-  )) {
-    if (features.length >= 6) break;
-    if (!features.some((f) => featureTitlesSimilar(f.title, bullet.title))) {
-      features.push({
-        title: normalizePublicText(bullet.title),
-        description: normalizePublicText(bullet.description),
-        icon_slug: pickFeatureIcon(`${bullet.title} ${bullet.description}`, features.length)
-      });
-    }
   }
 
   for (const clause of offerClausesToFeatureCards(primaryOffer, serviceDescriptions, signalBlob)) {
