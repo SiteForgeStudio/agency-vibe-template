@@ -63,13 +63,13 @@
     "cta_text": "Call Now",
     "cta_link": "#contact",
     "cta_type": "anchor",
-    "secondary_cta_text": "Call Now",
+    "secondary_cta_text": "Learn More",
     "secondary_cta_link": "#contact"
   },
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "framing, matting, glass",
+    "tagline": "custom frames, custom matts, glass and hardware",
     "email": "info@simonsfineartframing.com",
     "phone": "1234567890",
     "office_address": "",
@@ -77,9 +77,9 @@
   },
   "hero": {
     "headline": "custom framing services in Dublin PA",
-    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Designed for Art Gallery - visual_portfolio_service. Reach out directly and we'll help you get started. Built...",
+    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention...",
     "image": {
-      "alt": "framing, matting, glass",
+      "alt": "custom frames, custom matts, glass and hardware",
       "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
     }
   },
@@ -107,41 +107,56 @@
   },
   "features": [
     {
-      "title": "Quality Work",
-      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
+      "title": "Craftsmanship Showcase",
+      "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
       "icon_slug": "map"
     },
     {
-      "title": "Quality-First Results",
-      "description": "Every detail is handled carefully so the finished result looks clean, sharp, and consistent. Built with care and attention to detail you can trust.",
-      "icon_slug": "award"
+      "title": "Customer Testimonials",
+      "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
+      "icon_slug": "map"
     },
     {
-      "title": "Service Highlight 3",
-      "description": "Clear, professional work designed to make the next step easy. Built with care and attention to detail you can trust.",
+      "title": "Clear Pricing Structure",
+      "description": "Make options and pricing legible before the first conversation - how high-trust operators reduce friction. Built with care and attention to detail you can trust.",
       "icon_slug": "shield"
+    },
+    {
+      "title": "Custom Frames",
+      "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Glass and Hardware",
+      "description": "custom frames, custom matts, glass and hardware Built with care and attention to detail you can trust.",
+      "icon_slug": "sparkles"
+    },
+    {
+      "title": "Quality Work",
+      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
+      "icon_slug": "map"
     }
   ],
   "processSteps": [
     {
-      "title": "Bring Artwork to Be Framed",
-      "description": "Bring Artwork to Be Framed to The Shop - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
+      "title": "1",
+      "description": "a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     },
     {
-      "title": "We Will Measure The Work",
-      "description": "We Will Measure The Work - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
+      "title": "Bring In The Artwork to",
+      "description": "Bring In The Artwork to The Shop - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     },
     {
-      "title": "Together We Collaborate On Frame",
-      "description": "Together We Collaborate On Frame Style - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
+      "title": "2",
+      "description": "a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     },
     {
-      "title": "Matting",
-      "description": "Matting - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
+      "title": "We Will Measure Artwork",
+      "description": "We Will Measure Artwork - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     },
     {
-      "title": "You Can Pickup In 2",
-      "description": "You Can Pickup In 2 Days - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
+      "title": "3",
+      "description": "a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     }
   ],
   "gallery": {
@@ -150,26 +165,26 @@
     "layout": null,
     "show_titles": true,
     "image_source": {
-      "image_search_query": "craftsmanship showcase framing matting candid customer interaction moment in approachable natural light"
+      "image_search_query": "craftsmanship showcase custom frames candid customer interaction moment in approachable natural light"
     },
     "computed_count": 4,
     "computed_layout": "grid",
     "items": [
       {
         "title": "Project 1",
-        "image_search_query": "craftsmanship showcase framing matting candid customer interaction moment in approachable natural light"
+        "image_search_query": "craftsmanship showcase custom frames candid customer interaction moment in approachable natural light"
       },
       {
         "title": "Project 2",
-        "image_search_query": "craftsmanship showcase framing matting calm human service moment with quiet trustworthy warmth"
+        "image_search_query": "craftsmanship showcase custom frames calm human service moment with quiet trustworthy warmth"
       },
       {
         "title": "Project 3",
-        "image_search_query": "craftsmanship showcase framing matting authentic real world setting with warm ambient depth"
+        "image_search_query": "craftsmanship showcase custom frames authentic real world setting with warm ambient depth"
       },
       {
         "title": "Project 4",
-        "image_search_query": "craftsmanship showcase framing matting quiet interior environment scene with natural window light"
+        "image_search_query": "craftsmanship showcase custom frames quiet interior environment scene with natural window light"
       }
     ]
   },
@@ -179,7 +194,7 @@
     "email": "info@simonsfineartframing.com",
     "phone": "1234567890",
     "email_recipient": "info@simonsfineartframing.com",
-    "button_text": "Call Now",
+    "button_text": "Send Message",
     "office_address": ""
   },
   "testimonials": [
