@@ -25,7 +25,7 @@
     "show_service_area": false
   },
   "settings": {
-    "vibe": "Modern Minimal",
+    "vibe": "Luxury Noir",
     "menu": [
       {
         "label": "Home",
@@ -69,7 +69,7 @@
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "framming and matting",
+    "tagline": "art classes, framing, matting",
     "email": "info@simonsfineartframing.com",
     "phone": "1231231234",
     "office_address": "",
@@ -79,8 +79,8 @@
     "headline": "custom framing services in Dublin PA",
     "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Designed for Art Gallery ? visual_portfolio_servic...",
     "image": {
-      "alt": "framming and matting",
-      "image_search_query": "service process craftsmanship detail close-up detail custom work studio environment clean minimal natural lighting"
+      "alt": "art classes, framing, matting",
+      "image_search_query": "craftsmanship showcase customer testimonials clear pricing structure focused single page picture frame mat corner detail soft refined light"
     }
   },
   "about": {
@@ -142,26 +142,26 @@
     "layout": null,
     "show_titles": true,
     "image_source": {
-      "image_search_query": "authentic real world setting with warm ambient depth"
+      "image_search_query": "craftsmanship showcase customer testimonials quiet interior environment scene with natural window light"
     },
     "computed_count": 4,
     "computed_layout": "grid",
     "items": [
       {
         "title": "Project 1",
-        "image_search_query": "authentic real world setting with warm ambient depth"
+        "image_search_query": "craftsmanship showcase customer testimonials quiet interior environment scene with natural window light"
       },
       {
         "title": "Project 2",
-        "image_search_query": "quiet interior environment scene with natural window light"
+        "image_search_query": "craftsmanship showcase customer testimonials candid customer interaction moment in approachable natural light"
       },
       {
         "title": "Project 3",
-        "image_search_query": "candid customer interaction moment in approachable natural light"
+        "image_search_query": "craftsmanship showcase customer testimonials calm human service moment with quiet trustworthy warmth"
       },
       {
         "title": "Project 4",
-        "image_search_query": "calm human service moment with quiet trustworthy warmth"
+        "image_search_query": "craftsmanship showcase customer testimonials authentic real world setting with warm ambient depth"
       }
     ]
   },
