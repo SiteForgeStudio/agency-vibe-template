@@ -94,7 +94,10 @@ async function loop() {
 
     console.log("🧠 AI:", question);
 
-    if (state?.action === "complete" || state?.readiness?.can_generate_now || !state?.blueprint?.question_plan) {
+    // Do NOT use readiness.can_generate_now here: intake-start / blueprint readiness can be true while
+    // the conversational planner still has a question_plan. End only when the server marks completion
+    // or there is no plan (intake-next clears question_plan when action === "complete").
+    if (state?.action === "complete" || !state?.blueprint?.question_plan) {
       console.log("\n✅ Intake conversation finished (no more questions).");
       const completeResult = await runIntakeComplete();
       saveSession(completeResult);

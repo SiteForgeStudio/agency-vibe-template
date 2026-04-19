@@ -2168,6 +2168,40 @@ function inferCtaType(link) {
   return String(link || "").startsWith("#") ? "anchor" : "external";
 }
 
+/**
+ * Map intake answer shapes + preflight_intelligence into fields used by evaluateEnrichment
+ * (BLOCK_MAP: service_descriptions, process_notes, common_objections, buyer_decision_factors).
+ */
+function applyEnrichmentSourceFallbacks(next) {
+  const a = next.answers;
+  if (!isObject(a)) return;
+
+  const pi = isObject(next.preflight_intelligence) ? next.preflight_intelligence : {};
+
+  const serviceList = Array.isArray(a.service_list) ? cleanList(a.service_list) : [];
+  if (!cleanString(a.service_descriptions) && serviceList.length) {
+    a.service_descriptions = serviceList.join(" · ");
+  } else if (!cleanString(a.service_descriptions) && cleanString(a.primary_offer)) {
+    a.service_descriptions = cleanString(a.primary_offer);
+  }
+
+  if (!cleanString(a.process_notes) && cleanString(a.process_summary)) {
+    a.process_notes = cleanString(a.process_summary);
+  }
+
+  let objections = cleanList(a.common_objections);
+  if (!objections.length) {
+    objections = uniqueList([...cleanList(pi.common_objections), ...cleanList(pi.weaknesses)]);
+  }
+  a.common_objections = objections;
+
+  let factors = cleanList(a.buyer_decision_factors);
+  if (!factors.length) {
+    factors = cleanList(pi.buyer_factors);
+  }
+  a.buyer_decision_factors = factors;
+}
+
 function normalizeState(state) {
   const next = isObject(state) ? state : {};
 
@@ -2218,6 +2252,8 @@ function normalizeState(state) {
     gallery_items: [],
     testimonials: [],
     peak_season_availability: "",
+    service_list: [],
+    process_summary: "",
     ...((isObject(next.answers) ? next.answers : {}))
   };
 
@@ -2242,6 +2278,8 @@ function normalizeState(state) {
   next.answers.gallery_queries = cleanList(next.answers.gallery_queries);
   next.answers.testimonials = Array.isArray(next.answers.testimonials) ? next.answers.testimonials : [];
   next.answers.gallery_items = Array.isArray(next.answers.gallery_items) ? next.answers.gallery_items : [];
+
+  applyEnrichmentSourceFallbacks(next);
 
   next.slug = cleanString(next.slug);
   next.businessName = cleanString(next.businessName);
