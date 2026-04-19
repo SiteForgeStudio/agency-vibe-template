@@ -295,9 +295,9 @@ function buildSignalBlob(state, strategyContract) {
     .toLowerCase();
 
   const visual = {
-    recommended_focus: cleanList(pi?.recommended_focus),
+    recommended_focus: uniqueList([...cleanList(answers?.recommended_focus), ...cleanList(pi?.recommended_focus)]),
     visual_story: cleanString(pi?.website_direction),
-    differentiation: cleanString(pi?.differentiation_hypothesis),
+    differentiation: firstNonEmpty([answers.differentiation, pi?.differentiation_hypothesis]),
     trust_context: cleanList(pi?.trust_markers),
     gallery_story: cleanString(vis?.gallery_story),
     must_show: cleanList(vis?.must_show),
@@ -314,7 +314,10 @@ function buildSignalBlob(state, strategyContract) {
     objections,
     trust,
     tone: cleanString(answers.tone_of_voice) || inferTone(sc),
-    category: cleanString(bc.category),
+    category:
+      cleanString(bc.category) ||
+      cleanString(answers.industry) ||
+      cleanString(answers.category),
     /** Opaque strategy slug — used by factory visual patterns (not NAICS / industry routing). */
     archetype: cleanString(bc.strategic_archetype),
     persona,

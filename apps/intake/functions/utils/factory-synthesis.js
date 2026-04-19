@@ -246,8 +246,36 @@ function detectVisualModeFromSignals(visual) {
 }
 
 /**
- * Hero image search query: `signalBlob.visual` is primary; strategyModels kept on signature for callers.
- * Translation layer from structured signals → stock-search language (no industry tables).
+ * Rich text for keyword extraction — business nouns beat generic "service process" templates.
+ */
+function buildHeroKeywordSourceBlob(signalBlob, visual) {
+  const focus = Array.isArray(visual?.recommended_focus) ? visual.recommended_focus : [];
+  const mustShow = Array.isArray(visual?.must_show) ? visual.must_show : [];
+  const themes = Array.isArray(visual?.image_themes) ? visual.image_themes : [];
+
+  return [
+    ...focus,
+    ...mustShow,
+    ...themes,
+    cleanString(visual?.visual_story),
+    cleanString(visual?.differentiation),
+    cleanString(visual?.gallery_story),
+    cleanString(signalBlob?.offer),
+    cleanString(signalBlob?.positioning),
+    cleanString(signalBlob?.opportunity),
+    cleanString(signalBlob?.angle),
+    cleanString(signalBlob?.category),
+    cleanString(signalBlob?.archetype),
+    cleanString(signalBlob?.persona)
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * Hero image search query: prefer **lexical tokens from real business copy** (offer, focus, PI visual)
+ * before falling back to mode/category templates. Stock search works best with concrete subjects
+ * (e.g. framing, gallery, mat) — not the word "service" repeated.
  */
 export function buildHeroImageQuery(signalBlob, strategyModels, state, resolvedVibe) {
   const visual = signalBlob?.visual || {};
@@ -260,7 +288,7 @@ export function buildHeroImageQuery(signalBlob, strategyModels, state, resolvedV
   const differentiation = visual.differentiation || "";
   const galleryStory = visual.gallery_story || "";
 
-  const signalParts = [
+  const signalPartsLower = [
     ...focus,
     ...mustShow,
     ...themes,
@@ -274,39 +302,65 @@ export function buildHeroImageQuery(signalBlob, strategyModels, state, resolvedV
     .join(" ")
     .toLowerCase();
 
-  const category = cleanString(signalBlob?.category) || "service";
+  const blobForKeywords = buildHeroKeywordSourceBlob(signalBlob, visual);
+  let keywords = extractVisualKeywords(blobForKeywords, 14);
+
+  if (keywords.length < 4 && cleanString(signalBlob?.offer)) {
+    keywords = uniqueStableStrings([
+      ...keywords,
+      ...extractVisualKeywords(cleanString(signalBlob.offer), 10)
+    ]).slice(0, 12);
+  }
+
+  const vibeHint = resolvedVibe ? String(resolvedVibe).toLowerCase() : "";
+  let style = "natural window light";
+  if (vibeHint.includes("minimal")) {
+    style = "clean minimal natural light";
+  } else if (vibeHint.includes("luxury")) {
+    style = "soft refined light";
+  } else if (vibeHint.includes("industrial")) {
+    style = "workshop natural light";
+  }
+
+  if (keywords.length >= 3) {
+    const core = keywords.slice(0, 10).join(" ");
+    const detailHints = [];
+    if (signalPartsLower.includes("frame") || signalPartsLower.includes("mat") || signalPartsLower.includes("matting")) {
+      detailHints.push("picture frame mat corner detail");
+    }
+    if (signalPartsLower.includes("gallery") || signalPartsLower.includes("showroom")) {
+      detailHints.push("gallery wall");
+    }
+    if (signalPartsLower.includes("artist") || signalPartsLower.includes("studio")) {
+      detailHints.push("artist studio");
+    }
+    const tail = detailHints.length ? ` ${detailHints[0]}` : "";
+    return clampWords(`${core}${tail} ${style}`, 8, 22).trim();
+  }
+
+  const category = cleanString(signalBlob?.category) || "business";
   const mode = detectVisualModeFromSignals(visual);
 
   let subject = "";
   if (mode === "process") {
-    subject = `${category} process craftsmanship detail`;
+    subject = `${category} professional workspace craftsmanship`;
   } else if (mode === "interaction") {
-    subject = `${category} customer interaction`;
+    subject = `${category} customer consultation`;
   } else if (mode === "result") {
-    subject = `${category} finished work display`;
+    subject = `${category} finished work on display`;
   } else {
-    subject = `${category} professional environment`;
+    subject = `${category} professional interior`;
   }
 
   const detailHints = [];
-  if (signalParts.includes("craft") || signalParts.includes("quality")) {
-    detailHints.push("close-up detail");
+  if (signalPartsLower.includes("craft") || signalPartsLower.includes("quality")) {
+    detailHints.push("detail");
   }
-  if (signalParts.includes("custom") || signalParts.includes("personal")) {
+  if (signalPartsLower.includes("custom") || signalPartsLower.includes("personal")) {
     detailHints.push("custom work");
   }
-  if (signalParts.includes("artist") || signalParts.includes("creative")) {
-    detailHints.push("studio environment");
-  }
-
-  const vibeHint = resolvedVibe ? String(resolvedVibe).toLowerCase() : "";
-  let style = "natural lighting";
-  if (vibeHint.includes("minimal")) {
-    style = "clean minimal natural lighting";
-  } else if (vibeHint.includes("luxury")) {
-    style = "luxury refined lighting";
-  } else if (vibeHint.includes("industrial")) {
-    style = "industrial workshop lighting";
+  if (signalPartsLower.includes("artist") || signalPartsLower.includes("creative")) {
+    detailHints.push("creative workspace");
   }
 
   let query = [subject, ...detailHints, style]
@@ -316,13 +370,10 @@ export function buildHeroImageQuery(signalBlob, strategyModels, state, resolvedV
     .trim();
 
   if (!query || query.length < 10) {
-    query = `${category} professional realistic`;
+    query = `${category} professional realistic natural light`;
   }
 
-  console.log("[FACTORY HERO INPUT]", visual);
-  console.log("[FACTORY HERO OUTPUT]", query);
-
-  return query;
+  return clampWords(query, 6, 18).trim();
 }
 
 /**
@@ -336,7 +387,20 @@ export function buildFallbackGalleryQueries(signalBlob, strategyModels, state, r
   const h = stableHash(`${slug}|${arch}|${patterns.join("|")}|${cleanString(resolvedVibe)}|gallery`);
   queries = rotateStable(queries, h);
   const sliced = queries.slice(0, 5);
-  return sliced.map((q) => clampWords(q, 4, 8));
+  const visual = signalBlob?.visual || {};
+  const prefixBlob = [
+    ...cleanList(visual.recommended_focus),
+    cleanString(signalBlob?.offer),
+    cleanString(signalBlob?.category),
+    cleanString(signalBlob?.positioning)
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const prefixKw = extractVisualKeywords(prefixBlob, 6).slice(0, 4).join(" ");
+  return sliced.map((q) => {
+    if (!prefixKw) return clampWords(q, 4, 8);
+    return clampWords(`${prefixKw} ${q}`, 6, 14);
+  });
 }
 
 export function beforeAfterImageQuery(state, strategyContract, resolvedVibe) {

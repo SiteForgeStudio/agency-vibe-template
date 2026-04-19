@@ -1,4 +1,4 @@
-# SiteForge Factory — Intake & Preflight Manifest **v2.4** (April 2026)
+# SiteForge Factory — Intake & Preflight Manifest **v2.5** (April 2026)
 
 Use this file as the **handoff anchor** for architecture, constraints, and phase order. Implementation details live in code and in `docs/PREFLIGHT_OUTPUT_SPEC_V1.md` (preflight → intake handoff shape).
 
@@ -56,7 +56,11 @@ submit → GitHub → Astro → Netlify preview
 
 **Competitive intelligence** (evolving): e.g. differentiation signals, local alternatives, buyer factors — consumed by intake via `state.preflight_intelligence` (see `docs/PREFLIGHT_OUTPUT_SPEC_V1.md`).
 
+**Seeding alignment (intake-start-v2):** `buildSeededAnswers` merges **`preflight_strategy_json.internal_strategy`** (FAQ/AEO angles from recon) with `strategy.site_structure` so **`answers.faq_angles` / `aeo_angles`** are not dropped when the contract omits them. **`audience`** falls back to **`entity_profile_json`** positioning hint when `audience_model` is empty. **`hydrateFactRegistryWithPreflightIntelligence`** can fill **`target_persona`** from **`target_persona_hint`** and **`image_themes`** from **`recommended_focus`** when themes would otherwise be empty.
+
 **Known weakness:** GBP entity resolution can false-negative (`not_found`); treat as active risk, not a reason to loosen intake contracts.
+
+**Future (not required for core path):** **NAP** (phone, address, hours) from **Google Maps / GBP** when listing quality allows — flow is **recon / GBP audit → stored nap fields → existing promotion into `fact_registry`** (`mapPreflightSourceKeyToFactKey`); treat as enrichment, not a planner rewrite.
 
 ---
 
@@ -111,6 +115,8 @@ Facts live in `blueprint.fact_registry`; the partial site shape lives in `busine
 
 - **`state.preflight_intelligence`** is seeded at start (`intake-start-v2.js`) from strategy/recon/spec-aligned fields.
 - **Question rendering** may inject a short **preflight bridge** hint into the renderer payload so wording feels informed — **without** breaking the single-field contract.
+
+**Visual fields (intake-next-v2):** When **`recommended_focus`**, **`differentiation`**, and **category/industry**-style facts already carry strong preflight-style signals, **`image_themes`** and **`gallery_visual_direction`** are treated as **satisfied by inference** (not missing user input): component evidence, planner deprioritization of visual bundles, and field satisfaction use **`hasVisualInferenceSignals`** / **`isEvidenceKeyPresentForComponentStates`** — **no** image generation; factory still builds hero/gallery queries from merged signals.
 
 ---
 
@@ -168,6 +174,15 @@ Minimum fields emitted today:
 - **Minimum preview:** hero, features, contact path, CTA — as defined by strategy toggles and conversion gates in code.
 - **Premium ready:** only **enabled** components count toward “premium” signals (proof, visuals, process, story, geo, etc.).
 - **Rule:** Disabled components do not inflate readiness.
+
+### Two different “readiness” signals (do not conflate)
+
+| Signal | Where | Meaning |
+|--------|--------|--------|
+| **Blueprint readiness** | `state.readiness` from **`evaluateBlueprintReadiness`** (intake-start + intake-next) | Section / verification snapshot; **`can_generate_now`** can be true when seeded data makes the blueprint look “full” while **`question_plan`** still has the next conversational step. |
+| **Ship readiness (assembly)** | **`intake-complete.js`**: **`evaluateNarrativeReadiness`** + **`evaluateEnrichment`** | **Narrative blocks** (`what_it_is`, `who_its_for`, …) and **premium enrichment** blocks use **`normalizeState(state).answers`** and **`BLOCK_MAP`** — independent of blueprint **`can_generate_now`**. |
+
+**Runner rule (`scripts/intake-runner/`):** End the conversational loop on **`action === "complete"`** or **missing `question_plan`** — **not** on blueprint **`readiness.can_generate_now` alone**, or the first turn can exit before any user answer. Optional console: **factory / visual** fact keys + draft **`hero.image.image_search_query`** / **`gallery.image_source.image_search_query`** + **`preflight_intelligence.recommended_focus`** for troubleshooting.
 
 ---
 
@@ -233,6 +248,8 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 | **Synthesis logic** | `apps/intake/functions/utils/factory-synthesis.js` | `selectVibe` (contract enum → style-signal blob → deterministic hash on opaque `strategic_archetype`), `buildHeroImageQuery`, `buildFallbackGalleryQueries`, `inferPremiumGalleryCount`, `galleryLayoutFromSignals` |
 | **Execution + guards** | `apps/intake/functions/api/intake-complete.js` | Builds `business_json`, runs `ensureInspirationQueries`, **`assertFactorySynthesisGuards`** (missing/invalid vibe or hero query → hard error; no silent failure) |
 
+**Enrichment gate alignment:** `normalizeState` applies **`applyEnrichmentSourceFallbacks`** so **`evaluateEnrichment`** sees canonical keys: e.g. **`service_list` → `service_descriptions`**, **`process_summary` → `process_notes`**, and **`preflight_intelligence`** **`common_objections` / `weaknesses` / `buyer_factors`** into **`answers.common_objections`** / **`buyer_decision_factors`** when those lists were empty — matches **`BLOCK_MAP`** without duplicating product rules in two naming schemes.
+
 **Rules (locked with “no industry hardcoding”):**
 
 - Derive keywords and queries from **`strategy_contract`** (e.g. `visual_strategy.recommended_vibe`, `asset_policy.preferred_image_themes`, opaque archetype slug) plus **intake answers** (offer, area, tone, differentiation), not from vertical-specific `if (category === …)` tables.
@@ -245,8 +262,8 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 
 ## Testing
 
-- **Intake:** `scripts/intake-runner/` — scripted or interactive session, logs state and `turn_debug`.
-- **Preflight:** `scripts/preflight-runner/` — pipeline steps and structured logs.
+- **Intake:** `scripts/intake-runner/` — scripted or interactive session; saves **`turns`** + full snapshots under `scripts/intake-runner/intake-logs/`; optional **`intake-complete`** POST with readiness/enrichment echo on failure.
+- **Preflight:** `scripts/preflight-runner/` — pipeline steps and structured logs; use **`--status`** when you need a **`preflight-status`** snapshot (fuller recon handoff) in the log file.
 
 **Future:** assertion-based regression, session replay.
 
@@ -261,11 +278,11 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 
 ## Current status (honest)
 
-**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners, **access readiness + premium readiness** on blueprint, **factory-synthesis** on intake-complete (vibe + image queries + gallery layout/count without industry branching).
+**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners, **access readiness + premium readiness** on blueprint, **factory-synthesis** on intake-complete (vibe + image queries + gallery layout/count without industry branching), **preflight internal_strategy → seeded FAQ/AEO**, **enrichment fallbacks** in `normalizeState` for assembly gates, **visual inference** for planner/component evidence (no schema change), **intake-runner** exit condition aligned with conversational completion.
 
 **Monitor:** `fallback_rate`, scope violations, repetition stalls, GBP/preflight depth.
 
-**Weak areas:** GBP reliability, preflight depth, competitive gap surfacing (productized), copy variance under fallback.
+**Weak areas:** GBP reliability, preflight depth, competitive gap surfacing (productized), copy variance under fallback; **NAP** from Maps/GBP not yet first-class in all paths.
 
 ---
 
@@ -299,4 +316,4 @@ A system that **thinks like a strategist** (within guardrails) and **executes li
 
 ## New chat handoff line
 
-> We’re building SiteForge Factory per **`manifest.md` v2.4** (blueprint + planner + **access gate** + **premium readiness** + controlled renderer + **factory-synthesis** on intake-complete). Next task: [describe]. Check primary field contract, renderer scope, `access_readiness` / `premium_readiness`, `turn_debug` / fallback rate, and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.
+> We’re building SiteForge Factory per **`manifest.md` v2.5** (blueprint + planner + **access gate** + **premium readiness** + controlled renderer + **factory-synthesis** on intake-complete + **narrative/enrichment gates** + **preflight seed alignment** + **visual inference** for evidence/planner). Next task: [describe]. Check primary field contract, renderer scope, `access_readiness` / `premium_readiness`, **`intake-complete` narrative vs enrichment** if assembly 400s, `turn_debug` / fallback rate, **runner** (don’t end on blueprint `can_generate_now` alone), and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.
