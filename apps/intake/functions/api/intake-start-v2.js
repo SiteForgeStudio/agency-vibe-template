@@ -525,6 +525,27 @@ function buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers) {
   });
 }
 
+/**
+ * Merge FAQ/AEO (and similar) from strategy contract and from `preflight_strategy_json.internal_strategy`
+ * on recon — strategy_contract alone often omits internal_strategy.
+ */
+function mergeAnglesFromPreflightStrategy(strategy, reconData) {
+  const fromContract = isObject(strategy?.internal_strategy) ? strategy.internal_strategy : {};
+  const root = reconPayloadRoot(reconData);
+  const ps = safeParseJsonString(root?.preflight_strategy_json);
+  const internal = isObject(ps?.internal_strategy) ? ps.internal_strategy : {};
+  return {
+    faq_angles: uniqueList([
+      ...cleanList(internal.faq_angles),
+      ...cleanList(fromContract.faq_angles)
+    ]),
+    aeo_angles: uniqueList([
+      ...cleanList(internal.aeo_angles),
+      ...cleanList(fromContract.aeo_angles)
+    ])
+  };
+}
+
 function buildSeededAnswers(strategy, reconData) {
   const businessContext = isObject(strategy?.business_context) ? strategy.business_context : {};
   const conversionStrategy = isObject(strategy?.conversion_strategy) ? strategy.conversion_strategy : {};
@@ -535,6 +556,9 @@ function buildSeededAnswers(strategy, reconData) {
   const clientPreview = isObject(sourceSnapshot?.client_preview) ? sourceSnapshot.client_preview : {};
   const napRecommendation = isObject(sourceSnapshot?.nap_recommendation) ? sourceSnapshot.nap_recommendation : {};
   const reconSnapshot = isObject(reconData) ? reconData : {};
+  const root = reconPayloadRoot(reconData);
+  const entityProfile = safeParseJsonString(root?.entity_profile_json);
+  const anglesFromPs = mergeAnglesFromPreflightStrategy(strategy, reconData);
 
   const serviceAreas = uniqueList([
     ...cleanList(businessContext?.service_area),
@@ -571,7 +595,8 @@ function buildSeededAnswers(strategy, reconData) {
 
     audience:
       cleanString(audienceModel?.primary_persona) ||
-      cleanString(audienceModel?.secondary_persona),
+      cleanString(audienceModel?.secondary_persona) ||
+      entityProfilePositioningHint(entityProfile),
 
     service_area: serviceAreas[0] || "",
     service_areas: serviceAreas,
@@ -602,8 +627,8 @@ function buildSeededAnswers(strategy, reconData) {
     recommended_focus: recommendedFocus,
     recommended_sections: recommendedSections,
 
-    faq_angles: cleanList(siteStructure?.faq_angles),
-    aeo_angles: cleanList(siteStructure?.aeo_angles),
+    faq_angles: uniqueList([...cleanList(siteStructure?.faq_angles), ...anglesFromPs.faq_angles]),
+    aeo_angles: uniqueList([...cleanList(siteStructure?.aeo_angles), ...anglesFromPs.aeo_angles]),
     future_dynamic_vibe_hint: cleanString(siteStructure?.future_dynamic_vibe_hint),
 
     google_presence_insight:
@@ -1474,6 +1499,17 @@ function hydrateFactRegistryWithPreflightIntelligence(facts, pi) {
   const webDir = cleanString(pi.website_direction);
   if (facts.website_direction && webDir) {
     facts.website_direction = hydrateFromPreflight(facts.website_direction, webDir);
+  }
+
+  const personaHint = cleanString(pi.target_persona_hint);
+  if (facts.target_persona && !hasMeaningfulValue(facts.target_persona.value) && personaHint) {
+    facts.target_persona = hydrateFromPreflight(facts.target_persona, personaHint);
+  }
+
+  const rfForThemes = cleanList(pi.recommended_focus);
+  const existingThemes = cleanList(facts.image_themes?.value);
+  if (facts.image_themes && !existingThemes.length && rfForThemes.length) {
+    facts.image_themes = hydrateFromPreflight(facts.image_themes, rfForThemes);
   }
 }
 

@@ -182,6 +182,46 @@ function printDebug(prevState, newState, data) {
       });
     }
   });
+
+  // ==========================
+  // FACTORY / VISUAL SIGNALS (narrow slice — draft + visual facts + PI)
+  // ==========================
+  console.log("\n🏭 FACTORY / VISUAL SIGNALS:");
+  const visualFactKeys = [
+    "hero_image_query",
+    "image_themes",
+    "gallery_visual_direction",
+    "recommended_focus"
+  ];
+  visualFactKeys.forEach((key) => {
+    const fact = facts[key];
+    if (!fact) {
+      console.log(`✖ ${key}: undefined`);
+    } else {
+      console.log(`✔ ${key}:`, {
+        value: fact.value,
+        status: fact.status,
+        confidence: fact.confidence
+      });
+    }
+  });
+
+  const draft = newState.blueprint?.business_draft || {};
+  const heroQ = draft?.hero?.image?.image_search_query;
+  const galleryQ = draft?.gallery?.image_source?.image_search_query;
+  console.log("→ draft hero.image.image_search_query:", heroQ ?? "(empty)");
+  console.log("→ draft gallery.image_source.image_search_query:", galleryQ ?? "(empty)");
+
+  const pi = newState.preflight_intelligence || {};
+  console.log(
+    "→ preflight_intelligence.recommended_focus:",
+    pi.recommended_focus ?? "(empty)"
+  );
+  const piKeys = newState.turn_debug?.preflight_intelligence_keys;
+  if (Array.isArray(piKeys) && piKeys.length) {
+    console.log("→ preflight_intelligence_keys (turn_debug):", piKeys.join(", "));
+  }
+
   const bp = newState.blueprint;
 
   console.log("\n📊 STATE SNAPSHOT:");

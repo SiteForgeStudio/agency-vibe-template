@@ -1871,7 +1871,10 @@ function syncHeroDraftFromEvidence(draft, factRegistry, state) {
   const fact = (key) => factRegistry?.[key]?.value;
   const businessName = firstNonEmpty([fact("business_name"), state.businessName, "This business"]);
   const offer = cleanString(fact("primary_offer"));
-  const persona = cleanString(fact("target_persona"));
+  const persona = firstNonEmpty([
+    cleanString(fact("target_persona")),
+    cleanString(state?.preflight_intelligence?.target_persona_hint)
+  ]);
   const differentiation = cleanString(fact("differentiation"));
   const bookingMethod = cleanString(fact("booking_method"));
 
@@ -1890,7 +1893,13 @@ function syncHeroDraftFromEvidence(draft, factRegistry, state) {
 
   const heroQuery = firstNonEmpty([
     fact("hero_image_query"),
-    buildHeroImageQuery({ industry: fact("industry"), offer, themes: fact("image_themes"), differentiation })
+    buildHeroImageQuery({
+      industry: fact("industry"),
+      offer,
+      themes: fact("image_themes"),
+      differentiation,
+      recommended_focus: fact("recommended_focus")
+    })
   ]);
 
   safeAssignPathIfExists(draft, "hero.image.image_search_query", heroQuery);
@@ -1962,7 +1971,13 @@ function syncGalleryDraftFromEvidence(draft, factRegistry, state) {
 
   const galleryQuery = firstNonEmpty([
     visualDirection,
-    buildGalleryImageQuery({ industry, offer, differentiation, themes })
+    buildGalleryImageQuery({
+      industry,
+      offer,
+      differentiation,
+      themes,
+      recommended_focus: fact("recommended_focus")
+    })
   ]);
 
   const computedLayout = inferGalleryLayout({ vibe, offer, differentiation });
@@ -5042,8 +5057,10 @@ function buildHeroSubtextFromEvidence({ offer, persona, differentiation, booking
   return truncate(text || "Built to help the right clients feel confident taking the next step.", 220);
 }
 
-function buildHeroImageQuery({ industry, offer, themes, differentiation }) {
+function buildHeroImageQuery({ industry, offer, themes, differentiation, recommended_focus }) {
+  const focusBlob = ensureArrayStrings(recommended_focus).join(" ");
   const base = firstNonEmpty([
+    focusBlob,
     cleanString(industry),
     cleanString(offer),
     cleanString(differentiation),
@@ -5053,8 +5070,10 @@ function buildHeroImageQuery({ industry, offer, themes, differentiation }) {
   return truncate(compactVisualQuery(base, ["professional", "service", "premium", "realistic"]), 80);
 }
 
-function buildGalleryImageQuery({ industry, offer, differentiation, themes }) {
+function buildGalleryImageQuery({ industry, offer, differentiation, themes, recommended_focus }) {
+  const focusBlob = ensureArrayStrings(recommended_focus).join(" ");
   const base = firstNonEmpty([
+    focusBlob,
     cleanString(offer),
     cleanString(industry),
     cleanString(differentiation),
