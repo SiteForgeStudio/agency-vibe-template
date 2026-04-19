@@ -25,7 +25,7 @@
     "show_service_area": false
   },
   "settings": {
-    "vibe": "Luxury Noir",
+    "vibe": "Midnight Tech",
     "menu": [
       {
         "label": "Home",
@@ -69,9 +69,9 @@
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "art classes, framing, matting",
+    "tagline": "artwork to be framed and matted. UV glass, hardware",
     "email": "info@simonsfineartframing.com",
-    "phone": "1231231234",
+    "phone": "1234567890",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
@@ -79,8 +79,8 @@
     "headline": "custom framing services in Dublin PA",
     "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Designed for Art Gallery ? visual_portfolio_servic...",
     "image": {
-      "alt": "art classes, framing, matting",
-      "image_search_query": "craftsmanship showcase customer testimonials clear pricing structure focused single page picture frame mat corner detail soft refined light"
+      "alt": "artwork to be framed and matted. UV glass, hardware",
+      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
     }
   },
   "about": {
@@ -142,26 +142,26 @@
     "layout": null,
     "show_titles": true,
     "image_source": {
-      "image_search_query": "craftsmanship showcase customer testimonials quiet interior environment scene with natural window light"
+      "image_search_query": "craftsmanship showcase artwork framed candid customer interaction moment in approachable natural light"
     },
     "computed_count": 4,
     "computed_layout": "grid",
     "items": [
       {
         "title": "Project 1",
-        "image_search_query": "craftsmanship showcase customer testimonials quiet interior environment scene with natural window light"
+        "image_search_query": "craftsmanship showcase artwork framed candid customer interaction moment in approachable natural light"
       },
       {
         "title": "Project 2",
-        "image_search_query": "craftsmanship showcase customer testimonials candid customer interaction moment in approachable natural light"
+        "image_search_query": "craftsmanship showcase artwork framed calm human service moment with quiet trustworthy warmth"
       },
       {
         "title": "Project 3",
-        "image_search_query": "craftsmanship showcase customer testimonials calm human service moment with quiet trustworthy warmth"
+        "image_search_query": "craftsmanship showcase artwork framed authentic real world setting with warm ambient depth"
       },
       {
         "title": "Project 4",
-        "image_search_query": "craftsmanship showcase customer testimonials authentic real world setting with warm ambient depth"
+        "image_search_query": "craftsmanship showcase artwork framed quiet interior environment scene with natural window light"
       }
     ]
   },
@@ -169,7 +169,7 @@
     "headline": "Get in Touch",
     "subheadline": "Tell us what you need and we'll help you with the right next step.",
     "email": "info@simonsfineartframing.com",
-    "phone": "1231231234",
+    "phone": "1234567890",
     "email_recipient": "info@simonsfineartframing.com",
     "button_text": "Book Now",
     "office_address": ""
