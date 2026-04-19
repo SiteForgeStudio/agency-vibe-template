@@ -72,18 +72,17 @@ export function enhanceHero(hero, signalBlob, behavior) {
     headline = positioning;
   }
 
-  if (isGuidedDecisionMode(decisionMode)) {
-    subtext = makeConsultative(subtext, positioning);
-  }
-
+  // Avoid stacking two boilerplate tails — subtext is already multi-sentence from assembly.
   if (behavior?.trust_sensitivity === "high") {
     subtext = addReassurance(subtext);
+  } else if (isGuidedDecisionMode(decisionMode)) {
+    subtext = makeConsultative(subtext, positioning);
   }
 
   return {
     ...hero,
     headline: truncateAtWordBoundary(headline, 120),
-    subtext: truncateAtWordBoundary(subtext, 260)
+    subtext: truncateAtWordBoundary(subtext, 220)
   };
 }
 

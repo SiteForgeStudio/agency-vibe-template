@@ -841,7 +841,7 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       : deriveBehavior(signalBlob);
 
   const trustbar = buildTrustbar(state, strategyContract);
-  let features = buildFeatures(state, strategyContract);
+  let features = buildFeatures(state, strategyContract, signalBlob);
   let processSteps = buildProcessSteps(state, strategyContract, behavior);
 
   if (!processSteps.length && strategyModels.process_strategy.type === "consultative") {
@@ -901,6 +901,12 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   const ci = isObject(pi.component_importance) ? pi.component_importance : {};
   const emPi = isObject(pi.experience_model) ? pi.experience_model : {};
   const pmPi = isObject(pi.pricing_model) ? pi.pricing_model : {};
+
+  const primaryCtaResolved = normalizePublicText(
+    cleanString(state.answers?.cta_text) ||
+      (strategyModels.pricing_strategy.type === "variable" ? "Request a Consultation" : "") ||
+      inferPrimaryCtaText(strategyContract, bookingUrl, pmPi, emPi, state)
+  );
 
   const toggles = {
     show_trustbar: toggleOptOut(schemaToggles, "show_trustbar", shouldShowTrustbar({ behavior, trustbar })),
@@ -984,14 +990,10 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     settings: {
       vibe,
       menu: buildMenu(toggles, sections),
-      cta_text: normalizePublicText(
-        cleanString(state.answers?.cta_text) ||
-        (strategyModels.pricing_strategy.type === "variable" ? "Request a Consultation" : "") ||
-        inferPrimaryCtaText(strategyContract, bookingUrl, pmPi, emPi, state)
-      ),
+      cta_text: primaryCtaResolved,
       cta_link: bookingUrl || resolveIntakeCtaAnchor(state.answers?.cta_link),
       cta_type: bookingUrl ? "external" : inferCtaType(cleanString(state.answers?.cta_link) || "#contact"),
-      secondary_cta_text: normalizePublicText(inferSecondaryCtaText(strategyContract, phone)),
+      secondary_cta_text: normalizePublicText(inferSecondaryCtaText(strategyContract, phone, primaryCtaResolved)),
       secondary_cta_link: inferSecondaryCtaLink(phone, bookingUrl)
     },
 
@@ -1024,7 +1026,9 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       email,
       phone,
       email_recipient: email,
-      button_text: normalizePublicText(inferContactButtonText(strategyContract, bookingUrl, pmPi, emPi, state)),
+      button_text: normalizePublicText(
+        inferContactButtonText(strategyContract, bookingUrl, pmPi, emPi, state, primaryCtaResolved)
+      ),
       office_address: normalizePublicText(officeAddress)
     },
 
@@ -1096,35 +1100,207 @@ function buildTrustbar(state, strategyContract) {
   return items.length ? { enabled: true, items: items.slice(0, 4) } : null;
 }
 
-function buildFeatures(state, strategyContract) {
+function featureTitlesSimilar(a, b) {
+  const x = cleanString(a).toLowerCase().slice(0, 36);
+  const y = cleanString(b).toLowerCase().slice(0, 36);
+  return Boolean(x && y && (x === y || x.includes(y) || y.includes(x)));
+}
+
+function anchorFeatureDescriptionFromSignals(theme, signalBlob) {
+  const needles = cleanString(theme)
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+  const pool = [
+    cleanString(signalBlob?.positioning),
+    cleanString(signalBlob?.visual?.differentiation),
+    cleanString(signalBlob?.opportunity),
+    cleanString(signalBlob?.offer)
+  ]
+    .filter(Boolean)
+    .join(". ");
+  if (!pool || !needles.length) return "";
+  const sentences = pool
+    .split(/\.\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const sent of sentences) {
+    const sl = sent.toLowerCase();
+    if (needles.some((n) => sl.includes(n))) {
+      return sent.length > 210 ? truncateAtWordBoundary(sent, 210) : sent;
+    }
+  }
+  return "";
+}
+
+function lexicalFeatureBodyFromTheme(theme) {
+  const t = cleanString(theme).toLowerCase().replace(/_/g, " ");
+  if (/craft|workmanship|detail|finish|quality|bench|made|restore/i.test(t)) {
+    return "Lead with workmanship and materials people can judge visually—what top specialists make unmistakable on the page.";
+  }
+  if (/testimonial|review|proof|trust|reputation|referr|social/i.test(t)) {
+    return "Surface proof where doubt is highest—reviews and outcomes presented like brands that win on trust.";
+  }
+  if (/pric|quote|value|invest|afford|budget|fee|transparen/i.test(t)) {
+    return "Make options and pricing legible before the first conversation—how high-trust operators reduce friction.";
+  }
+  if (/turn|time|speed|schedule|deadline|wait|rush|lead/i.test(t)) {
+    return "Set timing expectations honestly so buyers can plan—clarity that separates strong operators from vague promises.";
+  }
+  if (/galler|portfolio|visual|showcase|photo|imag|display/i.test(t)) {
+    return "Show the work the way buyers compare vendors—visual proof first, details second.";
+  }
+  if (/local|neighborhood|area|near|community|town|regional/i.test(t)) {
+    return "Anchor the offer in local context—credibility buyers expect from established operators.";
+  }
+  return `Make ${titleCaseSmart(t)} concrete and scannable—specific beats generic in every vertical.`;
+}
+
+function featureCardFromTheme(theme, signalBlob, idx) {
+  const raw = cleanString(theme).replace(/_/g, " ");
+  if (raw.length < 4) return null;
+  const title = normalizePublicText(
+    titleCaseSmart(truncateAtWordBoundary(raw.split(/[·]/)[0].trim(), 52))
+  );
+  let description = anchorFeatureDescriptionFromSignals(raw, signalBlob);
+  if (!description) description = lexicalFeatureBodyFromTheme(raw);
+  return {
+    title,
+    description: normalizePublicText(cleanSentence(description)),
+    icon_slug: pickFeatureIcon(`${title} ${description}`, idx)
+  };
+}
+
+function offerClausesToFeatureCards(primaryOffer, serviceDescriptions, signalBlob) {
+  const combined = cleanString(primaryOffer) || cleanString(serviceDescriptions);
+  if (!combined) return [];
+  const parts = combined
+    .split(/[,;•]|\n+|\s+-\s+/)
+    .map((p) => cleanSentenceFragment(p))
+    .filter((p) => p.length > 12 && p.length < 200);
+  const out = [];
+  let idx = 0;
+  for (const part of parts) {
+    const head = part.split(/\s+/).slice(0, 7).join(" ");
+    const title = normalizePublicText(titleCaseSmart(truncateAtWordBoundary(head, 48)));
+    const anchored = anchorFeatureDescriptionFromSignals(part, signalBlob);
+    const description = anchored || cleanSentence(`${part}.`);
+    out.push({
+      title,
+      description: normalizePublicText(description),
+      icon_slug: pickFeatureIcon(part, idx++)
+    });
+  }
+  return out;
+}
+
+function legacyWindowCleaningBulletsIfLexical(signalBlob, primaryOffer, serviceDescriptions, strategyContract) {
+  const tb = cleanString(signalBlob?.text_blob);
+  const offer = `${cleanString(primaryOffer)} ${cleanString(serviceDescriptions)}`.toLowerCase();
+  const cat = cleanString(strategyContract?.business_context?.category).toLowerCase();
+  const hit =
+    (/\bwindow\b/.test(offer) || /\bwindow\b/.test(cat)) &&
+    (/\b(clean|glass|streak|pane|squeegee)\b/.test(tb) || /\b(clean|glass)\b/.test(offer));
+  if (!hit) return [];
+  return [
+    {
+      title: "Exterior Window Cleaning",
+      description:
+        "Detailed cleaning designed to leave large glass surfaces clear, bright, and streak-free."
+    },
+    {
+      title: "Glass Restoration",
+      description: "Restore clarity and improve the look of weathered or hard-water-marked glass."
+    },
+    {
+      title: "Premium Home Service",
+      description: "Professional service for larger homes where detail, care, and presentation matter."
+    }
+  ];
+}
+
+function buildFeatures(state, strategyContract, signalBlob) {
   const features = [];
-  const primaryOffer = cleanString(state.answers?.primary_offer);
-  const differentiation = cleanString(state.answers?.differentiation);
-  const serviceDescriptions = cleanString(state.answers?.service_descriptions);
-  const decisionFactors = cleanList(state.answers?.buyer_decision_factors);
-  const contractDecisionFactors = cleanList(strategyContract.audience_model?.decision_factors);
+  const answers = isObject(state?.answers) ? state.answers : {};
+  const pi = isObject(state?.preflight_intelligence) ? state.preflight_intelligence : {};
+  const visual = isObject(signalBlob?.visual) ? signalBlob.visual : {};
 
-  const serviceBullets = inferServiceBullets(primaryOffer, serviceDescriptions, strategyContract);
-  for (const bullet of serviceBullets) {
+  const primaryOffer = cleanString(answers.primary_offer);
+  const differentiation = cleanString(answers.differentiation);
+  const serviceDescriptions = cleanString(answers.service_descriptions);
+  const mergedDiff = cleanString(visual?.differentiation || differentiation);
+
+  const themes = uniqueList([
+    ...cleanList(answers.recommended_focus),
+    ...cleanList(visual?.recommended_focus),
+    ...cleanList(pi.recommended_focus)
+  ]).filter((t) => cleanString(t).length > 3);
+
+  for (const theme of themes.slice(0, 4)) {
+    const card = featureCardFromTheme(theme, signalBlob, features.length);
+    if (!card) continue;
+    if (!features.some((f) => featureTitlesSimilar(f.title, card.title))) features.push(card);
+  }
+
+  for (const bullet of legacyWindowCleaningBulletsIfLexical(
+    signalBlob,
+    primaryOffer,
+    serviceDescriptions,
+    strategyContract
+  )) {
+    if (features.length >= 6) break;
+    if (!features.some((f) => featureTitlesSimilar(f.title, bullet.title))) {
+      features.push({
+        title: normalizePublicText(bullet.title),
+        description: normalizePublicText(bullet.description),
+        icon_slug: pickFeatureIcon(`${bullet.title} ${bullet.description}`, features.length)
+      });
+    }
+  }
+
+  for (const clause of offerClausesToFeatureCards(primaryOffer, serviceDescriptions, signalBlob)) {
+    if (features.length >= 6) break;
+    if (!features.some((f) => featureTitlesSimilar(f.title, clause.title))) features.push(clause);
+  }
+
+  const alt = cleanList(pi.local_alternatives)[0];
+  if (alt && features.length < 6 && !features.some((f) => /compare|local choice/i.test(f.title))) {
     features.push({
-      title: normalizePublicText(bullet.title),
-      description: normalizePublicText(bullet.description),
-      icon_slug: pickFeatureIcon(`${bullet.title} ${bullet.description}`, features.length)
+      title: "Local positioning",
+      description: normalizePublicText(
+        cleanSentence(
+          truncateAtWordBoundary(
+            `Buyers weigh alternatives—${cleanSentenceFragment(alt)}—and clarity here builds confidence.`,
+            200
+          )
+        )
+      ),
+      icon_slug: pickFeatureIcon(alt, features.length)
     });
   }
 
-  if (differentiation) {
-    features.push({
-      title: normalizePublicText(normalizeDifferentiatorTitle(differentiation)),
-      description: normalizePublicText(cleanSentence(differentiation)),
-      icon_slug: pickFeatureIcon(differentiation, features.length)
-    });
+  if (mergedDiff) {
+    const diffTitle = normalizePublicText(normalizeDifferentiatorTitle(mergedDiff));
+    if (!features.some((f) => featureTitlesSimilar(f.title, diffTitle))) {
+      features.push({
+        title: diffTitle,
+        description: normalizePublicText(cleanSentence(mergedDiff)),
+        icon_slug: pickFeatureIcon(mergedDiff, features.length)
+      });
+    }
   }
 
-  const factors = uniqueList([...decisionFactors, ...contractDecisionFactors]).slice(0, 2);
-  for (const factor of factors) {
+  const decisionFactors = uniqueList([
+    ...cleanList(answers.buyer_decision_factors),
+    ...cleanList(strategyContract.audience_model?.decision_factors)
+  ]).slice(0, 2);
+
+  for (const factor of decisionFactors) {
+    if (features.length >= 6) break;
     const mapped = mapDecisionFactorToFeature(factor);
     if (!mapped) continue;
+    if (features.some((f) => featureTitlesSimilar(f.title, mapped.title))) continue;
     features.push({
       title: normalizePublicText(mapped.title),
       description: normalizePublicText(mapped.description),
@@ -1356,41 +1532,52 @@ function resolveHeroSubtext(state, strategyContract) {
 }
 
 function looksLikeEntityTaxonomyAudience(s) {
-  return /[·_]|\bvisual_portfolio\b/i.test(cleanString(s));
+  const t = cleanString(s);
+  if (!t) return false;
+  return (
+    /[·_]|\bvisual\s*portfolio\b|portfolio\s*service|portfolio_service|[a-z]+_[a-z]+/i.test(t) ||
+    /\b(entity|taxonomy)[._-]/i.test(t)
+  );
 }
 
 function audienceLabelForHero(state) {
   const hint = cleanString(state?.preflight_intelligence?.target_persona_hint);
   const aud = cleanString(state?.answers?.audience);
-  if (hint && looksLikeEntityTaxonomyAudience(aud)) return normalizePublicText(hint);
+
+  if (hint && !looksLikeEntityTaxonomyAudience(hint)) {
+    return normalizePublicText(hint);
+  }
   if (!aud) return "";
+  if (looksLikeEntityTaxonomyAudience(aud)) return "";
+
   return normalizePublicText(aud.replace(/\s*·\s*/g, " – ").replace(/_/g, " "));
 }
 
-function buildPremiumHeroSubtext(state, strategyContract) {
+function buildDesignedForOrServingLine(state) {
   const audience = audienceLabelForHero(state);
   const area = cleanString(state.answers?.service_area);
+  if (audience && area) return `Serving ${area} — built for ${audience}.`;
+  if (area) return `Serving ${area}.`;
+  if (audience) return `Built for ${audience}.`;
+  return "";
+}
+
+function buildPremiumHeroSubtext(state, strategyContract) {
   const differentiation = cleanString(state.answers?.differentiation);
   const bookingMethod = cleanString(state.answers?.booking_method);
 
   const rawA = differentiation
     ? cleanSentenceFragment(differentiation)
     : cleanSentenceFragment(cleanString(state.answers?.website_direction));
-  const sentenceA = truncateAtWordBoundary(rawA, 220);
+  const sentenceA = truncateAtWordBoundary(rawA, 130);
 
-  const sentenceB = audience && area
-    ? `Serving ${area} for ${audience}.`
-    : area
-      ? `Serving ${area}.`
-      : audience
-        ? `Designed for ${audience}.`
-        : "";
+  const sentenceB = buildDesignedForOrServingLine(state);
 
   const sentenceC =
     bookingMethod.includes("quote")
-      ? "Request a quote and we’ll guide you from there."
+      ? "Start with a quote — we’ll guide you from there."
       : bookingMethod.includes("call")
-        ? "Reach out directly and we’ll help you get started."
+        ? "Prefer to talk? Call us and we’ll walk you through the next step."
         : "Reach out and we’ll help you take the next step.";
 
   return [sentenceA, sentenceB, sentenceC]
@@ -1772,46 +1959,6 @@ async function trySubmitBusinessJson(request, payload) {
    Premium Builders
 ========================= */
 
-function inferServiceBullets(primaryOffer, serviceDescriptions, strategyContract) {
-  const bullets = [];
-  const offer = cleanString(primaryOffer).toLowerCase();
-  const descriptions = cleanString(serviceDescriptions).toLowerCase();
-  const category = cleanString(strategyContract.business_context?.category).toLowerCase();
-
-  if (offer.includes("window cleaning") || category.includes("window")) {
-    bullets.push(
-      {
-        title: "Exterior Window Cleaning",
-        description: "Detailed cleaning designed to leave large glass surfaces clear, bright, and streak-free."
-      },
-      {
-        title: "Glass Restoration",
-        description: "Restore clarity and improve the look of weathered or hard-water-marked glass."
-      },
-      {
-        title: "Premium Home Service",
-        description: "Professional service for larger homes where detail, care, and presentation matter."
-      }
-    );
-  }
-
-  if (descriptions.includes("large homes") || descriptions.includes("big glass")) {
-    bullets.push({
-      title: "Large-Home Expertise",
-      description: "Comfortable with larger residential properties, expansive glass, and high-visibility details."
-    });
-  }
-
-  if (descriptions.includes("white-glove") || descriptions.includes("professionalism")) {
-    bullets.push({
-      title: "White-Glove Experience",
-      description: "Clear communication, careful work practices, and a polished customer experience from start to finish."
-    });
-  }
-
-  return uniqueObjectsByTitle(bullets);
-}
-
 function mapDecisionFactorToFeature(factor) {
   const value = cleanString(factor).toLowerCase();
   if (!value) return null;
@@ -2036,7 +2183,12 @@ function inferPrimaryCtaText(strategyContract, bookingUrl, pricingModel, experie
   return "Get Started";
 }
 
-function inferSecondaryCtaText(strategyContract, phone) {
+function inferSecondaryCtaText(strategyContract, phone, primaryCtaLabel) {
+  const primary = cleanString(primaryCtaLabel);
+  if (primary === "Call Now") {
+    return "Learn More";
+  }
+
   const secondary = cleanString(strategyContract?.conversion_strategy?.secondary_conversion);
   if (phone || secondary === "call_now") return "Call Now";
   if (secondary === "submit_inquiry") return "Send Inquiry";
@@ -2057,7 +2209,7 @@ function inferContactSubheadline(state, strategyContract) {
   return "Tell us what you need and we’ll help you with the right next step.";
 }
 
-function inferContactButtonText(strategyContract, bookingUrl, pricingModel, experienceModel, state) {
+function inferContactButtonText(strategyContract, bookingUrl, pricingModel, experienceModel, state, primaryCtaLabel) {
   const pm = isObject(pricingModel) ? pricingModel : {};
   const em = isObject(experienceModel) ? experienceModel : {};
   const risk = cleanString(pm.risk_language).toLowerCase();
@@ -2069,7 +2221,7 @@ function inferContactButtonText(strategyContract, bookingUrl, pricingModel, expe
   const bm = cleanString(state?.answers?.booking_method).toLowerCase();
   const cp = cleanString(state?.answers?.contact_path).toLowerCase();
   if (!bookingUrl && (bm.includes("call") || cp === "call")) {
-    return "Call Now";
+    return cleanString(primaryCtaLabel) === "Call Now" ? "Send Message" : "Call Now";
   }
 
   const primary = cleanString(strategyContract?.conversion_strategy?.primary_conversion);
