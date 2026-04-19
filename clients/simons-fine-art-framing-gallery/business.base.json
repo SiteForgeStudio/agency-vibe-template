@@ -25,7 +25,7 @@
     "show_service_area": false
   },
   "settings": {
-    "vibe": "Midnight Tech",
+    "vibe": "Vintage Boutique",
     "menu": [
       {
         "label": "Home",
@@ -69,7 +69,7 @@
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "artwork to be framed and matted. UV glass, hardware",
+    "tagline": "custom framing, custom matting, and art classes",
     "email": "info@simonsfineartframing.com",
     "phone": "1234567890",
     "office_address": "",
@@ -79,7 +79,7 @@
     "headline": "custom framing services in Dublin PA",
     "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Designed for Art Gallery ? visual_portfolio_servic...",
     "image": {
-      "alt": "artwork to be framed and matted. UV glass, hardware",
+      "alt": "custom framing, custom matting, and art classes",
       "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
     }
   },
@@ -142,26 +142,26 @@
     "layout": null,
     "show_titles": true,
     "image_source": {
-      "image_search_query": "craftsmanship showcase artwork framed candid customer interaction moment in approachable natural light"
+      "image_search_query": "craftsmanship showcase custom framing candid customer interaction moment in approachable natural light"
     },
     "computed_count": 4,
     "computed_layout": "grid",
     "items": [
       {
         "title": "Project 1",
-        "image_search_query": "craftsmanship showcase artwork framed candid customer interaction moment in approachable natural light"
+        "image_search_query": "craftsmanship showcase custom framing candid customer interaction moment in approachable natural light"
       },
       {
         "title": "Project 2",
-        "image_search_query": "craftsmanship showcase artwork framed calm human service moment with quiet trustworthy warmth"
+        "image_search_query": "craftsmanship showcase custom framing calm human service moment with quiet trustworthy warmth"
       },
       {
         "title": "Project 3",
-        "image_search_query": "craftsmanship showcase artwork framed authentic real world setting with warm ambient depth"
+        "image_search_query": "craftsmanship showcase custom framing authentic real world setting with warm ambient depth"
       },
       {
         "title": "Project 4",
-        "image_search_query": "craftsmanship showcase artwork framed quiet interior environment scene with natural window light"
+        "image_search_query": "craftsmanship showcase custom framing quiet interior environment scene with natural window light"
       }
     ]
   },
