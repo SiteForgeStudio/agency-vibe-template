@@ -786,6 +786,17 @@ if (fieldKey === "contact_path") {
     if (src === "preflight" && hasMeaningfulValue(v)) return true;
   }
 
+  // Offer line usually comes from recon description / strategy — same non-re-interrogation rule as persona.
+  if (fieldKey === "primary_offer") {
+    if (hasMeaningfulValue(fact?.intake_followup)) return false;
+    const v = sanitizeFactValue(fact?.value);
+    if (!hasMeaningfulValue(v)) return false;
+    const st = cleanString(fact?.status);
+    const src = cleanString(fact?.source);
+    if (st === "prefilled_unverified" || st === "seeded") return true;
+    if (src === "preflight" && hasMeaningfulValue(v)) return true;
+  }
+
   return isFactComplete(fact);
 }
 
@@ -5252,6 +5263,19 @@ function safeFeatureIcon(icon) {
   return ALLOWED_ICON_TOKENS.includes(cleaned) ? cleaned : "check";
 }
 
+/** Substring match false-positives: "customer" inside "customers", "offer" inside "offering". Multi-word phrases stay substring. */
+function bundleKeywordMatchesText(text, keyword) {
+  const t = cleanString(text).toLowerCase();
+  const k = cleanString(keyword).toLowerCase();
+  if (!t || !k) return false;
+  if (/\s/.test(k)) return t.includes(k);
+  try {
+    return new RegExp(`\\b${k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(t);
+  } catch {
+    return t.includes(k);
+  }
+}
+
 function isOverloadedQuestion(message, bundleId) {
   const text = cleanString(message).toLowerCase();
   if (!text) return false;
@@ -5286,7 +5310,7 @@ function isOverloadedQuestion(message, bundleId) {
   const activeBundles = Object.entries(bundleKeywords)
     .map(([key, words]) => ({
       key,
-      matched: words.some((word) => text.includes(word))
+      matched: words.some((word) => bundleKeywordMatchesText(text, word))
     }))
     .filter((entry) => entry.matched)
     .map((entry) => entry.key);
