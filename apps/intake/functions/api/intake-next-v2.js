@@ -3885,15 +3885,6 @@ function buildDeterministicQuestionWithPreflight(plan, blueprint, businessName, 
   const prefillQ = buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflightIntelligence);
   if (prefillQ) return prefillQ;
 
-  const bundleId = cleanString(plan?.bundle_id);
-  const pf = cleanString(plan?.primary_field);
-  if (
-    bundleId === "contact_details" &&
-    ["phone", "address", "hours"].includes(pf)
-  ) {
-    return "Where can people reach or visit you? You can include phone, address, and hours if available.";
-  }
-
   const expert = buildExpertContextualDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence);
   if (expert) return expert;
 
@@ -4084,6 +4075,14 @@ function getRephraseForbiddenLine(primaryField) {
       return "Do NOT mention pricing, package tiers, or booking URLs unless base_question already does.";
     case "pricing":
       return "Do NOT ask how someone books, scheduling links, or phone vs form as a second thread—only pricing/quoting mechanics.";
+    case "phone":
+      return "Ask only about the public phone number. Do NOT mention pricing, quotes, email, address, or hours unless base_question already asks for them.";
+    case "email":
+      return "Ask only about the public email. Do NOT mention pricing, phone, address, or hours unless base_question already asks for them.";
+    case "address":
+      return "Ask only about the public address or location. Do NOT mention pricing, hours, or booking URLs unless base_question already asks for them.";
+    case "hours":
+      return "Ask only about hours or availability. Do NOT mention pricing, booking URLs, or other contact channels unless base_question already asks for them.";
     default:
       return "Do not introduce topics outside what base_question already asks.";
   }
@@ -5257,8 +5256,20 @@ function isOverloadedQuestion(message, bundleId) {
   const text = cleanString(message).toLowerCase();
   if (!text) return false;
 
+  const bundle = cleanString(bundleId);
+  // Avoid bare "book"/"call"/"form" — they collide with contact_details + expert leads ("call", "contact form").
   const bundleKeywords = {
-    conversion: ["book", "booking", "quote", "pricing", "availability", "call", "form", "next step"],
+    conversion: [
+      "book online",
+      "booking",
+      "request a quote",
+      "quote",
+      "pricing",
+      "availability",
+      "schedule",
+      "next step",
+      "fill out a form"
+    ],
     positioning: ["audience", "customer", "offer", "different", "difference", "stand out", "ideal fit"],
     service_area: ["city", "cities", "area", "areas", "region", "regions", "neighborhood", "neighborhoods", "serve"],
     proof: ["review", "reviews", "trust", "results", "experience", "credibility", "reputation", "testimonial"],
@@ -5281,12 +5292,23 @@ function isOverloadedQuestion(message, bundleId) {
     .map((entry) => entry.key);
 
   let relevant = activeBundles;
-  if (cleanString(bundleId) === "conversion") {
+  if (bundle === "conversion") {
     relevant = activeBundles.filter((k) => k !== "positioning");
   }
 
   if (relevant.length <= 1) return false;
-  return !relevant.every((key) => key === bundleId);
+  if (relevant.every((key) => key === bundle)) return false;
+
+  // Contact + conversion often co-occur legitimately ("call for a quote" on a phone ask). Treat as single-topic.
+  const distinct = relevant.filter((k) => k !== bundle);
+  const distinctSansContactConversionPair = distinct.filter((k) => {
+    if (bundle === "contact_details" && k === "conversion") return false;
+    if (bundle === "conversion" && k === "contact_details") return false;
+    return true;
+  });
+  if (distinctSansContactConversionPair.length === 0) return false;
+
+  return true;
 }
 
 function unresolvedPointMatchesBundle(point, bundleId) {
@@ -5319,7 +5341,7 @@ function looksLikeRepeatedQuestion(message, answerSummary, bundleId) {
   if (!question || !answer || !bundle) return false;
 
   const repeatedSignals = {
-    conversion: ["call", "request a quote", "fill out a form", "book online", "next step"],
+    conversion: ["request a quote", "fill out a form", "book online", "next step"],
     positioning: ["who it is for", "what you offer", "different"],
     service_area: ["what areas", "which cities", "where do you serve"],
     proof: ["why trust", "reviews", "results", "experience"],
@@ -5337,5 +5359,15 @@ function looksLikeRepeatedQuestion(message, answerSummary, bundleId) {
   const matchedInQuestion = bundlePhrases.some((phrase) => question.includes(phrase));
   const matchedInAnswer = bundlePhrases.some((phrase) => answer.includes(phrase));
 
-  return matchedInQuestion && matchedInAnswer;
+  if (!matchedInQuestion || !matchedInAnswer) return false;
+
+  // Narrow overlap: e.g. "call" alone should not count as repeating a phone question.
+  if (bundle === "conversion") {
+    const substantive = ["request a quote", "fill out a form", "book online", "next step"];
+    const qHit = substantive.some((phrase) => question.includes(phrase));
+    const aHit = substantive.some((phrase) => answer.includes(phrase));
+    if (!qHit || !aHit) return false;
+  }
+
+  return true;
 } 
