@@ -60,26 +60,26 @@
         "path": "#contact"
       }
     ],
-    "cta_text": "Get Started",
+    "cta_text": "Call Now",
     "cta_link": "#contact",
     "cta_type": "anchor",
-    "secondary_cta_text": "Call Now",
+    "secondary_cta_text": "Learn More",
     "secondary_cta_link": "#contact"
   },
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "art classes, custom framing",
+    "tagline": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
     "email": "info@simonsfineartframing.com",
-    "phone": "555-555-5555",
+    "phone": "222-222-2222",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
     "headline": "custom framing services in Dublin PA",
-    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Reach out and we'll help you take the next step. Built with care and attention to detail you can...",
+    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention...",
     "image": {
-      "alt": "art classes, custom framing",
+      "alt": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
       "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings gallery wall natural window light"
     }
   },
@@ -122,13 +122,13 @@
       "icon_slug": "shield"
     },
     {
-      "title": "Custom Framing",
+      "title": "Artist-owned. Passionate About Art....",
       "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
       "icon_slug": "sparkles"
     },
     {
       "title": "Quality Work",
-      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
+      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Also offers art classes. Built with care and attention to detail you...",
       "icon_slug": "map"
     },
     {
@@ -157,26 +157,26 @@
     "layout": null,
     "show_titles": true,
     "image_source": {
-      "image_search_query": "craftsmanship showcase art classes candid customer interaction moment in approachable natural light"
+      "image_search_query": "craftsmanship showcase artist owned candid customer interaction moment in approachable natural light"
     },
     "computed_count": 4,
     "computed_layout": "grid",
     "items": [
       {
         "title": "Project 1",
-        "image_search_query": "craftsmanship showcase art classes candid customer interaction moment in approachable natural light"
+        "image_search_query": "craftsmanship showcase artist owned candid customer interaction moment in approachable natural light"
       },
       {
         "title": "Project 2",
-        "image_search_query": "craftsmanship showcase art classes calm human service moment with quiet trustworthy warmth"
+        "image_search_query": "craftsmanship showcase artist owned calm human service moment with quiet trustworthy warmth"
       },
       {
         "title": "Project 3",
-        "image_search_query": "craftsmanship showcase art classes authentic real world setting with warm ambient depth"
+        "image_search_query": "craftsmanship showcase artist owned authentic real world setting with warm ambient depth"
       },
       {
         "title": "Project 4",
-        "image_search_query": "craftsmanship showcase art classes quiet interior environment scene with natural window light"
+        "image_search_query": "craftsmanship showcase artist owned quiet interior environment scene with natural window light"
       }
     ]
   },
@@ -184,7 +184,7 @@
     "headline": "Get in Touch",
     "subheadline": "Tell us what you need and we'll help you with the right next step.",
     "email": "info@simonsfineartframing.com",
-    "phone": "555-555-5555",
+    "phone": "222-222-2222",
     "email_recipient": "info@simonsfineartframing.com",
     "button_text": "Send Message",
     "office_address": ""
