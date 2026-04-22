@@ -1504,27 +1504,46 @@ function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastA
     state
   });
 
-const nextQuestionPlan = planNextQuestion(
-  nextBlueprint.question_candidates,
-  nextBlueprint.question_plan?.bundle_id,
-  nextBlueprint.question_plan?.primary_field,
-  nextBlueprint.fact_registry
-);
+  const nextQuestionPlan = planNextQuestion(
+    nextBlueprint.question_candidates,
+    nextBlueprint.question_plan?.bundle_id,
+    nextBlueprint.question_plan?.primary_field,
+    nextBlueprint.fact_registry,
+    nextBlueprint,
+    state
+  );
 
   nextBlueprint.question_plan = nextQuestionPlan ? deepClone(nextQuestionPlan) : null;
 
   // ==========================
-  // PHASE 1 — QUESTION PLAN DEBUG METADATA (observability only; no planner logic change)
+  // PHASE 1 / 2 — QUESTION PLAN DEBUG METADATA (observability)
   // ==========================
   if (nextBlueprint.question_plan) {
-    nextBlueprint.question_plan.selection_reason =
-      nextBlueprint.question_plan.selection_reason || "first_missing";
-    nextBlueprint.question_plan.priority_score =
-      nextBlueprint.question_plan.priority_score ?? null;
-    nextBlueprint.question_plan.preflight_signals_used =
-      Array.isArray(nextBlueprint.question_plan.preflight_signals_used)
-        ? nextBlueprint.question_plan.preflight_signals_used
-        : [];
+    const prevPf = cleanString(previousPlan?.primary_field);
+    const sticky = !!prevPf && !isFieldSatisfied(prevPf, nextBlueprint.fact_registry);
+    const nextPf = cleanString(nextBlueprint.question_plan.primary_field);
+    const rounds = Array.isArray(nextBlueprint.question_history) ? nextBlueprint.question_history.length : 0;
+
+    if (sticky && nextPf === prevPf) {
+      nextBlueprint.question_plan.selection_reason = "sticky_primary_unsatisfied";
+    } else {
+      nextBlueprint.question_plan.selection_reason = "priority_based";
+    }
+
+    nextBlueprint.question_plan.priority_score = computeFieldPriorityScore(
+      nextPf,
+      nextBlueprint,
+      state,
+      rounds
+    );
+
+    const bm = cleanString(nextBlueprint.strategy?.business_context?.business_model);
+    const sig = Array.isArray(nextBlueprint.question_plan.preflight_signals_used)
+      ? [...nextBlueprint.question_plan.preflight_signals_used]
+      : [];
+    if (bm && !sig.includes(bm)) sig.unshift(bm);
+    if (!sig.length) sig.push("unknown");
+    nextBlueprint.question_plan.preflight_signals_used = sig;
   }
 
   return { blueprint: nextBlueprint };
@@ -2815,6 +2834,78 @@ function hasLocationSignalsForServiceArea(factRegistry, state, blueprint) {
   return typeof bsa === "string" && !!cleanString(bsa);
 }
 
+// ==========================
+// PHASE 2 — FIELD PRIORITY ENGINE (verification_queue + strategy + access)
+// ==========================
+function computeFieldPriorityScore(fieldKey, blueprint, state, intakeRoundCount) {
+  const fk = cleanString(fieldKey);
+  if (!fk) return 0;
+
+  const queue = Array.isArray(blueprint?.verification_queue) ? blueprint.verification_queue : [];
+  const item = queue.find((f) => cleanString(f.field_key) === fk);
+  let score = Number(item?.priority || 0);
+
+  const componentStates = safeObject(blueprint?.component_states);
+  const access = blueprint?.access_readiness || {};
+  const businessModel = cleanString(blueprint?.strategy?.business_context?.business_model);
+
+  const strategicFields = ["differentiation", "target_persona", "primary_offer", "pricing"];
+  if (strategicFields.includes(fk)) {
+    score += 120;
+  }
+
+  const contactFields = ["phone", "address", "hours"];
+  const rounds = Number(intakeRoundCount) || 0;
+
+  if (contactFields.includes(fk) && rounds < 3) {
+    score -= 120;
+  }
+
+  if (businessModel === "storefront") {
+    if (contactFields.includes(fk)) {
+      score += 40;
+    }
+  } else if (businessModel) {
+    if (fk === "address" || fk === "hours") {
+      score -= 60;
+    }
+  }
+
+  if (!access?.satisfied) {
+    const missing = cleanString(access?.missing_focus_id);
+    if (fk === missing && rounds >= 3) {
+      score += 100;
+    }
+  }
+
+  for (const comp of Object.values(componentStates)) {
+    if (comp?.enabled && Array.isArray(comp?.evidence_keys) && comp.evidence_keys.includes(fk)) {
+      score += 25;
+    }
+  }
+
+  return score;
+}
+
+function pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state) {
+  const fields = cleanList(unresolvedFields).filter(Boolean);
+  if (!fields.length) return "";
+  if (fields.length === 1) return fields[0];
+
+  const rounds = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
+  let best = fields[0];
+  let bestScore = computeFieldPriorityScore(best, blueprint, state, rounds);
+  for (let i = 1; i < fields.length; i += 1) {
+    const key = fields[i];
+    const s = computeFieldPriorityScore(key, blueprint, state, rounds);
+    if (s > bestScore) {
+      bestScore = s;
+      best = key;
+    }
+  }
+  return best;
+}
+
 function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) {
   const candidates = [];
   const decisionStates = safeObject(blueprint.decision_states);
@@ -2894,7 +2985,11 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
         .concat(stalledFields);
     }
 
-    const nextPrimaryField = cleanString(unresolvedFields[0] || targetFields[0]);
+    const primaryPick =
+      unresolvedFields.length > 0
+        ? pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state)
+        : "";
+    const nextPrimaryField = cleanString(primaryPick || unresolvedFields[0] || targetFields[0]);
     const bypassAccessForPrefill = unresolvedFields.some(
       (fk) => cleanString(factRegistry[fk]?.status) === "prefilled_unverified"
     );
@@ -2990,13 +3085,22 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
       score += 20;
     }
 
+    const strategicPrimary = ["differentiation", "target_persona", "primary_offer", "pricing"];
+    const contactNapFields = ["phone", "address", "hours"];
+    if (primaryPick && strategicPrimary.includes(primaryPick)) {
+      score += 70;
+    }
+    if (primaryPick && contactNapFields.includes(primaryPick) && askedTurns < 3) {
+      score -= 95;
+    }
+
     candidates.push({
       bundle_id: decision,
       score,
       target_fields: targetFields,
       unresolved_fields: unresolvedFields,
       target_sections: relatedComponents,
-      primary_field: unresolvedFields[0] || targetFields[0] || "",
+      primary_field: cleanString(primaryPick || unresolvedFields[0] || targetFields[0] || ""),
       intent: cleanString(config.intent),
       reason: cleanString(config.reason),
       tone: "consultative"
@@ -3038,7 +3142,7 @@ function isPricingComplete(factRegistry) {
   return false;
 }
 
-function planNextQuestion(candidates, previousBundleId, previousPrimaryField, factRegistry) {
+function planNextQuestion(candidates, previousBundleId, previousPrimaryField, factRegistry, blueprint, state) {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
   const lastPrimary = cleanString(previousPrimaryField);
@@ -3100,7 +3204,10 @@ function planNextQuestion(candidates, previousBundleId, previousPrimaryField, fa
     ? best.unresolved_fields_runtime
     : targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
 
-  const nextPrimaryField = unresolvedFields[0] || null;
+  const nextPrimaryField =
+    unresolvedFields.length > 0 && blueprint && state
+      ? pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state)
+      : unresolvedFields[0] || null;
   if (!nextPrimaryField) return null;
 
   return {
