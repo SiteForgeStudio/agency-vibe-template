@@ -7,8 +7,8 @@
  * - Build a blueprint from recon + strategy_contract
  * - Seed a partial business draft + fact registry
  * - Compute section status from strategy + requirements
- * - Build a verification queue
- * - Select the first question bundle deterministically
+ * - Build initial blueprint facts/draft/section_status
+ * - Run the same planner as intake-next-v2 (recomputeBlueprint) for verification_queue + first question_plan
  * - Persist initialized state to the orchestrator
  *
  * Notes:
@@ -17,6 +17,8 @@
  * - No narrative-block controller
  * - Keeps compatibility with existing strategy_contract provenance
  */
+
+import { compileSchemaGuide, recomputeBlueprint } from "./intake-next-v2.js";
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -56,7 +58,7 @@ export async function onRequestPost(context) {
     const preflight_intelligence = buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers);
 
     // 2) BUILD BLUEPRINT (merges strategy-inferred facts + preflight_intelligence hydration before section/plan)
-    const blueprint = buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflight_intelligence);
+    const blueprintBase = buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflight_intelligence);
 
     // 3) INITIALIZE STATE
     const initialState = {
@@ -75,9 +77,9 @@ export async function onRequestPost(context) {
       verified: {},
 
       verification: {
-        queue_complete: blueprint.verification_queue.length === 0,
+        queue_complete: true,
         verified_count: 0,
-        remaining_keys: blueprint.verification_queue.map((item) => item.field_key),
+        remaining_keys: [],
         last_updated: new Date().toISOString()
       },
 
@@ -99,17 +101,55 @@ export async function onRequestPost(context) {
       /** Handoff slice for PREFLIGHT_OUTPUT_SPEC_V1 → intake bridge (question framing, validation tone). */
       preflight_intelligence: preflight_intelligence,
 
-      // new controller state
-      blueprint,
+      // new controller state (planner fields filled in Phase 2.6 below)
+      blueprint: blueprintBase,
 
-      readiness: evaluateBlueprintReadiness(blueprint)
+      readiness: {
+        score: 0,
+        can_generate_now: false,
+        remaining_blocks: [],
+        satisfied_blocks: [],
+        must_verify_open: []
+      }
     };
 
+    // ==========================
+    // PHASE 2.6 — UNIFIED PLANNER (START)
+    // ==========================
+    const schemaGuide = compileSchemaGuide(initialState.blueprint, initialState);
+    const recomputed = recomputeBlueprint({
+      blueprint: initialState.blueprint,
+      state: initialState,
+      schemaGuide,
+      previousPlan: {},
+      lastAudit: null
+    });
+
+    initialState.blueprint = {
+      ...recomputed.blueprint,
+      schema_guide: schemaGuide
+    };
+
+    if (!initialState.blueprint.question_plan) {
+      throw new Error("Planner failed to generate initial question_plan");
+    }
+
+    const vq = Array.isArray(initialState.blueprint.verification_queue)
+      ? initialState.blueprint.verification_queue
+      : [];
+    initialState.verification = {
+      queue_complete: vq.length === 0,
+      verified_count: 0,
+      remaining_keys: vq.map((item) => item.field_key),
+      last_updated: new Date().toISOString()
+    };
+    initialState.readiness = evaluateBlueprintReadiness(initialState.blueprint);
+
     // compatibility mirrors
-    initialState.current_key = blueprint.question_plan?.primary_field || null;
+    initialState.current_key = initialState.blueprint.question_plan?.primary_field || null;
 
     const openingMessage =
-      renderQuestion(blueprint.question_plan, blueprint) ||
+      renderQuestion(initialState.blueprint.question_plan, initialState.blueprint) ||
       fallbackOpeningMessage(initialState);
 
     initialState.conversation.push({
@@ -819,18 +859,15 @@ function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflig
 
   const businessDraft = buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry);
   const sectionStatus = computeSectionStatus(normalizedStrategy, factRegistry, businessDraft);
-  const verificationQueue = buildVerificationQueue(normalizedStrategy, factRegistry, sectionStatus);
-  const questionCandidates = buildQuestionCandidates(normalizedStrategy, factRegistry, sectionStatus, verificationQueue);
-  const questionPlan = planNextQuestion(questionCandidates);
 
   return {
     strategy: normalizedStrategy,
     fact_registry: factRegistry,
     business_draft: businessDraft,
     section_status: sectionStatus,
-    verification_queue: verificationQueue,
-    question_candidates: questionCandidates,
-    question_plan: questionPlan
+    verification_queue: [],
+    question_candidates: [],
+    question_plan: null
   };
 }
 
@@ -2215,388 +2252,61 @@ function isFactVerifiedByPath(factRegistry, factKey) {
   return !!fact?.verified || !fact?.requires_client_verification;
 }
 
-/* --------------------------------
-   VERIFICATION QUEUE
--------------------------------- */
-
-function buildVerificationQueue(strategy, factRegistry, sectionStatus) {
-  const queue = [];
-  const mustVerifyNow = cleanList(strategy?.content_requirements?.must_verify_now);
-  const previewRequired = cleanList(strategy?.content_requirements?.preview_required_fields);
-  const publishRequired = cleanList(strategy?.content_requirements?.publish_required_fields);
-
-  const fieldIntentMap = getFieldIntentMap(strategy);
-
-  for (const fieldKey of Object.keys(fieldIntentMap)) {
-    const fact = factRegistry?.[fieldKey];
-    const config = fieldIntentMap[fieldKey];
-
-    if (!fact) continue;
-
-    const missing = !hasMeaningfulValue(fact.value);
-    const needsClient = !!fact.requires_client_verification;
-    const shouldVerify =
-      needsClient ||
-      config.must_verify_now_aliases.some((alias) => mustVerifyNow.includes(alias)) ||
-      config.preview_aliases.some((alias) => previewRequired.includes(alias)) ||
-      config.publish_aliases.some((alias) => publishRequired.includes(alias));
-
-    if (!missing && !shouldVerify) continue;
-
-    const relatedSections = cleanList(config.related_sections).filter(
-      (section) => sectionStatus?.[section]?.enabled
-    );
-
-    queue.push({
-      field_key: fieldKey,
-      bundle_id: config.bundle_id,
-      priority: computeVerificationPriority(config, missing, shouldVerify, relatedSections),
-      missing,
-      requires_client_verification: needsClient,
-      related_sections: relatedSections,
-      reason: config.reason
-    });
-  }
-
-  return queue.sort((a, b) => b.priority - a.priority);
-}
-
-function getFieldIntentMap(strategy) {
-  const showProcess = !!strategy?.schema_toggles?.show_process;
-  const showGallery = !!strategy?.schema_toggles?.show_gallery;
-  const showTestimonials = !!strategy?.schema_toggles?.show_testimonials;
-  const showServiceArea = !!strategy?.schema_toggles?.show_service_area;
-  const showInvestment = !!strategy?.schema_toggles?.show_investment;
-  const showAbout = !!strategy?.schema_toggles?.show_about;
-
-  return {
-    primary_offer: {
-      bundle_id: "positioning",
-      related_sections: ["hero", "features"],
-      must_verify_now_aliases: ["primary_offer"],
-      preview_aliases: ["primary_offer"],
-      publish_aliases: [],
-      reason: "Primary offer shapes hero, features, and messaging."
-    },
-    target_persona: {
-      bundle_id: "positioning",
-      related_sections: ["intelligence", "hero", "features"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Audience clarity improves positioning and conversion."
-    },
-    differentiation: {
-      bundle_id: "positioning",
-      related_sections: ["hero", "about", "features"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Differentiation sharpens the page direction."
-    },
-    booking_method: {
-      bundle_id: "conversion",
-      related_sections: ["contact", "hero"],
-      must_verify_now_aliases: ["booking process"],
-      preview_aliases: ["booking_method"],
-      publish_aliases: [],
-      reason: "Booking method defines the conversion path."
-    },
-    pricing: {
-      bundle_id: showInvestment ? "pricing" : "conversion",
-      related_sections: showInvestment ? ["investment", "faqs", "contact"] : ["faqs", "contact"],
-      must_verify_now_aliases: ["pricing structure"],
-      preview_aliases: ["pricing structure"],
-      publish_aliases: ["pricing"],
-      reason: "Pricing expectations affect conversion and qualification."
-    },
-    service_area_main: {
-      bundle_id: "service_area",
-      related_sections: showServiceArea ? ["service_area", "hero"] : ["hero"],
-      must_verify_now_aliases: ["service area specifics"],
-      preview_aliases: ["service_area", "service area specifics"],
-      publish_aliases: [],
-      reason: "Location clarity supports relevance and local intent."
-    },
-    surrounding_cities: {
-      bundle_id: "service_area",
-      related_sections: showServiceArea ? ["service_area"] : [],
-      must_verify_now_aliases: ["service area specifics"],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Nearby locations improve service area usefulness."
-    },
-    phone: {
-      bundle_id: "contact_details",
-      related_sections: ["brand", "contact"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: ["phone", "public business phone number"],
-      reason: "Contact details are needed for publish-ready accuracy."
-    },
-    email: {
-      bundle_id: "contact_details",
-      related_sections: ["brand", "contact"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "An email gives the site a clear contact path."
-    },
-    address: {
-      bundle_id: "contact_details",
-      related_sections: ["brand", "contact"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: ["address", "business address"],
-      reason: "Address is publish-critical when the business uses one."
-    },
-    hours: {
-      bundle_id: "contact_details",
-      related_sections: ["contact"],
-      must_verify_now_aliases: ["availability for peak seasons"],
-      preview_aliases: ["availability for peak seasons"],
-      publish_aliases: ["hours", "hours of operation"],
-      reason: "Hours or availability set expectations for leads."
-    },
-    booking_url: {
-      bundle_id: "conversion",
-      related_sections: ["contact", "settings"],
-      must_verify_now_aliases: ["booking process"],
-      preview_aliases: [],
-      publish_aliases: ["booking_url"],
-      reason: "A real booking URL should be verified before publish."
-    },
-    review_quotes: {
-      bundle_id: "proof",
-      related_sections: showTestimonials ? ["testimonials", "trustbar"] : ["trustbar"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: ["review_quotes"],
-      reason: "Proof assets improve trust when available."
-    },
-    years_experience: {
-      bundle_id: "proof",
-      related_sections: showAbout ? ["about", "trustbar"] : ["trustbar"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Experience often strengthens trust."
-    },
-    founder_story: {
-      bundle_id: "brand_story",
-      related_sections: showAbout ? ["about"] : [],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Founding story improves the about section when enabled."
-    },
-    process_summary: {
-      bundle_id: "process",
-      related_sections: showProcess ? ["processSteps"] : [],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "A clear journey reduces friction for consultative businesses."
-    },
-    gallery_visual_direction: {
-      bundle_id: "visual_direction",
-      related_sections: showGallery ? ["gallery", "hero"] : ["hero"],
-      must_verify_now_aliases: [],
-      preview_aliases: [],
-      publish_aliases: [],
-      reason: "Visual direction helps the gallery and hero feel intentional."
-    }
-  };
-}
-
-function computeVerificationPriority(config, missing, shouldVerify, relatedSections) {
-  let score = 0;
-  if (missing) score += 60;
-  if (shouldVerify) score += 25;
-  score += Math.min(relatedSections.length * 8, 24);
-  return score;
-}
-
-/* --------------------------------
-   QUESTION CANDIDATES / PLANNER
--------------------------------- */
-
-function buildQuestionCandidates(strategy, factRegistry, sectionStatus, verificationQueue) {
-  const bundleMap = getQuestionBundleMap(strategy, factRegistry, sectionStatus);
-  const candidates = [];
-
-  for (const [bundleId, config] of Object.entries(bundleMap)) {
-    if (!config.enabled) continue;
-
-    const matchingQueue = verificationQueue.filter((item) => item.bundle_id === bundleId);
-    const targetedFields = uniqueList([
-      ...config.target_fields,
-      ...matchingQueue.map((item) => item.field_key)
-    ]).filter(Boolean);
-
-    const missingFields = targetedFields.filter((fieldKey) => {
-      const fact = factRegistry?.[fieldKey];
-      return !fact || !hasMeaningfulValue(fact.value) || fact.requires_client_verification;
-    });
-
-    if (missingFields.length === 0 && matchingQueue.length === 0) continue;
-
-    const queueImpact = matchingQueue.reduce(
-      (sum, item) => sum + Math.min(item.priority, 40),
-      0
-    );
-
-    const score =
-      config.base_priority +
-      queueImpact +
-      Math.min(config.target_sections.length * 6, 24);
-
-    let adjustedScore = score;
-
-    if (bundleId === "contact_details") {
-      adjustedScore -= 80;
-    }
-
-    candidates.push({
-      bundle_id: bundleId,
-      score: adjustedScore,
-      target_fields: targetedFields,
-      target_sections: config.target_sections,
-      primary_field: targetedFields[0] || null,
-      intent: config.intent,
-      reason: config.reason,
-      tone: config.tone || "consultative"
-    });
-  }
-
-  return candidates.sort((a, b) => b.score - a.score);
-}
-
-function getQuestionBundleMap(strategy, factRegistry, sectionStatus) {
-  return {
-    positioning: {
-      enabled: true,
-      base_priority: 220,
-      target_fields: ["primary_offer", "target_persona", "differentiation"],
-      target_sections: ["hero", "features", "about"],
-      intent: "Clarify who the site is for, what the offer is, and why it stands apart.",
-      reason: "This unlocks hero, features, and overall page direction."
-    },
-
-    conversion: {
-      enabled: true,
-      base_priority: 240,
-      target_fields: ["booking_method", "contact_path", "pricing", "booking_url"],
-      target_sections: ["contact", "settings", "hero"],
-      intent:
-        "Clarify how visitors take the next step (call, form, booking link, etc.). Pricing and availability are separate slots when relevant.",
-      reason: "This defines how the site converts visitors."
-    },
-
-    service_area: {
-      enabled:
-        !!strategy?.schema_toggles?.show_service_area ||
-        hasMeaningfulValue(factValue(factRegistry, "service_area_main")),
-      base_priority: 170,
-      target_fields: ["service_area_main", "surrounding_cities"],
-      target_sections: ["service_area", "hero"],
-      intent: "Clarify the primary market and nearby areas served.",
-      reason: "This improves local relevance and targeting."
-    },
-
-    proof: {
-      enabled:
-        !!strategy?.schema_toggles?.show_testimonials ||
-        !!strategy?.schema_toggles?.show_trustbar ||
-        sectionStatus?.about?.enabled,
-      base_priority: 150,
-      target_fields: ["review_quotes", "years_experience", "trust_signal"],
-      target_sections: ["trustbar", "testimonials", "about"],
-      intent: "Clarify why someone should trust the business quickly.",
-      reason: "Proof makes the site feel credible."
-    },
-
-    brand_story: {
-      enabled: !!strategy?.schema_toggles?.show_about,
-      base_priority: 90,
-      target_fields: ["founder_story", "years_experience"],
-      target_sections: ["about"],
-      intent: "Clarify how the business started and what standards or philosophy define it.",
-      reason: "A stronger story improves the about section."
-    },
-
-    process: {
-      enabled: !!strategy?.schema_toggles?.show_process,
-      base_priority: 85,
-      target_fields: ["process_summary"],
-      target_sections: ["processSteps"],
-      intent: "Understand the client journey from first step to outcome.",
-      reason: "A clear process lowers friction for multi-step offers."
-    },
-
-    visual_direction: {
-      enabled: !!strategy?.schema_toggles?.show_gallery,
-      base_priority: 80,
-      target_fields: ["gallery_visual_direction"],
-      target_sections: ["gallery", "hero"],
-      intent: "Clarify what should be shown visually and what feeling the images should create.",
-      reason: "The gallery needs intentional visual direction."
-    },
-
-    contact_details: {
-      enabled: true,
-      base_priority: 15,
-      target_fields: ["phone", "email", "address", "hours"],
-      target_sections: ["brand", "contact"],
-      intent: "Verify the factual contact details needed for publish-readiness.",
-      reason: "These details should be accurate before publish."
-    },
-
-    pricing: {
-      enabled: !!strategy?.schema_toggles?.show_investment,
-      base_priority: 55,
-      target_fields: ["pricing"],
-      target_sections: ["investment", "contact"],
-      intent: "Clarify whether pricing is standardized, estimate-based, or custom.",
-      reason: "Pricing only matters when that section is in play."
-    }
-  };
-}
-
-function planNextQuestion(questionCandidates) {
-  if (!Array.isArray(questionCandidates) || questionCandidates.length === 0) return null;
-
-  const sorted = [...questionCandidates].sort((a, b) => b.score - a.score);
-  const top = sorted[0];
-
-  if (top?.bundle_id !== "contact_details") {
-    return top;
-  }
-
-  const preferredOpeningOrder = [
-    "conversion",
-    "positioning",
-    "service_area",
-    "proof",
-    "brand_story",
-    "process",
-    "visual_direction"
-  ];
-
-  for (const bundleId of preferredOpeningOrder) {
-    const candidate = sorted.find((item) => item.bundle_id === bundleId);
-    if (candidate) return candidate;
-  }
-
-  return top;
-}
 
 /* --------------------------------
    QUESTION RENDERING
 -------------------------------- */
 
+// ==========================
+// PHASE 2.7 — FIELD-AWARE QUESTION RENDERING
+// ==========================
+
+function renderFieldScopedQuestion(plan) {
+  const field = cleanString(plan?.primary_field);
+
+  switch (field) {
+    case "differentiation":
+      return "What makes your business stand out from others offering similar services?";
+
+    case "target_persona":
+      return "Who is the ideal client you do your best work for?";
+
+    case "primary_offer":
+      return "What is the main service or outcome you provide to customers?";
+
+    case "pricing":
+      return "How do customers typically think about pricing or value when working with you?";
+
+    case "process_summary":
+      return "What does working with you typically look like from start to finish?";
+
+    case "service_area_main":
+      return "Where do you primarily provide your services?";
+
+    case "booking_method":
+      return "What is the typical next step a customer takes to get started?";
+
+    case "phone":
+      return "What phone number should customers use to reach you?";
+
+    case "address":
+      return "What is your business address (if customers visit in person)?";
+
+    case "hours":
+      return "What are your typical business hours?";
+
+    default:
+      return null;
+  }
+}
+
 function renderQuestion(questionPlan, blueprint) {
   if (!questionPlan) return "";
+
+  const scoped = renderFieldScopedQuestion(questionPlan);
+  if (scoped) {
+    return scoped;
+  }
 
   const businessName =
     cleanString(blueprint?.strategy?.business_context?.business_name) || "your business";

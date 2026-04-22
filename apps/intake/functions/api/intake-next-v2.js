@@ -295,7 +295,7 @@ export async function onRequestGet() {
  * Schema Guide
  * ====================================================================== */
 
-function compileSchemaGuide(blueprint, state) {
+export function compileSchemaGuide(blueprint, state) {
   const strategyContract = safeObject(state?.provenance?.strategy_contract);
   const toggles = safeObject(
     blueprint?.strategy?.schema_toggles ||
@@ -1453,7 +1453,7 @@ if (
  * Blueprint Recompute
  * ====================================================================== */
 
-function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastAudit }) {
+export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastAudit }) {
   const nextBlueprint = deepClone(blueprint);
   nextBlueprint.question_history = Array.isArray(nextBlueprint.question_history)
     ? deepClone(nextBlueprint.question_history)
