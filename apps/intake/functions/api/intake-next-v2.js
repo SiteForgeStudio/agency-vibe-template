@@ -239,7 +239,19 @@ export async function onRequestPost(context) {
       access_score: ar?.score ?? null,
       access_planner_hint: ar?.planner_hint ?? null,
       access_model_source: ar?.access_model_source ?? null,
-      business_model_signal: ar?.business_model_signal ?? null
+      business_model_signal: ar?.business_model_signal ?? null,
+
+      // ==========================
+      // PHASE 1 — OBSERVABILITY (NON-BREAKING)
+      // ==========================
+      why_this_field:
+        cleanString(state?.blueprint?.question_plan?.selection_reason) || "first_missing",
+      field_priority_score: state?.blueprint?.question_plan?.priority_score ?? null,
+      preflight_signal_used: Array.isArray(state?.blueprint?.question_plan?.preflight_signals_used)
+        ? [...state.blueprint.question_plan.preflight_signals_used]
+        : [],
+      cluster_active: false,
+      cluster_fields: []
     };
 
     // Persist asked-question history for future stall detection
@@ -1500,6 +1512,20 @@ const nextQuestionPlan = planNextQuestion(
 );
 
   nextBlueprint.question_plan = nextQuestionPlan ? deepClone(nextQuestionPlan) : null;
+
+  // ==========================
+  // PHASE 1 — QUESTION PLAN DEBUG METADATA (observability only; no planner logic change)
+  // ==========================
+  if (nextBlueprint.question_plan) {
+    nextBlueprint.question_plan.selection_reason =
+      nextBlueprint.question_plan.selection_reason || "first_missing";
+    nextBlueprint.question_plan.priority_score =
+      nextBlueprint.question_plan.priority_score ?? null;
+    nextBlueprint.question_plan.preflight_signals_used =
+      Array.isArray(nextBlueprint.question_plan.preflight_signals_used)
+        ? nextBlueprint.question_plan.preflight_signals_used
+        : [];
+  }
 
   return { blueprint: nextBlueprint };
 }

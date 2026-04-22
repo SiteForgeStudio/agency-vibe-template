@@ -262,6 +262,15 @@ function printDebug(prevState, newState, data) {
   console.log("→ Fallback triggered:", td.fallback_triggered);
   console.log("→ Fallback reason:", td.fallback_reason ?? "(none)");
 
+  console.log("\n🧭 FIELD SELECTION:");
+  console.log("→ Why this field:", td.why_this_field || "(not set)");
+  console.log("→ Priority score:", td.field_priority_score ?? "(not set)");
+  console.log("\n🧠 PREFLIGHT INFLUENCE:");
+  console.log("→ Signals used:", td.preflight_signal_used || []);
+  console.log("\n🧩 CLUSTER MODE:");
+  console.log("→ Cluster active:", td.cluster_active || false);
+  console.log("→ Cluster fields:", td.cluster_fields || []);
+
   // ==========================
   // FACT CHANGES
   // ==========================
