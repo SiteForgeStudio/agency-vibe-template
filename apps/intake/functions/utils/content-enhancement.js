@@ -12,20 +12,11 @@ function isGuidedDecisionMode(decisionMode) {
 export function enhanceProcessSteps(processSteps, signalBlob, behavior) {
   if (!Array.isArray(processSteps)) return processSteps;
 
-  const narrative = cleanString(signalBlob?.process_model?.process_narrative);
-  const decisionMode = signalBlob?.experience_model?.decision_mode;
+  // Keep process step copy as-authored from assembly (user/strategy evidence). Only clamp length.
+  // Skip consultative/reassurance tails here — they repeated across 3–5 cards; features/hero still use enhancement.
 
   return processSteps.map((step) => {
-    let description = step.description || "";
-
-    if (isGuidedDecisionMode(decisionMode)) {
-      description = makeConsultative(description, narrative);
-    }
-
-    if (behavior?.trust_sensitivity === "high") {
-      description = addReassurance(description);
-    }
-
+    const description = step.description || "";
     return {
       ...step,
       description: truncate(description, 220)

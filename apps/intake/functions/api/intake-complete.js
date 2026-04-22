@@ -1949,12 +1949,50 @@ function mapDecisionFactorToFeature(factor) {
   return null;
 }
 
+/**
+ * If title truncation ends on a bare number before a time unit in the source, append the unit (e.g. "…in 2" + "days").
+ * Generic — no client/vertical strings.
+ */
+function repairProcessTitleTimeUnit(title, sourceText) {
+  const t = cleanString(title);
+  const src = cleanString(sourceText);
+  if (!t || !src) return t;
+  if (/\d+\s*(days?|hours?|weeks?|minutes?|mins?|hrs?)\b/i.test(t)) return t;
+  const m = src.match(/\b(\d+)\s*(days?|hours?|weeks?|minutes?|mins?|hrs?)\b/i);
+  if (!m) return t;
+  if (/\d\s*$/.test(t) || /\s(in|within|after|for)\s+\d+\s*$/i.test(t)) {
+    const merged = `${t} ${m[2]}`.trim();
+    if (merged.length <= 72) return merged;
+  }
+  return t;
+}
+
 function inferProcessStepTitle(description, idx) {
   const d = cleanString(description);
   if (!d) return `Step ${idx + 1}`;
   const firstSentence = d.split(/[.!?]/)[0] || d;
-  const short = truncateAtWordBoundary(firstSentence, 52).replace(/\s*\.\.\.$/, "");
-  return titleCaseSmart(short) || `Step ${idx + 1}`;
+  let short = truncateAtWordBoundary(firstSentence, 58).replace(/\s*\.\.\.$/, "");
+  short = repairProcessTitleTimeUnit(short, firstSentence);
+  return normalizePublicText(titleCaseSmart(short)) || `Step ${idx + 1}`;
+}
+
+/** Title from a user process fragment: word-bounded length, preserve time units, no five-word chop. */
+function buildVerbatimProcessStepTitle(fragment, idx) {
+  const frag = cleanSentenceFragment(fragment);
+  if (!frag) return `Step ${idx + 1}`;
+  const words = frag.split(/\s+/).filter(Boolean);
+  const head = words.slice(0, Math.min(words.length, 12)).join(" ");
+  let candidate = truncateAtWordBoundary(head, 64).replace(/\s*\.\.\.$/, "");
+  candidate = repairProcessTitleTimeUnit(candidate, frag);
+  return normalizePublicText(titleCaseSmart(candidate)) || `Step ${idx + 1}`;
+}
+
+function formatProcessStepDescriptionFromFragment(fragment) {
+  const frag = cleanSentenceFragment(fragment);
+  if (!frag) return "";
+  const withStop = /[.!?]$/.test(frag) ? frag : `${frag}.`;
+  const cap = withStop.charAt(0).toUpperCase() + withStop.slice(1);
+  return normalizePublicText(cap);
 }
 
 /**
@@ -1966,17 +2004,12 @@ function verbatimStepsFromPieces(pieces) {
   for (const piece of pieces) {
     const fragment = cleanSentenceFragment(piece);
     if (!fragment) continue;
-    const lower = fragment.toLowerCase();
-    const title =
-      truncateAtWordBoundary(titleCaseSmart(fragment.split(/\s+/).slice(0, 5).join(" ")), 52) ||
-      `Step ${idx + 1}`;
-    const description =
-      fragment.length > 60
-        ? `${fragment.charAt(0).toUpperCase() + fragment.slice(1)}${/[.!?]$/.test(fragment) ? "" : "."}`
-        : `${titleCaseSmart(fragment)} — a clear checkpoint so you know what happens at this stage.`;
+    const title = buildVerbatimProcessStepTitle(fragment, idx);
+    const description = formatProcessStepDescriptionFromFragment(fragment);
+    if (!description) continue;
     out.push({
-      title: normalizePublicText(title),
-      description: normalizePublicText(description)
+      title,
+      description
     });
     idx++;
   }
