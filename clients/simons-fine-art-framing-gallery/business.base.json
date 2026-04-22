@@ -69,7 +69,7 @@
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "art classes, custom fraaming",
+    "tagline": "art classes , custom frames",
     "email": "info@simonsfineartframing.com",
     "phone": "111-111-1111",
     "office_address": "",
@@ -79,8 +79,8 @@
     "headline": "custom framing services in Dublin PA",
     "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention...",
     "image": {
-      "alt": "art classes, custom fraaming",
-      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings gallery wall natural window light"
+      "alt": "art classes , custom frames",
+      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
     }
   },
   "about": {
@@ -122,7 +122,7 @@
       "icon_slug": "shield"
     },
     {
-      "title": "Custom Fraaming",
+      "title": "Custom Frames",
       "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
       "icon_slug": "sparkles"
     },
@@ -139,24 +139,24 @@
   ],
   "processSteps": [
     {
-      "title": "Bring In Artwork",
-      "description": "Bring in artwork."
+      "title": "Bring In Artwork to The Shop",
+      "description": "Bring in artwork to the shop."
     },
     {
       "title": "We Measure",
       "description": "We measure."
     },
     {
-      "title": "We Select Frame",
-      "description": "We select frame."
+      "title": "Together We Select A Perfect Frame",
+      "description": "Together we select a perfect frame."
     },
     {
-      "title": "Matting",
-      "description": "Matting."
+      "title": "We Cut",
+      "description": "We cut."
     },
     {
-      "title": "Glass",
-      "description": "Glass."
+      "title": "Mount Frame",
+      "description": "Mount frame."
     }
   ],
   "gallery": {
