@@ -60,27 +60,27 @@
         "path": "#contact"
       }
     ],
-    "cta_text": "Get Started",
+    "cta_text": "Call Now",
     "cta_link": "#contact",
     "cta_type": "anchor",
-    "secondary_cta_text": "Call Now",
+    "secondary_cta_text": "Learn More",
     "secondary_cta_link": "#contact"
   },
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "art classes, custom frames",
+    "tagline": "art classes, custom framing for artwork and photos",
     "email": "info@simonsfineartframing.com",
-    "phone": "111-222-3333",
+    "phone": "999-999-9999",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
     "headline": "custom framing services in Dublin PA",
-    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Reach out and we'll help you take the next step. Built with care and attention to detail you can...",
+    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention...",
     "image": {
-      "alt": "art classes, custom frames",
-      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
+      "alt": "art classes, custom framing for artwork and photos",
+      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings gallery wall natural window light"
     }
   },
   "about": {
@@ -122,8 +122,8 @@
       "icon_slug": "shield"
     },
     {
-      "title": "Custom Frames",
-      "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
+      "title": "Custom Framing for Artwork and Photos",
+      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
       "icon_slug": "sparkles"
     },
     {
@@ -139,24 +139,24 @@
   ],
   "processSteps": [
     {
-      "title": "1",
-      "description": ""
+      "title": "Bring In Your Artwork to Be Framed",
+      "description": "Bring in your artwork to be framed."
     },
     {
-      "title": "Bring In Their Artwork to The Shop",
-      "description": "Bring in their artwork to the shop."
+      "title": "We Will Measure",
+      "description": "We will measure."
     },
     {
-      "title": "2",
-      "description": ""
+      "title": "Together We Select Appropriate Frame",
+      "description": "Together we select appropriate frame."
     },
     {
-      "title": "We Measure",
-      "description": "We measure."
+      "title": "Matt",
+      "description": "Matt."
     },
     {
-      "title": "3",
-      "description": ""
+      "title": "Glass",
+      "description": "Glass."
     }
   ],
   "gallery": {
@@ -192,7 +192,7 @@
     "headline": "Get in Touch",
     "subheadline": "Tell us what you need and we'll help you with the right next step.",
     "email": "info@simonsfineartframing.com",
-    "phone": "111-222-3333",
+    "phone": "999-999-9999",
     "email_recipient": "info@simonsfineartframing.com",
     "button_text": "Send Message",
     "office_address": ""
