@@ -69,9 +69,9 @@
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
+    "tagline": "glass and framing and matting",
     "email": "info@simonsfineartframing.com",
-    "phone": "222-222-2222",
+    "phone": "111-111-1111",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
@@ -79,8 +79,8 @@
     "headline": "custom framing services in Dublin PA",
     "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention...",
     "image": {
-      "alt": "Artist-owned. Passionate about art. Dedicated to the craft of fine art framing. Committed to keeping it affordable and accessible",
-      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings gallery wall natural window light"
+      "alt": "glass and framing and matting",
+      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
     }
   },
   "about": {
@@ -122,13 +122,13 @@
       "icon_slug": "shield"
     },
     {
-      "title": "Artist-owned. Passionate About Art....",
+      "title": "Glass and Framing and Matting",
       "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
       "icon_slug": "sparkles"
     },
     {
       "title": "Quality Work",
-      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Also offers art classes. Built with care and attention to detail you...",
+      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
       "icon_slug": "map"
     },
     {
@@ -139,16 +139,24 @@
   ],
   "processSteps": [
     {
-      "title": "Understand goals and constraints",
-      "description": "We start by clarifying priorities, fit, and the quality standard you want so the plan matches reality. Built with care and attention to detail you can trust."
+      "title": "Customers Bring In The Artwork",
+      "description": "Customers Bring In The Artwork to The Shop - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     },
     {
-      "title": "Choose the right approach",
-      "description": "We recommend an approach that protects craftsmanship and sets expectations before work starts. Built with care and attention to detail you can trust."
+      "title": "Measurements Are Taken From Frame",
+      "description": "Measurements Are Taken From Frame Size - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     },
     {
-      "title": "Deliver with care",
-      "description": "Execution focuses on detail, finish, and a result that holds up to scrutiny. Built with care and attention to detail you can trust."
+      "title": "Mat Size",
+      "description": "Mat Size - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
+    },
+    {
+      "title": "Custom Cutting Is Done",
+      "description": "Custom Cutting Is Done - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
+    },
+    {
+      "title": "Pickup Is Available In 2",
+      "description": "Pickup Is Available In 2 Days - a clear checkpoint so you know what happens at this stage. Built with care and attention to detail you can trust."
     }
   ],
   "gallery": {
@@ -157,26 +165,26 @@
     "layout": null,
     "show_titles": true,
     "image_source": {
-      "image_search_query": "craftsmanship showcase artist owned candid customer interaction moment in approachable natural light"
+      "image_search_query": "craftsmanship showcase glass framing candid customer interaction moment in approachable natural light"
     },
     "computed_count": 4,
     "computed_layout": "grid",
     "items": [
       {
         "title": "Project 1",
-        "image_search_query": "craftsmanship showcase artist owned candid customer interaction moment in approachable natural light"
+        "image_search_query": "craftsmanship showcase glass framing candid customer interaction moment in approachable natural light"
       },
       {
         "title": "Project 2",
-        "image_search_query": "craftsmanship showcase artist owned calm human service moment with quiet trustworthy warmth"
+        "image_search_query": "craftsmanship showcase glass framing calm human service moment with quiet trustworthy warmth"
       },
       {
         "title": "Project 3",
-        "image_search_query": "craftsmanship showcase artist owned authentic real world setting with warm ambient depth"
+        "image_search_query": "craftsmanship showcase glass framing authentic real world setting with warm ambient depth"
       },
       {
         "title": "Project 4",
-        "image_search_query": "craftsmanship showcase artist owned quiet interior environment scene with natural window light"
+        "image_search_query": "craftsmanship showcase glass framing quiet interior environment scene with natural window light"
       }
     ]
   },
@@ -184,7 +192,7 @@
     "headline": "Get in Touch",
     "subheadline": "Tell us what you need and we'll help you with the right next step.",
     "email": "info@simonsfineartframing.com",
-    "phone": "222-222-2222",
+    "phone": "111-111-1111",
     "email_recipient": "info@simonsfineartframing.com",
     "button_text": "Send Message",
     "office_address": ""
