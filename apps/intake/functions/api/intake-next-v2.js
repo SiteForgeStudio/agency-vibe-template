@@ -3216,14 +3216,19 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
     ? blueprint.question_history.length
     : 0;
 
+  const factRegistry = safeObject(blueprint?.fact_registry);
   const allFields = [];
 
   for (const candidate of candidates || []) {
     const fields = candidate?.target_fields || [];
 
     for (const field of fields) {
+      const fk = cleanString(field);
+      if (!fk) continue;
+      if (isFieldSatisfied(fk, factRegistry)) continue;
+
       allFields.push({
-        field: cleanString(field),
+        field: fk,
         bundle: candidate.bundle_id
       });
     }
