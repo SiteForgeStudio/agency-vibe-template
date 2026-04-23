@@ -857,6 +857,21 @@ function buildBlueprintFromPreflight(strategy, reconData, seededAnswers, preflig
   hydrateFactRegistryWithPreflightIntelligence(factRegistry, preflightIntelligence);
   promotePreflightFactsToRegistry(factRegistry, reconData, preflightIntelligence);
 
+  // ==========================
+  // PHASE FIX — FORCE VALIDATION ON STRATEGIC FIELDS
+  // ==========================
+
+  const forceValidationFields = ["differentiation", "target_persona", "primary_offer"];
+
+  forceValidationFields.forEach((key) => {
+    const fact = factRegistry[key];
+    if (!fact) return;
+
+    if (fact.status === "seeded" || fact.status === "inferred") {
+      fact.needs_validation = true;
+    }
+  });
+
   const businessDraft = buildBusinessDraft(strategy, reconData, seededAnswers, normalizedStrategy, factRegistry);
   const sectionStatus = computeSectionStatus(normalizedStrategy, factRegistry, businessDraft);
 

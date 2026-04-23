@@ -2868,8 +2868,17 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
   // --------------------------
   // 1. DECISION STATE PRIORITY (CORE DRIVER)
   // --------------------------
+  const fr = safeObject(blueprint?.fact_registry);
   Object.values(decisionStates).forEach((ds) => {
-    if (Array.isArray(ds?.missing_evidence) && ds.missing_evidence.some((k) => cleanString(k) === fk)) {
+    if (!Array.isArray(ds?.missing_evidence) || !ds.missing_evidence.some((k) => cleanString(k) === fk)) {
+      return;
+    }
+
+    const fact = fr[fk];
+    const needsValidation =
+      cleanString(fact?.status) !== "verified" || fact?.needs_validation === true;
+
+    if (needsValidation) {
       score += Number(ds.priority || 0);
     }
   });
