@@ -1527,10 +1527,10 @@ export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan
     if (sticky && nextPf === prevPf) {
       nextBlueprint.question_plan.selection_reason = "sticky_primary_unsatisfied";
     } else {
-      nextBlueprint.question_plan.selection_reason = "priority_based";
+      nextBlueprint.question_plan.selection_reason = "dynamic_priority";
     }
 
-    nextBlueprint.question_plan.priority_score = computeFieldPriorityScore(
+    nextBlueprint.question_plan.priority_score = computeDynamicPriority(
       nextPf,
       nextBlueprint,
       state,
@@ -2835,53 +2835,73 @@ function hasLocationSignalsForServiceArea(factRegistry, state, blueprint) {
 }
 
 // ==========================
-// PHASE 2 — FIELD PRIORITY ENGINE (verification_queue + strategy + access)
+// PHASE 2.9 — DYNAMIC PRIORITY ENGINE
 // ==========================
-function computeFieldPriorityScore(fieldKey, blueprint, state, intakeRoundCount) {
+function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
   const fk = cleanString(fieldKey);
   if (!fk) return 0;
 
-  const queue = Array.isArray(blueprint?.verification_queue) ? blueprint.verification_queue : [];
-  const item = queue.find((f) => cleanString(f.field_key) === fk);
-  let score = Number(item?.priority || 0);
-
-  const componentStates = safeObject(blueprint?.component_states);
+  const decisionStates = blueprint?.decision_states || {};
+  const componentStates = blueprint?.component_states || {};
+  const premium = blueprint?.premium_readiness || {};
   const access = blueprint?.access_readiness || {};
-  const businessModel = cleanString(blueprint?.strategy?.business_context?.business_model);
 
-  const strategicFields = ["differentiation", "target_persona", "primary_offer", "pricing"];
-  if (strategicFields.includes(fk)) {
-    score += 120;
+  let score = 0;
+  const r = Number(rounds) || 0;
+
+  // --------------------------
+  // 1. DECISION STATE PRIORITY (CORE DRIVER)
+  // --------------------------
+  Object.values(decisionStates).forEach((ds) => {
+    if (Array.isArray(ds?.missing_evidence) && ds.missing_evidence.some((k) => cleanString(k) === fk)) {
+      score += Number(ds.priority || 0);
+    }
+  });
+
+  // --------------------------
+  // 2. COMPONENT IMPACT (ONLY ENABLED)
+  // --------------------------
+  Object.values(componentStates).forEach((comp) => {
+    if (
+      comp?.enabled &&
+      Array.isArray(comp?.evidence_keys) &&
+      comp.evidence_keys.some((k) => cleanString(k) === fk)
+    ) {
+      score += Number(comp.planner_priority || 0);
+    }
+  });
+
+  // --------------------------
+  // 3. PREMIUM GAP BOOST
+  // --------------------------
+  const premiumOrder = premium?.ordered_by_impact || [];
+
+  premiumOrder.forEach((item, index) => {
+    const comp = componentStates?.[item.component];
+    if (comp?.evidence_keys?.some((k) => cleanString(k) === fk)) {
+      score += (premiumOrder.length - index) * 15;
+    }
+  });
+
+  // --------------------------
+  // 4. TIMING CONTROLS (CRITICAL)
+  // --------------------------
+
+  // Delay conversion early
+  if (["booking_method", "contact_path", "booking_url"].includes(fk) && r < 2) {
+    score -= 150;
   }
 
-  const contactFields = ["phone", "address", "hours"];
-  const rounds = Number(intakeRoundCount) || 0;
-
-  if (contactFields.includes(fk) && rounds < 3) {
-    score -= 120;
+  // Delay NAP early
+  if (["phone", "address", "hours"].includes(fk) && r < 3) {
+    score -= 150;
   }
 
-  if (businessModel === "storefront") {
-    if (contactFields.includes(fk)) {
-      score += 40;
-    }
-  } else if (businessModel) {
-    if (fk === "address" || fk === "hours") {
-      score -= 60;
-    }
-  }
-
-  if (!access?.satisfied) {
-    const missing = cleanString(access?.missing_focus_id);
-    if (fk === missing && rounds >= 3) {
-      score += 100;
-    }
-  }
-
-  for (const comp of Object.values(componentStates)) {
-    if (comp?.enabled && Array.isArray(comp?.evidence_keys) && comp.evidence_keys.includes(fk)) {
-      score += 25;
-    }
+  // --------------------------
+  // 5. ACCESS GATING (LATE BOOST)
+  // --------------------------
+  if (!access?.satisfied && r >= 3 && fk === cleanString(access?.missing_focus_id)) {
+    score += 200;
   }
 
   return score;
@@ -2894,10 +2914,10 @@ function pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state) {
 
   const rounds = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
   let best = fields[0];
-  let bestScore = computeFieldPriorityScore(best, blueprint, state, rounds);
+  let bestScore = computeDynamicPriority(best, blueprint, state, rounds);
   for (let i = 1; i < fields.length; i += 1) {
     const key = fields[i];
-    const s = computeFieldPriorityScore(key, blueprint, state, rounds);
+    const s = computeDynamicPriority(key, blueprint, state, rounds);
     if (s > bestScore) {
       bestScore = s;
       best = key;
