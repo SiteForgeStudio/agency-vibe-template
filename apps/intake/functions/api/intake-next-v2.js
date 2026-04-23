@@ -1144,7 +1144,10 @@ function applyNarrativeQualityPass(nextBlueprint, expectedField, answer) {
   const text = cleanString(answer);
   const follow = computeNarrativeFollowUp(fk, text);
 
-  if (follow) {
+  const currentStatus = cleanString(fact.status);
+
+  // 🔥 DO NOT downgrade if already answered or verified
+  if (follow && currentStatus !== "answered" && currentStatus !== "verified") {
     nextBlueprint.fact_registry[fk] = {
       ...fact,
       status: "partial",
