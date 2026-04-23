@@ -25,7 +25,7 @@
     "show_service_area": false
   },
   "settings": {
-    "vibe": "Vintage Boutique",
+    "vibe": "Modern Minimal",
     "menu": [
       {
         "label": "Home",
@@ -69,7 +69,7 @@
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "art classes , custom frames",
+    "tagline": "Custom frames and matting and glass",
     "email": "info@simonsfineartframing.com",
     "phone": "111-111-1111",
     "office_address": "",
@@ -77,10 +77,10 @@
   },
   "hero": {
     "headline": "custom framing services in Dublin PA",
-    "subtext": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable,... Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention...",
+    "subtext": "We offer custom framing which we hand cut and assemble, and we offer art and framing classes. Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention to detail you can trust.",
     "image": {
-      "alt": "art classes , custom frames",
-      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
+      "alt": "Custom frames and matting and glass",
+      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail clean minimal natural light"
     }
   },
   "about": {
@@ -92,7 +92,7 @@
     "enabled": true,
     "items": [
       {
-        "label": "Artist Ownership",
+        "label": "Accurate",
         "icon": "shield"
       },
       {
@@ -122,14 +122,14 @@
       "icon_slug": "shield"
     },
     {
-      "title": "Custom Frames",
-      "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
+      "title": "Custom Frames and Matting and Glass",
+      "description": "We offer custom framing which we hand cut and assemble, and we offer art and framing classes. Built with care and attention to detail you can trust.",
       "icon_slug": "sparkles"
     },
     {
-      "title": "Quality Work",
-      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
-      "icon_slug": "map"
+      "title": "We Offer Custom Framing Which",
+      "description": "We offer custom framing which we hand cut and assemble, and we offer art and framing classes. Built with care and attention to detail you can trust.",
+      "icon_slug": "heart"
     },
     {
       "title": "Quality-First Results",
@@ -139,24 +139,24 @@
   ],
   "processSteps": [
     {
-      "title": "Bring In Artwork to The Shop",
-      "description": "Bring in artwork to the shop."
+      "title": "Bring In The Artwork to The Shop",
+      "description": "Bring in the artwork to the shop."
     },
     {
       "title": "We Measure",
       "description": "We measure."
     },
     {
-      "title": "Together We Select A Perfect Frame",
-      "description": "Together we select a perfect frame."
+      "title": "Together We Pick Out A Frame",
+      "description": "Together we pick out a frame."
+    },
+    {
+      "title": "Matting",
+      "description": "Matting."
     },
     {
       "title": "We Cut",
       "description": "We cut."
-    },
-    {
-      "title": "Mount Frame",
-      "description": "Mount frame."
     }
   ],
   "gallery": {
@@ -165,26 +165,26 @@
     "layout": null,
     "show_titles": true,
     "image_source": {
-      "image_search_query": "craftsmanship showcase art classes candid customer interaction moment in approachable natural light"
+      "image_search_query": "craftsmanship showcase custom frames authentic real world setting with warm ambient depth"
     },
     "computed_count": 4,
     "computed_layout": "grid",
     "items": [
       {
         "title": "Project 1",
-        "image_search_query": "craftsmanship showcase art classes candid customer interaction moment in approachable natural light"
+        "image_search_query": "craftsmanship showcase custom frames authentic real world setting with warm ambient depth"
       },
       {
         "title": "Project 2",
-        "image_search_query": "craftsmanship showcase art classes calm human service moment with quiet trustworthy warmth"
+        "image_search_query": "craftsmanship showcase custom frames quiet interior environment scene with natural window light"
       },
       {
         "title": "Project 3",
-        "image_search_query": "craftsmanship showcase art classes authentic real world setting with warm ambient depth"
+        "image_search_query": "craftsmanship showcase custom frames candid customer interaction moment in approachable natural light"
       },
       {
         "title": "Project 4",
-        "image_search_query": "craftsmanship showcase art classes quiet interior environment scene with natural window light"
+        "image_search_query": "craftsmanship showcase custom frames calm human service moment with quiet trustworthy warmth"
       }
     ]
   },
@@ -199,7 +199,7 @@
   },
   "testimonials": [
     {
-      "quote": "Customers often mention artist ownership as a reason they felt confident choosing Simons Fine Art Framing & Gallery.",
+      "quote": "Customers often mention accurate as a reason they felt confident choosing Simons Fine Art Framing & Gallery.",
       "author": "Happy Client 1"
     },
     {
