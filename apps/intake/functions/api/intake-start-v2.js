@@ -130,6 +130,8 @@ export async function onRequestPost(context) {
       schema_guide: schemaGuide
     };
 
+    console.log("AFTER RECOMPUTE:", initialState.blueprint.question_plan);
+
     if (!initialState.blueprint.question_plan) {
       throw new Error("Planner failed to generate initial question_plan");
     }
@@ -169,6 +171,8 @@ export async function onRequestPost(context) {
         })
       });
     }
+
+    console.log("FINAL PLAN:", initialState.blueprint.question_plan);
 
     return json({
       ok: true,
