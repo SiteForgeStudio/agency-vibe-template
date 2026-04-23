@@ -2841,13 +2841,25 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
   const fk = cleanString(fieldKey);
   if (!fk) return 0;
 
+  const r = Number(rounds) || 0;
+
+  // --------------------------
+  // TURN 1 GUARDRAIL (CRITICAL)
+  // --------------------------
+  if (r === 0) {
+    const allowedFirstFields = ["differentiation", "primary_offer", "target_persona"];
+
+    if (!allowedFirstFields.includes(fk)) {
+      return -9999;
+    }
+  }
+
   const decisionStates = blueprint?.decision_states || {};
   const componentStates = blueprint?.component_states || {};
   const premium = blueprint?.premium_readiness || {};
   const access = blueprint?.access_readiness || {};
 
   let score = 0;
-  const r = Number(rounds) || 0;
 
   // --------------------------
   // 1. DECISION STATE PRIORITY (CORE DRIVER)
@@ -2910,9 +2922,28 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
 function pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state) {
   const fields = cleanList(unresolvedFields).filter(Boolean);
   if (!fields.length) return "";
-  if (fields.length === 1) return fields[0];
 
   const rounds = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
+
+  if (fields.length === 1) {
+    const only = cleanString(fields[0]);
+    const r = Number(rounds) || 0;
+
+    // --------------------------
+    // TURN 1 GUARDRAIL (SINGLE FIELD CASE)
+    // --------------------------
+    if (r === 0) {
+      const allowedFirstFields = ["differentiation", "primary_offer", "target_persona"];
+
+      if (!allowedFirstFields.includes(only)) {
+        // do NOT accept this field for Turn 1
+        return null;
+      }
+    }
+
+    return only;
+  }
+
   let best = fields[0];
   let bestScore = computeDynamicPriority(best, blueprint, state, rounds);
   for (let i = 1; i < fields.length; i += 1) {
