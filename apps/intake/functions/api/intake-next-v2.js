@@ -61,15 +61,31 @@ function hasVisualInferenceSignals(factRegistry) {
   );
 }
 
-/** Present/missing evidence for a single schema evidence key (visual fields may count as present via inference). */
-function isEvidenceKeyPresentForComponentStates(fieldKey, factRegistry) {
+/**
+ * Whether this evidence key still needs collection/verification for planner + component scoring.
+ * Inferred/seeded/missing (or empty value) count as open; visual hero/gallery keys may be satisfied via inference signals alone.
+ */
+function evidenceKeyNeedsEvidence(fieldKey, factRegistry) {
   if (
     (fieldKey === "image_themes" || fieldKey === "gallery_visual_direction") &&
     hasVisualInferenceSignals(factRegistry)
   ) {
-    return true;
+    return false;
   }
-  return isFactComplete(factRegistry?.[fieldKey]);
+  const fact = factRegistry?.[fieldKey];
+  const status = cleanString(fact?.status);
+
+  return (
+    !hasMeaningfulValue(fact?.value) ||
+    status === "missing" ||
+    status === "seeded" ||
+    status === "inferred"
+  );
+}
+
+/** Present/missing evidence for a single schema evidence key (inverse of {@link evidenceKeyNeedsEvidence}). */
+function isEvidenceKeyPresentForComponentStates(fieldKey, factRegistry) {
+  return !evidenceKeyNeedsEvidence(fieldKey, factRegistry);
 }
 
 /* ========================================================================
@@ -2228,7 +2244,7 @@ function buildVerificationQueue({ blueprint, state }) {
   const publishRequired = cleanList(strategyContract?.content_requirements?.publish_required_fields);
 
   for (const [key, fact] of Object.entries(factRegistry)) {
-    const missing = !hasMeaningfulValue(fact?.value);
+    const needsEvidence = evidenceKeyNeedsEvidence(key, factRegistry);
     const partial = cleanString(fact?.status) === "partial";
     const requiresClient = !!fact?.requires_client_verification;
     const relatedSections = cleanList(fact?.related_sections);
@@ -2240,18 +2256,18 @@ function buildVerificationQueue({ blueprint, state }) {
     const keyWords = key.toLowerCase().replace(/_/g, " ");
     const shouldVerifyByContract = verifyTerms.some((term) => keyWords.includes(term) || term.includes(keyWords));
 
-    if (!missing && !partial && !requiresClient && !shouldVerifyByContract) continue;
+    if (!needsEvidence && !partial && !requiresClient && !shouldVerifyByContract) continue;
 
     queue.push({
       field_key: key,
       bundle_id: bundleId,
       priority:
         priorityBase +
-        (missing ? 70 : 0) +
+        (needsEvidence ? 70 : 0) +
         (partial ? 35 : 0) +
         (requiresClient ? 25 : 0) +
         (shouldVerifyByContract ? 20 : 0),
-      missing,
+      missing: needsEvidence,
       partial,
       requires_client_verification: requiresClient,
       related_sections: relatedSections,
