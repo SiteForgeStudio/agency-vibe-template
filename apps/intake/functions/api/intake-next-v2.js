@@ -3226,6 +3226,10 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
     }
   }
 
+  if (allFields.length === 0) {
+    throw new Error("No fields available for selection in planNextQuestion");
+  }
+
   let best = null;
   let bestScore = -Infinity;
 
@@ -3240,10 +3244,12 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
 
   if (!best) return null;
 
+  const sourceCandidate = candidates.find((c) => (c.target_fields || []).includes(best.field));
+
   return {
     bundle_id: cleanString(best.bundle),
     primary_field: best.field,
-    target_fields: [],
+    target_fields: sourceCandidate?.target_fields || [best.field],
     intent: "field-first",
     reason: "dynamic_priority_selection",
     tone: "consultative"
