@@ -2923,42 +2923,26 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
   return score;
 }
 
-function pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state) {
-  const fields = cleanList(unresolvedFields).filter(Boolean);
-  if (!fields.length) return "";
+function pickPrimaryFieldFromUnresolved(fields, blueprint, state) {
+  if (!Array.isArray(fields) || fields.length === 0) return null;
 
   const rounds = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
 
-  if (fields.length === 1) {
-    const only = cleanString(fields[0]);
-    const r = Number(rounds) || 0;
+  let bestField = null;
+  let bestScore = -Infinity;
 
-    // --------------------------
-    // TURN 1 GUARDRAIL (SINGLE FIELD CASE)
-    // --------------------------
-    if (r === 0) {
-      const allowedFirstFields = ["differentiation", "primary_offer", "target_persona"];
+  for (const rawField of fields) {
+    const fieldKey = cleanString(rawField);
 
-      if (!allowedFirstFields.includes(only)) {
-        // do NOT accept this field for Turn 1
-        return null;
-      }
-    }
+    const score = computeDynamicPriority(fieldKey, blueprint, state, rounds);
 
-    return only;
-  }
-
-  let best = fields[0];
-  let bestScore = computeDynamicPriority(best, blueprint, state, rounds);
-  for (let i = 1; i < fields.length; i += 1) {
-    const key = fields[i];
-    const s = computeDynamicPriority(key, blueprint, state, rounds);
-    if (s > bestScore) {
-      bestScore = s;
-      best = key;
+    if (score > bestScore) {
+      bestScore = score;
+      bestField = fieldKey;
     }
   }
-  return best;
+
+  return bestField;
 }
 
 function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) {
