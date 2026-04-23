@@ -1520,9 +1520,13 @@ export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan
   // ==========================
   if (nextBlueprint.question_plan) {
     const prevPf = cleanString(previousPlan?.primary_field);
-    const sticky = !!prevPf && !isFieldSatisfied(prevPf, nextBlueprint.fact_registry);
     const nextPf = cleanString(nextBlueprint.question_plan.primary_field);
-    const rounds = Array.isArray(nextBlueprint.question_history) ? nextBlueprint.question_history.length : 0;
+    const r = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
+
+    const sticky =
+      r > 0 &&
+      !!prevPf &&
+      !isFieldSatisfied(prevPf, nextBlueprint.fact_registry);
 
     if (sticky && nextPf === prevPf) {
       nextBlueprint.question_plan.selection_reason = "sticky_primary_unsatisfied";
@@ -1534,7 +1538,7 @@ export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan
       nextPf,
       nextBlueprint,
       state,
-      rounds
+      r
     );
 
     const bm = cleanString(nextBlueprint.strategy?.business_context?.business_model);
