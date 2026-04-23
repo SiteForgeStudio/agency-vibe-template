@@ -3206,107 +3206,47 @@ function isPricingComplete(factRegistry) {
   return false;
 }
 
-function planNextQuestion(candidates, previousBundleId, previousPrimaryField, factRegistry, blueprint, state) {
+function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, _factRegistry, blueprint, state) {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
-  const lastPrimary = cleanString(previousPrimaryField);
-
-  // Manifest: progression depends only on satisfying the active primary_field first.
-  if (lastPrimary && !isFieldSatisfied(lastPrimary, factRegistry)) {
-    const stickyCandidates = candidates
-      .map((candidate) => {
-        const targetFields = cleanList(candidate.target_fields);
-        if (!targetFields.includes(lastPrimary)) return null;
-        const unresolvedFields = targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
-        if (!unresolvedFields.includes(lastPrimary)) return null;
-        let score = Number(candidate.score || 0);
-        const bundleId = cleanString(candidate.bundle_id);
-        if (bundleId === cleanString(previousBundleId) && unresolvedFields.length > 0) {
-          score += 20;
-        }
-        return { ...candidate, adjusted_score: score, unresolved_fields_runtime: unresolvedFields };
-      })
-      .filter(Boolean)
-      .sort((a, b) => b.adjusted_score - a.adjusted_score);
-
-    const sticky = stickyCandidates[0];
-    if (sticky) {
-      return {
-        ...sticky,
-        primary_field: lastPrimary,
-        unresolved_count: sticky.unresolved_fields_runtime.length
-      };
-    }
-  }
-
-  const adjusted = candidates.map((candidate) => {
-    let score = Number(candidate.score || 0);
-    const bundleId = cleanString(candidate.bundle_id);
-    const targetFields = cleanList(candidate.target_fields);
-    const unresolvedFields = targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
-
-    const allComplete = unresolvedFields.length === 0;
-
-    if (allComplete) {
-      score -= 1000;
-    }
-
-    if (bundleId === cleanString(previousBundleId) && unresolvedFields.length > 0) {
-      score += 20;
-    }
-
-    return { ...candidate, adjusted_score: score, unresolved_fields_runtime: unresolvedFields };
-  });
-
-  adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
-
-  // ==========================
-  // PHASE 3.5 — GLOBAL FIELD + BUNDLE (no bundle lock)
-  // ==========================
-  const rounds = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
+  const rounds = Array.isArray(blueprint?.question_history)
+    ? blueprint.question_history.length
+    : 0;
 
   const allFields = [];
-  adjusted.forEach((candidate) => {
-    const fields = Array.isArray(candidate.unresolved_fields_runtime)
-      ? candidate.unresolved_fields_runtime
-      : cleanList(candidate.target_fields).filter((f) => !isFieldSatisfied(f, factRegistry));
 
-    fields.forEach((f) => {
-      const field = cleanString(f);
-      if (!field) return;
+  for (const candidate of candidates || []) {
+    const fields = candidate?.target_fields || [];
+
+    for (const field of fields) {
       allFields.push({
-        field,
-        bundle: cleanString(candidate.bundle_id)
+        field: cleanString(field),
+        bundle: candidate.bundle_id
       });
-    });
-  });
-
-  if (!allFields.length) return null;
-
-  let bestItem = null;
-  let bestScore = -Infinity;
-  for (const item of allFields) {
-    const score = computeDynamicPriority(item.field, blueprint, state, rounds);
-    if (score > bestScore) {
-      bestScore = score;
-      bestItem = item;
     }
   }
 
-  if (!bestItem?.field) return null;
+  let best = null;
+  let bestScore = -Infinity;
 
-  const bestCandidate = adjusted.find((c) => cleanString(c.bundle_id) === bestItem.bundle);
-  if (!bestCandidate) return null;
+  for (const item of allFields) {
+    const score = computeDynamicPriority(item.field, blueprint, state, rounds);
 
-  const unresolvedFields = Array.isArray(bestCandidate.unresolved_fields_runtime)
-    ? bestCandidate.unresolved_fields_runtime
-    : cleanList(bestCandidate.target_fields).filter((f) => !isFieldSatisfied(f, factRegistry));
+    if (score > bestScore) {
+      bestScore = score;
+      best = item;
+    }
+  }
+
+  if (!best) return null;
 
   return {
-    ...bestCandidate,
-    primary_field: bestItem.field,
-    bundle_id: bestItem.bundle,
-    unresolved_count: unresolvedFields.length
+    bundle_id: cleanString(best.bundle),
+    primary_field: best.field,
+    target_fields: [],
+    intent: "field-first",
+    reason: "dynamic_priority_selection",
+    tone: "consultative"
   };
 }
 
