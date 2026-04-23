@@ -20,6 +20,42 @@
 
 import { compileSchemaGuide, recomputeBlueprint } from "./intake-next-v2.js";
 
+function pickBestPositioningField(factRegistry) {
+  const fields = ["differentiation", "target_persona", "primary_offer"];
+
+  let best = null;
+  let bestScore = -Infinity;
+
+  for (const key of fields) {
+    const fact = factRegistry?.[key];
+    if (!fact) continue;
+
+    const status = (fact.status || "").toLowerCase();
+    const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;
+
+    let score = 0;
+
+    // Highest priority: missing
+    if (!fact.value || status === "missing") score += 100;
+
+    // Next: inferred (needs validation)
+    if (status === "inferred") score += 60;
+
+    // Next: seeded (still weak)
+    if (status === "seeded") score += 40;
+
+    // Lower confidence = higher priority
+    score += (1 - confidence) * 50;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = key;
+    }
+  }
+
+  return best;
+}
+
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -139,6 +175,29 @@ export async function onRequestPost(context) {
       bundle: initialState.blueprint.question_plan?.bundle_id,
       field: initialState.blueprint.question_plan?.primary_field
     });
+
+    const plan = initialState.blueprint?.question_plan;
+    const factRegistry = initialState.blueprint?.fact_registry;
+
+    if (plan && factRegistry) {
+      const pf = cleanString(plan.primary_field);
+      const isConversion =
+        plan.bundle_id === "conversion" ||
+        ["booking_method", "booking_url", "contact_path"].includes(pf);
+
+      if (isConversion) {
+        const bestField = pickBestPositioningField(factRegistry);
+
+        if (bestField) {
+          initialState.blueprint.question_plan = {
+            ...plan,
+            bundle_id: "positioning",
+            primary_field: bestField,
+            reason: "positioning_override"
+          };
+        }
+      }
+    }
 
     if (!initialState.blueprint.question_plan) {
       throw new Error("Planner failed to generate initial question_plan");
