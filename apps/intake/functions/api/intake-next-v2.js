@@ -817,6 +817,17 @@ if (fieldKey === "contact_path") {
   return isFactComplete(fact);
 }
 
+/** Interpreter: only the planner primary_field may receive fact_updates (plus contact_details NAP combo keys). */
+function isFactUpdateAllowedUnderStrictPrimaryGate(factKey, currentPlan) {
+  const fk = cleanString(factKey);
+  const primaryField = cleanString(currentPlan?.primary_field);
+  if (!primaryField) return true;
+  if (fk === primaryField) return true;
+  const bundleId = cleanString(currentPlan?.bundle_id);
+  if (bundleId === "contact_details" && ["phone", "email", "address", "hours"].includes(fk)) return true;
+  return false;
+}
+
 function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSections, allowedLeafPaths, currentPlan, schemaGuide }) {
   const cleanFactUpdates = (Array.isArray(parsed.fact_updates) ? parsed.fact_updates : [])
     .filter((item) => isObject(item) && allowedFactKeys.includes(cleanString(item.fact_key)))
@@ -827,7 +838,8 @@ function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSectio
       verified: item.verified !== false,
       status: sanitizeFactStatus(item.status),
       rationale: cleanString(item.rationale)
-    }));
+    }))
+    .filter((item) => isFactUpdateAllowedUnderStrictPrimaryGate(item.fact_key, currentPlan));
 
   const cleanComponentImpacts = (Array.isArray(parsed.component_impacts) ? parsed.component_impacts : [])
     .filter((item) => isObject(item) && Object.prototype.hasOwnProperty.call(schemaGuide, cleanString(item.component)))
@@ -1045,6 +1057,10 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
   if (bundleId === "contact_details") {
     repairContactDetailsComboFacts(repaired, text);
   }
+
+  repaired.fact_updates = (repaired.fact_updates || []).filter((u) =>
+    isFactUpdateAllowedUnderStrictPrimaryGate(u?.fact_key, currentPlan)
+  );
 
   return repaired;
 }
@@ -3209,6 +3225,15 @@ function isPricingComplete(factRegistry) {
   return false;
 }
 
+/** Hard lock: captured facts never re-enter the planner selection pool. */
+function isFactCapturedForPlanning(fact) {
+  if (!isObject(fact)) return false;
+  const status = cleanString(fact.status).toLowerCase();
+  if (status === "answered" || status === "verified") return true;
+  const c = typeof fact.confidence === "number" ? fact.confidence : 0;
+  return c > 0.85;
+}
+
 function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, _factRegistry, blueprint, state) {
   if (!Array.isArray(candidates) || candidates.length === 0) return null;
 
@@ -3225,7 +3250,7 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
     for (const field of fields) {
       const fk = cleanString(field);
       if (!fk) continue;
-      if (isFieldSatisfied(fk, factRegistry)) continue;
+      if (isFactCapturedForPlanning(factRegistry[fk])) continue;
 
       allFields.push({
         field: fk,
@@ -3252,12 +3277,19 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
 
   if (!best) return null;
 
-  const sourceCandidate = candidates.find((c) => (c.target_fields || []).includes(best.field));
+  const sourceCandidate = candidates.find((c) =>
+    (c.target_fields || []).some((f) => cleanString(f) === best.field)
+  );
+  const rawTargets = sourceCandidate?.target_fields || [best.field];
+  const target_fields = cleanList(rawTargets).filter((f) => {
+    const k = cleanString(f);
+    return k && !isFactCapturedForPlanning(factRegistry[k]);
+  });
 
   return {
     bundle_id: cleanString(best.bundle),
     primary_field: best.field,
-    target_fields: sourceCandidate?.target_fields || [best.field],
+    target_fields: target_fields.length ? target_fields : [best.field],
     intent: "field-first",
     reason: "dynamic_priority_selection",
     tone: "consultative"
@@ -3787,6 +3819,39 @@ function expertCallHeavyBooking(fr) {
 }
 
 /**
+ * Preflight buying / decision factors (spec + bridge): used to contextualize the email question.
+ */
+function collectBuyingFactorsFromPreflight(pi) {
+  const p = isObject(pi) ? pi : {};
+  return uniqueList([...cleanList(p.buying_factors), ...cleanList(p.buyer_factors)]).filter(Boolean);
+}
+
+/**
+ * One question that ties email to how this buyer persona actually decides (when PI has factors).
+ */
+function buildEmailQuestionFromBuyerFactors(businessName, pi, blueprint) {
+  const factors = collectBuyingFactorsFromPreflight(pi);
+  if (!factors.length) return "";
+
+  const name = cleanString(businessName) || "your business";
+  const bc = safeObject(blueprint?.strategy?.business_context);
+  const category = cleanString(bc.category);
+  const personaHint = isObject(pi) ? cleanString(pi.target_persona_hint) : "";
+  const basis = truncate(factors.slice(0, 2).join("; "), 280);
+
+  let opener = "";
+  if (personaHint) {
+    opener = `For the clients you do your best work with (${truncate(personaHint, 100)}),`;
+  } else if (category) {
+    opener = `In ${truncate(category, 72)} work,`;
+  } else {
+    opener = "When someone is comparing options and not ready to call yet,";
+  }
+
+  return `${opener} buyers often weigh: ${basis}. Email is where many first touchpoints happen—what address should we publish for ${name} so those messages reach you reliably?`;
+}
+
+/**
  * Access (phone, email, address, hours): interpretation (stance on buyer behavior) + one clear ask.
  */
 function buildAccessExpertQuestion(primaryField, businessName, blueprint, pi) {
@@ -3804,6 +3869,9 @@ function buildAccessExpertQuestion(primaryField, businessName, blueprint, pi) {
     });
   }
   if (pf === "email") {
+    const contextual = buildEmailQuestionFromBuyerFactors(name, pi, blueprint);
+    if (contextual) return contextual;
+
     const interp = buildInterpretation("email", pi, blueprint);
     return buildExpertMessage({
       lead: squeezeExpertLead([interp]),
@@ -4087,7 +4155,7 @@ function buildDeterministicQuestionWithPreflight(plan, blueprint, businessName, 
     return lead ? `${lead}${narrative}` : narrative;
   }
 
-  const base = buildDeterministicQuestion(plan, blueprint, businessName);
+  const base = buildDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence);
   const lead = userFacingDeterministicLead(
     cleanString(plan?.bundle_id),
     cleanString(plan?.primary_field),
@@ -4471,7 +4539,7 @@ async function renderNextQuestion({
   }
 }
 
-function buildDeterministicQuestion(plan, blueprint, businessName) {
+function buildDeterministicQuestion(plan, blueprint, businessName, preflightIntelligence) {
   const name =
     cleanString(businessName) ||
     cleanString(getByPath(blueprint, "business_draft.brand.name")) ||
@@ -4574,8 +4642,15 @@ function buildDeterministicQuestion(plan, blueprint, businessName) {
     switch (primaryField) {
       case "phone":
         return `What is the best public phone number to show for ${name}?`;
-      case "email":
+      case "email": {
+        const custom = buildEmailQuestionFromBuyerFactors(
+          name,
+          isObject(preflightIntelligence) ? preflightIntelligence : null,
+          blueprint
+        );
+        if (custom) return custom;
         return `What email address should serious prospects use to reach ${name}?`;
+      }
       case "address":
         return `What address should we show publicly for ${name}, if any?`;
       case "hours":

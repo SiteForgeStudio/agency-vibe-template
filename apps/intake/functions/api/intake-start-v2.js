@@ -218,8 +218,11 @@ export async function onRequestPost(context) {
     initialState.current_key = initialState.blueprint.question_plan?.primary_field || null;
 
     const openingMessage =
-      renderQuestion(initialState.blueprint.question_plan, initialState.blueprint) ||
-      fallbackOpeningMessage(initialState);
+      renderQuestion(initialState.blueprint.question_plan, initialState.blueprint, {
+        preflight_intelligence: initialState.preflight_intelligence,
+        businessName: initialState.businessName,
+        blueprint: initialState.blueprint
+      }) || fallbackOpeningMessage(initialState);
 
     initialState.conversation.push({
       role: "assistant",
@@ -611,6 +614,7 @@ function buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers) {
     website_direction,
     winning_angle,
     buyer_factors,
+    buying_factors: buyer_factors.slice(),
     weaknesses,
     differentiation_hypothesis,
     local_alternatives,
@@ -2346,12 +2350,40 @@ function isFactVerifiedByPath(factRegistry, factKey) {
    QUESTION RENDERING
 -------------------------------- */
 
+function buildBuyerFactorEmailQuestion(preflightIntelligence, businessName, blueprint) {
+  const pi = isObject(preflightIntelligence) ? preflightIntelligence : {};
+  const factors = uniqueList([...cleanList(pi.buying_factors), ...cleanList(pi.buyer_factors)]).filter(Boolean);
+  if (!factors.length) return "";
+
+  const name = cleanString(businessName) || "your business";
+  const personaHint = cleanString(pi.target_persona_hint);
+  const category = cleanString(blueprint?.strategy?.business_context?.category);
+  const basis = factors.slice(0, 2).join("; ");
+  const basisClip = basis.length > 280 ? `${basis.slice(0, 277)}…` : basis;
+
+  let opener = "";
+  if (personaHint) {
+    const ph = personaHint.length > 100 ? `${personaHint.slice(0, 97)}…` : personaHint;
+    opener = `For the clients you do your best work with (${ph}),`;
+  } else if (category) {
+    const cat = category.length > 72 ? `${category.slice(0, 69)}…` : category;
+    opener = `In ${cat} work,`;
+  } else {
+    opener = "When someone is comparing options and not ready to call yet,";
+  }
+
+  return `${opener} buyers often weigh: ${basisClip}. Email is where many first touchpoints happen—what address should we publish for ${name} so those messages reach you reliably?`;
+}
+
 // ==========================
 // PHASE 2.7 — FIELD-AWARE QUESTION RENDERING
 // ==========================
 
-function renderFieldScopedQuestion(plan) {
+function renderFieldScopedQuestion(plan, renderContext = {}) {
   const field = cleanString(plan?.primary_field);
+  const preflightIntelligence = renderContext.preflight_intelligence;
+  const businessName = renderContext.businessName;
+  const blueprint = renderContext.blueprint;
 
   switch (field) {
     case "differentiation":
@@ -2378,6 +2410,12 @@ function renderFieldScopedQuestion(plan) {
     case "phone":
       return "What phone number should customers use to reach you?";
 
+    case "email": {
+      const emailQ = buildBuyerFactorEmailQuestion(preflightIntelligence, businessName, blueprint);
+      if (emailQ) return emailQ;
+      return "What email address should serious prospects use to reach you?";
+    }
+
     case "address":
       return "What is your business address (if customers visit in person)?";
 
@@ -2389,10 +2427,10 @@ function renderFieldScopedQuestion(plan) {
   }
 }
 
-function renderQuestion(questionPlan, blueprint) {
+function renderQuestion(questionPlan, blueprint, renderContext = {}) {
   if (!questionPlan) return "";
 
-  const scoped = renderFieldScopedQuestion(questionPlan);
+  const scoped = renderFieldScopedQuestion(questionPlan, renderContext);
   if (scoped) {
     return scoped;
   }
