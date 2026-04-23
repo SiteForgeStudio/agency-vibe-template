@@ -125,12 +125,20 @@ export async function onRequestPost(context) {
       lastAudit: null
     });
 
+    console.log("AFTER RECOMPUTE:", {
+      bundle: recomputed.blueprint.question_plan?.bundle_id,
+      field: recomputed.blueprint.question_plan?.primary_field
+    });
+
     initialState.blueprint = {
       ...recomputed.blueprint,
       schema_guide: schemaGuide
     };
 
-    console.log("AFTER RECOMPUTE:", initialState.blueprint.question_plan);
+    console.log("AFTER ASSIGN:", {
+      bundle: initialState.blueprint.question_plan?.bundle_id,
+      field: initialState.blueprint.question_plan?.primary_field
+    });
 
     if (!initialState.blueprint.question_plan) {
       throw new Error("Planner failed to generate initial question_plan");
@@ -172,7 +180,10 @@ export async function onRequestPost(context) {
       });
     }
 
-    console.log("FINAL PLAN:", initialState.blueprint.question_plan);
+    console.log("FINAL PLAN:", {
+      bundle: initialState.blueprint.question_plan?.bundle_id,
+      field: initialState.blueprint.question_plan?.primary_field
+    });
 
     return json({
       ok: true,
