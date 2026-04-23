@@ -3235,23 +3235,52 @@ function planNextQuestion(candidates, previousBundleId, previousPrimaryField, fa
 
   adjusted.sort((a, b) => b.adjusted_score - a.adjusted_score);
 
-  const best = adjusted.find((candidate) => (candidate.unresolved_fields_runtime || []).length > 0);
-  if (!best) return null;
+  // ==========================
+  // PHASE 3.5 — GLOBAL FIELD + BUNDLE (no bundle lock)
+  // ==========================
+  const rounds = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
 
-  const targetFields = cleanList(best.target_fields);
-  const unresolvedFields = Array.isArray(best.unresolved_fields_runtime)
-    ? best.unresolved_fields_runtime
-    : targetFields.filter((f) => !isFieldSatisfied(f, factRegistry));
+  const allFields = [];
+  adjusted.forEach((candidate) => {
+    const fields = Array.isArray(candidate.unresolved_fields_runtime)
+      ? candidate.unresolved_fields_runtime
+      : cleanList(candidate.target_fields).filter((f) => !isFieldSatisfied(f, factRegistry));
 
-  const nextPrimaryField =
-    unresolvedFields.length > 0 && blueprint && state
-      ? pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state)
-      : unresolvedFields[0] || null;
-  if (!nextPrimaryField) return null;
+    fields.forEach((f) => {
+      const field = cleanString(f);
+      if (!field) return;
+      allFields.push({
+        field,
+        bundle: cleanString(candidate.bundle_id)
+      });
+    });
+  });
+
+  if (!allFields.length) return null;
+
+  let bestItem = null;
+  let bestScore = -Infinity;
+  for (const item of allFields) {
+    const score = computeDynamicPriority(item.field, blueprint, state, rounds);
+    if (score > bestScore) {
+      bestScore = score;
+      bestItem = item;
+    }
+  }
+
+  if (!bestItem?.field) return null;
+
+  const bestCandidate = adjusted.find((c) => cleanString(c.bundle_id) === bestItem.bundle);
+  if (!bestCandidate) return null;
+
+  const unresolvedFields = Array.isArray(bestCandidate.unresolved_fields_runtime)
+    ? bestCandidate.unresolved_fields_runtime
+    : cleanList(bestCandidate.target_fields).filter((f) => !isFieldSatisfied(f, factRegistry));
 
   return {
-    ...best,
-    primary_field: nextPrimaryField,
+    ...bestCandidate,
+    primary_field: bestItem.field,
+    bundle_id: bestItem.bundle,
     unresolved_count: unresolvedFields.length
   };
 }
