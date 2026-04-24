@@ -231,10 +231,11 @@ export async function onRequestPost(context) {
     const answeredPf = cleanString(currentPlan.primary_field);
     const pr = state.blueprint.premium_readiness;
     const ar = state.blueprint.access_readiness;
+    const factRegistryForPrimarySatisfaction = safeObject(recomputed.blueprint.fact_registry);
     state.turn_debug = {
       answered_primary_field: answeredPf || null,
       primary_satisfied_after_answer: answeredPf
-        ? isFieldSatisfied(answeredPf, state.blueprint.fact_registry)
+        ? isFieldSatisfied(answeredPf, factRegistryForPrimarySatisfaction)
         : null,
       next_primary_field: cleanString(state.blueprint.question_plan?.primary_field) || null,
       next_bundle_id: cleanString(state.blueprint.question_plan?.bundle_id) || null,
@@ -1293,7 +1294,7 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   const now = new Date().toISOString();
   const updatedFactKeys = [];
   const patchedPaths = [];
-  const expectedField = cleanString(state?.blueprint?.question_plan?.primary_field);
+  const expectedField = cleanString(blueprint?.question_plan?.primary_field);
 
   function shouldUpdateFact(existing, incoming) {
     if (!existing) return true;
@@ -1666,7 +1667,7 @@ export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan
   if (nextBlueprint.question_plan) {
     const prevPf = cleanString(previousPlan?.primary_field);
     const nextPf = cleanString(nextBlueprint.question_plan.primary_field);
-    const r = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
+    const r = Array.isArray(nextBlueprint?.question_history) ? nextBlueprint.question_history.length : 0;
 
     const sticky =
       r > 0 &&
