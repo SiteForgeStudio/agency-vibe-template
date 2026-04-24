@@ -73,6 +73,9 @@ function evidenceKeyNeedsEvidence(fieldKey, factRegistry) {
     return false;
   }
   const fact = factRegistry?.[fieldKey];
+  if (fieldKey === "booking_url" && fact && isBookingUrlResolved(fact)) {
+    return false;
+  }
   const status = cleanString(fact?.status);
 
   return (
@@ -668,11 +671,15 @@ function buildInterpreterSystemPrompt() {
   ].join("\n");
 }
 
-  function isFactComplete(fact) {
+  function isFactComplete(fact, key = "") {
     if (!fact) return false;
 
     // Narrative follow-up pending — field not satisfied until user expands
     if (hasMeaningfulValue(fact.intake_followup)) return false;
+
+    if (cleanString(key) === "booking_url" && isBookingUrlResolved(fact)) {
+      return true;
+    }
 
     const v = sanitizeFactValue(fact.value);
     if (!hasMeaningfulValue(v)) return false;
@@ -814,7 +821,7 @@ if (fieldKey === "contact_path") {
     if (src === "preflight" && hasMeaningfulValue(v)) return true;
   }
 
-  return isFactComplete(fact);
+  return isFactComplete(fact, fieldKey);
 }
 
 /** Interpreter: only the planner primary_field may receive fact_updates (plus contact_details NAP combo keys). */
@@ -1793,7 +1800,7 @@ function buildComponentEnableReasons(component, guide, blueprint, factRegistry) 
   }
   if (
     component === "gallery" &&
-    (hasVisualInferenceSignals(factRegistry) || isFactComplete(factRegistry?.gallery_visual_direction))
+    (hasVisualInferenceSignals(factRegistry) || isFactComplete(factRegistry?.gallery_visual_direction, "gallery_visual_direction"))
   ) {
     reasons.push("Visual direction evidence exists.");
   }
@@ -1814,7 +1821,7 @@ function buildComponentDisableReasons(component, guide, blueprint, factRegistry)
   if (
     component === "gallery" &&
     !hasVisualInferenceSignals(factRegistry) &&
-    !isFactComplete(factRegistry?.gallery_visual_direction)
+    !isFactComplete(factRegistry?.gallery_visual_direction, "gallery_visual_direction")
   ) {
     reasons.push("No confirmed gallery visual strategy yet.");
   }
@@ -1923,7 +1930,7 @@ function computeDecisionStates({ blueprint, schemaGuide }) {
   }
 
   if (
-    isFactComplete(factRegistry?.gallery_visual_direction) ||
+    isFactComplete(factRegistry?.gallery_visual_direction, "gallery_visual_direction") ||
     hasVisualInferenceSignals(factRegistry)
   ) {
     out.gallery_strategy = out.gallery_strategy || {};
@@ -2378,6 +2385,15 @@ function buildVerificationQueue({ blueprint, state }) {
     const keyWords = key.toLowerCase().replace(/_/g, " ");
     const shouldVerifyByContract = verifyTerms.some((term) => keyWords.includes(term) || term.includes(keyWords));
 
+    if (
+      cleanString(key) === "booking_url" &&
+      isBookingUrlResolved(fact) &&
+      !requiresClient &&
+      !shouldVerifyByContract
+    ) {
+      continue;
+    }
+
     if (!needsEvidence && !partial && !requiresClient && !shouldVerifyByContract) continue;
 
     queue.push({
@@ -2453,8 +2469,8 @@ function inferAccessModel(blueprint, state) {
     .join(" ")
     .toLowerCase();
 
-  const hasAddr = isFactComplete(fr.address);
-  const hasMainGeo = isFactComplete(fr.service_area_main);
+  const hasAddr = isFactComplete(fr.address, "address");
+  const hasMainGeo = isFactComplete(fr.service_area_main, "service_area_main");
 
   if (bm.includes("virtual") || /\bremote\b|\bvirtual\b/.test(arch)) {
     return "virtual_remote";
@@ -2514,8 +2530,8 @@ function requiresPublishedPhoneForExecution(bmRaw) {
  */
 function evaluateExecutionPathForAccess(fr) {
   const bm = fr?.booking_method?.value;
-  const hasPhone = isFactComplete(fr.phone);
-  const hasEmail = isFactComplete(fr.email);
+  const hasPhone = isFactComplete(fr.phone, "phone");
+  const hasEmail = isFactComplete(fr.email, "email");
   const contactPathOk = isFieldSatisfied("contact_path", fr);
   const bookingUrlOk = isFieldSatisfied("booking_url", fr);
   const m = cleanString(bm).toLowerCase().replace(/\s+/g, "_");
@@ -2555,9 +2571,9 @@ function evaluateExecutionPathForAccess(fr) {
 }
 
 function evaluateAccessSatisfaction(fr, model) {
-  const hasAddr = isFactComplete(fr.address);
-  const hasHours = isFactComplete(fr.hours);
-  const hasMain = isFactComplete(fr.service_area_main);
+  const hasAddr = isFactComplete(fr.address, "address");
+  const hasHours = isFactComplete(fr.hours, "hours");
+  const hasMain = isFactComplete(fr.service_area_main, "service_area_main");
   const hasSurround =
     (Array.isArray(fr.surrounding_cities?.value) && fr.surrounding_cities.value.length > 0) ||
     ensureArrayStrings(fr.service_area_list?.value).length > 1;
@@ -2740,7 +2756,7 @@ function scoreHeroPremium(fr, draft) {
     hasMeaningfulValue(getByPath(draft, "hero.headline")),
     hasMeaningfulValue(getByPath(draft, "hero.subtext")),
     hasMeaningfulValue(getByPath(draft, "hero.image.image_search_query")),
-    isFactComplete(fr.primary_offer) && isFactComplete(fr.differentiation)
+    isFactComplete(fr.primary_offer, "primary_offer") && isFactComplete(fr.differentiation, "differentiation")
   ];
   return checks.filter(Boolean).length / checks.length;
 }
@@ -2749,18 +2765,18 @@ function scoreContactPremium(fr, draft) {
   const frObj = fr;
   const checks = [
     isFieldSatisfied("booking_method", frObj) && isFieldSatisfied("booking_url", frObj),
-    isFactComplete(fr.phone) || isFactComplete(fr.email),
+    isFactComplete(fr.phone, "phone") || isFactComplete(fr.email, "email"),
     hasMeaningfulValue(firstNonEmpty([fr.cta_text?.value, getByPath(draft, "contact.cta_text"), getByPath(draft, "settings.cta_text")])),
-    isFactComplete(fr.contact_path) ||
-      isFactComplete(fr.hours) ||
+    isFactComplete(fr.contact_path, "contact_path") ||
+      isFactComplete(fr.hours, "hours") ||
       hasMeaningfulValue(getByPath(draft, "contact.text"))
   ];
   return checks.filter(Boolean).length / checks.length;
 }
 
 function scoreFeaturesPremium(fr, draft) {
-  const offer = isFactComplete(fr.primary_offer);
-  const diff = isFactComplete(fr.differentiation);
+  const offer = isFactComplete(fr.primary_offer, "primary_offer");
+  const diff = isFactComplete(fr.differentiation, "differentiation");
   const services = ensureArrayStrings(fr.service_list?.value);
   const feats = getByPath(draft, "features");
   const featN = Array.isArray(feats) ? feats.length : 0;
@@ -2779,7 +2795,7 @@ function scoreGalleryPremium(fr, draft) {
     firstNonEmpty([getByPath(draft, "gallery.computed_layout"), getByPath(draft, "gallery.layout")])
   );
   const countOk = typeof getByPath(draft, "gallery.computed_count") === "number" && getByPath(draft, "gallery.computed_count") >= 6;
-  const direction = isFactComplete(fr.gallery_visual_direction) || ensureArrayStrings(fr.image_themes?.value).length > 0;
+  const direction = isFactComplete(fr.gallery_visual_direction, "gallery_visual_direction") || ensureArrayStrings(fr.image_themes?.value).length > 0;
   const checks = [q, layout, countOk || direction];
   return checks.filter(Boolean).length / checks.length;
 }
@@ -2794,7 +2810,7 @@ function scoreFaqsPremium(fr, draft) {
 
 function scoreTestimonialsPremium(fr) {
   const quotes = ensureArrayStrings(fr.review_quotes?.value);
-  const checks = [quotes.length >= 2, isFactComplete(fr.trust_signal) || quotes.length >= 1];
+  const checks = [quotes.length >= 2, isFactComplete(fr.trust_signal, "trust_signal") || quotes.length >= 1];
   return checks.filter(Boolean).length / checks.length;
 }
 
@@ -2808,9 +2824,9 @@ function scoreProcessPremium(fr, draft) {
 
 function scoreAboutPremium(fr, draft) {
   let hits = 0;
-  if (isFactComplete(fr.founder_story)) hits++;
+  if (isFactComplete(fr.founder_story, "founder_story")) hits++;
   if (hasMeaningfulValue(getByPath(draft, "about.story_text"))) hits++;
-  if (isFactComplete(fr.years_experience)) hits++;
+  if (isFactComplete(fr.years_experience, "years_experience")) hits++;
   if (hits >= 2) return 1;
   if (hits === 1) return 0.55;
   return 0;
@@ -2825,7 +2841,7 @@ function scoreInvestmentPremium(fr, draft) {
 }
 
 function scoreServiceAreaPremium(fr) {
-  const main = isFactComplete(fr.service_area_main);
+  const main = isFactComplete(fr.service_area_main, "service_area_main");
   const sur =
     (Array.isArray(fr.surrounding_cities?.value) && fr.surrounding_cities.value.length > 0) ||
     ensureArrayStrings(fr.service_area_list?.value).length > 1;
@@ -2843,7 +2859,7 @@ function scoreEventsPremium(fr) {
 }
 
 function scoreComparisonPremium(fr) {
-  return isFactComplete(fr.comparison) ? 0.9 : 0;
+  return isFactComplete(fr.comparison, "comparison") ? 0.9 : 0;
 }
 
 function pickNextPremiumUnlock(components, accessReadiness) {
@@ -3329,8 +3345,9 @@ function isPricingComplete(factRegistry) {
 }
 
 /** Hard lock: captured facts never re-enter the planner selection pool. */
-function isFactCapturedForPlanning(fact) {
+function isFactCapturedForPlanning(fact, fieldKey = "") {
   if (!isObject(fact)) return false;
+  if (cleanString(fieldKey) === "booking_url" && isBookingUrlResolved(fact)) return true;
   const status = cleanString(fact.status).toLowerCase();
   if (status === "answered" || status === "verified") return true;
   const c = typeof fact.confidence === "number" ? fact.confidence : 0;
@@ -3353,7 +3370,7 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
     for (const field of fields) {
       const fk = cleanString(field);
       if (!fk) continue;
-      if (isFactCapturedForPlanning(factRegistry[fk])) continue;
+      if (isFactCapturedForPlanning(factRegistry[fk], fk)) continue;
 
       allFields.push({
         field: fk,
@@ -3386,7 +3403,7 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
   const rawTargets = sourceCandidate?.target_fields || [best.field];
   const target_fields = cleanList(rawTargets).filter((f) => {
     const k = cleanString(f);
-    return k && !isFactCapturedForPlanning(factRegistry[k]);
+    return k && !isFactCapturedForPlanning(factRegistry[k], k);
   });
 
   return {
@@ -3408,10 +3425,10 @@ function evaluateBlueprintReadiness(blueprint) {
   // ==========================
   const bookingMethodRaw = cleanString(factRegistry?.booking_method?.value);
   const bookingMethod = bookingMethodRaw ? bookingMethodRaw.toLowerCase() : "";
-  const bookingUrlResolved = factRegistry?.booking_url?.status === "answered";
+  const bookingUrlResolved = isBookingUrlResolved(factRegistry?.booking_url);
 
   const contactPathResolved =
-    isFactComplete(factRegistry?.contact_path) ||
+    isFactComplete(factRegistry?.contact_path, "contact_path") ||
     hasMeaningfulValue(getByPath(blueprint.business_draft, "contact.cta_link")) ||
     hasMeaningfulValue(getByPath(blueprint.business_draft, "settings.cta_link"));
 
@@ -3427,26 +3444,26 @@ function evaluateBlueprintReadiness(blueprint) {
   // ==========================
   const hasPositioning =
     isFieldSatisfied("target_persona", factRegistry) &&
-    isFactComplete(factRegistry?.differentiation);
+    isFactComplete(factRegistry?.differentiation, "differentiation");
 
   const hasProof =
     (
       Array.isArray(factRegistry?.review_quotes?.value) &&
       factRegistry.review_quotes.value.length > 0
     ) ||
-   isFactComplete(factRegistry?.years_experience);
+   isFactComplete(factRegistry?.years_experience, "years_experience");
 
   // 🔥 NEW
   const hasServiceArea =
-    isFactComplete(factRegistry?.service_area_main) ||
+    isFactComplete(factRegistry?.service_area_main, "service_area_main") ||
     (
       Array.isArray(factRegistry?.surrounding_cities?.value) &&
       factRegistry.surrounding_cities.value.length > 0
     );
 
   const hasContact =
-    isFactComplete(factRegistry?.phone) ||
-    isFactComplete(factRegistry?.email);
+    isFactComplete(factRegistry?.phone, "phone") ||
+    isFactComplete(factRegistry?.email, "email");
 
   // 🔥 FIXED
   const canGenerate =
@@ -5008,6 +5025,32 @@ function isBookingUrlNoLinkSentinel(value) {
   );
 }
 
+/**
+ * booking_url is complete when the row has a terminal-ish status and the value is either
+ * an explicit no-link sentinel (e.g. manual) or a real http(s) URL — schema-aligned, not URL-ish prose.
+ */
+function isBookingUrlResolved(fact) {
+  if (!fact) return false;
+
+  const st = cleanString(fact.status);
+  const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;
+  const statusOk =
+    st === "answered" ||
+    st === "verified" ||
+    st === "partial" ||
+    fact.verified === true ||
+    (st === "inferred" && confidence >= INFERRED_FACT_COMPLETE_THRESHOLD);
+
+  if (!statusOk) return false;
+
+  const raw = sanitizeFactValue(fact.value);
+  if (raw == null) return true;
+  if (typeof raw !== "string") return false;
+  const value = cleanString(raw).toLowerCase();
+  if (isBookingUrlNoLinkSentinel(raw)) return true;
+  return value.startsWith("http://") || value.startsWith("https://");
+}
+
 /** booking_url fact value safe to use as settings/contact href (skips manual/no-URL sentinels). */
 function bookingUrlValueForDraftLink(raw) {
   if (!hasMeaningfulValue(raw) || typeof raw !== "string") return "";
@@ -5210,6 +5253,10 @@ function isFactResolved(fact, fieldKey = "") {
   if (!fact) return false;
 
   if (hasMeaningfulValue(fact.intake_followup)) return false;
+
+  if (cleanString(fieldKey) === "booking_url" && isBookingUrlResolved(fact)) {
+    return true;
+  }
 
   const v = sanitizeFactValue(fact.value);
   if (!hasMeaningfulValue(v)) return false;
