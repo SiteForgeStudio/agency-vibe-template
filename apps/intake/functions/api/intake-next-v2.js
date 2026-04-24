@@ -91,6 +91,32 @@ function isEvidenceKeyPresentForComponentStates(fieldKey, factRegistry) {
   return !evidenceKeyNeedsEvidence(fieldKey, factRegistry);
 }
 
+let __debugBlueprintSeq = 0;
+
+function assignDebugBlueprintId(nextBlueprint) {
+  if (!nextBlueprint || typeof nextBlueprint !== "object") return;
+  nextBlueprint._debug_id = `bp_${Date.now()}_${(++__debugBlueprintSeq).toString(36)}`;
+}
+
+function debugBlueprintIdentity(label, bp) {
+  if (!bp) return;
+  console.log(`\n🔍 [BP:${label}]`);
+  console.log("id:", bp._debug_id || "(none)");
+  console.log("primary_field:", bp?.question_plan?.primary_field);
+  console.log("booking_url:", bp?.fact_registry?.booking_url);
+}
+
+function debugSatisfaction(field, fact, fn) {
+  console.log(`\n🧪 [SATISFACTION CHECK] ${field}`);
+  console.log("value:", fact?.value);
+  console.log("status:", fact?.status);
+  try {
+    console.log("result:", fn(fact, field));
+  } catch (e) {
+    console.log("result: ERROR", e.message);
+  }
+}
+
 /* ========================================================================
  * Cloudflare Handlers
  * ====================================================================== */
@@ -125,6 +151,8 @@ export async function onRequestPost(context) {
     const currentPlan = isObject(blueprint.question_plan) ? blueprint.question_plan : {};
     const schemaGuide = compileSchemaGuide(blueprint, state);
 
+    debugBlueprintIdentity("before_route", blueprint);
+
     const interpretation = await interpretUserAnswer({
       env,
       answer: userAnswer,
@@ -142,6 +170,8 @@ export async function onRequestPost(context) {
       answer: userAnswer
     });
 
+    debugBlueprintIdentity("after_route", routed.blueprint);
+
     const recomputed = recomputeBlueprint({
       blueprint: routed.blueprint,
       state,
@@ -149,6 +179,26 @@ export async function onRequestPost(context) {
       previousPlan: currentPlan,
       lastAudit: routed.audit
     });
+
+    debugBlueprintIdentity("after_recompute", recomputed.blueprint);
+
+    const pf = cleanString(currentPlan?.primary_field);
+    if (pf) {
+      debugSatisfaction(pf, recomputed.blueprint?.fact_registry?.[pf], isFactComplete);
+    }
+
+    const expectedField = cleanString(recomputed.blueprint?.question_plan?.primary_field);
+    if (
+      expectedField &&
+      isFactComplete(
+        recomputed.blueprint?.fact_registry?.[expectedField],
+        expectedField
+      ) &&
+      recomputed.blueprint?.question_plan?.primary_field === expectedField
+    ) {
+      console.error("🚨 INVARIANT VIOLATION:");
+      console.error("Field is complete but still selected as primary:", expectedField);
+    }
 
     state.blueprint = {
       ...recomputed.blueprint,
@@ -231,11 +281,11 @@ export async function onRequestPost(context) {
     const answeredPf = cleanString(currentPlan.primary_field);
     const pr = state.blueprint.premium_readiness;
     const ar = state.blueprint.access_readiness;
-    const factRegistryForPrimarySatisfaction = safeObject(recomputed.blueprint.fact_registry);
+    const debugRegistry = safeObject(recomputed.blueprint.fact_registry);
     state.turn_debug = {
       answered_primary_field: answeredPf || null,
       primary_satisfied_after_answer: answeredPf
-        ? isFieldSatisfied(answeredPf, factRegistryForPrimarySatisfaction)
+        ? isFieldSatisfied(answeredPf, debugRegistry)
         : null,
       next_primary_field: cleanString(state.blueprint.question_plan?.primary_field) || null,
       next_bundle_id: cleanString(state.blueprint.question_plan?.bundle_id) || null,
@@ -1287,6 +1337,7 @@ function appendFollowupHintToQuestion(blueprint, message) {
 
 function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpretation, answer }) {
   const nextBlueprint = deepClone(blueprint);
+  assignDebugBlueprintId(nextBlueprint);
   nextBlueprint.fact_registry = deepClone(blueprint.fact_registry || {});
   nextBlueprint.business_draft = deepClone(blueprint.business_draft || {});
   nextBlueprint.evidence_log = Array.isArray(blueprint.evidence_log) ? deepClone(blueprint.evidence_log) : [];
@@ -1601,6 +1652,7 @@ if (
 
 export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan, lastAudit }) {
   const nextBlueprint = deepClone(blueprint);
+  assignDebugBlueprintId(nextBlueprint);
   nextBlueprint.question_history = Array.isArray(nextBlueprint.question_history)
     ? deepClone(nextBlueprint.question_history)
     : [];
@@ -1648,6 +1700,19 @@ export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan
     previousPlan,
     lastAudit,
     state
+  });
+
+  console.log("\n🧭 [PLANNER INPUT SNAPSHOT]");
+  const fr = nextBlueprint?.fact_registry || {};
+  Object.entries(fr).forEach(([k, v]) => {
+    console.log(
+      `${k}:`,
+      v?.value,
+      "| status:",
+      v?.status,
+      "| complete:",
+      isFactComplete(v, k)
+    );
   });
 
   const nextQuestionPlan = planNextQuestion(
