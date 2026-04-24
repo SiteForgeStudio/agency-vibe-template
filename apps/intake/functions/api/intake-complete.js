@@ -21,7 +21,6 @@ import {
 
 import {
   enhanceProcessSteps,
-  enhanceFeatures,
   enhanceHero,
   truncateAtWordBoundary
 } from "../utils/content-enhancement.js";
@@ -800,6 +799,372 @@ function shouldShowFaqs({ behavior, faqs }) {
   return false;
 }
 
+function cleanText(str) {
+  if (typeof str !== "string") return "";
+  return str.replace(/\s+/g, " ").trim();
+}
+
+function capitalizeFirst(str) {
+  if (typeof str !== "string" || !str.length) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+/**
+ * Phase 3C — hero headline/subtext from verified intake facts (registry), not raw preflight paste.
+ * @param {Record<string, { value?: unknown }> | null | undefined} facts fact_registry-shaped map
+ * @param {object} [_preflight] reserved for future context; do not splice raw PI strings into hero
+ */
+function synthesizeHero(facts, _preflight) {
+  const offer = cleanString(facts?.primary_offer?.value || "");
+  const diff = cleanString(facts?.differentiation?.value || "");
+  const persona = cleanString(facts?.target_persona?.value || "");
+
+  const cleanPersona = persona.includes("·") ? "" : persona;
+
+  let headline = buildPositionedHeadline(offer, diff);
+
+  let subtext = "";
+
+  if (cleanPersona && offer) {
+    subtext = `Designed for ${cleanPersona.toLowerCase()} who want ${extractCoreOutcome(offer).toLowerCase()}.`;
+  } else if (offer) {
+    subtext = `Focused on delivering ${extractCoreOutcome(offer).toLowerCase()} with quality and precision.`;
+  } else {
+    subtext = "Built around your strengths, designed to convert.";
+  }
+
+  return {
+    headline: cleanText(headline),
+    subtext: cleanText(subtext)
+  };
+}
+
+function synthesizeFeatures(facts) {
+  const offer = cleanString(facts?.primary_offer?.value || "");
+  const diff = cleanString(facts?.differentiation?.value || "");
+
+  const signals = detectFeatureSignals(offer, diff);
+
+  const features = [];
+
+  for (const signal of signals) {
+    features.push(buildFeatureFromSignal(signal, offer, diff));
+  }
+
+  while (features.length < 3) {
+    features.push(buildFallbackFeature(features.length, offer));
+  }
+
+  return features.slice(0, 6);
+}
+
+function synthesizeAbout(facts) {
+  const offer = cleanString(facts?.primary_offer?.value || "");
+  const diff = cleanString(facts?.differentiation?.value || "");
+  const persona = cleanString(facts?.target_persona?.value || "");
+
+  const core = extractCoreOutcome(offer) || "what we do";
+  const angle = extractValueAngle(diff);
+
+  const cleanPersona = persona.includes("·") ? "" : persona.toLowerCase();
+
+  const intro = buildAboutIntro(core, angle);
+  const body = buildAboutBody(core, cleanPersona, angle);
+  const closing = buildAboutClosing(core);
+
+  return {
+    headline: `Built Around ${capitalizeFirst(core)}`,
+    paragraphs: [intro, body, closing].filter(Boolean)
+  };
+}
+
+function buildAboutIntro(core, angle) {
+  return `Everything we do is centered around ${core.toLowerCase()} that ${angle}.`;
+}
+
+function buildAboutBody(core, persona, angle) {
+  if (persona) {
+    return `We focus on helping ${persona} achieve ${applyAngle(core, angle, 2)} in a way that feels consistent and reliable.`;
+  }
+
+  return `Our approach is simple — focus on doing the work right, and make sure the end result holds up over time.`;
+}
+
+function buildAboutClosing(core) {
+  return `From start to finish, every ${core.toLowerCase()} is handled with care, clarity, and attention to what matters most.`;
+}
+
+function synthesizeTestimonials(facts, signalBlob, behavior) {
+  const objections = Array.isArray(signalBlob?.objections) ? signalBlob.objections : [];
+  const trustSignals = Array.isArray(signalBlob?.trust) ? signalBlob.trust : [];
+
+  const offerRaw = cleanString(facts?.primary_offer?.value || "");
+  const diffRaw = cleanString(facts?.differentiation?.value || "");
+  const core = extractCoreOutcome(offerRaw) || "the result";
+  const angle = extractValueAngle(diffRaw);
+
+  const testimonials = [];
+
+  if (objections.length) {
+    const obj = cleanString(objections[0]).toLowerCase();
+
+    testimonials.push({
+      quote: `We had concerns about ${obj}, but the process made everything clear and ${applyTestimonialTone(core, angle, 0)}.`,
+      author: "Client",
+      focus: "objection"
+    });
+  }
+
+  testimonials.push({
+    quote: `${applyTestimonialTone(core, angle, 1)}, exactly what we were looking for.`,
+    author: "Client",
+    focus: "outcome"
+  });
+
+  if (behavior?.trust_sensitivity === "high" || trustSignals.length) {
+    testimonials.push({
+      quote: `From the first step to ${applyTestimonialTone(core, angle, 2)}, everything felt clear, consistent, and reliable.`,
+      author: "Client",
+      focus: "trust"
+    });
+  }
+
+  return testimonials.slice(0, 3);
+}
+
+function applyTestimonialTone(core, angle, variant = 0) {
+  const c = core ? core.toLowerCase() : "result";
+
+  switch (variant) {
+    case 1:
+      return `we ended up with ${c} that ${angle}`;
+    case 2:
+      return `${c} that felt consistent and well thought out from start to finish`;
+    default:
+      return `the final ${c} ${angle}`;
+  }
+}
+
+function resolveConversionMode(facts) {
+  const booking = effectivePublicBookingUrl(cleanString(facts?.booking_url?.value));
+  if (booking) return "booking";
+  if (cleanString(facts?.phone?.value)) return "call";
+  if (cleanString(facts?.email?.value)) return "inquiry";
+  return "hybrid";
+}
+
+function synthesizeCTA(facts, strategy = {}, mode = null) {
+  const resolvedMode = mode || resolveConversionMode(facts);
+  const offer = extractCoreOutcome(cleanString(facts?.primary_offer?.value || "")) || "get started";
+  const angle = extractValueAngle(cleanString(facts?.differentiation?.value || ""));
+
+  switch (resolvedMode) {
+    case "booking": {
+      const link = effectivePublicBookingUrl(cleanString(facts?.booking_url?.value)) || "#contact";
+      const premiumText = `Book ${offer} that ${angle}`;
+      const fallbackText = `Book ${offer}`;
+
+      const ctaText = premiumText.length > 48 ? fallbackText : premiumText;
+
+      return {
+        text: ctaText,
+        link
+      };
+    }
+
+    case "call":
+      return {
+        text: "Call Now",
+        link: `tel:${cleanString(facts?.phone?.value || "")}`
+      };
+
+    case "inquiry":
+      return {
+        text: `Request ${offer}`,
+        link: "#contact"
+      };
+
+    default:
+      return {
+        text: "Get Started",
+        link: "#contact"
+      };
+  }
+}
+
+function synthesizeContactSurface(facts) {
+  return {
+    phone: cleanString(facts?.phone?.value || ""),
+    email: cleanString(facts?.email?.value || ""),
+    address: cleanString(facts?.address?.value || ""),
+    booking_url: cleanString(facts?.booking_url?.value || "")
+  };
+}
+
+function detectFeatureSignals(offer, diff) {
+  const text = `${offer} ${diff}`.toLowerCase();
+
+  const signals = [];
+
+  if (/craft|detail|precision|finish|workmanship/i.test(text)) {
+    signals.push("craft");
+  }
+
+  if (/quality|premium|high[-\s]?end|professional/i.test(text)) {
+    signals.push("quality");
+  }
+
+  if (/custom|tailor|personalized|bespoke|fit/i.test(text)) {
+    signals.push("customization");
+  }
+
+  if (/fast|quick|efficient|responsive/i.test(text)) {
+    signals.push("speed");
+  }
+
+  if (/trusted|local|community|experience|years/i.test(text)) {
+    signals.push("trust");
+  }
+
+  return [...new Set(signals)];
+}
+
+function buildFeatureFromSignal(signal, offer, diff) {
+  const core = extractCoreOutcome(offer) || "your project";
+  const angle = extractValueAngle(diff);
+
+  switch (signal) {
+    case "craft":
+      return {
+        title: "Precision in Every Detail",
+        description: `Handled with care and attention so your ${core.toLowerCase()} reflects true craftsmanship, not rushed work.`
+      };
+
+    case "quality":
+      return {
+        title: "Results You Can Rely On",
+        description: `Expect ${applyAngle(core, angle, 0)}, with consistency you can count on.`
+      };
+
+    case "customization":
+      return {
+        title: "No One-Size-Fits-All",
+        description: `Your ${core.toLowerCase()} is shaped around your needs, not a preset solution.`
+      };
+
+    case "speed":
+      return {
+        title: "Efficient, Not Rushed",
+        description: `Work moves forward quickly while still delivering ${applyAngle(core, angle, 1)}.`
+      };
+
+    case "trust":
+      return {
+        title: "A Process You Feel Good About",
+        description: `Clear steps and reliable execution make your ${applyAngle(core, angle, 2)} feel straightforward and stress-free.`
+      };
+
+    default:
+      return buildFallbackFeature(0, offer);
+  }
+}
+
+function applyAngle(core, angle, variant = 0) {
+  const c = core ? core.toLowerCase() : "results";
+
+  switch (variant) {
+    case 1:
+      return `${c} built to deliver ${angle}`;
+    case 2:
+      return `${c} designed to ${angle}`;
+    default:
+      return `${c} that ${angle}`;
+  }
+}
+
+function buildFallbackFeature(index, offer) {
+  const core = extractCoreOutcome(offer) || "results";
+
+  const fallback = [
+    {
+      title: "Reliable Results",
+      description: `Focused on delivering ${core.toLowerCase()} you can count on.`
+    },
+    {
+      title: "Clear Communication",
+      description: `You'll always understand what's happening with your ${core.toLowerCase()} from start to finish.`
+    },
+    {
+      title: "Client-Focused Approach",
+      description: `Everything is built around making your ${core.toLowerCase()} successful.`
+    }
+  ];
+
+  return fallback[index % fallback.length];
+}
+
+function buildPositionedHeadline(offer, diff) {
+  if (!offer && !diff) {
+    return "Designed to stand out. Built to convert.";
+  }
+
+  if (offer && diff) {
+    return `${extractCoreOutcome(offer)} that ${extractValueAngle(diff)}`;
+  }
+
+  if (offer) {
+    return extractCoreOutcome(offer);
+  }
+
+  return extractValueAngle(diff);
+}
+
+function extractCoreOutcome(offer) {
+  if (!offer) return "";
+
+  return capitalizeFirst(
+    offer
+      .split(/[.,]/)[0]
+      .replace(/we (do|offer|provide)/i, "")
+      .replace(/our services include/i, "")
+      .trim()
+  );
+}
+
+function extractValueAngle(diff) {
+  if (!diff) return "sets you apart";
+
+  const d = cleanString(diff).toLowerCase();
+
+  if (isCraftSignal(d)) return "reflects a high level of craftsmanship";
+  if (isQualitySignal(d)) return "delivers consistently strong results";
+  if (isAccessibilitySignal(d)) return "keeps quality within reach";
+  if (isCustomizationSignal(d)) return "adapts to each situation";
+  if (isLocalTrustSignal(d)) return "earns trust locally";
+
+  return "sets you apart";
+}
+
+function isCraftSignal(d) {
+  return /craft|detail|precision|finish|workmanship|hand[-\s]?made|care|intent|intentional|driven|focused/i.test(d);
+}
+
+function isQualitySignal(d) {
+  return /quality|premium|high[-\s]?end|professional|expert/i.test(d);
+}
+
+function isAccessibilitySignal(d) {
+  return /affordable|accessible|budget|value|fair/i.test(d);
+}
+
+function isCustomizationSignal(d) {
+  return /custom|tailor|personalized|bespoke|fit/i.test(d);
+}
+
+function isLocalTrustSignal(d) {
+  return /local|community|trusted|neighborhood|family[-\s]?owned/i.test(d);
+}
+
 /* =========================
    Main Assembly
 ========================= */
@@ -841,7 +1206,16 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
       : deriveBehavior(signalBlob);
 
   const trustbar = buildTrustbar(state, strategyContract);
-  let features = buildFeatures(state, strategyContract, signalBlob);
+  const factRegistry = isObject(state?.blueprint?.fact_registry) ? state.blueprint.fact_registry : {};
+  const preflightForHero = isObject(state?.preflight_intelligence) ? state.preflight_intelligence : {};
+
+  let features = synthesizeFeatures(factRegistry);
+  features = features.map((f, idx) => ({
+    title: normalizePublicText(f.title),
+    description: normalizePublicText(f.description),
+    icon_slug: pickFeatureIcon(`${f.title} ${f.description}`, idx)
+  }));
+
   let processSteps = buildProcessSteps(state, strategyContract, behavior);
 
   if (!processSteps.length && strategyModels.process_strategy.type === "consultative") {
@@ -855,18 +1229,6 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     ...s,
     description: normalizePublicText(s.description)
   }));
-  features = enhanceFeatures(features, signalBlob, behavior).map((f) => ({
-    ...f,
-    description: normalizePublicText(f.description)
-  }));
-
-  if (strategyModels.trust_strategy.type === "technical_authority") {
-    features.push({
-      title: "Expert Craftsmanship",
-      description: "Using professional-grade materials and proven techniques.",
-      icon_slug: pickFeatureIcon("Expert Craftsmanship professional-grade materials", features.length)
-    });
-  }
 
   let gallery = buildGallery(state, strategyContract, vibe);
 
@@ -892,7 +1254,11 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     );
   }
 
-  const testimonials = buildTestimonials(state, strategyContract);
+  const testimonials = synthesizeTestimonials(factRegistry, signalBlob, behavior);
+  const normalizedTestimonials = testimonials.map((t, idx) => ({
+    quote: normalizePublicText(truncateAtWordBoundary(t.quote, 180)),
+    author: normalizePublicText(t.author || `Client ${idx + 1}`)
+  }));
   const faqs = buildFaqs(state, strategyContract);
   const serviceArea = buildServiceArea(state, strategyContract);
 
@@ -901,12 +1267,6 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   const ci = isObject(pi.component_importance) ? pi.component_importance : {};
   const emPi = isObject(pi.experience_model) ? pi.experience_model : {};
   const pmPi = isObject(pi.pricing_model) ? pi.pricing_model : {};
-
-  const primaryCtaResolved = normalizePublicText(
-    cleanString(state.answers?.cta_text) ||
-      (strategyModels.pricing_strategy.type === "variable" ? "Request a Consultation" : "") ||
-      inferPrimaryCtaText(strategyContract, bookingUrl, pmPi, emPi, state)
-  );
 
   const toggles = {
     show_trustbar: toggleOptOut(schemaToggles, "show_trustbar", shouldShowTrustbar({ behavior, trustbar })),
@@ -925,7 +1285,8 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     show_testimonials: toggleOptOut(
       schemaToggles,
       "show_testimonials",
-      shouldShowTestimonials({ behavior, testimonials, componentImportance: ci }) && testimonials.length > 0
+      shouldShowTestimonials({ behavior, testimonials: normalizedTestimonials, componentImportance: ci }) &&
+        normalizedTestimonials.length > 0
     ),
     show_comparison: toggleOptOut(
       schemaToggles,
@@ -958,6 +1319,10 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   hero.headline = normalizePublicText(hero.headline);
   hero.subtext = normalizePublicText(hero.subtext);
 
+  const heroContent = synthesizeHero(factRegistry, preflightForHero);
+  hero.headline = normalizePublicText(truncateAtWordBoundary(heroContent.headline, 120));
+  hero.subtext = normalizePublicText(truncateAtWordBoundary(heroContent.subtext, 220));
+
   if (!cleanString(hero.headline) && strategyModels.visual_strategy.type === "transformation") {
     hero.headline = normalizePublicText("Designed to showcase and preserve what matters most");
   }
@@ -967,11 +1332,15 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
   if (!hero.image) hero.image = {};
   hero.image.image_search_query = heroQuery;
 
+  const conversionMode = resolveConversionMode(factRegistry);
+  const cta = synthesizeCTA(factRegistry, strategyContract, conversionMode);
+  const contactSurface = synthesizeContactSurface(factRegistry);
+
   const sections = {
     about: true,
     features,
     processSteps,
-    testimonials,
+    testimonials: normalizedTestimonials,
     gallery,
     faqs,
     service_area: serviceArea
@@ -990,10 +1359,12 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     settings: {
       vibe,
       menu: buildMenu(toggles, sections),
-      cta_text: primaryCtaResolved,
-      cta_link: bookingUrl || resolveIntakeCtaAnchor(state.answers?.cta_link),
-      cta_type: bookingUrl ? "external" : inferCtaType(cleanString(state.answers?.cta_link) || "#contact"),
-      secondary_cta_text: normalizePublicText(inferSecondaryCtaText(strategyContract, phone, primaryCtaResolved)),
+      cta_text: normalizePublicText(cta.text),
+      cta_link: cta.link,
+      cta_type: inferCtaType(cta.link),
+      secondary_cta_text: normalizePublicText(
+        inferSecondaryCtaText(strategyContract, phone, normalizePublicText(cta.text))
+      ),
       secondary_cta_link: inferSecondaryCtaLink(phone, bookingUrl)
     },
 
@@ -1009,11 +1380,27 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
 
     hero,
 
-    about: {
-      story_text: normalizePublicText(resolveAboutStory(state, businessName)),
-      founder_note: normalizePublicText(resolveFounderNote(state)),
-      years_experience: normalizePublicText(resolveYearsExperience(state, strategyContract))
-    },
+    about: (() => {
+      const aboutContent = synthesizeAbout(factRegistry);
+      const aboutParagraphs = aboutContent.paragraphs.map((p) =>
+        normalizePublicText(truncateAtWordBoundary(p, 240))
+      );
+      const storyJoin =
+        aboutParagraphs.length >= 2
+          ? aboutParagraphs.slice(0, -1).join(" ")
+          : aboutParagraphs[0] || "";
+      const founderFromSynth =
+        aboutParagraphs.length >= 1 ? aboutParagraphs[aboutParagraphs.length - 1] : "";
+
+      return {
+        enabled: true,
+        headline: normalizePublicText(aboutContent.headline),
+        paragraphs: aboutParagraphs,
+        story_text: normalizePublicText(truncateAtWordBoundary(storyJoin, 480)),
+        founder_note: normalizePublicText(founderFromSynth),
+        years_experience: normalizePublicText(resolveYearsExperience(state, strategyContract))
+      };
+    })(),
 
     ...(trustbar ? { trustbar } : {}),
     features,
@@ -1023,17 +1410,27 @@ function buildBusinessJson(state, strategyContract, strategyBrief) {
     contact: {
       headline: "Get in Touch",
       subheadline: normalizePublicText(resolveContactSubheadline(state, strategyContract)),
-      email,
-      phone,
-      email_recipient: email,
+      email: cleanString(contactSurface.email) || email,
+      phone: cleanString(contactSurface.phone) || phone,
+      email_recipient: cleanString(contactSurface.email) || email,
       button_text: normalizePublicText(
-        inferContactButtonText(strategyContract, bookingUrl, pmPi, emPi, state, primaryCtaResolved)
+        inferContactButtonText(
+          strategyContract,
+          effectivePublicBookingUrl(contactSurface.booking_url) || bookingUrl,
+          pmPi,
+          emPi,
+          state,
+          normalizePublicText(cta.text)
+        )
       ),
-      office_address: normalizePublicText(officeAddress)
+      office_address: normalizePublicText(cleanString(contactSurface.address) || officeAddress),
+      ...(effectivePublicBookingUrl(contactSurface.booking_url)
+        ? { booking_url: effectivePublicBookingUrl(contactSurface.booking_url) }
+        : {})
     },
 
     ...(serviceArea ? { service_area: serviceArea } : {}),
-    ...(testimonials.length ? { testimonials } : {}),
+    ...(normalizedTestimonials.length ? { testimonials: normalizedTestimonials } : {}),
     ...(faqs.length ? { faqs } : {})
   };
 }

@@ -1187,6 +1187,96 @@ function applyNarrativeQualityPass(nextBlueprint, expectedField, answer) {
   }
 }
 
+/** Phase 3B: reject vacuous or low-effort string answers before merging into fact_registry. */
+function isMeaningfulAnswer(value) {
+  if (value == null || value === false) return false;
+
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+
+    if (v.length < 8) return false;
+
+    const weakPatterns = [
+      "i don't know",
+      "not sure",
+      "n/a",
+      "none",
+      "idk",
+      "same",
+      "whatever"
+    ];
+
+    if (weakPatterns.some((p) => v.includes(p))) return false;
+  }
+
+  return true;
+}
+
+/** Phase 3B.1: classify user text as strong enough for verified vs answered. */
+function isHighQualityAnswer(fieldKey, value) {
+  if (!value || typeof value !== "string") return false;
+
+  const v = value.trim();
+
+  if (v.length < 25) return false;
+
+  if (fieldKey === "differentiation") {
+    return (
+      v.includes("because") ||
+      v.includes("specialize") ||
+      v.includes("focus") ||
+      v.includes("known for") ||
+      v.split(" ").length > 8
+    );
+  }
+
+  if (fieldKey === "target_persona") {
+    return (
+      v.includes("who") ||
+      v.includes("clients") ||
+      v.includes("customers") ||
+      v.split(" ").length > 6
+    );
+  }
+
+  if (fieldKey === "primary_offer") {
+    return v.split(" ").length > 6;
+  }
+
+  return v.length > 30;
+}
+
+/** Phase 3B.2: one-line coaching appended to the same primary question after a weak answer. */
+function buildFollowupHint(fieldKey) {
+  switch (fieldKey) {
+    case "differentiation":
+      return "Even a rough idea helps — what do customers usually say you're best at or known for?";
+
+    case "target_persona":
+      return "Think about your best customers — who do you enjoy working with most?";
+
+    case "primary_offer":
+      return "What do people usually come to you for — what's the main thing you help them with?";
+
+    case "booking_method":
+      return "For example — do they call, visit, message, or book online?";
+
+    default:
+      return "A quick example or short description is perfect.";
+  }
+}
+
+/** Append transient follow-up hint to the outgoing question and remove it from blueprint. */
+function appendFollowupHintToQuestion(blueprint, message) {
+  if (!isObject(blueprint) || typeof message !== "string") return message;
+  const hint = cleanString(blueprint.followup_hint);
+  if (!hint) return message;
+  const base = cleanString(message);
+  if (!base) return message;
+  delete blueprint.followup_hint;
+  return `${base} ${hint}`;
+}
+
 function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpretation, answer }) {
   const nextBlueprint = deepClone(blueprint);
   nextBlueprint.fact_registry = deepClone(blueprint.fact_registry || {});
@@ -1197,14 +1287,6 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
   const updatedFactKeys = [];
   const patchedPaths = [];
   const expectedField = cleanString(state?.blueprint?.question_plan?.primary_field);
-
-  // ==========================
-  // 🔥 FACT STABILITY HELPER (NEW)
-  // ==========================
-
-
-
-
 
   function shouldUpdateFact(existing, incoming) {
     if (!existing) return true;
@@ -1237,6 +1319,13 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
     : factUpdates;
 
   for (const update of prioritizedFactUpdates) {
+    const fk = cleanString(update?.fact_key);
+    if (!fk) continue;
+
+    if (expectedField && fk !== expectedField) {
+      continue;
+    }
+
     if (cleanString(update.fact_key) === "booking_url" && !isAcceptableBookingUrlFactUpdate(update, answer)) {
       continue;
     }
@@ -1245,17 +1334,31 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
       ? nextBlueprint.fact_registry[update.fact_key]
       : null;
 
+    const existingStatus = cleanString(existing?.status);
+    if (existingStatus === "verified" || existingStatus === "answered") {
+      continue;
+    }
+
+    const candidateValue = sanitizeFactValue(deepClone(update.value));
+    if (fk !== "booking_url" && !isMeaningfulAnswer(candidateValue)) {
+      nextBlueprint.followup_hint = buildFollowupHint(fk);
+      continue;
+    }
+
+    const highQuality =
+      fk === "booking_url" ? false : isHighQualityAnswer(fk, typeof candidateValue === "string" ? candidateValue : "");
+
     const newFact = {
-      value: sanitizeFactValue(deepClone(update.value)),
+      value: candidateValue,
       source: "user",
-      confidence: clampNumber(update.confidence, 0, 1, existing?.confidence ?? 0.5),
-      verified: update.verified !== false,
+      confidence: highQuality ? 0.95 : 0.8,
+      verified: highQuality,
       requires_client_verification:
         typeof existing?.requires_client_verification === "boolean"
-          ? existing.requires_client_verification && update.verified !== true
+          ? existing.requires_client_verification && !highQuality
           : false,
       related_sections: Array.isArray(existing?.related_sections) ? existing.related_sections : [],
-      status: sanitizeFactStatus(update.status),
+      status: highQuality ? "verified" : "answered",
       rationale: cleanString(update.rationale),
       updated_at: now
     };
@@ -4464,7 +4567,7 @@ async function renderNextQuestion({
   };
 
   if (!llmConfigured) {
-    return packQuestionRender(fallback, {
+    return packQuestionRender(appendFollowupHintToQuestion(blueprint, fallback), {
       fallback_triggered: false,
       llm_available: false,
       question_source: "deterministic",
@@ -4484,7 +4587,7 @@ async function renderNextQuestion({
     });
 
     if (!message) {
-      return packQuestionRender(fallback, {
+      return packQuestionRender(appendFollowupHintToQuestion(blueprint, fallback), {
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
@@ -4493,7 +4596,7 @@ async function renderNextQuestion({
       });
     }
     if (isOverloadedQuestion(message, adjustedPlan.bundle_id)) {
-      return packQuestionRender(fallback, {
+      return packQuestionRender(appendFollowupHintToQuestion(blueprint, fallback), {
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
@@ -4502,7 +4605,7 @@ async function renderNextQuestion({
       });
     }
     if (looksLikeRepeatedQuestion(message, interpretation?.answer_summary, adjustedPlan.bundle_id)) {
-      return packQuestionRender(fallback, {
+      return packQuestionRender(appendFollowupHintToQuestion(blueprint, fallback), {
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
@@ -4511,7 +4614,7 @@ async function renderNextQuestion({
       });
     }
     if (violatesPrimaryFieldQuestionScope(message, cleanString(adjustedPlan.primary_field))) {
-      return packQuestionRender(fallback, {
+      return packQuestionRender(appendFollowupHintToQuestion(blueprint, fallback), {
         fallback_triggered: true,
         llm_available: true,
         question_source: "deterministic",
@@ -4520,7 +4623,7 @@ async function renderNextQuestion({
       });
     }
 
-    return packQuestionRender(message, {
+    return packQuestionRender(appendFollowupHintToQuestion(blueprint, message), {
       fallback_triggered: false,
       llm_available: true,
       question_source: "llm",
@@ -4529,7 +4632,7 @@ async function renderNextQuestion({
     });
   } catch (err) {
     console.error("[intake-next-v2-1:render-question]", err);
-    return packQuestionRender(fallback, {
+    return packQuestionRender(appendFollowupHintToQuestion(blueprint, fallback), {
       fallback_triggered: true,
       llm_available: true,
       question_source: "deterministic",

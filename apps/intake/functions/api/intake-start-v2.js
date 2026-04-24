@@ -218,11 +218,8 @@ export async function onRequestPost(context) {
     initialState.current_key = initialState.blueprint.question_plan?.primary_field || null;
 
     const openingMessage =
-      renderQuestion(initialState.blueprint.question_plan, initialState.blueprint, {
-        preflight_intelligence: initialState.preflight_intelligence,
-        businessName: initialState.businessName,
-        blueprint: initialState.blueprint
-      }) || fallbackOpeningMessage(initialState);
+      renderQuestion(initialState.blueprint.question_plan, initialState.blueprint, initialState) ||
+      fallbackOpeningMessage(initialState);
 
     initialState.conversation.push({
       role: "assistant",
@@ -2350,87 +2347,79 @@ function isFactVerifiedByPath(factRegistry, factKey) {
    QUESTION RENDERING
 -------------------------------- */
 
-function buildBuyerFactorEmailQuestion(preflightIntelligence, businessName, blueprint) {
-  const pi = isObject(preflightIntelligence) ? preflightIntelligence : {};
-  const factors = uniqueList([...cleanList(pi.buying_factors), ...cleanList(pi.buyer_factors)]).filter(Boolean);
-  if (!factors.length) return "";
-
-  const name = cleanString(businessName) || "your business";
-  const personaHint = cleanString(pi.target_persona_hint);
-  const category = cleanString(blueprint?.strategy?.business_context?.category);
-  const basis = factors.slice(0, 2).join("; ");
-  const basisClip = basis.length > 280 ? `${basis.slice(0, 277)}…` : basis;
-
-  let opener = "";
-  if (personaHint) {
-    const ph = personaHint.length > 100 ? `${personaHint.slice(0, 97)}…` : personaHint;
-    opener = `For the clients you do your best work with (${ph}),`;
-  } else if (category) {
-    const cat = category.length > 72 ? `${category.slice(0, 69)}…` : category;
-    opener = `In ${cat} work,`;
-  } else {
-    opener = "When someone is comparing options and not ready to call yet,";
-  }
-
-  return `${opener} buyers often weigh: ${basisClip}. Email is where many first touchpoints happen—what address should we publish for ${name} so those messages reach you reliably?`;
-}
-
 // ==========================
-// PHASE 2.7 — FIELD-AWARE QUESTION RENDERING
+// PHASE 3A — STRATEGIC QUESTION FRAMING (field-scoped copy only)
 // ==========================
 
-function renderFieldScopedQuestion(plan, renderContext = {}) {
-  const field = cleanString(plan?.primary_field);
-  const preflightIntelligence = renderContext.preflight_intelligence;
-  const businessName = renderContext.businessName;
-  const blueprint = renderContext.blueprint;
+function renderFieldScopedQuestion(plan, state = {}) {
+  const pf = cleanString(plan?.primary_field);
 
-  switch (field) {
-    case "differentiation":
-      return "What makes your business stand out from others offering similar services?";
+  const businessModel =
+    cleanString(state?.blueprint?.strategy?.business_context?.business_model) || "general";
 
-    case "target_persona":
-      return "Who is the ideal client you do your best work for?";
-
-    case "primary_offer":
-      return "What is the main service or outcome you provide to customers?";
-
-    case "pricing":
-      return "How do customers typically think about pricing or value when working with you?";
-
-    case "process_summary":
-      return "What does working with you typically look like from start to finish?";
-
-    case "service_area_main":
-      return "Where do you primarily provide your services?";
-
-    case "booking_method":
-      return "What is the typical next step a customer takes to get started?";
-
-    case "phone":
-      return "What phone number should customers use to reach you?";
-
-    case "email": {
-      const emailQ = buildBuyerFactorEmailQuestion(preflightIntelligence, businessName, blueprint);
-      if (emailQ) return emailQ;
-      return "What email address should serious prospects use to reach you?";
+  switch (pf) {
+    case "differentiation": {
+      const rf = cleanList(state?.preflight_intelligence?.recommended_focus);
+      const rawHint = rf.length ? cleanString(rf[0]) : "";
+      const focusHint = rawHint.length > 100 ? `${rawHint.slice(0, 97)}…` : rawHint;
+      if (focusHint) {
+        return `What makes your business different from others offering similar services — what do customers specifically choose you for, especially around ${focusHint}?`;
+      }
+      return "What makes your business different from others offering similar services — what do customers specifically choose you for?";
     }
 
-    case "address":
-      return "What is your business address (if customers visit in person)?";
+    case "target_persona":
+      return "Who do you do your best work for — what kind of customer gets the most value from what you offer?";
 
-    case "hours":
-      return "What are your typical business hours?";
+    case "primary_offer":
+      return "What is the main service or outcome you provide — what are customers really coming to you for?";
+
+    case "booking_method":
+      if (businessModel === "local_service" || businessModel === "storefront") {
+        return "When someone is interested in working with you, what usually happens next — do they call, visit, request a quote, or something else?";
+      }
+
+      if (businessModel === "saas" || businessModel === "digital_product") {
+        return "How do people typically get started — do they sign up, book a demo, or go through a sales process?";
+      }
+
+      return "When someone is ready to move forward, what is the typical next step they take?";
+
+    case "contact_path":
+      return "What is the best way for someone to reach out if they have questions or want to get started?";
+
+    case "email":
+      return "What email should be used for customer inquiries or project requests?";
+
+    case "phone":
+      return "What phone number should customers call if they want to reach you directly?";
+
+    case "service_area_list":
+      return "What areas or locations do you primarily serve?";
+
+    case "gallery_visual_direction":
+      return "What kind of visuals best represent your work — finished projects, behind-the-scenes craftsmanship, or something else?";
 
     default:
       return null;
   }
 }
 
-function renderQuestion(questionPlan, blueprint, renderContext = {}) {
+function renderQuestion(questionPlan, blueprint, state = {}) {
   if (!questionPlan) return "";
 
-  const scoped = renderFieldScopedQuestion(questionPlan, renderContext);
+  const scoped = renderFieldScopedQuestion(questionPlan, state);
+  const blue =
+    state && typeof state === "object" && isObject(state.blueprint) ? state.blueprint : blueprint;
+  const followup = cleanString(blue?.followup_hint);
+
+  if (scoped && followup) {
+    if (blue && Object.prototype.hasOwnProperty.call(blue, "followup_hint")) {
+      delete blue.followup_hint;
+    }
+    return `${scoped} ${followup}`;
+  }
+
   if (scoped) {
     return scoped;
   }
