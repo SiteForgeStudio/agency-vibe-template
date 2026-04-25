@@ -74,22 +74,41 @@ export async function onRequestPost(context) {
       return json({ ok: false, error: "Missing slug", received: body }, 400);
     }
 
-    // 1) FETCH SOURCE OF TRUTH
-    const url = new URL(request.url);
-    const reconReq = new Request(`${url.origin}/api/preflight-status`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slug })
-    });
+    // 1) FETCH SOURCE OF TRUTH (or inject for local / deterministic tests)
+    const usePreflightOverride =
+      isObject(body.preflight_override) && Object.keys(body.preflight_override).length > 0;
 
-    const reconRes = await fetch(reconReq);
-    const reconData = await reconRes.json();
+    let reconData;
 
-    if (!reconRes.ok || !reconData?.ok) {
-      throw new Error(`Preflight data not found for slug: ${slug}.`);
+    if (usePreflightOverride) {
+      reconData = normalizePreflightOverrideToReconData(body.preflight_override, slug);
+      console.log("[intake-start-v2] preflight_override in use; skipped external preflight fetch");
+    } else {
+      const url = new URL(request.url);
+      const reconReq = new Request(`${url.origin}/api/preflight-status`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug })
+      });
+
+      const reconRes = await fetch(reconReq);
+      reconData = await reconRes.json();
+
+      if (!reconRes.ok || !reconData?.ok) {
+        throw new Error(`Preflight data not found for slug: ${slug}.`);
+      }
     }
 
     const strategy = safeStrategy(reconData);
+    if (usePreflightOverride) {
+      const bc = isObject(strategy?.business_context) ? strategy.business_context : {};
+      console.log("[intake-start-v2] preflight_override: strategy.business_context snapshot:", {
+        keys: Object.keys(bc),
+        has_business_name: !!cleanString(bc.business_name),
+        has_category: !!cleanString(bc.category || bc.business_type),
+        has_description: !!cleanString(bc.business_description || bc.summary)
+      });
+    }
     const seededAnswers = buildSeededAnswers(strategy, reconData);
     const preflight_intelligence = buildPreflightIntelligenceBridge(strategy, reconData, seededAnswers);
 
@@ -424,7 +443,50 @@ function asArray(value) {
    PRE-FLIGHT / STRATEGY ACCESS
 -------------------------------- */
 
+/**
+ * Shape lightweight test payloads like real `/api/preflight-status` JSON:
+ * `{ ok, slug, strategy_contract?, paid_intake_json?, recon_snapshot?, input_* … }`.
+ * Minimal objects (e.g. only JSON column blobs) are nested under `recon_snapshot`.
+ */
+function normalizePreflightOverrideToReconData(override, slugFromRequest) {
+  const o = isObject(override) ? { ...override } : {};
+  const slugVal = cleanString(o.slug) || slugFromRequest;
+
+  const hasEnvelope =
+    isObject(o.recon_snapshot) ||
+    isObject(o.strategy_contract) ||
+    (typeof o.paid_intake_json === "string" && o.paid_intake_json.trim() !== "");
+
+  if (hasEnvelope) {
+    return { ok: true, slug: slugVal, ...o, ok: true };
+  }
+
+  const strategy_contract = o.strategy_contract;
+  const paid_intake_json = o.paid_intake_json;
+  const snap = { ...o };
+  delete snap.strategy_contract;
+  delete snap.paid_intake_json;
+  delete snap.slug;
+
+  return compactObject({
+    ok: true,
+    slug: slugVal,
+    input_business_name: cleanString(o.input_business_name),
+    client_email: cleanString(o.client_email),
+    recon_snapshot: compactObject(snap),
+    ...(isObject(strategy_contract) ? { strategy_contract } : {}),
+    ...(paid_intake_json != null
+      ? {
+          paid_intake_json:
+            typeof paid_intake_json === "string" ? paid_intake_json : JSON.stringify(paid_intake_json)
+        }
+      : {})
+  });
+}
+
 function safeStrategy(reconData) {
+  if (!isObject(reconData)) return {};
+
   if (isObject(reconData?.strategy_contract)) {
     return reconData.strategy_contract;
   }

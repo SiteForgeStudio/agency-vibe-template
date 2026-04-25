@@ -8,6 +8,10 @@ const argv = process.argv.slice(2);
 // CONFIG
 // ==========================
 const API_BASE = "https://intake.getsiteforge.com/api";
+
+//const API_BASE = "http://localhost:8788/api";
+
+
 const SLUG = "simons-fine-art-framing-gallery";
 
 const MODE = "interactive"; // "interactive" or "scripted"

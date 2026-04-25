@@ -732,6 +732,13 @@ function buildInterpreterSystemPrompt() {
       return true;
     }
 
+    if (cleanString(key) === "primary_offer") {
+      const st = cleanString(fact.status);
+      if (st !== "answered" && st !== "verified") return false;
+      const vOffer = sanitizeFactValue(fact.value);
+      return hasMeaningfulValue(vOffer);
+    }
+
     const v = sanitizeFactValue(fact.value);
     if (!hasMeaningfulValue(v)) return false;
 
@@ -1422,6 +1429,13 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
       updated_at: now
     };
 
+    if (fk === "primary_offer") {
+      newFact.status = "answered";
+      newFact.confidence = 1.0;
+      newFact.verified = true;
+      newFact.requires_client_verification = false;
+    }
+
     // 🔥 APPLY ONLY IF VALID UPDATE
     if (shouldUpdateFact(existing, newFact)) {
       const history = Array.isArray(existing?.history) ? existing.history.slice() : [];
@@ -1491,12 +1505,15 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
         }
         // else: leave unresolved — do not mark "complexity" etc. as a booking URL
       } else {
+        const isPrimaryOffer = expectedField === "primary_offer";
         nextBlueprint.fact_registry[expectedField] = {
           value: cleanString(answer),
           status: "answered",
-          confidence: 0.75,
+          confidence: isPrimaryOffer ? 1.0 : 0.75,
           verified: true,
-          rationale: "Captured from answer (expected field enforcement)",
+          rationale: isPrimaryOffer
+            ? "User confirmed primary offer (expected field enforcement)"
+            : "Captured from answer (expected field enforcement)",
           updated_at: now
         };
 
@@ -3061,6 +3078,22 @@ function hasLocationSignalsForServiceArea(factRegistry, state, blueprint) {
 // ==========================
 // PHASE 2.9 — DYNAMIC PRIORITY ENGINE
 // ==========================
+
+/** Differentiation: satisfied in fact layer, or enough seeded text to unblock conversion (structure-only). */
+function differentiationPrereqSignalMet(factRegistry) {
+  const fr = safeObject(factRegistry);
+  if (isFieldSatisfied("differentiation", fr)) return true;
+  const t = cleanString(stringifyFactValue(fr?.differentiation?.value)).trim();
+  if (!t) return false;
+  return t.split(/\s+/).filter(Boolean).length >= 4;
+}
+
+/** Conversion-channel facts: gated until primary_offer is captured and differentiation has signal (manifest sequencing). */
+function conversionPositioningPrereqsMet(factRegistry) {
+  const fr = safeObject(factRegistry);
+  return isFieldSatisfied("primary_offer", fr) && differentiationPrereqSignalMet(fr);
+}
+
 function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
   const fk = cleanString(fieldKey);
   if (!fk) return 0;
@@ -3078,6 +3111,12 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
     }
   }
 
+  const fr = safeObject(blueprint?.fact_registry);
+  const conversionChannelFields = ["booking_method", "contact_path", "booking_url"];
+  if (conversionChannelFields.includes(fk) && !conversionPositioningPrereqsMet(fr)) {
+    return -9999;
+  }
+
   const decisionStates = blueprint?.decision_states || {};
   const componentStates = blueprint?.component_states || {};
   const premium = blueprint?.premium_readiness || {};
@@ -3088,7 +3127,6 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
   // --------------------------
   // 1. DECISION STATE PRIORITY (CORE DRIVER)
   // --------------------------
-  const fr = safeObject(blueprint?.fact_registry);
   Object.values(decisionStates).forEach((ds) => {
     if (!Array.isArray(ds?.missing_evidence) || !ds.missing_evidence.some((k) => cleanString(k) === fk)) {
       return;
@@ -3149,6 +3187,13 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
     score += 200;
   }
 
+  if (fk === "primary_offer") {
+    const offerVal = stringifyFactValue(fr.primary_offer?.value);
+    if (getOfferStrength(offerVal) === "weak") {
+      score += 22;
+    }
+  }
+
   return score;
 }
 
@@ -3185,13 +3230,17 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     computePremiumReadinessEngine({ ...blueprint, access_readiness: accessReadiness });
   const questionHistory = Array.isArray(blueprint.question_history) ? blueprint.question_history : [];
   const askedTurns = questionHistory.length;
-  const conversionTargetFieldsOrdered = applyAccessGateToConversionFields(
+  let conversionTargetFieldsOrdered = applyAccessGateToConversionFields(
     "conversion",
     cleanList(getDecisionTargets()?.conversion?.target_fields).filter((field) =>
       Object.prototype.hasOwnProperty.call(factRegistry, field)
     ),
     accessReadiness
   );
+  if (!conversionPositioningPrereqsMet(factRegistry)) {
+    const gatedConv = new Set(["booking_method", "booking_url", "contact_path"]);
+    conversionTargetFieldsOrdered = conversionTargetFieldsOrdered.filter((f) => !gatedConv.has(cleanString(f)));
+  }
   const conversionUnresolvedCount = conversionTargetFieldsOrdered.filter(
     (field) => !isFieldSatisfied(field, factRegistry)
   ).length;
@@ -3202,7 +3251,11 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     const rawTargetFields = cleanList(config.target_fields).filter((field) =>
       Object.prototype.hasOwnProperty.call(factRegistry, field)
     );
-    const targetFields = applyAccessGateToConversionFields(decision, rawTargetFields, accessReadiness);
+    let targetFields = applyAccessGateToConversionFields(decision, rawTargetFields, accessReadiness);
+    if (decision === "conversion" && !conversionPositioningPrereqsMet(factRegistry)) {
+      const gatedConv = new Set(["booking_method", "booking_url", "contact_path"]);
+      targetFields = targetFields.filter((f) => !gatedConv.has(cleanString(f)));
+    }
 
     let unresolvedFields = targetFields.filter((field) => !isFieldSatisfied(field, factRegistry));
 
@@ -3228,6 +3281,11 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     const relatedComponents = cleanList(config.components).filter(
       (component) => componentStates[component]?.enabled || componentStates[component]?.required
     );
+
+    if (decision === "conversion") {
+      if (!targetFields.length) continue;
+      if (!unresolvedFields.length) continue;
+    }
 
     if (!unresolvedFields.length && Number(decisionState.confidence || 0) >= 0.8) continue;
 
@@ -3414,6 +3472,10 @@ function isPricingComplete(factRegistry) {
 function isFactCapturedForPlanning(fact, fieldKey = "") {
   if (!isObject(fact)) return false;
   if (cleanString(fieldKey) === "booking_url" && isBookingUrlResolved(fact)) return true;
+  if (cleanString(fieldKey) === "primary_offer") {
+    const st = cleanString(fact.status).toLowerCase();
+    return st === "answered" || st === "verified";
+  }
   const status = cleanString(fact.status).toLowerCase();
   if (status === "answered" || status === "verified") return true;
   const c = typeof fact.confidence === "number" ? fact.confidence : 0;
@@ -4240,6 +4302,7 @@ function formatFactValueForConfirmationPrompt(value) {
 function buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflightIntelligence) {
   const primaryField = cleanString(plan?.primary_field);
   if (!primaryField) return "";
+  if (primaryField === "primary_offer") return "";
   const fact = blueprint?.fact_registry?.[primaryField];
   if (!fact) return "";
   const factStatus = cleanString(fact.status);
@@ -4279,6 +4342,31 @@ function narrativeAskCountForField(blueprint, primaryField) {
   return n;
 }
 
+function getOfferStrength(offer) {
+  const text = cleanString(
+    offer === null || offer === undefined ? "" : typeof offer === "string" ? offer : stringifyFactValue(offer)
+  ).toLowerCase();
+  if (!text) return "missing";
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const wc = words.length;
+
+  // Domain-agnostic: common English predicates/operations only (no industry nouns).
+  const genericVerb = /\b(?:am|is|are|was|were|be|been|being|do|does|did|done|have|has|had|make|made|makes|take|took|takes|taken|give|gave|gives|given|get|got|gets|go|went|goes|gone|come|came|comes|put|puts|set|sets|run|ran|runs|see|saw|sees|know|knew|knows|find|found|finds|think|thought|thinks|say|said|says|tell|told|tells|ask|asked|asks|need|needed|needs|want|wanted|wants|use|used|uses|work|worked|works|try|tried|tries|call|called|calls|help|helped|helps|let|lets|show|showed|shown|shows|feel|felt|feels|leave|left|leaves|bring|brought|brings|keep|kept|keeps|begin|began|begins|seem|seemed|seems|include|included|includes|continue|continued|continues|provide|provided|provides|build|built|builds|create|created|creates|deliver|delivered|delivers|manage|managed|manages|handle|handled|handles|offer|offered|offers|support|supported|supports|pay|paid|pays|buy|bought|buys|meet|met|meets|send|sent|sends|sell|sold|sells|open|opened|opens|close|closed|closes|cut|cuts|install|installed|installs|ship|shipped|ships|train|trained|trains|teach|taught|teaches|cover|covered|covers)\b/.test(
+    text
+  );
+
+  // Outcome / linkage: preposition + token, list structure, or compound sentence — no category words.
+  const outcomeLink =
+    /\b(?:for|to|into|with|from|through|by)\s+[a-z0-9][a-z0-9'-]{2,}\b/.test(text) ||
+    /[,;]/.test(text) ||
+    (/\s+and\s+/.test(text) && wc >= 6);
+
+  if (genericVerb && outcomeLink && wc >= 6) return "usable";
+
+  return "weak";
+}
+
 /**
  * Stronger narrative prompts for readiness blocks (who / process / offer / FAQs).
  * Process bundle uses buildProcessExpertQuestion; this covers the rest.
@@ -4295,11 +4383,24 @@ function buildNarrativeDeterministicQuestion(plan, blueprint, preflightIntellige
     return "Who should feel this site was written for them — one sentence is enough.";
   }
   if (bundleId === "positioning" && pf === "primary_offer") {
+    const offerFact = blueprint?.fact_registry?.primary_offer;
+    const offerVal = stringifyFactValue(offerFact?.value);
+    const strength = getOfferStrength(offerVal);
     const askN = narrativeAskCountForField(blueprint, "primary_offer");
-    if (askN >= 1) {
-      return "What are your most common services or types of work?";
+
+    if (strength === "missing" || !hasMeaningfulValue(offerVal)) {
+      if (askN >= 1) {
+        return "What are your most common services or types of work?";
+      }
+      return "What kinds of things do people usually hire you for? Give me a few real examples.";
     }
-    return "What kinds of things do people usually hire you for? Give me a few real examples.";
+
+    if (strength === "weak") {
+      return `We have a short starter line on what you offer. Which best matches how you think about it?\n\nA) Mostly custom or repeat services\nB) Mostly retail or walk-in offerings\nC) A mix — both matter\nD) Something else (say it in your own words)\n\nThen add one concrete example of a job you're proud of.`;
+    }
+
+    const preview = truncate(formatFactValueForConfirmationPrompt(offerFact?.value), 280);
+    return `Your positioning draft says you offer: ${preview}\n\nIs that accurate as the main story for what people hire you for — or what would you change?`;
   }
   if (bundleId === "objection_handling" && pf === "faq_angles") {
     const askN = narrativeAskCountForField(blueprint, "faq_angles");
@@ -5322,6 +5423,13 @@ function isFactResolved(fact, fieldKey = "") {
 
   if (cleanString(fieldKey) === "booking_url" && isBookingUrlResolved(fact)) {
     return true;
+  }
+
+  if (cleanString(fieldKey) === "primary_offer") {
+    const st = cleanString(fact.status);
+    const vOffer = sanitizeFactValue(fact.value);
+    if (!hasMeaningfulValue(vOffer)) return false;
+    return st === "answered" || st === "verified";
   }
 
   const v = sanitizeFactValue(fact.value);
