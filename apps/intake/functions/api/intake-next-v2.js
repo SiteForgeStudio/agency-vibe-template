@@ -3109,6 +3109,36 @@ function determineFoundationPreference(strategy, preflight_intelligence) {
   return "neutral";
 }
 
+function determineFoundationBundle(state) {
+  const pi = state?.preflight_intelligence || {};
+  const archetype = cleanString(pi.strategic_archetype).toLowerCase();
+  const model = cleanString(pi.business_model).toLowerCase();
+  const focus = Array.isArray(pi.recommended_focus) ? pi.recommended_focus : [];
+
+  const focusText = (f) => cleanString(f).toLowerCase();
+
+  if (
+    archetype.includes("visual") ||
+    focus.some(
+      (f) =>
+        focusText(f).includes("craft") ||
+        focusText(f).includes("story") ||
+        focusText(f).includes("brand")
+    )
+  ) {
+    return "positioning";
+  }
+
+  if (
+    model.includes("service") ||
+    focus.some((f) => focusText(f).includes("booking") || focusText(f).includes("availability"))
+  ) {
+    return "conversion";
+  }
+
+  return "positioning";
+}
+
 function computeDynamicPriority(fieldKey, blueprint, state, rounds, bundleId) {
   const fk = cleanString(fieldKey);
   if (!fk) return 0;
@@ -3277,6 +3307,7 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     (field) => !isFieldSatisfied(field, factRegistry)
   ).length;
   const decisionTargets = getDecisionTargets();
+  const foundationBundle = determineFoundationBundle(state);
 
   for (const [decision, config] of Object.entries(decisionTargets)) {
     const decisionState = decisionStates[decision] || {};
@@ -3458,6 +3489,15 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     }
 
     if (decision === "contact_details") {
+      score -= 60;
+    }
+
+    if (decision === foundationBundle) {
+      score += 120;
+    }
+
+    const round = blueprint?.question_history?.length || 0;
+    if (round > 2 && decision === foundationBundle) {
       score -= 60;
     }
 
