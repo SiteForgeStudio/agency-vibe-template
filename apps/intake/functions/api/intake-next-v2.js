@@ -3370,7 +3370,7 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
       score += 62;
     }
 
-    score += unresolvedFields.length * 35;
+    score += unresolvedFields.length * 15;
     score += relatedComponents.filter((component) => !componentStates[component]?.draft_ready).length * 18;
     score += relatedComponents.filter((component) => !componentStates[component]?.premium_ready).length * 10;
     score += Math.round((1 - Number(decisionState.confidence || 0)) * 100);
@@ -3448,6 +3448,19 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     if (primaryPick && strategicPrimary.includes(primaryPick)) {
       score += 70;
     }
+
+    if (decision === "positioning") {
+      score += 80;
+    }
+
+    if (decision === "conversion") {
+      score += 60;
+    }
+
+    if (decision === "contact_details") {
+      score -= 60;
+    }
+
     if (primaryPick && contactNapFields.includes(primaryPick) && askedTurns < 3) {
       score -= 95;
     }
