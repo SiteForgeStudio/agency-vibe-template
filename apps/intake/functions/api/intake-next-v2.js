@@ -3130,9 +3130,24 @@ function determineFoundationBundle(state) {
   return "positioning";
 }
 
+function isPositioningWeak(factRegistry) {
+  const offerSatisfied = isFieldSatisfied("primary_offer", factRegistry);
+  const diffSatisfied = isFieldSatisfied("differentiation", factRegistry);
+
+  return !(offerSatisfied && diffSatisfied);
+}
+
 function computeDynamicPriority(fieldKey, blueprint, state, rounds, bundleId) {
   const fk = cleanString(fieldKey);
   if (!fk) return 0;
+
+  const fr = safeObject(blueprint?.fact_registry);
+
+  if (isPositioningWeak(fr)) {
+    if (fk === "primary_offer") return 10000;
+    if (fk === "differentiation") return 9999;
+    return -10000;
+  }
 
   const r = Number(rounds) || 0;
 
@@ -3147,7 +3162,6 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds, bundleId) {
     }
   }
 
-  const fr = safeObject(blueprint?.fact_registry);
   const conversionChannelFields = ["booking_method", "contact_path", "booking_url"];
   if (conversionChannelFields.includes(fk) && !conversionPositioningPrereqsMet(fr)) {
     return -9999;
