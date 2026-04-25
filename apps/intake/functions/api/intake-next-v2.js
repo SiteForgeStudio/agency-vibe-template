@@ -3117,6 +3117,11 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
     return -9999;
   }
 
+  const contactDetailsPositioningFields = ["phone", "email", "address", "hours"];
+  if (contactDetailsPositioningFields.includes(fk) && !isFieldSatisfied("primary_offer", fr)) {
+    return -9999;
+  }
+
   const decisionStates = blueprint?.decision_states || {};
   const componentStates = blueprint?.component_states || {};
   const premium = blueprint?.premium_readiness || {};
