@@ -1766,7 +1766,8 @@ export function recomputeBlueprint({ blueprint, state, schemaGuide, previousPlan
       nextPf,
       nextBlueprint,
       state,
-      r
+      r,
+      nextBlueprint.question_plan.bundle_id
     );
 
     const bm = cleanString(nextBlueprint.strategy?.business_context?.business_model);
@@ -3094,7 +3095,21 @@ function conversionPositioningPrereqsMet(factRegistry) {
   return isFieldSatisfied("primary_offer", fr) && differentiationPrereqSignalMet(fr);
 }
 
-function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
+function determineFoundationPreference(strategy, preflight_intelligence) {
+  const archetype = cleanString(strategy?.business_context?.strategic_archetype).toLowerCase();
+
+  if (archetype.includes("visual_portfolio")) {
+    return "positioning";
+  }
+
+  if (archetype.includes("local_service")) {
+    return "conversion";
+  }
+
+  return "neutral";
+}
+
+function computeDynamicPriority(fieldKey, blueprint, state, rounds, bundleId) {
   const fk = cleanString(fieldKey);
   if (!fk) return 0;
 
@@ -3199,10 +3214,22 @@ function computeDynamicPriority(fieldKey, blueprint, state, rounds) {
     }
   }
 
+  const foundation = determineFoundationPreference(
+    blueprint?.strategy,
+    state?.preflight_intelligence
+  );
+  const bid = cleanString(bundleId);
+  const bundleWeight = {
+    positioning: foundation === "positioning" ? 2.0 : 1.0,
+    contact_details: foundation === "positioning" ? 0.5 : 1.0,
+    conversion: foundation === "conversion" ? 2.0 : 1.0
+  };
+  score *= bid ? bundleWeight[bid] || 1.0 : 1.0;
+
   return score;
 }
 
-function pickPrimaryFieldFromUnresolved(fields, blueprint, state) {
+function pickPrimaryFieldFromUnresolved(fields, blueprint, state, bundleId) {
   if (!Array.isArray(fields) || fields.length === 0) return null;
 
   const rounds = Array.isArray(blueprint?.question_history) ? blueprint.question_history.length : 0;
@@ -3213,7 +3240,7 @@ function pickPrimaryFieldFromUnresolved(fields, blueprint, state) {
   for (const rawField of fields) {
     const fieldKey = cleanString(rawField);
 
-    const score = computeDynamicPriority(fieldKey, blueprint, state, rounds);
+    const score = computeDynamicPriority(fieldKey, blueprint, state, rounds, bundleId);
 
     if (score > bestScore) {
       bestScore = score;
@@ -3318,7 +3345,7 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
 
     const primaryPick =
       unresolvedFields.length > 0
-        ? pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state)
+        ? pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state, decision)
         : "";
     const nextPrimaryField = cleanString(primaryPick || unresolvedFields[0] || targetFields[0]);
     const bypassAccessForPrefill = unresolvedFields.some(
@@ -3520,7 +3547,7 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
   let bestScore = -Infinity;
 
   for (const item of allFields) {
-    const score = computeDynamicPriority(item.field, blueprint, state, rounds);
+    const score = computeDynamicPriority(item.field, blueprint, state, rounds, item.bundle);
 
     if (score > bestScore) {
       bestScore = score;
