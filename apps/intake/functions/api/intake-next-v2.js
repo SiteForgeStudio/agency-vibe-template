@@ -3379,10 +3379,23 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
         .concat(stalledFields);
     }
 
-    const primaryPick =
-      unresolvedFields.length > 0
-        ? pickPrimaryFieldFromUnresolved(unresolvedFields, blueprint, state, decision)
-        : "";
+    const previousBundle = cleanString(previousPlan?.bundle_id);
+    let primaryPick = "";
+    if (unresolvedFields.length > 0) {
+      if (previousBundle === decision) {
+        primaryPick = cleanString(unresolvedFields[0]);
+      } else {
+        const scoredFields = unresolvedFields.map((fk) => {
+          const k = cleanString(fk);
+          return {
+            field: k,
+            score: computeDynamicPriority(k, blueprint, state, askedTurns, decision)
+          };
+        });
+        scoredFields.sort((a, b) => b.score - a.score);
+        primaryPick = cleanString(scoredFields[0]?.field) || cleanString(unresolvedFields[0]);
+      }
+    }
     const nextPrimaryField = cleanString(primaryPick || unresolvedFields[0] || targetFields[0]);
     const bypassAccessForPrefill = unresolvedFields.some(
       (fk) => cleanString(factRegistry[fk]?.status) === "prefilled_unverified"
