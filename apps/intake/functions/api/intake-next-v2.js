@@ -76,12 +76,15 @@ function evidenceKeyNeedsEvidence(fieldKey, factRegistry) {
   if (fieldKey === "booking_url" && fact && isBookingUrlResolved(fact)) {
     return false;
   }
-  return !isFieldSatisfied(fieldKey, factRegistry);
+  return !isEvidenceKeyPresentForComponentStates(fieldKey, factRegistry);
 }
 
-/** Present/missing evidence for a single schema evidence key (inverse of {@link evidenceKeyNeedsEvidence}). */
+/**
+ * Present evidence for {@link computeComponentStates}: same bar as planner satisfaction
+ * (answered/verified only; seeded/inferred/partial do not count). Delegates to {@link isFieldSatisfied}.
+ */
 function isEvidenceKeyPresentForComponentStates(fieldKey, factRegistry) {
-  return !evidenceKeyNeedsEvidence(fieldKey, factRegistry);
+  return isFieldSatisfied(cleanString(fieldKey), safeObject(factRegistry));
 }
 
 let __debugBlueprintSeq = 0;
