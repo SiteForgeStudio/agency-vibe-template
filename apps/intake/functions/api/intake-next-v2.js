@@ -76,14 +76,7 @@ function evidenceKeyNeedsEvidence(fieldKey, factRegistry) {
   if (fieldKey === "booking_url" && fact && isBookingUrlResolved(fact)) {
     return false;
   }
-  const status = cleanString(fact?.status);
-
-  return (
-    !hasMeaningfulValue(fact?.value) ||
-    status === "missing" ||
-    status === "seeded" ||
-    status === "inferred"
-  );
+  return !isFieldSatisfied(fieldKey, factRegistry);
 }
 
 /** Present/missing evidence for a single schema evidence key (inverse of {@link evidenceKeyNeedsEvidence}). */
@@ -827,60 +820,55 @@ function buildInterpreterSystemPrompt() {
   }
 
   function isFieldSatisfied(fieldKey, factRegistry) {
-  const fact = factRegistry?.[fieldKey];
+    const fact = factRegistry?.[fieldKey];
 
-  // booking_url: satisfied = real URL OR explicit no-URL (answered/partial + null/sentinel/manual phrasing)
-  if (fieldKey === "booking_url") {
-    const bookingMethod = factRegistry?.booking_method?.value;
+    if (fieldKey === "booking_url") {
+      const bookingMethod = factRegistry?.booking_method?.value;
 
-    if (isManualBookingMethodValue(bookingMethod)) return true;
+      if (isManualBookingMethodValue(bookingMethod)) return true;
 
-    const st = fact ? cleanString(fact.status) : "";
-    const statusAllowsValue =
-      st === "answered" || st === "partial" || (st === "inferred" && clampNumber(fact.confidence, 0, 1, 0) >= 0.7);
+      const st = fact ? cleanString(fact.status) : "";
+      const statusAllowsValue =
+        st === "answered" || st === "partial" || (st === "inferred" && clampNumber(fact.confidence, 0, 1, 0) >= 0.7);
 
-    if (fact && statusAllowsValue) {
-      const v = fact.value;
-      if (v == null) return true;
-      if (typeof v === "string") {
-        const t = v.trim().toLowerCase();
-        if (isBookingUrlNoLinkSentinel(v)) return true;
-        if (isPlausibleBookingUrlString(v)) return true;
-        if (describesManualBookingNoUrl(t)) return true;
+      if (fact && statusAllowsValue) {
+        const v = fact.value;
+        if (v == null) return true;
+        if (typeof v === "string") {
+          const t = v.trim().toLowerCase();
+          if (isBookingUrlNoLinkSentinel(v)) return true;
+          if (isPlausibleBookingUrlString(v)) return true;
+          if (describesManualBookingNoUrl(t)) return true;
+        }
+        return false;
       }
       return false;
     }
-    return false;
+
+    if (fieldKey === "contact_path") {
+      const bookingMethod = factRegistry?.booking_method?.value;
+
+      if (hasMeaningfulValue(bookingMethod)) {
+        return true;
+      }
+    }
+
+    if (
+      (fieldKey === "image_themes" || fieldKey === "gallery_visual_direction") &&
+      hasVisualInferenceSignals(factRegistry)
+    ) {
+      return true;
+    }
+
+    if (!fact) return false;
+    if (hasMeaningfulValue(fact.intake_followup)) return false;
+
+    const value = cleanString(formatFactValueForConfirmationPrompt(fact.value));
+    const status = cleanString(fact.status);
+    if (!value) return false;
+
+    return status === "answered" || status === "verified";
   }
-
-if (fieldKey === "contact_path") {
-  const bookingMethod = factRegistry?.booking_method?.value;
-
-  if (hasMeaningfulValue(bookingMethod)) {
-    return true;
-  }
-}
-
-  if (
-    (fieldKey === "image_themes" || fieldKey === "gallery_visual_direction") &&
-    hasVisualInferenceSignals(factRegistry)
-  ) {
-    return true;
-  }
-
-  // Persona often comes from entity profile / PI — do not re-interrogate when already seeded from preflight.
-  if (fieldKey === "target_persona") {
-    if (hasMeaningfulValue(fact?.intake_followup)) return false;
-    const v = sanitizeFactValue(fact?.value);
-    if (!hasMeaningfulValue(v)) return false;
-    const st = cleanString(fact?.status);
-    const src = cleanString(fact?.source);
-    if (st === "prefilled_unverified" || st === "seeded") return true;
-    if (src === "preflight" && hasMeaningfulValue(v)) return true;
-  }
-
-  return isFactComplete(fact, fieldKey);
-}
 
 /** Interpreter: only the planner primary_field may receive fact_updates (plus contact_details NAP combo keys). */
 function isFactUpdateAllowedUnderStrictPrimaryGate(factKey, currentPlan) {
@@ -2840,7 +2828,7 @@ function scoreHeroPremium(fr, draft) {
     hasMeaningfulValue(getByPath(draft, "hero.headline")),
     hasMeaningfulValue(getByPath(draft, "hero.subtext")),
     hasMeaningfulValue(getByPath(draft, "hero.image.image_search_query")),
-    isFactComplete(fr.primary_offer, "primary_offer") && isFactComplete(fr.differentiation, "differentiation")
+    isFieldSatisfied("primary_offer", fr) && isFieldSatisfied("differentiation", fr)
   ];
   return checks.filter(Boolean).length / checks.length;
 }
@@ -2859,8 +2847,8 @@ function scoreContactPremium(fr, draft) {
 }
 
 function scoreFeaturesPremium(fr, draft) {
-  const offer = isFactComplete(fr.primary_offer, "primary_offer");
-  const diff = isFactComplete(fr.differentiation, "differentiation");
+  const offer = isFieldSatisfied("primary_offer", fr);
+  const diff = isFieldSatisfied("differentiation", fr);
   const services = ensureArrayStrings(fr.service_list?.value);
   const feats = getByPath(draft, "features");
   const featN = Array.isArray(feats) ? feats.length : 0;
@@ -3460,10 +3448,10 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     }
 
     const narrativeReadinessGaps = {
-      who_its_for: !isFactResolved(factRegistry.target_persona, "target_persona"),
-      process_clarity: !isFactResolved(factRegistry.process_summary),
-      service_specificity: !isFactResolved(factRegistry.primary_offer),
-      faq_substance: !isFactResolved(factRegistry.faq_angles)
+      who_its_for: !isFieldSatisfied("target_persona", factRegistry),
+      process_clarity: !isFieldSatisfied("process_summary", factRegistry),
+      service_specificity: !isFieldSatisfied("primary_offer", factRegistry),
+      faq_substance: !isFieldSatisfied("faq_angles", factRegistry)
     };
     if (decision === "positioning") {
       if (narrativeReadinessGaps.who_its_for) score += 30;
@@ -3553,18 +3541,9 @@ function isPricingComplete(factRegistry) {
   return false;
 }
 
-/** Hard lock: captured facts never re-enter the planner selection pool. */
-function isFactCapturedForPlanning(fact, fieldKey = "") {
-  if (!isObject(fact)) return false;
-  if (cleanString(fieldKey) === "booking_url" && isBookingUrlResolved(fact)) return true;
-  if (cleanString(fieldKey) === "primary_offer") {
-    const st = cleanString(fact.status).toLowerCase();
-    return st === "answered" || st === "verified";
-  }
-  const status = cleanString(fact.status).toLowerCase();
-  if (status === "answered" || status === "verified") return true;
-  const c = typeof fact.confidence === "number" ? fact.confidence : 0;
-  return c > 0.85;
+/** Hard lock: facts satisfied for intake purposes never re-enter the planner selection pool. */
+function isFactCapturedForPlanning(factRegistry, fieldKey) {
+  return isFieldSatisfied(cleanString(fieldKey), safeObject(factRegistry));
 }
 
 function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, _factRegistry, blueprint, state) {
@@ -3583,7 +3562,7 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
     for (const field of fields) {
       const fk = cleanString(field);
       if (!fk) continue;
-      if (isFactCapturedForPlanning(factRegistry[fk], fk)) continue;
+      if (isFactCapturedForPlanning(factRegistry, fk)) continue;
 
       allFields.push({
         field: fk,
@@ -3616,7 +3595,7 @@ function planNextQuestion(candidates, _previousBundleId, _previousPrimaryField, 
   const rawTargets = sourceCandidate?.target_fields || [best.field];
   const target_fields = cleanList(rawTargets).filter((f) => {
     const k = cleanString(f);
-    return k && !isFactCapturedForPlanning(factRegistry[k], k);
+    return k && !isFactCapturedForPlanning(factRegistry, k);
   });
 
   return {
@@ -3657,7 +3636,7 @@ function evaluateBlueprintReadiness(blueprint) {
   // ==========================
   const hasPositioning =
     isFieldSatisfied("target_persona", factRegistry) &&
-    isFactComplete(factRegistry?.differentiation, "differentiation");
+    isFieldSatisfied("differentiation", factRegistry);
 
   const hasProof =
     (
@@ -4387,7 +4366,6 @@ function formatFactValueForConfirmationPrompt(value) {
 function buildPrefilledUnverifiedConfirmationQuestion(plan, blueprint, preflightIntelligence) {
   const primaryField = cleanString(plan?.primary_field);
   if (!primaryField) return "";
-  if (primaryField === "primary_offer") return "";
   const fact = blueprint?.fact_registry?.[primaryField];
   if (!fact) return "";
   const factStatus = cleanString(fact.status);
@@ -4459,6 +4437,7 @@ function getOfferStrength(offer) {
 function buildNarrativeDeterministicQuestion(plan, blueprint, preflightIntelligence) {
   const bundleId = cleanString(plan?.bundle_id);
   const pf = cleanString(plan?.primary_field);
+  const fr = safeObject(blueprint?.fact_registry);
 
   if (bundleId === "positioning" && pf === "target_persona") {
     const askN = narrativeAskCountForField(blueprint, "target_persona");
@@ -4467,25 +4446,35 @@ function buildNarrativeDeterministicQuestion(plan, blueprint, preflightIntellige
     }
     return "Who should feel this site was written for them — one sentence is enough.";
   }
+  if (bundleId === "positioning" && pf === "differentiation") {
+    if (isFieldSatisfied("differentiation", fr)) return "";
+    const diffFact = fr.differentiation;
+    const diffVal = stringifyFactValue(diffFact?.value);
+    const askN = narrativeAskCountForField(blueprint, "differentiation");
+    if (hasMeaningfulValue(diffVal)) {
+      const preview = truncate(formatFactValueForConfirmationPrompt(diffFact?.value), 280);
+      return `We currently have: ${preview}. Does this accurately reflect your business, or how would you refine it?`;
+    }
+    if (askN >= 1) {
+      return "What would you say sets you apart from others who offer something similar?";
+    }
+    return "In a sentence or two, what makes your approach or standards different from typical alternatives?";
+  }
   if (bundleId === "positioning" && pf === "primary_offer") {
-    const offerFact = blueprint?.fact_registry?.primary_offer;
+    if (isFieldSatisfied("primary_offer", fr)) return "";
+    const offerFact = fr.primary_offer;
     const offerVal = stringifyFactValue(offerFact?.value);
-    const strength = getOfferStrength(offerVal);
     const askN = narrativeAskCountForField(blueprint, "primary_offer");
 
-    if (strength === "missing" || !hasMeaningfulValue(offerVal)) {
-      if (askN >= 1) {
-        return "What are your most common services or types of work?";
-      }
-      return "What kinds of things do people usually hire you for? Give me a few real examples.";
+    if (hasMeaningfulValue(offerVal)) {
+      const preview = truncate(formatFactValueForConfirmationPrompt(offerFact?.value), 280);
+      return `We currently have: ${preview}. Does this accurately reflect your business, or how would you refine it?`;
     }
 
-    if (strength === "weak") {
-      return `We have a short starter line on what you offer. Which best matches how you think about it?\n\nA) Mostly custom or repeat services\nB) Mostly retail or walk-in offerings\nC) A mix — both matter\nD) Something else (say it in your own words)\n\nThen add one concrete example of a job you're proud of.`;
+    if (askN >= 1) {
+      return "What are your most common services or types of work?";
     }
-
-    const preview = truncate(formatFactValueForConfirmationPrompt(offerFact?.value), 280);
-    return `Your positioning draft says you offer: ${preview}\n\nIs that accurate as the main story for what people hire you for — or what would you change?`;
+    return "What kinds of things do people usually hire you for? Give me a few real examples.";
   }
   if (bundleId === "objection_handling" && pf === "faq_angles") {
     const askN = narrativeAskCountForField(blueprint, "faq_angles");
@@ -4807,7 +4796,7 @@ async function renderNextQuestion({
 
   const factRegistry = isObject(blueprint?.fact_registry) ? blueprint.fact_registry : {};
   const planTargetFields = Array.isArray(plan.target_fields) ? plan.target_fields : [];
-  const isFieldResolvedLocal = (fieldKey) => isFactResolved(factRegistry?.[fieldKey], fieldKey);
+  const isFieldResolvedLocal = (fieldKey) => isFieldSatisfied(fieldKey, factRegistry);
 
   let adjustedPlan = { ...plan };
 
