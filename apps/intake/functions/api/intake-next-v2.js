@@ -357,6 +357,30 @@ export async function onRequestGet() {
   });
 }
 
+/** Planner field classification (CORE / CONDITIONAL / OPTIONAL); reserved for future gating — unused in scoring yet. */
+const FIELD_TYPES = {
+  primary_offer: "CORE",
+  differentiation: "CORE",
+  target_persona: "CORE",
+  contact_path: "CORE",
+
+  service_area_main: "CONDITIONAL",
+  service_area_list: "CONDITIONAL",
+  booking_method: "CONDITIONAL",
+  booking_url: "CONDITIONAL",
+  pricing: "CONDITIONAL",
+  availability: "CONDITIONAL",
+  process_steps: "CONDITIONAL",
+
+  gallery: "OPTIONAL",
+  testimonials: "OPTIONAL",
+  faq: "OPTIONAL"
+};
+
+function getFieldType(fieldKey) {
+  return FIELD_TYPES[fieldKey] || "OPTIONAL";
+}
+
 /* ========================================================================
  * Schema Guide
  * ====================================================================== */
@@ -3325,7 +3349,18 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
       targetFields = targetFields.filter((f) => !gatedConv.has(cleanString(f)));
     }
 
-    let unresolvedFields = targetFields.filter((field) => !isFieldSatisfied(field, factRegistry));
+    const allUnresolved = targetFields.filter((field) => !isFieldSatisfied(field, factRegistry));
+
+    const coreFields = allUnresolved.filter((f) => getFieldType(cleanString(f)) === "CORE");
+    const conditionalFields = allUnresolved.filter((f) => getFieldType(cleanString(f)) === "CONDITIONAL");
+    const optionalFields = allUnresolved.filter((f) => getFieldType(cleanString(f)) === "OPTIONAL");
+
+    let unresolvedFields =
+      coreFields.length > 0
+        ? coreFields
+        : conditionalFields.length > 0
+          ? conditionalFields
+          : optionalFields;
 
     if (decision === "service_area") {
       unresolvedFields = unresolvedFields.filter((field) => {
