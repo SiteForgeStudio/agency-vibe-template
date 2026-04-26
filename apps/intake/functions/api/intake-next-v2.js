@@ -975,8 +975,11 @@ function sanitizeInterpretation(parsed, { allowedFactKeys, allowedTopLevelSectio
 function extractPhoneFromContactAnswer(text) {
   const s = cleanString(text);
   if (!s) return "";
-  const m = s.match(/(?:\+?\d{1,3}[-.\s])?(?:\(?\d{3}\)?)[-.\s]?\d{3}[-.\s]?\d{4}\b/);
-  return m ? cleanString(m[0]) : "";
+  const nanp = s.match(/(?:\+?\d{1,3}[-.\s])?(?:\(?\d{3}\)?)[-.\s]?\d{3}[-.\s]?\d{4}\b/);
+  if (nanp) return cleanString(nanp[0]);
+  // Common typo / alternate grouping: 3-4-4 digit run (e.g. 111-1111-1111)
+  const alt = s.match(/\b\d{3}[-.\s]\d{4}[-.\s]\d{4}\b/);
+  return alt ? cleanString(alt[0]) : "";
 }
 
 function extractStreetAddressFromContactAnswer(text) {
@@ -1417,11 +1420,15 @@ function routeInterpretationToEvidence({ blueprint, state, schemaGuide, interpre
       })
     : factUpdates;
 
+  const planBundleId = cleanString(blueprint?.question_plan?.bundle_id);
+  const contactDetailsComboKey = (k) =>
+    planBundleId === "contact_details" && ["phone", "email", "address", "hours"].includes(cleanString(k));
+
   for (const update of prioritizedFactUpdates) {
     const fk = cleanString(update?.fact_key);
     if (!fk) continue;
 
-    if (expectedField && fk !== expectedField) {
+    if (expectedField && fk !== expectedField && !contactDetailsComboKey(fk)) {
       continue;
     }
 
