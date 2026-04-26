@@ -846,10 +846,11 @@ function buildInterpreterSystemPrompt() {
     return false;
   }
 
-  function isFieldSatisfied(fieldKey, factRegistry) {
-    const fact = factRegistry?.[fieldKey];
+export function isFieldSatisfied(fieldKey, factRegistry) {
+    const fk = cleanString(fieldKey);
+    const fact = factRegistry?.[fk];
 
-    if (fieldKey === "booking_url") {
+    if (fk === "booking_url") {
       const bookingMethod = factRegistry?.booking_method?.value;
 
       if (isManualBookingMethodValue(bookingMethod)) return true;
@@ -872,7 +873,7 @@ function buildInterpreterSystemPrompt() {
       return false;
     }
 
-    if (fieldKey === "contact_path") {
+    if (fk === "contact_path") {
       const bookingMethod = factRegistry?.booking_method?.value;
 
       if (hasMeaningfulValue(bookingMethod)) {
@@ -881,10 +882,18 @@ function buildInterpreterSystemPrompt() {
     }
 
     if (
-      (fieldKey === "image_themes" || fieldKey === "gallery_visual_direction") &&
+      (fk === "image_themes" || fk === "gallery_visual_direction") &&
       hasVisualInferenceSignals(factRegistry)
     ) {
       return true;
+    }
+
+    const type = getFieldType(fk);
+
+    if (type === "CORE") {
+      if (!fact) return false;
+      const status = cleanString(fact.status);
+      return status === "answered" || status === "verified";
     }
 
     if (!fact) return false;
@@ -894,7 +903,7 @@ function buildInterpreterSystemPrompt() {
     const status = cleanString(fact.status);
     if (!value) return false;
 
-    return status === "answered" || status === "verified";
+    return status === "answered" || status === "verified" || status === "inferred";
   }
 
 /** Interpreter: only the planner primary_field may receive fact_updates (plus contact_details NAP combo keys). */

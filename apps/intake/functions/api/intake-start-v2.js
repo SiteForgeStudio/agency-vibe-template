@@ -18,42 +18,15 @@
  * - Keeps compatibility with existing strategy_contract provenance
  */
 
-import { compileSchemaGuide, recomputeBlueprint } from "./intake-next-v2.js";
+import { compileSchemaGuide, recomputeBlueprint, isFieldSatisfied } from "./intake-next-v2.js";
 
 function pickBestPositioningField(factRegistry) {
-  const fields = ["differentiation", "target_persona", "primary_offer"];
-
-  let best = null;
-  let bestScore = -Infinity;
-
+  const fr = isObject(factRegistry) ? factRegistry : {};
+  const fields = ["primary_offer", "differentiation", "target_persona"];
   for (const key of fields) {
-    const fact = factRegistry?.[key];
-    if (!fact) continue;
-
-    const status = (fact.status || "").toLowerCase();
-    const confidence = typeof fact.confidence === "number" ? fact.confidence : 0;
-
-    let score = 0;
-
-    // Highest priority: missing
-    if (!fact.value || status === "missing") score += 100;
-
-    // Next: inferred (needs validation)
-    if (status === "inferred") score += 60;
-
-    // Next: seeded (still weak)
-    if (status === "seeded") score += 40;
-
-    // Lower confidence = higher priority
-    score += (1 - confidence) * 50;
-
-    if (score > bestScore) {
-      bestScore = score;
-      best = key;
-    }
+    if (!isFieldSatisfied(key, fr)) return key;
   }
-
-  return best;
+  return fields[0];
 }
 
 export async function onRequestPost(context) {
