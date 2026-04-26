@@ -3347,6 +3347,16 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
   const decisionTargets = getDecisionTargets();
   const foundationBundle = determineFoundationBundle(state);
 
+  const foundation =
+    blueprint?.strategy?.foundation ||
+    blueprint?.preflight_intelligence?.foundation ||
+    foundationBundle ||
+    "unknown";
+
+  const turnCount = blueprint?.question_history?.length || 0;
+
+  const allowPositioningFirst = foundation === "positioning" && turnCount < 2;
+
   for (const [decision, config] of Object.entries(decisionTargets)) {
     const decisionState = decisionStates[decision] || {};
     const rawTargetFields = cleanList(config.target_fields).filter((field) =>
@@ -3447,6 +3457,7 @@ function buildQuestionCandidates({ blueprint, previousPlan, lastAudit, state }) 
     if (
       accessReadiness &&
       accessReadiness.satisfied === false &&
+      !allowPositioningFirst &&
       unresolvedFields.length > 0 &&
       nextPrimaryField &&
       !isAccessPrimaryField(nextPrimaryField) &&
