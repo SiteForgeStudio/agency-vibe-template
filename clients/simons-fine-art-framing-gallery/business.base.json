@@ -61,38 +61,45 @@
       }
     ],
     "cta_text": "Call Now",
-    "cta_link": "#contact",
-    "cta_type": "anchor",
+    "cta_link": "tel:111-222-3333",
+    "cta_type": "external",
     "secondary_cta_text": "Learn More",
     "secondary_cta_link": "#contact"
   },
   "brand": {
     "name": "Simons Fine Art Framing & Gallery",
     "slug": "simons-fine-art-framing-gallery",
-    "tagline": "custom framing and matting, art classes",
+    "tagline": "custom framing and art classes",
     "email": "info@simonsfineartframing.com",
-    "phone": "111-111-1111",
+    "phone": "111-222-3333",
     "office_address": "",
     "objection_handle": "Clear quotes and honest expectations from the start."
   },
   "hero": {
-    "headline": "custom framing services in Dublin PA",
-    "subtext": "art classes. Prefer to talk? Call us and we'll walk you through the next step. Built with care and attention to detail you can trust.",
+    "headline": "Custom framing and art classes that reflects a high level of craftsmanship",
+    "subtext": "Designed for people who need artwork framed, artist, art collectors who want custom framing and art classes.",
     "image": {
-      "alt": "custom framing and matting, art classes",
-      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings picture frame mat corner detail natural window light"
+      "alt": "custom framing and art classes",
+      "image_search_query": "craftsmanship showcase focused single page site effectively highlight unique offerings gallery wall natural window light"
     }
   },
   "about": {
-    "story_text": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services.",
-    "founder_note": "Built for people who value quality, clarity, and a smooth process.",
+    "enabled": true,
+    "headline": "Built Around Custom framing and art classes",
+    "paragraphs": [
+      "Everything we do is centered around custom framing and art classes that reflects a high level of craftsmanship.",
+      "We focus on helping people who need artwork framed, artist, art collectors achieve custom framing and art classes designed to reflects a high level of craftsmanship in a way that feels consistent and reliable.",
+      "From start to finish, every custom framing and art classes is handled with care, clarity, and attention to what matters most."
+    ],
+    "story_text": "Everything we do is centered around custom framing and art classes that reflects a high level of craftsmanship. We focus on helping people who need artwork framed, artist, art collectors achieve custom framing and art classes designed to reflects a high level of craftsmanship in a way that feels consistent and reliable.",
+    "founder_note": "From start to finish, every custom framing and art classes is handled with care, clarity, and attention to what matters most.",
     "years_experience": "Experienced professional service"
   },
   "trustbar": {
     "enabled": true,
     "items": [
       {
-        "label": "Accurate",
+        "label": "Artist Ownership",
         "icon": "shield"
       },
       {
@@ -107,56 +114,41 @@
   },
   "features": [
     {
-      "title": "Craftsmanship Showcase",
-      "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
-      "icon_slug": "map"
-    },
-    {
-      "title": "Customer Testimonials",
-      "description": "There is a significant trust gap in the local market regarding the quality of framing services, which can be addressed by showcasing craftsmanship and customer satisfaction. Built with care and attention to detail...",
-      "icon_slug": "map"
-    },
-    {
-      "title": "Clear Pricing Structure",
-      "description": "Make options and pricing legible before the first conversation - how high-trust operators reduce friction. Built with care and attention to detail you can trust.",
-      "icon_slug": "shield"
-    },
-    {
-      "title": "Custom Framing and Matting",
-      "description": "Simons Fine Art Framing & Gallery stands out as a locally owned artist-driven business that prioritizes affordable, high-quality framing services. Built with care and attention to detail you can trust.",
+      "title": "Results You Can Rely On",
+      "description": "Expect custom framing and art classes that reflects a high level of craftsmanship, with consistency you can count on.",
       "icon_slug": "sparkles"
     },
     {
-      "title": "Art Classes",
-      "description": "art classes. Built with care and attention to detail you can trust.",
-      "icon_slug": "heart"
+      "title": "No One-Size-Fits-All",
+      "description": "Your custom framing and art classes is shaped around your needs, not a preset solution.",
+      "icon_slug": "award"
     },
     {
-      "title": "Quality-First Results",
-      "description": "Every detail is handled carefully so the finished result looks clean, sharp, and consistent. Built with care and attention to detail you can trust.",
-      "icon_slug": "award"
+      "title": "A Process You Feel Good About",
+      "description": "Clear steps and reliable execution make your custom framing and art classes designed to reflects a high level of craftsmanship feel straightforward and stress-free.",
+      "icon_slug": "shield"
     }
   ],
   "processSteps": [
     {
-      "title": "Bring In Artwork to Shop",
-      "description": "Bring in artwork to shop."
+      "title": "Customers Bring Their Artwork to The Shop",
+      "description": "Customers bring their artwork to the shop."
     },
     {
-      "title": "We Measure The Piece",
-      "description": "We measure the piece."
+      "title": "Where It Is Measured",
+      "description": "Where it is measured."
     },
     {
-      "title": "We Select The Frame",
-      "description": "We select the frame."
+      "title": "The Staff Works with The Customer to Select An Appropriate Frame",
+      "description": "The staff works with the customer to select an appropriate frame."
     },
     {
       "title": "Matting",
       "description": "Matting."
     },
     {
-      "title": "We Custom Cut Frame",
-      "description": "We custom cut frame."
+      "title": "The Framing Is Custom Cut At The Shop",
+      "description": "The framing is custom cut at the shop."
     }
   ],
   "gallery": {
@@ -191,20 +183,24 @@
   "contact": {
     "headline": "Get in Touch",
     "subheadline": "Tell us what you need and we'll help you with the right next step.",
-    "email": "info@simonsfineartframing.com",
-    "phone": "111-111-1111",
-    "email_recipient": "info@simonsfineartframing.com",
+    "email": "zzz@zzz.com",
+    "phone": "111-222-3333",
+    "email_recipient": "zzz@zzz.com",
     "button_text": "Send Message",
-    "office_address": ""
+    "office_address": "122 N Main St, Dublin, PA 18917"
   },
   "testimonials": [
     {
-      "quote": "Customers often mention accurate as a reason they felt confident choosing Simons Fine Art Framing & Gallery.",
-      "author": "Happy Client 1"
+      "quote": "We had concerns about higher cost than big-box stores, but the process made everything clear and the final custom framing and art classes reflects a high level of craftsmanship.",
+      "author": "Client"
     },
     {
-      "quote": "People appreciate the way Simons Fine Art Framing & Gallery combines careful work with a more polished, higher-trust customer experience.",
-      "author": "Happy Client 2"
+      "quote": "we ended up with custom framing and art classes that reflects a high level of craftsmanship, exactly what we were looking for.",
+      "author": "Client"
+    },
+    {
+      "quote": "From the first step to custom framing and art classes that felt consistent and well thought out from start to finish, everything felt clear, consistent, and reliable.",
+      "author": "Client"
     }
   ],
   "faqs": [
