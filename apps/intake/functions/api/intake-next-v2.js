@@ -1037,7 +1037,16 @@ function repairInterpretationForActiveTarget(interpretation, currentPlan, answer
   const alreadyUpdated = (repaired.fact_updates || []).some(
     (item) => cleanString(item.fact_key) === primaryField
   );
-  if (alreadyUpdated && bundleId !== "contact_details") return repaired;
+  if (alreadyUpdated && bundleId !== "contact_details") {
+    // Allow repair to run even if the model emitted a primary-field update (often empty/junk for booking_url).
+    if (bundleId === "conversion" && primaryField === "booking_url") {
+      repaired.fact_updates = (repaired.fact_updates || []).filter(
+        (item) => cleanString(item?.fact_key) !== "booking_url"
+      );
+    } else {
+      return repaired;
+    }
+  }
 
   if (bundleId === "conversion" && primaryField === "pricing") {
     const pricingSignals = [
@@ -1638,7 +1647,31 @@ if (
 
   applyNarrativeQualityPass(nextBlueprint, expectedField, answer);
 
-
+  // Post-merge: normalize manual booking language to a terminal booking_url row (independent of wasUpdated / LLM slot noise).
+  {
+    const frNorm = nextBlueprint.fact_registry;
+    if (!isFieldSatisfied("booking_url", frNorm)) {
+      const val = frNorm?.booking_url?.value;
+      const valText =
+        typeof val === "string" ? val : val != null ? stringifyFactValue(val) : "";
+      const answerText = cleanString(answer);
+      if (describesManualBookingNoUrl(valText) || describesManualBookingNoUrl(answerText)) {
+        const prev = isObject(frNorm.booking_url) ? frNorm.booking_url : {};
+        nextBlueprint.fact_registry.booking_url = {
+          ...prev,
+          value: "manual",
+          status: "answered",
+          confidence: 1,
+          verified: true,
+          rationale: "Manual booking — no public scheduling URL (post-merge normalization)",
+          updated_at: now
+        };
+        if (!updatedFactKeys.includes("booking_url")) {
+          updatedFactKeys.push("booking_url");
+        }
+      }
+    }
+  }
 
 
 
