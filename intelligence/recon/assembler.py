@@ -22,9 +22,23 @@ from intelligence.recon.models import (
     MetaBlock,
     ReconContract,
     ScorePayload,
+    WebsiteIntelligence,
 )
+from intelligence.recon.utils import score_insight_0_100
 
 
+def _website_intel(analyzed: AnalysisPayload) -> WebsiteIntelligence:
+    wi: WebsiteIntelligence = {
+        "design_maturity": "placeholder_estimate: medium",
+        "conversion_maturity": "placeholder_estimate: medium",
+        "trust_architecture": analyzed["trust_structure_notes"],
+        "positioning_strength": analyzed["positioning_notes"],
+        "mobile_experience": "placeholder_estimate: baseline",
+    }
+    probe = analyzed.get("page_probe")
+    if probe is not None:
+        wi["page_probe"] = probe
+    return wi
 def assemble(
     *,
     collected: CollectionPayload,
@@ -52,21 +66,15 @@ def assemble(
     return {
         "meta": meta,
         "market_intelligence": {
-            "market_saturation": f"saturation_signal={scored['saturation']}",
+            "market_saturation": score_insight_0_100(scored["saturation"]),
             "competitive_density": f"{len(collected['competitor_labels'])} placeholder peers",
             "underserved_areas": ["Placeholder locality cluster A", "Placeholder locality cluster B"],
             "market_patterns": patterns,
         },
-        "website_intelligence": {
-            "design_maturity": f"design_maturity_index={scored['visual_maturity']}",
-            "conversion_maturity": "placeholder_estimate: medium",
-            "trust_architecture": analyzed["trust_structure_notes"],
-            "positioning_strength": analyzed["positioning_notes"],
-            "mobile_experience": "placeholder_estimate: baseline",
-        },
+        "website_intelligence": _website_intel(analyzed),
         "ux_intelligence": {
-            "visual_maturity": f"maturity_proxy={scored['visual_maturity']}",
-            "trust_density": f"trust_proxy={scored['trust']}",
+            "visual_maturity": score_insight_0_100(scored["visual_maturity"]),
+            "trust_density": score_insight_0_100(scored["trust"]),
             "cta_clarity": analyzed["ux_maturity_notes"],
             "content_structure_quality": "placeholder_estimate: workable",
         },
@@ -80,7 +88,7 @@ def assemble(
             "schema_readiness": "placeholder: partial",
             "faq_coverage": "placeholder: sparse",
             "entity_depth": "placeholder: shallow",
-            "answerability_score": float(scored["opportunity"]) / 100.0,
+            "answerability": score_insight_0_100(scored["opportunity"]),
         },
         "opportunity_intelligence": {
             "convenience_gaps": opp_gaps[:1],

@@ -13,12 +13,25 @@ from __future__ import annotations
 from typing import NotRequired, TypedDict
 
 
+class WebsitePageProbe(TypedDict, total=False):
+    """Raw homepage probe facts (collector output; echoed through analysis)."""
+
+    url: str
+    fetch_ok: bool
+    http_status: int | None
+    error: str
+    title: str
+    meta_description: str
+    first_h1: str
+
+
 class CollectionPayload(TypedDict):
     """Raw-ish placeholder envelope from the collection stage."""
 
     source: str
     competitor_labels: list[str]
     snapshot_notes: list[str]
+    page_probe: NotRequired[WebsitePageProbe]
 
 
 class AnalysisPayload(TypedDict):
@@ -28,6 +41,7 @@ class AnalysisPayload(TypedDict):
     trust_structure_notes: str
     positioning_notes: str
     gap_hypotheses: list[str]
+    page_probe: NotRequired[WebsitePageProbe]
 
 
 class ScorePayload(TypedDict):
@@ -39,6 +53,13 @@ class ScorePayload(TypedDict):
     visual_maturity: float
 
 
+class ScoreInsight(TypedDict):
+    """Operational score card (contracts/recon.schema.json scoreInsight)."""
+
+    score: float
+    label: str
+
+
 class MetaBlock(TypedDict):
     generated_at: str
     niche: str
@@ -48,7 +69,7 @@ class MetaBlock(TypedDict):
 
 
 class MarketIntelligence(TypedDict, total=False):
-    market_saturation: str
+    market_saturation: ScoreInsight
     competitive_density: str
     underserved_areas: list[str]
     market_patterns: list[str]
@@ -60,11 +81,12 @@ class WebsiteIntelligence(TypedDict, total=False):
     trust_architecture: str
     positioning_strength: str
     mobile_experience: str
+    page_probe: WebsitePageProbe
 
 
 class UxIntelligence(TypedDict, total=False):
-    visual_maturity: str
-    trust_density: str
+    visual_maturity: ScoreInsight
+    trust_density: ScoreInsight
     cta_clarity: str
     content_structure_quality: str
 
@@ -80,7 +102,7 @@ class AeoIntelligence(TypedDict, total=False):
     schema_readiness: str
     faq_coverage: str
     entity_depth: str
-    answerability_score: float
+    answerability: ScoreInsight
 
 
 class OpportunityIntelligence(TypedDict, total=False):

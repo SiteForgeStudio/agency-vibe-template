@@ -38,3 +38,8 @@ success/
 /scripts/intake-runner/preflight-logs/
 
 apps/intake/.wangler/
+
+# recon runs
+intelligence/recon/output/
+
+.venv/

@@ -3,7 +3,49 @@
     "title": "SiteForge Recon Intelligence Contract",
     "type": "object",
   
-    "required": [
+    "$defs": {
+      "scoreInsight": {
+        "type": "object",
+        "required": ["score", "label"],
+        "properties": {
+          "score": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "pageProbe": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "fetch_ok": {
+            "type": "boolean"
+          },
+          "http_status": {
+            "type": ["integer", "null"]
+          },
+          "error": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "meta_description": {
+            "type": "string"
+          },
+          "first_h1": {
+            "type": "string"
+          }
+        }
+      }
+    },
+      "required": [
       "meta",
       "market_intelligence",
       "website_intelligence",
@@ -50,7 +92,7 @@
         "type": "object",
         "properties": {
           "market_saturation": {
-            "type": "string"
+            "$ref": "#/$defs/scoreInsight"
           },
           "competitive_density": {
             "type": "string"
@@ -87,6 +129,9 @@
           },
           "mobile_experience": {
             "type": "string"
+          },
+          "page_probe": {
+            "$ref": "#/$defs/pageProbe"
           }
         }
       },
@@ -95,10 +140,10 @@
         "type": "object",
         "properties": {
           "visual_maturity": {
-            "type": "string"
+            "$ref": "#/$defs/scoreInsight"
           },
           "trust_density": {
-            "type": "string"
+            "$ref": "#/$defs/scoreInsight"
           },
           "cta_clarity": {
             "type": "string"
@@ -139,8 +184,8 @@
           "entity_depth": {
             "type": "string"
           },
-          "answerability_score": {
-            "type": "number"
+          "answerability": {
+            "$ref": "#/$defs/scoreInsight"
           }
         }
       },
