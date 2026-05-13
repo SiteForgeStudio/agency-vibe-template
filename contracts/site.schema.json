@@ -1,0 +1,194 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SiteForge Render Contract",
+    "type": "object",
+  
+    "required": [
+      "meta",
+      "brand",
+      "hero",
+      "sections",
+      "contact",
+      "seo"
+    ],
+  
+    "properties": {
+  
+      "meta": {
+        "type": "object",
+  
+        "required": [
+          "site_id",
+          "generated_at"
+        ],
+  
+        "properties": {
+  
+          "site_id": {
+            "type": "string"
+          },
+  
+          "generated_at": {
+            "type": "string"
+          },
+  
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "brand": {
+        "type": "object",
+  
+        "required": [
+          "business_name"
+        ],
+  
+        "properties": {
+  
+          "business_name": {
+            "type": "string"
+          },
+  
+          "tagline": {
+            "type": "string"
+          },
+  
+          "logo": {
+            "type": "string"
+          },
+  
+          "vibe_id": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "hero": {
+        "type": "object",
+  
+        "properties": {
+  
+          "headline": {
+            "type": "string"
+          },
+  
+          "subheadline": {
+            "type": "string"
+          },
+  
+          "primary_cta": {
+            "type": "string"
+          },
+  
+          "secondary_cta": {
+            "type": "string"
+          },
+  
+          "hero_image": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "sections": {
+        "type": "array",
+  
+        "items": {
+          "$ref": "#/$defs/section"
+        }
+      },
+  
+      "contact": {
+        "type": "object",
+  
+        "properties": {
+  
+          "phone": {
+            "type": "string"
+          },
+  
+          "email": {
+            "type": "string"
+          },
+  
+          "address": {
+            "type": "string"
+          },
+  
+          "hours": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+  
+      "seo": {
+        "type": "object",
+  
+        "properties": {
+  
+          "title": {
+            "type": "string"
+          },
+  
+          "description": {
+            "type": "string"
+          },
+  
+          "schema_type": {
+            "type": "string"
+          },
+  
+          "service_area": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+  
+    },
+  
+    "$defs": {
+  
+      "section": {
+  
+        "type": "object",
+  
+        "required": [
+          "type",
+          "enabled"
+        ],
+  
+        "properties": {
+  
+          "type": {
+            "type": "string"
+          },
+  
+          "enabled": {
+            "type": "boolean"
+          },
+  
+          "title": {
+            "type": "string"
+          },
+  
+          "content": {},
+  
+          "layout": {
+            "type": "string"
+          },
+  
+          "style": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }

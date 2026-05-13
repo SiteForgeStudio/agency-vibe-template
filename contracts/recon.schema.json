@@ -1,0 +1,224 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SiteForge Recon Intelligence Contract",
+    "type": "object",
+  
+    "required": [
+      "meta",
+      "market_intelligence",
+      "website_intelligence",
+      "ux_intelligence",
+      "emotional_intelligence",
+      "aeo_intelligence",
+      "opportunity_intelligence",
+      "strategy_recommendation",
+      "intake_guidance"
+    ],
+  
+    "properties": {
+  
+      "meta": {
+        "type": "object",
+        "required": [
+          "generated_at",
+          "niche",
+          "target_location"
+        ],
+        "properties": {
+          "generated_at": {
+            "type": "string"
+          },
+          "niche": {
+            "type": "string"
+          },
+          "target_location": {
+            "type": "string"
+          },
+          "hub_city": {
+            "type": "string"
+          },
+          "shoulder_towns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+  
+      "market_intelligence": {
+        "type": "object",
+        "properties": {
+          "market_saturation": {
+            "type": "string"
+          },
+          "competitive_density": {
+            "type": "string"
+          },
+          "underserved_areas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "market_patterns": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+  
+      "website_intelligence": {
+        "type": "object",
+        "properties": {
+          "design_maturity": {
+            "type": "string"
+          },
+          "conversion_maturity": {
+            "type": "string"
+          },
+          "trust_architecture": {
+            "type": "string"
+          },
+          "positioning_strength": {
+            "type": "string"
+          },
+          "mobile_experience": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "ux_intelligence": {
+        "type": "object",
+        "properties": {
+          "visual_maturity": {
+            "type": "string"
+          },
+          "trust_density": {
+            "type": "string"
+          },
+          "cta_clarity": {
+            "type": "string"
+          },
+          "content_structure_quality": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "emotional_intelligence": {
+        "type": "object",
+        "properties": {
+          "dominant_tone": {
+            "type": "string"
+          },
+          "emotional_positioning": {
+            "type": "string"
+          },
+          "luxury_alignment": {
+            "type": "string"
+          },
+          "relationship_depth": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "aeo_intelligence": {
+        "type": "object",
+        "properties": {
+          "schema_readiness": {
+            "type": "string"
+          },
+          "faq_coverage": {
+            "type": "string"
+          },
+          "entity_depth": {
+            "type": "string"
+          },
+          "answerability_score": {
+            "type": "number"
+          }
+        }
+      },
+  
+      "opportunity_intelligence": {
+        "type": "object",
+        "properties": {
+          "convenience_gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "excellence_gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "underserved_segments": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "strategic_opportunities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+  
+      "strategy_recommendation": {
+        "type": "object",
+        "properties": {
+          "recommended_positioning": {
+            "type": "string"
+          },
+          "recommended_archetype": {
+            "type": "string"
+          },
+          "recommended_vibe": {
+            "type": "string"
+          },
+          "recommended_conversion_style": {
+            "type": "string"
+          },
+          "recommended_trust_strategy": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "intake_guidance": {
+        "type": "object",
+        "properties": {
+          "priority_questions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priority_gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommended_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+  
+    }
+  }

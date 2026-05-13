@@ -1,0 +1,157 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SiteForge Readiness Contract",
+    "type": "object",
+  
+    "required": [
+      "overall_status",
+      "domains"
+    ],
+  
+    "properties": {
+  
+      "overall_status": {
+        "type": "string",
+        "enum": [
+          "not_ready",
+          "partially_ready",
+          "strategy_ready",
+          "build_ready"
+        ]
+      },
+  
+      "domains": {
+        "type": "object",
+  
+        "required": [
+          "identity",
+          "positioning",
+          "offer",
+          "trust",
+          "conversion",
+          "visual",
+          "service",
+          "contact"
+        ],
+  
+        "properties": {
+  
+          "identity": {
+            "$ref": "#/$defs/readinessDomain"
+          },
+  
+          "positioning": {
+            "$ref": "#/$defs/readinessDomain"
+          },
+  
+          "offer": {
+            "$ref": "#/$defs/readinessDomain"
+          },
+  
+          "trust": {
+            "$ref": "#/$defs/readinessDomain"
+          },
+  
+          "conversion": {
+            "$ref": "#/$defs/readinessDomain"
+          },
+  
+          "visual": {
+            "$ref": "#/$defs/readinessDomain"
+          },
+  
+          "service": {
+            "$ref": "#/$defs/readinessDomain"
+          },
+  
+          "contact": {
+            "$ref": "#/$defs/readinessDomain"
+          }
+        }
+      },
+  
+      "next_priority_domains": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+  
+      "missing_requirements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+  
+      "notes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+  
+    },
+  
+    "$defs": {
+  
+      "readinessDomain": {
+  
+        "type": "object",
+  
+        "required": [
+          "status",
+          "confidence",
+          "resolved",
+          "missing_items"
+        ],
+  
+        "properties": {
+  
+          "status": {
+            "type": "string",
+            "enum": [
+              "missing",
+              "weak",
+              "partial",
+              "strong"
+            ]
+          },
+  
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+  
+          "resolved": {
+            "type": "boolean"
+          },
+  
+          "missing_items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+  
+          "supporting_evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+  
+          "source": {
+            "type": "string",
+            "enum": [
+              "recon_inferred",
+              "client_confirmed",
+              "ai_suggested",
+              "mixed"
+            ]
+          }
+        }
+      }
+    }
+  }

@@ -1,0 +1,234 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SiteForge Strategy Contract",
+    "type": "object",
+  
+    "required": [
+      "positioning",
+      "archetype",
+      "vibe",
+      "conversion_strategy",
+      "trust_strategy",
+      "content_strategy",
+      "visual_strategy",
+      "section_strategy"
+    ],
+  
+    "properties": {
+  
+      "positioning": {
+        "type": "object",
+  
+        "properties": {
+  
+          "market_position": {
+            "type": "string"
+          },
+  
+          "primary_differentiator": {
+            "type": "string"
+          },
+  
+          "emotional_angle": {
+            "type": "string"
+          },
+  
+          "audience_priority": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "archetype": {
+        "type": "object",
+  
+        "properties": {
+  
+          "primary": {
+            "type": "string"
+          },
+  
+          "secondary": {
+            "type": "string"
+          },
+  
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+  
+      "vibe": {
+        "type": "object",
+  
+        "properties": {
+  
+          "vibe_id": {
+            "type": "string"
+          },
+  
+          "visual_direction": {
+            "type": "string"
+          },
+  
+          "tone_direction": {
+            "type": "string"
+          },
+  
+          "contrast_reasoning": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "conversion_strategy": {
+        "type": "object",
+  
+        "properties": {
+  
+          "primary_cta": {
+            "type": "string"
+          },
+  
+          "conversion_style": {
+            "type": "string"
+          },
+  
+          "friction_reduction": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+  
+          "lead_capture_priority": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "trust_strategy": {
+        "type": "object",
+  
+        "properties": {
+  
+          "trust_priority": {
+            "type": "string"
+          },
+  
+          "required_proof_elements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+  
+          "authority_positioning": {
+            "type": "string"
+          },
+  
+          "testimonial_strategy": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "content_strategy": {
+        "type": "object",
+  
+        "properties": {
+  
+          "messaging_style": {
+            "type": "string"
+          },
+  
+          "faq_priority": {
+            "type": "string"
+          },
+  
+          "seo_priority": {
+            "type": "string"
+          },
+  
+          "aeo_priority": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "visual_strategy": {
+        "type": "object",
+  
+        "properties": {
+  
+          "gallery_priority": {
+            "type": "string"
+          },
+  
+          "image_style": {
+            "type": "string"
+          },
+  
+          "layout_density": {
+            "type": "string"
+          },
+  
+          "visual_hierarchy": {
+            "type": "string"
+          }
+        }
+      },
+  
+      "section_strategy": {
+        "type": "object",
+  
+        "properties": {
+  
+          "required_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+  
+          "priority_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+  
+          "optional_sections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+  
+      "build_hints": {
+        "type": "object",
+  
+        "properties": {
+  
+          "hero_style": {
+            "type": "string"
+          },
+  
+          "gallery_style": {
+            "type": "string"
+          },
+  
+          "cta_density": {
+            "type": "string"
+          },
+  
+          "content_pacing": {
+            "type": "string"
+          }
+        }
+      }
+  
+    }
+  }

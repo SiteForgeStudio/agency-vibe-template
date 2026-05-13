@@ -1,4 +1,4 @@
-# SiteForge Factory — Intake & Preflight Manifest **v2.6** (April 2026)
+# SiteForge Factory — Intake & Preflight Manifest **v2.7** (April 2026)
 
 Use this file as the **handoff anchor** for architecture, constraints, and phase order. Implementation details live in code and in `docs/PREFLIGHT_OUTPUT_SPEC_V1.md` (preflight → intake handoff shape).
 
@@ -108,6 +108,8 @@ Facts live in `blueprint.fact_registry`; the partial site shape lives in `busine
 
 - **Primary field update is mandatory** for progression; enforcement fills the slot when needed.
 - **Broad capture is allowed:** one user message may update multiple facts; only **primary field satisfaction** gates progression.
+- **`contact_details` NAP combo (router):** When `question_plan.bundle_id === "contact_details"`, **`routeInterpretationToEvidence`** merges **`phone`**, **`email`**, **`address`**, and **`hours`** updates from the same turn even if the current **`primary_field`** is only one of them (e.g. user pastes phone + address + hours while the planner is on **`address`**). This pairs with **`repairContactDetailsComboFacts`** (parse helpers, including a **3-4-4 phone** fallback for common typos). **Questions** stay single-field; **capture** may fill sibling NAP rows in one answer.
+- **`booking_url` (repair + merge):** If the model already emitted a **`booking_url`** `fact_update`, **`repairInterpretationForActiveTarget`** strips those rows on a conversion **`booking_url`** turn so canonical repair (URL or **`manual`**) can run. After merge, **post-merge normalization** sets **`manual`** when **`isFieldSatisfied("booking_url")`** is still false but the stored value or raw answer matches **`describesManualBookingNoUrl`** — independent of **`wasUpdated`**, so “handled manually” cannot loop on an empty junk row.
 
 ---
 
@@ -230,6 +232,8 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 
 **Design intent:** **Block** illegal next steps; use **+62** on `planner_hint.decision_boost` and mild score nudges to **guide** — avoid huge artificial penalties that made the planner feel mechanical.
 
+**Positioning-first exception (`intake-next-v2` — `buildQuestionCandidates`):** For the **first two planner turns** (`question_history.length < 2`) when **foundation** resolves to **`positioning`** (`blueprint.strategy.foundation` → `blueprint.preflight_intelligence.foundation` → computed **`determineFoundationBundle(state)`**), the access gate **does not drop** non-access-primary candidates — so **positioning** (e.g. `primary_offer` / `differentiation`) can run before NAP/geo while storefront **`local_physical`** would otherwise block it. From **turn 3 onward** (`length ≥ 2`), the gate applies again normally.
+
 ---
 
 ## Gallery & contact
@@ -280,7 +284,7 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 
 ## Current status (honest)
 
-**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners, **access readiness + premium readiness** on blueprint, **factory-synthesis** on intake-complete (vibe + image queries + gallery layout/count without industry branching), **preflight internal_strategy → seeded FAQ/AEO**, **enrichment fallbacks** in `normalizeState` for assembly gates, **visual inference** for planner/component evidence (no schema change), **intake-runner** exit condition aligned with conversational completion.
+**Stable:** Blueprint/planner control, primary field contract, renderer validation + fallback, interpretation enforcement with active-field capture, `recomputeBlueprint` planning on fresh candidates, intake/preflight runners, **access readiness + premium readiness** on blueprint, **factory-synthesis** on intake-complete (vibe + image queries + gallery layout/count without industry branching), **preflight internal_strategy → seeded FAQ/AEO**, **enrichment fallbacks** in `normalizeState` for assembly gates, **visual inference** for planner/component evidence (no schema change), **intake-runner** exit condition aligned with conversational completion, **positioning-first access bypass** (first two turns when foundation is positioning), **`booking_url`** repair strip + post-merge **`manual`** normalization, **`contact_details`** one-reply **NAP combo merge** in the router + phone parse fallback.
 
 **Monitor:** `fallback_rate`, scope violations, repetition stalls, GBP/preflight depth.
 
@@ -290,7 +294,7 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 
 ## Phases (order matters)
 
-1. **Engine hardening (current):** stabilize fallback rate, reduce scope violations, **no loop regressions** on conversion fields (`booking_url`, etc.).
+1. **Engine hardening (current):** stabilize fallback rate, reduce scope violations, **no loop regressions** on conversion fields (`booking_url`, etc.) or **NAP combo** (`contact_details` + one combined user reply).
 2. **Intelligence tuning:** LLM phrasing quality, fewer fallbacks, tone.
 3. **Preflight expansion:** richer competitive intelligence, gaps, patterns.
 4. **Consultative AI:** surface opportunities, reinforce positioning (on top of non-owning reinforcement).
@@ -301,7 +305,7 @@ When **`access_readiness.satisfied === false`**, a question **candidate is dropp
 
 ## Hard rules (reinforced)
 
-- No multi-field questions.
+- No multi-field **questions** (renderer / `primary_field` copy). One turn still may **capture** multiple NAP facts when `bundle_id === "contact_details"` and parsers fire (see Interpretation).
 - No AI-owned field selection (planner + contract own progression).
 - No industry hardcoding for logic.
 - No “patch the symptom” without fixing contract/renderer/observability.
@@ -318,4 +322,4 @@ A system that **thinks like a strategist** (within guardrails) and **executes li
 
 ## New chat handoff line
 
-> We’re building SiteForge Factory per **`manifest.md` v2.6** (blueprint + planner + **access gate** + **premium readiness** + controlled renderer + **factory-synthesis** on intake-complete + **narrative/enrichment gates** + **preflight seed alignment** + **visual inference** for evidence/planner). Next task: [describe]. Check primary field contract, renderer scope, `access_readiness` / `premium_readiness`, **`intake-complete` narrative vs enrichment** if assembly 400s, `turn_debug` / fallback rate, **runner** (don’t end on blueprint `can_generate_now` alone), and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.
+> We’re building SiteForge Factory per **`manifest.md` v2.7** (blueprint + planner + **access gate** + **positioning-first bypass (turns 0–1)** + **premium readiness** + controlled renderer + **factory-synthesis** on intake-complete + **narrative/enrichment gates** + **preflight seed alignment** + **visual inference** for evidence/planner + **`booking_url`** repair/normalize + **`contact_details` NAP combo merge**). Next task: [describe]. Check primary field contract, renderer scope, `access_readiness` / `premium_readiness`, **`intake-complete` narrative vs enrichment** if assembly 400s, `turn_debug` / fallback rate, **runner** (don’t end on blueprint `can_generate_now` alone), and **factory synthesis guards** (vibe + hero image query) if final assembly looks wrong.
