@@ -181,3 +181,6 @@ And toward:
 - ADR-001: Layered Contract Architecture
 - ADR-002: Python Intelligence Layer
 - ADR-003: Recon-First Architecture
+- ADR-004: Deterministic Rendering
+- ADR-005: Strategic Readiness Model
+- ADR-007: Deterministic Strategic Intelligence Stack

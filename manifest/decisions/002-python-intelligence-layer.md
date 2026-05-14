@@ -214,3 +214,4 @@ And toward:
 - ADR-003: Recon-First Architecture
 - ADR-004: Deterministic Rendering
 - ADR-005: Strategic Readiness Model
+- ADR-007: Deterministic Strategic Intelligence Stack

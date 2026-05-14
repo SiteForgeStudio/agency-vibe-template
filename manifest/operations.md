@@ -71,20 +71,19 @@ Input:
 - location
 - optional website URL
 
-Processes:
-- competitor discovery
-- hub/shoulder analysis
-- website analysis
-- UX analysis
-- AEO analysis
-- strategic analysis
+Processes (recon runtime — current):
+- evidence collection (Places, probes, configured geo fields)
+- **deterministic** analyzers (trust, density, authority, geo) + shared math
+- **interpreters** (cross-analyzer relationships)
+- **readiness** (strategic preparedness indices)
+- **strategy-state** (posture / pressure primitives; not recommendations)
+- transitional legacy scorers (stub score cards where not yet replaced)
+- assembly into `recon.json` + schema validation + artifact persistence
 
 Outputs:
-- recon.json
-- markdown report
-- opportunity summary
-
----
+- recon.json (deterministic blocks authoritative; placeholders transitional)
+- markdown report (synopsis)
+- opportunity summary (placeholder channel flagged non-authoritative in contract until replaced)
 
 # Intake Operations
 

@@ -38,31 +38,26 @@ The new architecture separates concerns into layered contracts.
 # recon.json
 
 ## Purpose
-Machine-readable market intelligence.
+Machine-readable **market and operating-structure intelligence** from recon. Holds both **authoritative deterministic** blocks and **transitional** placeholder scaffolding (explicitly tagged in assembly).
 
-## Responsibilities
-- competitor analysis
-- UX analysis
-- opportunity analysis
-- emotional intelligence
-- AEO intelligence
-- saturation analysis
-- market patterns
-- strategic gaps
+## Responsibilities (current)
+- **Deterministic (authoritative for modeled dimensions):**  
+  `trust_analysis`, `density_analysis`, `authority_analysis`, `geo_analysis`, `market_state_interpretation`, `market_readiness`, `strategy_state`
+- Evidence passthrough where present: e.g. Places envelope, page probe facts
+- **Assembly overlays:** e.g. market saturation score **derived** from `density_analysis.saturation_score` (deterministic-derived `ScoreInsight`)
+- **Transitional:** legacy `scorers.py`-backed score cards where not yet replaced (tagged non-authoritative); placeholder UX/emotional/AEO/opportunity/strategy **prose** blocks (tagged via `authority_metadata`)
 
 ## Sources
-Generated primarily from:
-- scraping
-- AI analysis
-- scoring systems
-- clustering systems
+- **Evidence** via collectors (e.g. Places, HTTP probe)
+- **Deterministic pipeline:** analyzers → interpreters → readiness → strategy-state
+- Legacy scorer: **transitional only** for specific stub fields
 
 ## Rules
 recon.json:
-- is NOT render-safe
-- may contain AI assumptions
-- may contain inferred opportunities
-- may evolve during analysis
+- is NOT render-safe end-to-end (mixed intelligence + placeholders)
+- deterministic blocks are the **operational truth** for their domains
+- placeholder and legacy-scorer sections must be treated as **non-authoritative** until replaced
+- may evolve as analyzers expand; schema in `contracts/recon.schema.json`
 
 ---
 
@@ -166,17 +161,13 @@ Supported sources:
 
 # Intelligence Flow
 
-recon.json
-↓
-client.json
-↓
-strategy.json
-↓
-site.json
-↓
-Astro Rendering
+**Recon stage (deterministic spine):**  
+evidence → analyzers → interpreters → readiness → strategy-state → (transitional scorers for stubs) → assembler → **recon.json**
 
-This flow is intentional and should not be bypassed.
+**Factory flow (unchanged intent):**  
+recon.json → client.json → strategy.json → site.json → Astro rendering
+
+Deterministic recon outputs **inform** strategy assembly; they do not bypass `client.json` as human truth.
 
 ---
 

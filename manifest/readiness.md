@@ -9,7 +9,7 @@ Readiness is NOT:
 - checklist counting
 
 Readiness IS:
-# strategic completeness.
+# strategic preparedness.
 
 The Factory should determine:
 - whether enough strategic clarity exists
@@ -17,7 +17,22 @@ The Factory should determine:
 - whether enough conversion clarity exists
 - whether enough visual direction exists
 
-Only THEN should the system build.
+Only THEN should the system build — *when product-level readiness gates are wired*.
+
+In the **recon pipeline today**, “readiness” also names a **deterministic numeric bundle** (`market_readiness` in `recon.json`): preparedness indices derived **only** from analyzer outputs and `market_state_interpretation`. That layer is **authoritative for what it measures** (bounded, composable signals). It does **not** replace human intake or full-factory readiness domains below — it **informs** them without inventing strategy prose.
+
+---
+
+# Deterministic readiness in recon (current implementation)
+
+| Output | Role |
+|--------|------|
+| `market_readiness` | Fixed-weight composites from trust, density, authority, geo, and interpretation — e.g. trust_readiness, positioning_readiness, geo_readiness, differentiation_readiness, confidence. **No recommendations.** |
+
+Relationship to philosophy:
+- Same “strategic preparedness” idea, **operationalized** as math over evidence-backed primitives.
+- **Not** field-completion; confidence is carried explicitly per block.
+- Downstream factory readiness (identity, visual, etc.) remains a **separate** layer until unified orchestration exists.
 
 ---
 
@@ -202,4 +217,3 @@ Meaning:
 - intake adapts based on market intelligence
 - build requirements evolve based on strategy
 - the system behaves like a digital strategy agency
-```

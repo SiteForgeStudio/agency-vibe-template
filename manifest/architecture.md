@@ -46,27 +46,27 @@ Lifecycle Updates
 
 # Intelligence Layer
 
-Primary technologies:
-- Python
-- OpenAI API
-- GitHub Actions
+Primary stack (recon pipeline — current):
+- Python under `intelligence/recon/` — collectors, analyzers, interpreters, readiness, strategy-state, assembly, validation, artifacts, report
 
-Responsibilities:
-- competitor analysis
-- website analysis
-- UX analysis
-- emotional analysis
-- AEO analysis
-- scoring systems
-- opportunity analysis
-- strategic recommendations
+**Deterministic authority hierarchy (recon):**
+1. **Analyzers** — evidence → typed primitives (trust, density, authority, geo).
+2. **Shared math** — `intelligence_math.py` — bounded reusable operations (no strategy prose).
+3. **Interpreters** — relationships *between* analyzer outputs (`market_state_interpretation`).
+4. **Readiness** — strategic *preparedness* composites (`market_readiness`).
+5. **Strategy-state** — deterministic posture / pressure primitives (`strategy_state`) — *not* recommendations.
 
-Primary outputs:
-- recon.json
-- intake guidance
-- strategy recommendations
+**Transitional / non-authoritative in recon today:**
+- Legacy `scorers.py` signals used only for stub UX/AEO score cards where not yet replaced by deterministic overlays.
+- Placeholder prose blocks (strategy recommendation, emotional, opportunity scaffolding) — **explicitly** marked `authority_metadata` and non-authoritative in assembly.
 
-This layer is NOT render-safe.
+**Synthesis (future):** Constrained use of models to **explain or structure** outputs that are already fixed by deterministic layers — **not** to invent market facts. Evidence and analyzers remain the root of truth.
+
+Primary outputs (recon stage):
+- `recon.json` (layered contract; deterministic blocks authoritative)
+- intake guidance echoes (transitional where noted)
+
+This intelligence layer segment is **not** render-safe by itself; downstream `site.json` remains the render-safe contract.
 
 ---
 
@@ -212,30 +212,48 @@ GitHub Actions acts as:
 
 ---
 
-## Python Is The Intelligence Brain
-Python owns:
-- analysis
-- scoring
-- clustering
-- intelligence pipelines
-- orchestration logic
+## Python Is The Deterministic Intelligence Spine (recon)
 
-Cloudflare owns:
-- UX
+Python owns (for recon):
+- evidence collection orchestration
+- deterministic analyzers and shared math
+- interpreters, readiness, strategy-state
+- contract assembly and schema validation
+
+Orchestration (`engine.py`) sequences stages only — **no** embedded market strategy rules.
+
+Cloudflare (and related) may own:
+- UX surfaces
 - interaction
 - intake APIs
 - streaming
 - uploads
 
+Intelligence **truth** for market structure in recon flows through the Python deterministic stack, not through placeholder contract prose.
+
 ---
 
 # Future Architecture Goals
 
-Future expansion areas:
-- screenshot analysis
-- visual scoring
-- embeddings
-- semantic clustering
-- AI-assisted lifecycle optimization
-- AEO scoring systems
-- autonomous optimization recommendations
+Near-term (recon):
+- extend deterministic coverage where legacy scorers still back stub score cards
+- optional constrained synthesis that **reads** frozen deterministic payloads only
+
+Longer-term expansion areas:
+- screenshot analysis (new analyzers, not hardcoded industries)
+- visual scoring as deterministic signals where possible
+- embeddings / clustering as **supporting** structure, not a replacement for evidence
+- AEO scoring backed by analyzers when introduced
+
+---
+
+## Authoritative vs transitional (recon contract)
+
+| Class | Examples | Authority |
+|------|----------|-----------|
+| Deterministic | `trust_analysis`, `density_analysis`, `authority_analysis`, `geo_analysis`, `market_state_interpretation`, `market_readiness`, `strategy_state` | **Operational truth** for recon’s modeled dimensions |
+| Deterministic-derived assembly | e.g. market saturation score from `density_analysis.saturation_score` | **Authoritative** for that derived display |
+| Legacy scorer rows | visual maturity, answerability where still tied to `scorers.py` | **Transitional** — tagged non-authoritative |
+| Placeholder sections | strategy_recommendation, emotional, opportunity scaffolding | **Transitional** — explicit metadata |
+
+---
