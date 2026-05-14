@@ -29,7 +29,9 @@ def write_report(contract: ReconContract) -> str:
     aeo = contract["aeo_intelligence"]
     oi = contract["opportunity_intelligence"]
     lines = [
-        "# Recon report (placeholder pipeline)",
+        "# Recon report (deterministic-authority synopsis)",
+        "",
+        "_Operational truth: deterministic blocks under `market_intelligence` (density, authority, geo, interpretation, readiness, strategy-state posture) plus analyzer-backed `website_intelligence.trust_analysis` where present.",
         "",
         "## Meta",
         f"- Generated: `{meta['generated_at']}`",
@@ -37,13 +39,14 @@ def write_report(contract: ReconContract) -> str:
         f"- Target location: **{meta['target_location']}**",
         "",
         "## Market snapshot",
-        _score_line("Market saturation", mi.get("market_saturation")),
-        _score_line("Visual maturity", ux.get("visual_maturity")),
-        _score_line("Trust density", ux.get("trust_density")),
-        _score_line("Answerability", aeo.get("answerability")),
+        _score_line("Market saturation (density-derived authoritative)", mi.get("market_saturation")),
+        _score_line("Visual maturity (legacy scorer transitional)", ux.get("visual_maturity")),
+        _score_line("Trust density (deterministic UX overlay)", ux.get("trust_density")),
+        _score_line("Answerability (legacy scorer transitional)", aeo.get("answerability")),
         f"- Competitive density: {mi.get('competitive_density', 'n/a')}",
         "",
         "## Opportunities (sample)",
+        "_Opportunity scaffolding is flagged non-authoritative in contract metadata._",
         "",
     ]
 

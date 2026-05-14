@@ -1,17 +1,14 @@
 """
-Recon Strategic Scoring Layer
+Recon scorer surface (DEPRECATED transitional).
 
-Responsibilities:
-- opportunity scoring
-- trust scoring
-- saturation scoring
-- maturity scoring
-- strategic weighting
+Market saturation for assembly is sourced from deterministic ``density_analysis.saturation_score``.
+Trust-density UX overlays use ``trust_analysis.trust_maturity_score``.
 
-Scoring should remain:
-- deterministic
-- explainable
-- operationally useful
+Payload values here persist only as **non-authoritative** legacy signals bundled with explicit
+assembly metadata (`score_insight_legacy_scorer_transitional`) for UX/AEO stubs.
+
+Do **not** treat these floats as authoritative market intelligence — consult analyzers /
+interpreters / readiness blocks.
 """
 
 from __future__ import annotations
@@ -20,7 +17,7 @@ from intelligence.recon.models import AnalysisPayload, ScorePayload
 
 
 def score(analysis: AnalysisPayload) -> ScorePayload:
-    """Return deterministic placeholder scores derived from placeholder analysis."""
+    """Deterministic scaffold math only — outputs are flagged non-authoritative at assembly."""
 
     gap_count = max(1, len(analysis.get("gap_hypotheses", [])))
     base = 55.0 + float(gap_count) * 2.5

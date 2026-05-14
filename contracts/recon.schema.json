@@ -13,9 +13,28 @@
           },
           "label": {
             "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "authority_level": {
+            "type": "string"
           }
         },
         "additionalProperties": false
+      },
+      "authorityMetadataBanner": {
+        "type": "object",
+        "required": ["status", "authority_level"],
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "authority_level": {
+            "type": "string"
+          }
+        }
       },
       "pageProbe": {
         "type": "object",
@@ -41,6 +60,289 @@
           },
           "first_h1": {
             "type": "string"
+          }
+        }
+      },
+      "placesCompetitor": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "review_count": {
+            "type": "integer"
+          },
+          "primary_category": {
+            "type": "string"
+          },
+          "website": {
+            "type": "string"
+          }
+        }
+      },
+      "placesTextSearchEvidence": {
+        "type": "object",
+        "required": ["text_query", "fetch_ok", "competitors"],
+        "additionalProperties": false,
+        "properties": {
+          "text_query": {
+            "type": "string"
+          },
+          "fetch_ok": {
+            "type": "boolean"
+          },
+          "http_status": {
+            "type": ["integer", "null"]
+          },
+          "error": {
+            "type": "string"
+          },
+          "competitors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/placesCompetitor"
+            }
+          }
+        }
+      },
+      "trustAnalysis": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market_review_count_avg",
+          "market_review_count_median",
+          "top_3_review_share",
+          "website_presence_ratio",
+          "average_rating",
+          "authority_concentration_score",
+          "trust_maturity_score",
+          "confidence"
+        ],
+        "properties": {
+          "market_review_count_avg": {
+            "type": "number"
+          },
+          "market_review_count_median": {
+            "type": "number"
+          },
+          "top_3_review_share": {
+            "type": "number"
+          },
+          "website_presence_ratio": {
+            "type": "number"
+          },
+          "average_rating": {
+            "type": "number"
+          },
+          "authority_concentration_score": {
+            "type": "number"
+          },
+          "trust_maturity_score": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+      "densityAnalysis": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "competitor_count",
+          "market_fragmentation_score",
+          "category_consistency_score",
+          "review_distribution_score",
+          "saturation_score",
+          "confidence"
+        ],
+        "properties": {
+          "competitor_count": {
+            "type": "integer"
+          },
+          "market_fragmentation_score": {
+            "type": "number"
+          },
+          "category_consistency_score": {
+            "type": "number"
+          },
+          "review_distribution_score": {
+            "type": "number"
+          },
+          "saturation_score": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+      "authorityAnalysis": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market_leader_strength",
+          "authority_concentration",
+          "trust_gap_score",
+          "competitive_openness",
+          "dominant_player_count",
+          "confidence"
+        ],
+        "properties": {
+          "market_leader_strength": {
+            "type": "number"
+          },
+          "authority_concentration": {
+            "type": "number"
+          },
+          "trust_gap_score": {
+            "type": "number"
+          },
+          "competitive_openness": {
+            "type": "number"
+          },
+          "dominant_player_count": {
+            "type": "integer"
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+      "geoAnalysis": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "hub_strength",
+          "shoulder_fragmentation",
+          "adjacent_market_opportunity",
+          "geo_authority_spread",
+          "market_centralization",
+          "confidence"
+        ],
+        "properties": {
+          "hub_strength": {
+            "type": "number"
+          },
+          "shoulder_fragmentation": {
+            "type": "number"
+          },
+          "adjacent_market_opportunity": {
+            "type": "number"
+          },
+          "geo_authority_spread": {
+            "type": "number"
+          },
+          "market_centralization": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+      "marketStateInterpretation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "market_competitiveness",
+          "market_openness",
+          "authority_pressure",
+          "entry_difficulty",
+          "geo_expansion_viability",
+          "confidence"
+        ],
+        "properties": {
+          "market_competitiveness": {
+            "type": "number"
+          },
+          "market_openness": {
+            "type": "number"
+          },
+          "authority_pressure": {
+            "type": "number"
+          },
+          "entry_difficulty": {
+            "type": "number"
+          },
+          "geo_expansion_viability": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+      "marketReadiness": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trust_readiness",
+          "positioning_readiness",
+          "authority_readiness",
+          "geo_readiness",
+          "differentiation_readiness",
+          "confidence"
+        ],
+        "properties": {
+          "trust_readiness": {
+            "type": "number"
+          },
+          "positioning_readiness": {
+            "type": "number"
+          },
+          "authority_readiness": {
+            "type": "number"
+          },
+          "geo_readiness": {
+            "type": "number"
+          },
+          "differentiation_readiness": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "number"
+          }
+        }
+      },
+      "strategyState": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "trust_strategy_mode",
+          "positioning_pressure",
+          "conversion_pressure",
+          "differentiation_pressure",
+          "geo_expansion_pressure",
+          "authority_response_pressure",
+          "confidence"
+        ],
+        "properties": {
+          "trust_strategy_mode": {
+            "type": "number"
+          },
+          "positioning_pressure": {
+            "type": "number"
+          },
+          "conversion_pressure": {
+            "type": "number"
+          },
+          "differentiation_pressure": {
+            "type": "number"
+          },
+          "geo_expansion_pressure": {
+            "type": "number"
+          },
+          "authority_response_pressure": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "number"
           }
         }
       }
@@ -91,6 +393,9 @@
       "market_intelligence": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "market_saturation": {
             "$ref": "#/$defs/scoreInsight"
           },
@@ -108,13 +413,37 @@
             "items": {
               "type": "string"
             }
+          },
+          "places_text_search": {
+            "$ref": "#/$defs/placesTextSearchEvidence"
+          },
+          "density_analysis": {
+            "$ref": "#/$defs/densityAnalysis"
+          },
+          "authority_analysis": {
+            "$ref": "#/$defs/authorityAnalysis"
+          },
+          "geo_analysis": {
+            "$ref": "#/$defs/geoAnalysis"
+          },
+          "market_state_interpretation": {
+            "$ref": "#/$defs/marketStateInterpretation"
+          },
+          "market_readiness": {
+            "$ref": "#/$defs/marketReadiness"
+          },
+          "strategy_state": {
+            "$ref": "#/$defs/strategyState"
           }
         }
       },
-  
+
       "website_intelligence": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "design_maturity": {
             "type": "string"
           },
@@ -132,6 +461,9 @@
           },
           "page_probe": {
             "$ref": "#/$defs/pageProbe"
+          },
+          "trust_analysis": {
+            "$ref": "#/$defs/trustAnalysis"
           }
         }
       },
@@ -139,6 +471,9 @@
       "ux_intelligence": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "visual_maturity": {
             "$ref": "#/$defs/scoreInsight"
           },
@@ -157,6 +492,9 @@
       "emotional_intelligence": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "dominant_tone": {
             "type": "string"
           },
@@ -175,6 +513,9 @@
       "aeo_intelligence": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "schema_readiness": {
             "type": "string"
           },
@@ -193,6 +534,9 @@
       "opportunity_intelligence": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "convenience_gaps": {
             "type": "array",
             "items": {
@@ -223,6 +567,9 @@
       "strategy_recommendation": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "recommended_positioning": {
             "type": "string"
           },
@@ -244,6 +591,9 @@
       "intake_guidance": {
         "type": "object",
         "properties": {
+          "authority_metadata": {
+            "$ref": "#/$defs/authorityMetadataBanner"
+          },
           "priority_questions": {
             "type": "array",
             "items": {

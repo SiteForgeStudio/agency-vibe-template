@@ -17,6 +17,7 @@ No strategic reasoning should occur here.
 from __future__ import annotations
 
 import contextlib
+import os
 from html.parser import HTMLParser
 from typing import Iterable
 from urllib.error import HTTPError, URLError
@@ -25,6 +26,8 @@ from urllib.request import Request, urlopen
 
 from intelligence.recon.config import ReconPipelineConfig
 from intelligence.recon.models import CollectionPayload, WebsitePageProbe
+from intelligence.recon.places_collector import fetch_places_text_search_evidence
+from intelligence.recon.runtime_env import GOOGLE_PLACES_API_KEY_ENV
 
 _READ_LIMIT_BYTES = 512_000
 _TIMEOUT_S = 12.0
@@ -180,6 +183,20 @@ def collect(config: ReconPipelineConfig) -> CollectionPayload:
             f"Niche context recorded as: {config.niche}",
         ],
     }
+
+    hc = (config.hub_city or "").strip()
+    if hc:
+        payload["hub_city"] = hc
+    if config.shoulder_towns:
+        payload["shoulder_towns"] = list(config.shoulder_towns)
+
+    api_key = (os.environ.get(GOOGLE_PLACES_API_KEY_ENV) or "").strip()
+    if api_key:
+        payload["places_text_search"] = fetch_places_text_search_evidence(
+            config.niche,
+            config.target_location,
+            api_key=api_key,
+        )
 
     if config.website_url:
         norm = _normalize_http_url(config.website_url)

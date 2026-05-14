@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from intelligence.recon.artifact_writer import write_recon_run_artifacts
 from intelligence.recon.contract_validation import ContractValidationError, validate_recon_contract
 from intelligence.recon.assembler import assemble
+from intelligence.recon.runtime_env import load_recon_repo_dotenv
 from intelligence.recon.collectors import collect
 from intelligence.recon.analyzers import analyze
 from intelligence.recon.config import ReconPipelineConfig
@@ -54,7 +55,16 @@ def run_recon_pipeline(config: ReconPipelineConfig | None = None) -> ReconPipeli
 
 
 def main() -> None:
-    cfg = ReconPipelineConfig()
+    try:
+        load_recon_repo_dotenv()
+    except ImportError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(4) from exc
+    cfg = ReconPipelineConfig(
+        niche="auto detailing",
+        target_location="Doylestown, PA",
+        website_url="https://www.apple.com"
+    )
     outcome = run_recon_pipeline(cfg)
     try:
         validate_recon_contract(dict(outcome.contract))
