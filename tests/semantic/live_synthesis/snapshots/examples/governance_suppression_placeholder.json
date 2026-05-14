@@ -1,0 +1,10 @@
+{
+  "artifact_kind": "semantic_snapshot_placeholder",
+  "scenario_id": "example_governance_suppression",
+  "notes": "Replace with human-reviewed excerpt after a failing governance run — store governance_codes + truncated narratives only.",
+  "governance_validation_status": "suppressed_authority",
+  "example_codes": [
+    "detect:prescriptive_phrase:you_should",
+    "detect:unsupported_certainty:guaranteed_"
+  ]
+}

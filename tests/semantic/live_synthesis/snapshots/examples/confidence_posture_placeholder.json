@@ -1,0 +1,6 @@
+{
+  "artifact_kind": "semantic_snapshot_placeholder",
+  "scenario_id": "example_confidence_posture_sparse",
+  "confidence_language_posture": "bundle_min_below_012:heavy_uncertainty_qualifiers_required",
+  "notes": "Illustrative posture tier captured from sparse_weak_market live run — refresh manually after calibration changes."
+}

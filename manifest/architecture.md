@@ -34,7 +34,7 @@ Lifecycle Updates
 
 | Layer | Responsibility |
 |---|---|
-| Intelligence Layer | Market analysis + strategy |
+| Intelligence Layer | Deterministic market intelligence + bounded governed synthesis (interpretive) |
 | Client State Layer | Human-confirmed truth |
 | Strategy Layer | Factory decisions |
 | Build Layer | Render-safe normalization |
@@ -60,13 +60,49 @@ Primary stack (recon pipeline — current):
 - Legacy `scorers.py` signals used only for stub UX/AEO score cards where not yet replaced by deterministic overlays.
 - Placeholder prose blocks (strategy recommendation, emotional, opportunity scaffolding) — **explicitly** marked `authority_metadata` and non-authoritative in assembly.
 
-**Synthesis (future):** Constrained use of models to **explain or structure** outputs that are already fixed by deterministic layers — **not** to invent market facts. Evidence and analyzers remain the root of truth.
+**Bounded synthesis (optional runtime narrative infrastructure):** Models consume **`synthesis_contract` only** — a deterministic bundle that shields raw collectors and upstream payloads. Narratives are **explanatory** and **interpretive**, governed by **`narrative_synthesis_governance`**. They **do not** invent market facts, operational posture, or strategy authority. When credentials or providers are unavailable, synthesis emits **explicit suppression stubs**; deterministic analyzers and `synthesis_contract` semantics remain authoritative and intact.
 
 Primary outputs (recon stage):
 - `recon.json` (layered contract; deterministic blocks authoritative)
+- `synthesis_contract`, `market_narrative_synthesis`, `narrative_synthesis_governance` — bounded interpretive lane + validators (non-authoritative narrative layer)
 - intake guidance echoes (transitional where noted)
 
 This intelligence layer segment is **not** render-safe by itself; downstream `site.json` remains the render-safe contract.
+
+---
+
+# Semantic Governance Layer
+
+Semantic governance sits **downstream** of deterministic intelligence and **wraps** bounded synthesis — it does not replace analyzers, interpreters, readiness, or strategy-state.
+
+**What it covers:**
+- **Bounded synthesis** — narrative generation constrained to `synthesis_contract` consumption scope; no raw-collector ingestion by GPT paths.
+- **Synthesis governance validation** — `validate_market_narrative_governance` evaluates drift, certainty abuse, posture echoes, and interpretive scope against deterministic fingerprints (`synthesis_contract` + `market_narrative_synthesis`).
+- **Authority suppression / downgrades** — governance outcomes may flag or suppress interpretive authority **without** mutating deterministic payloads or breaking assembly contracts (stub narratives remain schema-stable).
+- **Semantic lineage** — deterministic lineage metadata echoed into narratives preserves provenance boundaries between frozen bundles and interpretive text.
+- **Grounding references** — narratives carry explicit deterministic summary keys (`deterministic_grounding_references`) tying prose posture back to bundled fingerprints.
+- **Contamination containment** — probe suppression/downgrade semantics upstream reduce verbatim ingestion risk; synthesis governance catches narrative contamination classes downstream.
+- **Deterministic authority preservation** — operational truth continues to flow from analyzers → interpretation → readiness → strategy-state → **`synthesis_contract`**. GPT synthesis is never the truth owner.
+
+**GPT synthesis is:**
+- explanatory
+- interpretive
+- governed
+- optional runtime infrastructure (may suppress when providers or keys are absent)
+
+**GPT synthesis is not:**
+- operational truth
+- strategy authority
+- orchestration authority
+
+**Deterministic intelligence remains operational** when synthesis is inactive, failing, or suppressed — contracts stay valid; narratives degrade to bounded stubs rather than inventing intelligence.
+
+**Contracts (recon intelligence lane):**
+- `synthesis_contract` — deterministic authoritative bundle for downstream narrative consumption only.
+- `market_narrative_synthesis` — interpretive quartet + lineage echo + grounding references + GPT meta (may record suppression).
+- `narrative_synthesis_governance` — validation record over synthesis behavior (confidence proportionality signals, bounded claims checks, drift detectors).
+
+Semantic governance protects **confidence proportionality**, **bounded claims**, **contamination resistance**, **narrative scope**, and **grounding fidelity** — without reframing SiteForge as “agentic” strategy automation.
 
 ---
 
@@ -218,6 +254,7 @@ Python owns (for recon):
 - evidence collection orchestration
 - deterministic analyzers and shared math
 - interpreters, readiness, strategy-state
+- deterministic `synthesis_contract`, bounded narrative synthesis, and narrative governance validation (interpretive lane — not operational truth)
 - contract assembly and schema validation
 
 Orchestration (`engine.py`) sequences stages only — **no** embedded market strategy rules.
@@ -237,7 +274,7 @@ Intelligence **truth** for market structure in recon flows through the Python de
 
 Near-term (recon):
 - extend deterministic coverage where legacy scorers still back stub score cards
-- optional constrained synthesis that **reads** frozen deterministic payloads only
+- tighten semantic regression coverage for synthesis governance and confidence propagation (bounded narratives remain downstream-only)
 
 Longer-term expansion areas:
 - screenshot analysis (new analyzers, not hardcoded industries)
@@ -252,6 +289,9 @@ Longer-term expansion areas:
 | Class | Examples | Authority |
 |------|----------|-----------|
 | Deterministic | `trust_analysis`, `density_analysis`, `authority_analysis`, `geo_analysis`, `market_state_interpretation`, `market_readiness`, `strategy_state` | **Operational truth** for recon’s modeled dimensions |
+| Deterministic synthesis bundle | `synthesis_contract` | **Authoritative frozen bundle** for **what narratives may reference** — not narrative prose itself |
+| Bounded synthesis outputs | `market_narrative_synthesis` | **Interpretive / non-authoritative** — explanatory layer only |
+| Synthesis governance record | `narrative_synthesis_governance` | **Behavioral audit / enforcement metadata** over narratives — does not elevate GPT to operational truth |
 | Deterministic-derived assembly | e.g. market saturation score from `density_analysis.saturation_score` | **Authoritative** for that derived display |
 | Legacy scorer rows | visual maturity, answerability where still tied to `scorers.py` | **Transitional** — tagged non-authoritative |
 | Placeholder sections | strategy_recommendation, emotional, opportunity scaffolding | **Transitional** — explicit metadata |

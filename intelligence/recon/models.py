@@ -25,6 +25,32 @@ class WebsitePageProbe(TypedDict, total=False):
     first_h1: str
 
 
+class PageProbeRelevanceSignals(TypedDict):
+    """Deterministic visibility into probe relevance factors (no prose recommendations)."""
+
+    fetch_ok_recorded: bool
+    registrable_host: str | None
+    blacklist_hit: bool
+    niche_semantic_terms: list[str]
+    category_signal_count: int
+    local_service_niche_hints: bool
+    locality_penalty_applied: bool
+    mega_enterprise_lexical_signal: str | None
+    deterministic_reason_status: str
+
+
+class PageProbeRelevancePosture(TypedDict):
+    """Bounded probe semantic authority routing (evidence remains on payload)."""
+
+    validation_module_id: str
+    relevance_score: float
+    relevance_status: str
+    authority_action: str
+    confidence: float
+    explain_codes: list[str]
+    signals: PageProbeRelevanceSignals
+
+
 class TrustAnalysis(TypedDict):
     """Deterministic operational trust primitives (Places-derived; no prose)."""
 
@@ -105,6 +131,127 @@ class StrategyState(TypedDict):
     confidence: float
 
 
+class SynthesisAuthorityContext(TypedDict):
+    """Authoritative deterministic blocks-only context for constrained synthesis ingestion."""
+
+    trust_analysis: TrustAnalysis
+    density_analysis: DensityAnalysis
+    authority_analysis: AuthorityAnalysis
+    geo_analysis: GeoAnalysis
+    market_state_interpretation: MarketStateInterpretation
+    market_readiness: MarketReadiness
+    strategy_state: StrategyState
+
+
+class SynthesisConfidenceContext(TypedDict):
+    """Aggregated confidence for synthesis routing."""
+
+    analyzer_confidence_mean: float
+    interpretation_confidence: float
+    readiness_confidence: float
+    strategy_state_confidence: float
+    synthesis_bundle_mean_confidence: float
+    synthesis_bundle_min_confidence: float
+
+
+class SynthesisContractAuthorityMetadata(TypedDict):
+    """Declares deterministic-only synthesis bundle policy."""
+
+    bundle_schema_id: str
+    synthesis_safe: bool
+    deterministic_primary: bool
+    excludes_raw_evidence: bool
+    excludes_placeholder_contract_sections: bool
+    excludes_legacy_scorers: bool
+
+
+class SemanticLineageMetadata(TypedDict):
+    """Explicit upstream lineage vs excluded runtime noise."""
+
+    pipeline_stages_included: list[str]
+    upstream_modules_in_bundle: list[str]
+    deliberately_excluded: list[str]
+
+
+class DeterministicSummariesFingerprint(TypedDict):
+    """Numeric synthesis fingerprints — no prose."""
+
+    trust_avg_rating: float
+    trust_maturity_score: float
+    trust_top_three_review_share: float
+    trust_website_presence_ratio: float
+    density_competitor_count: int
+    density_saturation_unit: float
+    density_market_fragmentation: float
+    authority_leader_strength: float
+    authority_market_concentration: float
+    authority_competitive_openness: float
+    geo_hub_strength: float
+    geo_market_centralization: float
+    interpretation_market_competitiveness: float
+    interpretation_entry_difficulty: float
+    readiness_minimum_domain: float
+    readiness_maximum_domain: float
+    strategy_trust_strategy_mode: float
+    strategy_pressure_max: float
+    synthesis_bundle_min_confidence: float
+
+
+class SynthesisContract(TypedDict):
+    """Synthesis-facing shielded bundle — operational truth distilled without collectors/legacy rows."""
+
+    authority_context: SynthesisAuthorityContext
+    confidence_context: SynthesisConfidenceContext
+    authority_metadata: SynthesisContractAuthorityMetadata
+    semantic_lineage: SemanticLineageMetadata
+    deterministic_summaries: DeterministicSummariesFingerprint
+
+
+class NarrativeInterpretiveBanner(TypedDict):
+    """Marks bounded GPT explanatory layer vs deterministic authority."""
+
+    narrative_module_id: str
+    interpretive_authority_level: str
+    consumption_scope: str
+
+
+class NarrativeSynthesisGPTMeta(TypedDict, total=False):
+    """Optional GPT call provenance."""
+
+    synthesis_model: str
+    synthesized_at_utc: str
+    suppression_reason: str
+
+
+class MarketNarrativeSynthesis(TypedDict):
+    """Interpretive explanatory narratives mirrored on synthesis_contract semantics only."""
+
+    market_narrative: str
+    authority_narrative: str
+    trust_narrative: str
+    readiness_narrative: str
+    authority_contract_metadata_echo: SynthesisContractAuthorityMetadata
+    deterministic_semantic_lineage_echo: SemanticLineageMetadata
+    narrative_interpretive_banner: NarrativeInterpretiveBanner
+    deterministic_grounding_references: list[str]
+    confidence_language_posture: str
+    gpt_generation_meta: NarrativeSynthesisGPTMeta
+
+
+class NarrativeSynthesisGovernance(TypedDict):
+    """Deterministic audit of bounded GPT narratives vs authoritative bundle policy."""
+
+    validation_module_id: str
+    validation_status: str
+    confidence_alignment: str
+    prescriptive_drift_detected: bool
+    unsupported_claims_detected: bool
+    narrative_scope_status: str
+    severity: str
+    governance_codes: list[str]
+    suppression_reason: NotRequired[str]
+
+
 class PlacesCompetitor(TypedDict):
     """Normalized row from Places Text Search (New)."""
 
@@ -131,6 +278,8 @@ class CollectionPayload(TypedDict):
     source: str
     competitor_labels: list[str]
     snapshot_notes: list[str]
+    pipeline_niche: NotRequired[str]
+    pipeline_target_location: NotRequired[str]
     hub_city: NotRequired[str]
     shoulder_towns: NotRequired[list[str]]
     page_probe: NotRequired[WebsitePageProbe]
@@ -153,6 +302,10 @@ class AnalysisPayload(TypedDict):
     market_state_interpretation: MarketStateInterpretation
     market_readiness: MarketReadiness
     strategy_state: StrategyState
+    synthesis_contract: SynthesisContract
+    market_narrative_synthesis: MarketNarrativeSynthesis
+    narrative_synthesis_governance: NarrativeSynthesisGovernance
+    probe_relevance_posture: NotRequired[PageProbeRelevancePosture]
 
 
 class ScorePayload(TypedDict):
@@ -203,10 +356,14 @@ class MarketIntelligence(TypedDict, total=False):
     market_state_interpretation: MarketStateInterpretation
     market_readiness: MarketReadiness
     strategy_state: StrategyState
+    synthesis_contract: SynthesisContract
+    market_narrative_synthesis: MarketNarrativeSynthesis
+    narrative_synthesis_governance: NarrativeSynthesisGovernance
 
 
 class WebsiteIntelligence(TypedDict, total=False):
     authority_metadata: AuthorityMetadataBanner
+    probe_relevance_posture: PageProbeRelevancePosture
     design_maturity: str
     conversion_maturity: str
     trust_architecture: str

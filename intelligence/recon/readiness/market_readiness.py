@@ -6,6 +6,7 @@ No raw evidence, prose, or recommendations — fixed-weight deterministic condit
 
 from __future__ import annotations
 
+from intelligence.recon.confidence.propagation import propagate_readiness_confidence
 from intelligence.recon.intelligence_math import clamp01
 from intelligence.recon.models import (
     AuthorityAnalysis,
@@ -25,7 +26,7 @@ def evaluate_market_readiness(
     geo: GeoAnalysis,
     interpretation: MarketStateInterpretation,
 ) -> MarketReadiness:
-    """Cross-layer readiness primitives (bounded [0, 1]; confidence-aware tail mean)."""
+    """Cross-layer readiness primitives (bounded [0, 1]; calibrated confidence propagation)."""
 
     trust_mat01 = clamp01(trust["trust_maturity_score"] / 100.0)
     review_diffusion = clamp01(1.0 - trust["top_3_review_share"])
@@ -88,18 +89,12 @@ def evaluate_market_readiness(
         6,
     )
 
-    confidence = round(
-        clamp01(
-            (
-                trust["confidence"]
-                + density["confidence"]
-                + authority["confidence"]
-                + geo["confidence"]
-                + interpretation["confidence"]
-            )
-            / 5.0
-        ),
-        6,
+    confidence = propagate_readiness_confidence(
+        trust["confidence"],
+        density["confidence"],
+        authority["confidence"],
+        geo["confidence"],
+        interpretation["confidence"],
     )
 
     return {

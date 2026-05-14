@@ -18,6 +18,7 @@ Until:
 - orchestration stabilizes
 - readiness stabilizes
 - intelligence pipelines stabilize
+- semantic governance + bounded synthesis behave as audited infrastructure
 
 The Factory is built:
 # intelligence-first.
@@ -26,87 +27,99 @@ The Factory is built:
 
 # Current Phase
 
-## Phase: Intelligence Foundation
+## Phase: Maturity engineering / stabilization
+
+The recon spine is operational; architecture emphasis shifts from foundational expansion to **semantic calibration**, **governance hardening**, and **trustworthy bounded synthesis**.
 
 Current priorities:
-- layered contracts
-- readiness systems
-- recon orchestration
-- intelligence modularization
-- operational workflows
-- ADR stabilization
+
+- semantic regression infrastructure (deterministic + semantic + governed live probes)
+- governed synthesis calibration against `synthesis_contract` fingerprints
+- confidence semantics refinement (propagation + posture realism)
+- narrative snapshot curation for audit-grade regression dialogue
+- governance detector hardening (drift, certainty abuse, bounded claims)
+- semantic QA engineering discipline across suites
 
 This phase focuses on:
-# architectural correctness.
 
-NOT frontend expansion.
+# behavioral integrity and semantic trustworthiness.
+
+NOT unchecked intelligence surface-area growth.
 
 ---
 
 # Immediate Priorities
 
-## 1. Recon Intelligence Pipeline
+## 1. Semantic regression infrastructure
+
 Build:
-- collectors
-- analyzers
-- scorers
-- assemblers
-- report generation
+
+- deterministic regression anchors on analyzers, interpreters, readiness, strategy-state
+- semantic invariant suites under `tests/semantic/` (posture ordering, suppression, confidence propagation)
+- optional governed live synthesis evaluation (`tests/semantic/live_synthesis/`) behind explicit keys + flags
 
 Goal:
-- modular intelligence orchestration
-- recon.json generation
-- reusable intelligence systems
+
+- failures expose **semantic breaches**, not only stack traces
 
 ---
 
-## 2. Readiness Engine
+## 2. Governed synthesis calibration
+
 Build:
-- readiness evaluation
-- domain confidence scoring
-- strategic gap detection
-- adaptive readiness logic
+
+- bounded narrative posture vs. bundle confidence bands
+- grounding fidelity checks against deterministic summary fingerprints
+- suppression / downgrade semantics that preserve contract validity without GPT
 
 Goal:
-- strategy-first completion
-- adaptive intake sequencing
+
+- explanatory narratives remain **interpretive**, never **operationally authoritative**
 
 ---
 
-## 3. Strategy Assembly Engine
+## 3. Confidence semantics refinement
+
 Build:
-- positioning assembly
-- vibe selection
-- trust strategy
-- conversion strategy
-- section prioritization
+
+- tighter propagation rules onto `synthesis_contract`
+- detectors for disproportionate certainty language vs. structural realism
 
 Goal:
-- centralized strategic decision making
+
+- confidence stays **proportionate** across deterministic bundles and synthesis posture metadata
 
 ---
 
-## 4. site.json Assembly
+## 4. Narrative snapshot curation + governance QA
+
 Build:
-- render-safe normalization
-- deterministic structures
-- schema-safe rendering contracts
+
+- exemplar narratives, suppression traces, governance escalations (`snapshots/` discipline)
+- adversarial semantic tests proving containment paths fire
 
 Goal:
-- stable frontend rendering
+
+- regression prevention grounded in **reviewed artifacts**, not vibes
 
 ---
 
-## 5. GitHub Actions Orchestration
-Build:
-- pipeline execution
-- recon automation
-- build automation
-- deployment automation
-- quality gates
+## 5. Operational pipelines (steady state)
+
+Maintain:
+
+- GitHub Actions orchestration for deterministic pipelines
+- recon automation without coupling frontend polish
 
 Goal:
-- operational factory runtime
+
+- stable factory runtime **without** loosening deterministic authority
+
+---
+
+## Explicit constraint — synthesis expansion
+
+Future synthesis breadth stays **downstream-only**, constrained by deterministic bundles and semantic governance — never a substitute for evidence, analyzers, or orchestration truth.
 
 ---
 
@@ -169,13 +182,14 @@ Potential future systems:
 - vector search
 - screenshot analysis
 - adaptive scoring
-- autonomous optimization
-- AI-assisted lifecycle recommendations
+- deterministic optimization loops with explicit governance gates (not autonomous strategy agents)
+- lifecycle tooling that may consume bounded synthesis **only** where contracts define interpretive scope
 - campaign generation
 - AEO enhancement systems
 
 These systems are intentionally delayed until:
 - core orchestration stabilizes
+- semantic QA infrastructure keeps bounded lanes trustworthy
 
 ---
 
@@ -198,16 +212,16 @@ The Factory evolves from:
 - website generation
 
 Toward:
-# autonomous business presence infrastructure.
+# governed deterministic presence infrastructure — bounded synthesis explains audited intelligence; operators retain strategic authority.
 
 Long-term capabilities may include:
-- continuous optimization
-- campaign generation
-- AI-assisted strategic recommendations
-- automated opportunity monitoring
-- lifecycle growth systems
+- continuous optimization anchored to deterministic contracts and human approvals
+- campaign generation downstream from frozen intelligence payloads
+- bounded analytical recommendations constrained by governance (never elevated to operational truth)
+- monitored opportunity signals with explicit provenance
+- lifecycle growth systems with audit trails
 - dynamic local SEO systems
-- AEO infrastructure
+- AEO infrastructure backed by analyzer-grade evidence where possible
 
-The long-term goal is:
-# an AI-assisted digital strategy operating system.
+The long-term posture remains:
+# deterministic intelligence spine first — synthesis stays explanatory and governed.

@@ -8,8 +8,9 @@ Responsibilities:
 - validate schema compatibility
 
 This layer produces machine-readable operational intelligence.
-Deterministic primitives (analyzer / interpreter / readiness / strategy-state) passthrough verbatim.
+Deterministic primitives (analyzer / interpreter / readiness / strategy-state / synthesis bundle) passthrough verbatim.
 Legacy scorer + prose scaffolding is explicitly marked non_authoritative metadata.
+Deterministic validation (probe relevance posture) adjusts placeholder authority banners without deleting collector evidence.
 """
 
 from __future__ import annotations
@@ -82,6 +83,9 @@ def _market_intel(
         "market_state_interpretation": analyzed["market_state_interpretation"],
         "market_readiness": analyzed["market_readiness"],
         "strategy_state": analyzed["strategy_state"],
+        "synthesis_contract": analyzed["synthesis_contract"],
+        "market_narrative_synthesis": analyzed["market_narrative_synthesis"],
+        "narrative_synthesis_governance": analyzed["narrative_synthesis_governance"],
         "market_saturation": saturated,
         "competitive_density": cd,
         "underserved_areas": [
@@ -97,8 +101,26 @@ def _market_intel(
 def _website_intel(analyzed: AnalysisPayload) -> WebsiteIntelligence:
     ta = analyzed.get("trust_analysis")
     probe = analyzed.get("page_probe")
+    posture = analyzed.get("probe_relevance_posture")
 
-    wi: WebsiteIntelligence = {"authority_metadata": _BANNER_PLACEHOLDER_SECTION}
+    auth_banner: AuthorityMetadataBanner = dict(_BANNER_PLACEHOLDER_SECTION)
+    if posture is not None:
+        auth_action = posture.get("authority_action")
+        if auth_action == "suppress":
+            auth_banner = {
+                "status": "homepage_probe_evidence_observable_placeholder_semantics_suppressed",
+                "authority_level": "non_authoritative",
+            }
+        elif auth_action == "downgrade":
+            auth_banner = {
+                "status": "homepage_probe_semantics_downgraded_pending_alignment",
+                "authority_level": "non_authoritative",
+            }
+
+    wi: WebsiteIntelligence = {"authority_metadata": auth_banner}
+    if posture is not None:
+        wi["probe_relevance_posture"] = posture
+
     if ta is not None:
         wi["trust_analysis"] = ta
     wi["design_maturity"] = "[PLACEHOLDER] UX surface estimate — authoritative proof is page_probe collector facts only."
@@ -188,7 +210,7 @@ def assemble(
             ],
             "priority_gaps": opp_gaps,
             "recommended_sections": [
-                "[PLACEHOLDER] Section hints only — authoritative metrics: trust_analysis, density_analysis, authority_analysis, geo_analysis, market_state_interpretation, market_readiness, strategy_state.",
+                "[PLACEHOLDER] Section hints only — authoritative metrics live on analyzers plus market_state_interpretation, market_readiness, strategy_state; synthesis_contract is the deterministic bundle for constrained synthesis (GPT must not ingest raw payloads).",
             ],
         },
     }

@@ -7,6 +7,7 @@ Uses shared intelligence_math for bounded deterministic composition.
 
 from __future__ import annotations
 
+from intelligence.recon.confidence.propagation import propagate_interpretation_confidence
 from intelligence.recon.intelligence_math import clamp01
 from intelligence.recon.models import (
     AuthorityAnalysis,
@@ -88,17 +89,11 @@ def interpret_market_state(
         6,
     )
 
-    confidence = round(
-        clamp01(
-            (
-                trust["confidence"]
-                + density["confidence"]
-                + authority["confidence"]
-                + geo["confidence"]
-            )
-            / 4.0
-        ),
-        6,
+    confidence = propagate_interpretation_confidence(
+        trust["confidence"],
+        density["confidence"],
+        authority["confidence"],
+        geo["confidence"],
     )
 
     return {

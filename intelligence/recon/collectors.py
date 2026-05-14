@@ -182,6 +182,8 @@ def collect(config: ReconPipelineConfig) -> CollectionPayload:
             "No screenshots gathered in skeleton mode",
             f"Niche context recorded as: {config.niche}",
         ],
+        "pipeline_niche": config.niche,
+        "pipeline_target_location": config.target_location,
     }
 
     hc = (config.hub_city or "").strip()

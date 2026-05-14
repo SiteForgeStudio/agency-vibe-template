@@ -7,6 +7,7 @@ Weights are fixed for auditability downstream.
 
 from __future__ import annotations
 
+from intelligence.recon.confidence.propagation import propagate_strategy_state_confidence
 from intelligence.recon.intelligence_math import clamp01
 from intelligence.recon.models import (
     AuthorityAnalysis,
@@ -90,19 +91,13 @@ def evaluate_strategy_state(
         6,
     )
 
-    confidence = round(
-        clamp01(
-            (
-                trust["confidence"]
-                + density["confidence"]
-                + authority["confidence"]
-                + geo["confidence"]
-                + interpretation["confidence"]
-                + readiness["confidence"]
-            )
-            / 6.0
-        ),
-        6,
+    confidence = propagate_strategy_state_confidence(
+        trust["confidence"],
+        density["confidence"],
+        authority["confidence"],
+        geo["confidence"],
+        interpretation["confidence"],
+        readiness["confidence"],
     )
 
     return {

@@ -1,29 +1,39 @@
 # Current Focus
 
 ## Current Phase
-Deterministic recon intelligence (authoritative spine operational)
+
+Beyond baseline deterministic recon intelligence — **semantic calibration**, **governed synthesis stabilization**, and **semantic QA infrastructure** now share priority with the authoritative spine.
 
 ---
 
 ## Current Objective
-Harden and document the **deterministic strategic intelligence stack** as the source of operational truth in recon, with placeholders and legacy scorers explicitly **transitional** and **non-authoritative**.
 
-Current focus:
-- **Analyzers** — trust, density, authority, geo (evidence-derived primitives; `intelligence/recon/analyzers/`)
-- **Shared math** — `intelligence_math.py` (bounded, reusable determinism)
-- **Interpreters** — cross-analyzer relationships (`market_state_interpretation`)
-- **Readiness** — strategic preparedness composites (`market_readiness`)
-- **Strategy-state** — deterministic posture/pressure primitives (`strategy_state`)
-- **Assembler** — passthrough assembly, `authority_metadata` semantics, legacy sections flagged
-- **Contract validation** — `contracts/recon.schema.json` remains the shape contract
-- **Report** — downstream synopsis only; does not invent intelligence
+Harden **semantic trustworthiness**: confidence realism across bundles, bounded explanatory narratives (`synthesis_contract` → `market_narrative_synthesis`), **narrative_synthesis_governance** enforcement, and regression discipline across deterministic + semantic + optional live synthesis suites.
+
+Operational spine remains authoritative:
+
+- **Analyzers** — trust, density, authority, geo (`intelligence/recon/analyzers/`)
+- **Shared math** — `intelligence_math.py`
+- **Interpreters** — `market_state_interpretation`
+- **Readiness** — `market_readiness`
+- **Strategy-state** — deterministic posture / pressure primitives (`strategy_state`)
+- **`synthesis_contract`** — deterministic bundle for downstream narrative consumption only
+- **Bounded synthesis + governance** — interpretive quartet validated downstream; suppression stubs preserve contracts without GPT
+
+Supporting infrastructure:
+
+- **Assembler** — passthrough assembly, `authority_metadata`, transitional sections flagged
+- **Contract validation** — `contracts/recon.schema.json`
+- **Report** — synopsis only
 
 ---
 
 ## Current Architectural Priorities
-- **Deterministic systems own truth** — analyzers → interpreters → readiness → strategy-state
+
+- **Deterministic systems own operational truth** — analyzers → interpreters → readiness → strategy-state → **`synthesis_contract`**
+- **GPT synthesis stays explanatory / interpretive / governed** — never orchestration authority or strategy authority
+- **Semantic regression prevention** — posture tests, contamination guards, adversarial governance probes (`tests/semantic/`, optional `live_synthesis/`)
 - Layered contracts and recon-first ordering preserved
-- **GPT (future)** explains or narrates **frozen** deterministic outputs; it does **not** invent market truth
 - Placeholders and legacy scorer outputs remain **explicitly non-authoritative**
 - Rendering stays downstream; no intelligence logic in Astro
 - Modular orchestration; **no** business rules in `engine.py` beyond sequencing
@@ -33,20 +43,24 @@ Current focus:
 ## Important Constraints
 
 Do NOT:
+
 - rewrite Astro or frontend systems in this track
 - expand component libraries as part of recon manifest work
 - move deterministic logic into assemblers (passthrough only)
 - treat legacy `scorers.py` outputs as authoritative market truth
 - re-authorize placeholder strategy/UX/emotional scaffolding as strategic intelligence
+- loosen governance thresholds to chase fluent marketing tone
+- describe bounded synthesis as autonomous agency or unconstrained recommendation authority
 
 ---
 
 ## Current Goal
+
 The runnable recon pipeline produces:
-- **recon.json** — includes deterministic blocks (`trust_analysis`, `density_analysis`, `authority_analysis`, `geo_analysis`, `market_state_interpretation`, `market_readiness`, `strategy_state`) plus transitional/legacy fields **marked** via metadata where applicable
+
+- **recon.json** — deterministic blocks plus **`synthesis_contract`**, **`market_narrative_synthesis`**, **`narrative_synthesis_governance`**, transitional fields **marked** via metadata where applicable
 - **Markdown report** — synopsis; not a second source of truth
 
-Runtime spine (orchestration):
-`collect` → `analyze` (analyzers + interpreters + readiness + strategy-state) → **transitional** `score` → `assemble` → `validate` → artifact persistence → `report`
+Runtime spine (`engine.py`): `collect` → `analyze` (deterministic chain including **`synthesis_contract`**, bounded narratives, governance validation) → transitional **`score`** → **`assemble`** → **`validate`** → persistence → **`report`**
 
-Under `intelligence/recon/`: collectors → analyzers → interpreters → readiness → strategy (strategy-state) → constrained synthesis **(future)** → rendering **(downstream, deterministic)**.
+**Priority posture:** architecture expansion intentionally slows — **behavior quality**, **confidence realism**, and **semantic trustworthiness** lead.
